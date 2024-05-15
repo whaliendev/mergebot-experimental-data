@@ -1,0 +1,522 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/services@audiopolicy@common@managerdefinitions@src@AudioOutputDescriptor.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/services@audiopolicy@common@managerdefinitions@src@AudioOutputDescriptor.no_comments_merged.cpp
+index 72ca2e6..5cc14b5 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/services@audiopolicy@common@managerdefinitions@src@AudioOutputDescriptor.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/services@audiopolicy@common@managerdefinitions@src@AudioOutputDescriptor.no_comments_merged.cpp
+@@ -12 +11,0 @@
+-#define APM_AUDIO_OUT_DEVICE_REMOTE_ALL AUDIO_DEVICE_OUT_REMOTE_SUBMIX
+@@ -14,4 +13,2 @@ namespace android {
+-DeviceTypeSet APM_AUDIO_OUT_DEVICE_REMOTE_ALL = {
+-    AUDIO_DEVICE_OUT_REMOTE_SUBMIX};
+-AudioOutputDescriptor::AudioOutputDescriptor(
+-    const sp<PolicyAudioPort> &policyAudioPort,
++DeviceTypeSet APM_AUDIO_OUT_DEVICE_REMOTE_ALL = {AUDIO_DEVICE_OUT_REMOTE_SUBMIX};
++AudioOutputDescriptor::AudioOutputDescriptor(const sp<PolicyAudioPort>& policyAudioPort,
+@@ -19 +16,2 @@ AudioOutputDescriptor::AudioOutputDescriptor(
+-    : mPolicyAudioPort(policyAudioPort), mClientInterface(clientInterface) {
++    : mPolicyAudioPort(policyAudioPort), mClientInterface(clientInterface)
++{
+@@ -27,3 +25,3 @@ AudioOutputDescriptor::AudioOutputDescriptor(
+-audio_config_base_t AudioOutputDescriptor::getConfig() const {
+-  const audio_config_base_t config = {.sample_rate = mSamplingRate,
+-                                      .channel_mask = mChannelMask,
++audio_config_base_t AudioOutputDescriptor::getConfig() const
++{
++    const audio_config_base_t config = { .sample_rate = mSamplingRate, .channel_mask = mChannelMask,
+@@ -33,3 +31,4 @@ audio_config_base_t AudioOutputDescriptor::getConfig() const {
+-audio_module_handle_t AudioOutputDescriptor::getModuleHandle() const {
+-  return mPolicyAudioPort.get() != nullptr ? mPolicyAudioPort->getModuleHandle()
+-                                           : AUDIO_MODULE_HANDLE_NONE;
++audio_module_handle_t AudioOutputDescriptor::getModuleHandle() const
++{
++    return mPolicyAudioPort.get() != nullptr ?
++            mPolicyAudioPort->getModuleHandle() : AUDIO_MODULE_HANDLE_NONE;
+@@ -37 +36,2 @@ audio_module_handle_t AudioOutputDescriptor::getModuleHandle() const {
+-audio_patch_handle_t AudioOutputDescriptor::getPatchHandle() const {
++audio_patch_handle_t AudioOutputDescriptor::getPatchHandle() const
++{
+@@ -40 +40,2 @@ audio_patch_handle_t AudioOutputDescriptor::getPatchHandle() const {
+-void AudioOutputDescriptor::setPatchHandle(audio_patch_handle_t handle) {
++void AudioOutputDescriptor::setPatchHandle(audio_patch_handle_t handle)
++{
+@@ -44 +45,2 @@ bool AudioOutputDescriptor::sharesHwModuleWith(
+-    const sp<AudioOutputDescriptor> &outputDesc) {
++        const sp<AudioOutputDescriptor>& outputDesc)
++{
+@@ -47,2 +49,2 @@ bool AudioOutputDescriptor::sharesHwModuleWith(
+-void AudioOutputDescriptor::setStopTime(const sp<TrackClientDescriptor> &client,
+-                                        nsecs_t sysTime) {
++void AudioOutputDescriptor::setStopTime(const sp<TrackClientDescriptor>& client, nsecs_t sysTime)
++{
+@@ -52,4 +54,3 @@ void AudioOutputDescriptor::setStopTime(const sp<TrackClientDescriptor> &client,
+-void AudioOutputDescriptor::setClientActive(
+-    const sp<TrackClientDescriptor> &client, bool active) {
+-  auto clientIter =
+-      std::find(begin(mActiveClients), end(mActiveClients), client);
++void AudioOutputDescriptor::setClientActive(const sp<TrackClientDescriptor>& client, bool active)
++{
++    auto clientIter = std::find(begin(mActiveClients), end(mActiveClients), client);
+@@ -72,2 +73,2 @@ void AudioOutputDescriptor::setClientActive(
+-    ALOGW("%s(%s): invalid deactivation with globalRefCount %d", __func__,
+-          client->toShortString().c_str(), mGlobalActiveCount);
++        ALOGW("%s(%s): invalid deactivation with globalRefCount %d",
++              __func__, client->toShortString().c_str(), mGlobalActiveCount);
+@@ -78,2 +79 @@ void AudioOutputDescriptor::setClientActive(
+-  if ((policyMix != NULL) &&
+-      ((policyMix->mCbFlags & AudioMix::kCbFlagNotifyActivity) != 0)) {
++    if ((policyMix != NULL) && ((policyMix->mCbFlags & AudioMix::kCbFlagNotifyActivity) != 0)) {
+@@ -81,2 +81 @@ void AudioOutputDescriptor::setClientActive(
+-      mClientInterface->onDynamicPolicyMixStateUpdate(
+-          policyMix->mDeviceAddress,
++            mClientInterface->onDynamicPolicyMixStateUpdate(policyMix->mDeviceAddress,
+@@ -88,7 +87,5 @@ void AudioOutputDescriptor::setClientActive(
+-bool AudioOutputDescriptor::isActive(VolumeSource vs, uint32_t inPastMs,
+-                                     nsecs_t sysTime) const {
+-  return (vs == VOLUME_SOURCE_NONE)
+-             ? isActive(inPastMs)
+-             : (mVolumeActivities.find(vs) != std::end(mVolumeActivities)
+-                    ? mVolumeActivities.at(vs).isActive(inPastMs, sysTime)
+-                    : false);
++bool AudioOutputDescriptor::isActive(VolumeSource vs, uint32_t inPastMs, nsecs_t sysTime) const
++{
++    return (vs == VOLUME_SOURCE_NONE) ?
++                isActive(inPastMs) : (mVolumeActivities.find(vs) != std::end(mVolumeActivities)?
++                mVolumeActivities.at(vs).isActive(inPastMs, sysTime) : false);
+@@ -96 +93,2 @@ bool AudioOutputDescriptor::isActive(VolumeSource vs, uint32_t inPastMs,
+-bool AudioOutputDescriptor::isActive(uint32_t inPastMs) const {
++bool AudioOutputDescriptor::isActive(uint32_t inPastMs) const
++{
+@@ -108,2 +106,2 @@ bool AudioOutputDescriptor::isActive(uint32_t inPastMs) const {
+-bool AudioOutputDescriptor::isFixedVolume(
+-    const DeviceTypeSet &deviceTypes __unused) {
++bool AudioOutputDescriptor::isFixedVolume(const DeviceTypeSet& deviceTypes __unused)
++{
+@@ -112 +110,2 @@ bool AudioOutputDescriptor::isFixedVolume(
+-bool AudioOutputDescriptor::setVolume(float volumeDb, VolumeSource volumeSource,
++bool AudioOutputDescriptor::setVolume(float volumeDb,
++                                      VolumeSource volumeSource,
+@@ -114 +112,0 @@ bool AudioOutputDescriptor::setVolume(float volumeDb, VolumeSource volumeSource,
+-                                      audio_devices_t ,
+@@ -116 +114,3 @@ bool AudioOutputDescriptor::setVolume(float volumeDb, VolumeSource volumeSource,
+-                                      uint32_t delayMs, bool force) {
++                                      uint32_t delayMs,
++                                      bool force)
++{
+@@ -118,2 +118 @@ bool AudioOutputDescriptor::setVolume(float volumeDb, VolumeSource volumeSource,
+-    ALOGV("%s for volumeSrc %d, volume %f, delay %d", __func__, volumeSource,
+-          volumeDb, delayMs);
++        ALOGV("%s for volumeSrc %d, volume %f, delay %d", __func__, volumeSource, volumeDb, delayMs);
+@@ -125,4 +124,4 @@ bool AudioOutputDescriptor::setVolume(float volumeDb, VolumeSource volumeSource,
+-status_t AudioOutputDescriptor::applyAudioPortConfig(
+-    const struct audio_port_config *config, audio_port_config *backupConfig) {
+-  struct audio_port_config localBackupConfig = {.config_mask =
+-                                                    config->config_mask};
++status_t AudioOutputDescriptor::applyAudioPortConfig(const struct audio_port_config *config,
++                                                     audio_port_config *backupConfig)
++{
++    struct audio_port_config localBackupConfig = { .config_mask = config->config_mask };
+@@ -140,5 +139,4 @@ status_t AudioOutputDescriptor::applyAudioPortConfig(
+-void AudioOutputDescriptor::toAudioPortConfig(
+-    struct audio_port_config *dstConfig,
+-    const struct audio_port_config *srcConfig) const {
+-  dstConfig->config_mask = AUDIO_PORT_CONFIG_SAMPLE_RATE |
+-                           AUDIO_PORT_CONFIG_CHANNEL_MASK |
++void AudioOutputDescriptor::toAudioPortConfig(struct audio_port_config *dstConfig,
++                                              const struct audio_port_config *srcConfig) const
++{
++    dstConfig->config_mask = AUDIO_PORT_CONFIG_SAMPLE_RATE|AUDIO_PORT_CONFIG_CHANNEL_MASK|
+@@ -156 +154,2 @@ void AudioOutputDescriptor::toAudioPortConfig(
+-void AudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
++void AudioOutputDescriptor::toAudioPort(struct audio_port *port) const
++{
+@@ -161,3 +160,3 @@ void AudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
+-TrackClientVector AudioOutputDescriptor::clientsList(
+-    bool activeOnly, product_strategy_t strategy,
+-    bool preferredDeviceOnly) const {
++TrackClientVector AudioOutputDescriptor::clientsList(bool activeOnly, product_strategy_t strategy,
++                                                     bool preferredDeviceOnly) const
++{
+@@ -166,5 +165,4 @@ TrackClientVector AudioOutputDescriptor::clientsList(
+-    if ((!activeOnly || client->active()) &&
+-        (strategy == PRODUCT_STRATEGY_NONE || strategy == client->strategy()) &&
+-        (!preferredDeviceOnly ||
+-         (client->hasPreferredDevice() &&
+-          !client->isPreferredDeviceForExclusiveUse()))) {
++        if ((!activeOnly || client->active())
++            && (strategy == PRODUCT_STRATEGY_NONE || strategy == client->strategy())
++            && (!preferredDeviceOnly ||
++                (client->hasPreferredDevice() && !client->isPreferredDeviceForExclusiveUse()))) {
+@@ -176,2 +174,2 @@ TrackClientVector AudioOutputDescriptor::clientsList(
+-bool AudioOutputDescriptor::isAnyActive(
+-    VolumeSource volumeSourceToIgnore) const {
++bool AudioOutputDescriptor::isAnyActive(VolumeSource volumeSourceToIgnore) const
++{
+@@ -180,2 +178 @@ bool AudioOutputDescriptor::isAnyActive(
+-                        return client->volumeSource() != volumeSourceToIgnore;
+-                      }) != end(mActiveClients);
++        return client->volumeSource() != volumeSourceToIgnore; }) != end(mActiveClients);
+@@ -183 +180,2 @@ bool AudioOutputDescriptor::isAnyActive(
+-void AudioOutputDescriptor::dump(String8 *dst) const {
++void AudioOutputDescriptor::dump(String8 *dst) const
++{
+@@ -210,3 +208,4 @@ void AudioOutputDescriptor::dump(String8 *dst) const {
+-void AudioOutputDescriptor::log(const char *indent) {
+-  ALOGI("%sID: %d,0x%X, [rt:%d fmt:0x%X ch:0x%X]", indent, mId, mId,
+-        mSamplingRate, mFormat, mChannelMask);
++void AudioOutputDescriptor::log(const char* indent)
++{
++    ALOGI("%sID: %d,0x%X, [rt:%d fmt:0x%X ch:0x%X]",
++          indent, mId, mId, mSamplingRate, mFormat, mChannelMask);
+@@ -214,2 +213,2 @@ void AudioOutputDescriptor::log(const char *indent) {
+-SwAudioOutputDescriptor::SwAudioOutputDescriptor(
+-    const sp<IOProfile> &profile, AudioPolicyClientInterface *clientInterface)
++SwAudioOutputDescriptor::SwAudioOutputDescriptor(const sp<IOProfile>& profile,
++                                                 AudioPolicyClientInterface *clientInterface)
+@@ -217,3 +216 @@ SwAudioOutputDescriptor::SwAudioOutputDescriptor(
+-      mProfile(profile),
+-      mIoHandle(AUDIO_IO_HANDLE_NONE),
+-      mLatency(0),
++    mProfile(profile), mIoHandle(AUDIO_IO_HANDLE_NONE), mLatency(0),
+@@ -221,4 +218,3 @@ SwAudioOutputDescriptor::SwAudioOutputDescriptor(
+-      mOutput1(0),
+-      mOutput2(0),
+-      mDirectOpenCount(0),
+-      mDirectClientSession(AUDIO_SESSION_NONE) {
++    mOutput1(0), mOutput2(0), mDirectOpenCount(0),
++    mDirectClientSession(AUDIO_SESSION_NONE)
++{
+@@ -229 +225,2 @@ SwAudioOutputDescriptor::SwAudioOutputDescriptor(
+-void SwAudioOutputDescriptor::dump(String8 *dst) const {
++void SwAudioOutputDescriptor::dump(String8 *dst) const
++{
+@@ -234 +231,2 @@ void SwAudioOutputDescriptor::dump(String8 *dst) const {
+-DeviceVector SwAudioOutputDescriptor::devices() const {
++DeviceVector SwAudioOutputDescriptor::devices() const
++{
+@@ -243 +241,2 @@ bool SwAudioOutputDescriptor::sharesHwModuleWith(
+-    const sp<SwAudioOutputDescriptor> &outputDesc) {
++        const sp<SwAudioOutputDescriptor>& outputDesc)
++{
+@@ -245,2 +244 @@ bool SwAudioOutputDescriptor::sharesHwModuleWith(
+-    return mOutput1->sharesHwModuleWith(outputDesc) ||
+-           mOutput2->sharesHwModuleWith(outputDesc);
++        return mOutput1->sharesHwModuleWith(outputDesc) || mOutput2->sharesHwModuleWith(outputDesc);
+@@ -254 +252,2 @@ bool SwAudioOutputDescriptor::sharesHwModuleWith(
+-DeviceVector SwAudioOutputDescriptor::supportedDevices() const {
++DeviceVector SwAudioOutputDescriptor::supportedDevices() const
++{
+@@ -262,2 +261,2 @@ DeviceVector SwAudioOutputDescriptor::supportedDevices() const {
+-bool SwAudioOutputDescriptor::supportsDevice(
+-    const sp<DeviceDescriptor> &device) const {
++bool SwAudioOutputDescriptor::supportsDevice(const sp<DeviceDescriptor> &device) const
++{
+@@ -266,2 +265,2 @@ bool SwAudioOutputDescriptor::supportsDevice(
+-bool SwAudioOutputDescriptor::supportsAllDevices(
+-    const DeviceVector &devices) const {
++bool SwAudioOutputDescriptor::supportsAllDevices(const DeviceVector &devices) const
++{
+@@ -270,2 +269,2 @@ bool SwAudioOutputDescriptor::supportsAllDevices(
+-DeviceVector SwAudioOutputDescriptor::filterSupportedDevices(
+-    const DeviceVector &devices) const {
++DeviceVector SwAudioOutputDescriptor::filterSupportedDevices(const DeviceVector &devices) const
++{
+@@ -275,2 +274,2 @@ DeviceVector SwAudioOutputDescriptor::filterSupportedDevices(
+-bool SwAudioOutputDescriptor::devicesSupportEncodedFormats(
+-    const DeviceTypeSet &deviceTypes) {
++bool SwAudioOutputDescriptor::devicesSupportEncodedFormats(const DeviceTypeSet& deviceTypes)
++{
+@@ -278,2 +277,2 @@ bool SwAudioOutputDescriptor::devicesSupportEncodedFormats(
+-    return (mOutput1->devicesSupportEncodedFormats(deviceTypes) ||
+-            mOutput2->devicesSupportEncodedFormats(deviceTypes));
++        return (mOutput1->devicesSupportEncodedFormats(deviceTypes)
++                    || mOutput2->devicesSupportEncodedFormats(deviceTypes));
+@@ -284 +283,2 @@ bool SwAudioOutputDescriptor::devicesSupportEncodedFormats(
+-uint32_t SwAudioOutputDescriptor::latency() {
++uint32_t SwAudioOutputDescriptor::latency()
++{
+@@ -286,2 +286 @@ uint32_t SwAudioOutputDescriptor::latency() {
+-    return (mOutput1->mLatency > mOutput2->mLatency) ? mOutput1->mLatency
+-                                                     : mOutput2->mLatency;
++        return (mOutput1->mLatency > mOutput2->mLatency) ? mOutput1->mLatency : mOutput2->mLatency;
+@@ -292,2 +291,2 @@ uint32_t SwAudioOutputDescriptor::latency() {
+-void SwAudioOutputDescriptor::setClientActive(
+-    const sp<TrackClientDescriptor> &client, bool active) {
++void SwAudioOutputDescriptor::setClientActive(const sp<TrackClientDescriptor>& client, bool active)
++{
+@@ -300 +299,2 @@ void SwAudioOutputDescriptor::setClientActive(
+-bool SwAudioOutputDescriptor::isFixedVolume(const DeviceTypeSet &deviceTypes) {
++bool SwAudioOutputDescriptor::isFixedVolume(const DeviceTypeSet& deviceTypes)
++{
+@@ -315,3 +315,3 @@ void SwAudioOutputDescriptor::toAudioPortConfig(
+-    const struct audio_port_config *srcConfig) const {
+-  ALOG_ASSERT(!isDuplicated(),
+-              "toAudioPortConfig() called on duplicated output %d", mIoHandle);
++                                                 const struct audio_port_config *srcConfig) const
++{
++    ALOG_ASSERT(!isDuplicated(), "toAudioPortConfig() called on duplicated output %d", mIoHandle);
+@@ -321,3 +321,4 @@ void SwAudioOutputDescriptor::toAudioPortConfig(
+-void SwAudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
+-  ALOG_ASSERT(!isDuplicated(), "toAudioPort() called on duplicated output %d",
+-              mIoHandle);
++void SwAudioOutputDescriptor::toAudioPort(
++                                                    struct audio_port *port) const
++{
++    ALOG_ASSERT(!isDuplicated(), "toAudioPort() called on duplicated output %d", mIoHandle);
+@@ -327,3 +328,2 @@ void SwAudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
+-  port->ext.mix.latency_class = mFlags & AUDIO_OUTPUT_FLAG_FAST
+-                                    ? AUDIO_LATENCY_LOW
+-                                    : AUDIO_LATENCY_NORMAL;
++    port->ext.mix.latency_class =
++            mFlags & AUDIO_OUTPUT_FLAG_FAST ? AUDIO_LATENCY_LOW : AUDIO_LATENCY_NORMAL;
+@@ -331,3 +331,2 @@ void SwAudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
+-bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-                                        const StreamTypeVector &streamTypes,
+-                                        audio_devices_t device,
++bool SwAudioOutputDescriptor::setVolume(float volumeDb,
++                                        VolumeSource vs, const StreamTypeVector &streamTypes,
+@@ -335 +334,3 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-                                        uint32_t delayMs, bool force) {
++                                        uint32_t delayMs,
++                                        bool force)
++{
+@@ -337,2 +338 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-  if (!AudioOutputDescriptor::setVolume(volumeDb, vs, streamTypes, deviceTypes,
+-                                        delayMs, force)) {
++    if (!AudioOutputDescriptor::setVolume(volumeDb, vs, streamTypes, deviceTypes, delayMs, force)) {
+@@ -347,2 +347 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-      ALOGV("%s: device %s has gain controller", __func__,
+-            devicePort->toString().c_str());
++            ALOGV("%s: device %s has gain controller", __func__, devicePort->toString().c_str());
+@@ -351,2 +350 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-        mClientInterface->setStreamVolume(stream, volumeAmpl, mIoHandle,
+-                                          delayMs);
++                mClientInterface->setStreamVolume(stream, volumeAmpl, mIoHandle, delayMs);
+@@ -358,4 +356,2 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-      int gainValueMb =
+-          ((volumeDb * 100) / gainStepValueInMb) * gainStepValueInMb;
+-      gainValueMb =
+-          std::max(gainMinValueInMb, std::min(gainValueMb, gainMaxValueInMb));
++            int gainValueMb = ((volumeDb * 100)/ gainStepValueInMb) * gainStepValueInMb;
++            gainValueMb = std::max(gainMinValueInMb, std::min(gainValueMb, gainMaxValueInMb));
+@@ -371,2 +367 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-    mClientInterface->setStreamVolume(AUDIO_STREAM_VOICE_CALL, volumeAmpl,
+-                                      mIoHandle, delayMs);
++        mClientInterface->setStreamVolume(AUDIO_STREAM_VOICE_CALL, volumeAmpl, mIoHandle, delayMs);
+@@ -375,2 +370,2 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, VolumeSource vs,
+-    ALOGV("%s output %d for volumeSource %d, volume %f, delay %d stream=%s",
+-          __func__, mIoHandle, vs, volumeDb, delayMs, toString(stream).c_str());
++        ALOGV("%s output %d for volumeSource %d, volume %f, delay %d stream=%s", __func__,
++              mIoHandle, vs, volumeDb, delayMs, toString(stream).c_str());
+@@ -385 +380,2 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-                                       audio_io_handle_t *output) {
++                                       audio_io_handle_t *output)
++{
+@@ -387 +382,0 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-<<<<<<< HEAD
+@@ -393,7 +387,0 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-||||||| 3944a1b7f7
+-  const String8 &address = devices.getFirstValidAddress();
+-  audio_devices_t device = devices.types();
+-=======
+-  const String8 &address = devices.getFirstValidAddress();
+-  DeviceTypeSet deviceTypes = devices.types();
+->>>>>>> cb0fcde90788a378765af0f9fd010c7de886bff5
+@@ -423,3 +411 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-        mDevices.toString().c_str(), mProfile.get(),
+-        mProfile->getName().c_str());
+-  audio_devices_t deviceType = deviceTypesToBitMask(deviceTypes);
++          mDevices.toString().c_str(), mProfile.get(), mProfile->getName().c_str());
+@@ -427,2 +413,2 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-                                                 output, &lConfig,
+-<<<<<<< HEAD
++                                                   output,
++                                                   &lConfig,
+@@ -430,19 +416,2 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-||||||| 3944a1b7f7
+-                                                 &device, address,
+-=======
+-                                                 &deviceType, address,
+->>>>>>> cb0fcde90788a378765af0f9fd010c7de886bff5
+-                                                 &mLatency, mFlags);
+-<<<<<<< HEAD
+-||||||| 3944a1b7f7
+-  LOG_ALWAYS_FATAL_IF(
+-      mDevices.types() != device,
+-      "%s openOutput returned device %08x when given device %08x", __FUNCTION__,
+-      mDevices.types(), device);
+-=======
+-  deviceTypes = deviceTypesFromBitMask(deviceType);
+-  LOG_ALWAYS_FATAL_IF(mDevices.types() != deviceTypes,
+-                      "%s openOutput returned device %s when given device %s",
+-                      __FUNCTION__, dumpDeviceTypes(mDevices.types()).c_str(),
+-                      dumpDeviceTypes(deviceTypes).c_str());
+->>>>>>> cb0fcde90788a378765af0f9fd010c7de886bff5
++                                                   &mLatency,
++                                                   mFlags);
+@@ -450,3 +419 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-    LOG_ALWAYS_FATAL_IF(
+-        *output == AUDIO_IO_HANDLE_NONE,
+-<<<<<<< HEAD
++        LOG_ALWAYS_FATAL_IF(*output == AUDIO_IO_HANDLE_NONE,
+@@ -457,7 +423,0 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-||||||| 3944a1b7f7
+-        "%s openOutput returned output handle %d for device %08x", __FUNCTION__,
+-        *output, device);
+-=======
+-        "%s openOutput returned output handle %d for device %s", __FUNCTION__,
+-        *output, dumpDeviceTypes(deviceTypes).c_str());
+->>>>>>> cb0fcde90788a378765af0f9fd010c7de886bff5
+@@ -473 +433,2 @@ status_t SwAudioOutputDescriptor::open(const audio_config_t *config,
+-status_t SwAudioOutputDescriptor::start() {
++status_t SwAudioOutputDescriptor::start()
++{
+@@ -494 +455,2 @@ status_t SwAudioOutputDescriptor::start() {
+-void SwAudioOutputDescriptor::stop() {
++void SwAudioOutputDescriptor::stop()
++{
+@@ -502,2 +464,2 @@ void SwAudioOutputDescriptor::stop() {
+-                        "%s invalid profile active count %u", __func__,
+-                        mProfile->curActiveCount);
++                            "%s invalid profile active count %u",
++                            __func__, mProfile->curActiveCount);
+@@ -507 +469,2 @@ void SwAudioOutputDescriptor::stop() {
+-void SwAudioOutputDescriptor::close() {
++void SwAudioOutputDescriptor::close()
++{
+@@ -511,2 +474,2 @@ void SwAudioOutputDescriptor::close() {
+-        ALOGW("%s client with port ID %d still active on output %d", __func__,
+-              client->portId(), mId);
++                ALOGW("%s client with port ID %d still active on output %d",
++                      __func__, client->portId(), mId);
+@@ -527,5 +490,5 @@ void SwAudioOutputDescriptor::close() {
+-status_t SwAudioOutputDescriptor::openDuplicating(
+-    const sp<SwAudioOutputDescriptor> &output1,
+-    const sp<SwAudioOutputDescriptor> &output2, audio_io_handle_t *ioHandle) {
+-  *ioHandle = mClientInterface->openDuplicateOutput(output2->mIoHandle,
+-                                                    output1->mIoHandle);
++status_t SwAudioOutputDescriptor::openDuplicating(const sp<SwAudioOutputDescriptor>& output1,
++                                                  const sp<SwAudioOutputDescriptor>& output2,
++                                                  audio_io_handle_t *ioHandle)
++{
++    *ioHandle = mClientInterface->openDuplicateOutput(output2->mIoHandle, output1->mIoHandle);
+@@ -545,2 +508 @@ status_t SwAudioOutputDescriptor::openDuplicating(
+-HwAudioOutputDescriptor::HwAudioOutputDescriptor(
+-    const sp<SourceClientDescriptor> &source,
++HwAudioOutputDescriptor::HwAudioOutputDescriptor(const sp<SourceClientDescriptor>& source,
+@@ -549,2 +511,5 @@ HwAudioOutputDescriptor::HwAudioOutputDescriptor(
+-      mSource(source) {}
+-void HwAudioOutputDescriptor::dump(String8 *dst) const {
++      mSource(source)
++{
++}
++void HwAudioOutputDescriptor::dump(String8 *dst) const
++{
+@@ -557 +522,2 @@ void HwAudioOutputDescriptor::toAudioPortConfig(
+-    const struct audio_port_config *srcConfig) const {
++                                                 const struct audio_port_config *srcConfig) const
++{
+@@ -560 +526,3 @@ void HwAudioOutputDescriptor::toAudioPortConfig(
+-void HwAudioOutputDescriptor::toAudioPort(struct audio_port *port) const {
++void HwAudioOutputDescriptor::toAudioPort(
++                                                    struct audio_port *port) const
++{
+@@ -564,2 +532 @@ bool HwAudioOutputDescriptor::setVolume(float volumeDb,
+-                                        VolumeSource volumeSource,
+-                                        const StreamTypeVector &streams,
++                                        VolumeSource volumeSource, const StreamTypeVector &streams,
+@@ -567 +534,3 @@ bool HwAudioOutputDescriptor::setVolume(float volumeDb,
+-                                        uint32_t delayMs, bool force) {
++                                        uint32_t delayMs,
++                                        bool force)
++{
+@@ -574,2 +543,2 @@ bool HwAudioOutputDescriptor::setVolume(float volumeDb,
+-bool SwAudioOutputCollection::isActive(VolumeSource volumeSource,
+-                                       uint32_t inPastMs) const {
++bool SwAudioOutputCollection::isActive(VolumeSource volumeSource, uint32_t inPastMs) const
++{
+@@ -585,2 +554,2 @@ bool SwAudioOutputCollection::isActive(VolumeSource volumeSource,
+-bool SwAudioOutputCollection::isActiveLocally(VolumeSource volumeSource,
+-                                              uint32_t inPastMs) const {
++bool SwAudioOutputCollection::isActiveLocally(VolumeSource volumeSource, uint32_t inPastMs) const
++{
+@@ -590,3 +559,3 @@ bool SwAudioOutputCollection::isActiveLocally(VolumeSource volumeSource,
+-    if (outputDesc->isActive(volumeSource, inPastMs, sysTime) &&
+-        (!(outputDesc->devices().containsDeviceAmongTypes(
+-            APM_AUDIO_OUT_DEVICE_REMOTE_ALL)))) {
++        if (outputDesc->isActive(volumeSource, inPastMs, sysTime)
++                && (!(outputDesc->devices()
++                        .containsDeviceAmongTypes(APM_AUDIO_OUT_DEVICE_REMOTE_ALL)))) {
+@@ -598,2 +567,2 @@ bool SwAudioOutputCollection::isActiveLocally(VolumeSource volumeSource,
+-bool SwAudioOutputCollection::isActiveRemotely(VolumeSource volumeSource,
+-                                               uint32_t inPastMs) const {
++bool SwAudioOutputCollection::isActiveRemotely(VolumeSource volumeSource, uint32_t inPastMs) const
++{
+@@ -603,2 +572 @@ bool SwAudioOutputCollection::isActiveRemotely(VolumeSource volumeSource,
+-    if (outputDesc->devices().containsDeviceAmongTypes(
+-            APM_AUDIO_OUT_DEVICE_REMOTE_ALL) &&
++        if (outputDesc->devices().containsDeviceAmongTypes(APM_AUDIO_OUT_DEVICE_REMOTE_ALL) &&
+@@ -613,3 +581,4 @@ bool SwAudioOutputCollection::isActiveRemotely(VolumeSource volumeSource,
+-bool SwAudioOutputCollection::isStrategyActiveOnSameModule(
+-    product_strategy_t ps, const sp<SwAudioOutputDescriptor> &desc,
+-    uint32_t inPastMs, nsecs_t sysTime) const {
++bool SwAudioOutputCollection::isStrategyActiveOnSameModule(product_strategy_t ps,
++                                                           const sp<SwAudioOutputDescriptor>& desc,
++                                                           uint32_t inPastMs, nsecs_t sysTime) const
++{
+@@ -625 +594,2 @@ bool SwAudioOutputCollection::isStrategyActiveOnSameModule(
+-audio_io_handle_t SwAudioOutputCollection::getA2dpOutput() const {
++audio_io_handle_t SwAudioOutputCollection::getA2dpOutput() const
++{
+@@ -629,4 +599,2 @@ audio_io_handle_t SwAudioOutputCollection::getA2dpOutput() const {
+-        outputDesc->devices().containsDeviceAmongTypes(
+-            getAudioDeviceOutAllA2dpSet()) &&
+-        outputDesc->devicesSupportEncodedFormats(
+-            getAudioDeviceOutAllA2dpSet())) {
++             outputDesc->devices().containsDeviceAmongTypes(getAudioDeviceOutAllA2dpSet()) &&
++             outputDesc->devicesSupportEncodedFormats(getAudioDeviceOutAllA2dpSet())) {
+@@ -638 +606,2 @@ audio_io_handle_t SwAudioOutputCollection::getA2dpOutput() const {
+-bool SwAudioOutputCollection::isA2dpOffloadedOnPrimary() const {
++bool SwAudioOutputCollection::isA2dpOffloadedOnPrimary() const
++{
+@@ -640,2 +609,2 @@ bool SwAudioOutputCollection::isA2dpOffloadedOnPrimary() const {
+-  if ((primaryOutput != NULL) && (primaryOutput->mProfile != NULL) &&
+-      (primaryOutput->mProfile->getModule() != NULL)) {
++    if ((primaryOutput != NULL) && (primaryOutput->mProfile != NULL)
++        && (primaryOutput->mProfile->getModule() != NULL)) {
+@@ -651 +620,2 @@ bool SwAudioOutputCollection::isA2dpOffloadedOnPrimary() const {
+-bool SwAudioOutputCollection::isA2dpSupported() const {
++bool SwAudioOutputCollection::isA2dpSupported() const
++{
+@@ -654 +624,2 @@ bool SwAudioOutputCollection::isA2dpSupported() const {
+-sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getPrimaryOutput() const {
++sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getPrimaryOutput() const
++{
+@@ -663,2 +634,2 @@ sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getPrimaryOutput() const {
+-sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getOutputFromId(
+-    audio_port_handle_t id) const {
++sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getOutputFromId(audio_port_handle_t id) const
++{
+@@ -673,2 +644,2 @@ sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getOutputFromId(
+-sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getOutputForClient(
+-    audio_port_handle_t portId) {
++sp<SwAudioOutputDescriptor> SwAudioOutputCollection::getOutputForClient(audio_port_handle_t portId)
++{
+@@ -684 +655,2 @@ void SwAudioOutputCollection::clearSessionRoutesForDevice(
+-    const sp<DeviceDescriptor> &disconnectedDevice) {
++        const sp<DeviceDescriptor> &disconnectedDevice)
++{
+@@ -694 +666,2 @@ void SwAudioOutputCollection::clearSessionRoutesForDevice(
+-void SwAudioOutputCollection::dump(String8 *dst) const {
++void SwAudioOutputCollection::dump(String8 *dst) const
++{
+@@ -701,2 +674,2 @@ void SwAudioOutputCollection::dump(String8 *dst) const {
+-bool HwAudioOutputCollection::isActive(VolumeSource volumeSource,
+-                                       uint32_t inPastMs) const {
++bool HwAudioOutputCollection::isActive(VolumeSource volumeSource, uint32_t inPastMs) const
++{
+@@ -712 +685,2 @@ bool HwAudioOutputCollection::isActive(VolumeSource volumeSource,
+-void HwAudioOutputCollection::dump(String8 *dst) const {
++void HwAudioOutputCollection::dump(String8 *dst) const
++{
+@@ -719 +693 @@ void HwAudioOutputCollection::dump(String8 *dst) const {
+-}
++};

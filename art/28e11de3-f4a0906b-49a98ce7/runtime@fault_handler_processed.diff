@@ -1,0 +1,25 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_merged.cc
+@@ -12 +11,0 @@
+-#include "gc/space/bump_pointer_space.h"
+@@ -101,0 +92,17 @@ void FaultManager::Init(bool use_sig_chain) {
++    int result = art::membarrier(MembarrierCommand::kRegisterPrivateExpedited);
++    if (result != 0) {
++      LOG(WARNING) << "FaultHandler: MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED failed: "
++                   << errno << " " << strerror(errno);
++    }
++    {
++      MutexLock lock(Thread::Current(), generated_code_ranges_lock_);
++      for (size_t i = 0; i != kNumLocalGeneratedCodeRanges; ++i) {
++        GeneratedCodeRange* next = (i + 1u != kNumLocalGeneratedCodeRanges)
++            ? &generated_code_ranges_storage_[i + 1u]
++            : nullptr;
++        generated_code_ranges_storage_[i].next.store(next, std::memory_order_relaxed);
++        generated_code_ranges_storage_[i].start = nullptr;
++        generated_code_ranges_storage_[i].size = 0u;
++      }
++      free_generated_code_ranges_ = generated_code_ranges_storage_;
++    }
+@@ -175 +182 @@ bool FaultManager::HandleSigbusFault(int sig, siginfo_t* info, void* context ATT
+-bool FaultManager::HandleFault(int sig, siginfo_t* info, void* context) {
++bool FaultManager::HandleSigsegvFault(int sig, siginfo_t* info, void* context) {

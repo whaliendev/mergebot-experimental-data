@@ -1,0 +1,62 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@execution@operator@join@physical_hash_join.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@execution@operator@join@physical_hash_join.no_comments_merged.cpp
+@@ -2,3 +1,0 @@
+-#include "duckdb/planner/expression/bound_aggregate_expression.hpp"
+-#include "duckdb/planner/expression/bound_reference_expression.hpp"
+-#include "duckdb/common/types/column_data_collection.hpp"
+@@ -13,0 +11,2 @@
++#include "duckdb/planner/expression/bound_aggregate_expression.hpp"
++#include "duckdb/planner/expression/bound_reference_expression.hpp"
+@@ -38 +37,2 @@ PhysicalHashJoin::PhysicalHashJoin(LogicalOperator &op, unique_ptr<PhysicalOpera
+-    : PhysicalHashJoin(op, std::move(left), std::move(right), std::move(cond), join_type, {
++    : PhysicalHashJoin(op, std::move(left), std::move(right), std::move(cond), join_type, {}, {}, {},
++                       estimated_cardinality, std::move(perfect_join_state)) {
+@@ -53,0 +54 @@ public:
++public:
+@@ -78,0 +80 @@ public:
++public:
+@@ -126 +127,0 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chun
+- auto &gstate = input.global_state.Cast<HashJoinGlobalSinkState>();
+@@ -137 +138 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chun
+-  ht.Build(lstate.join_keys, lstate.build_chunk);
++  ht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);
+@@ -139 +140 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chun
+-  ht.Build(lstate.join_keys, chunk);
++  ht.Build(lstate.append_state, lstate.join_keys, chunk);
+@@ -142,6 +143 @@ SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chun
+-  ht.Build(lstate.join_keys, lstate.build_chunk);
+- }
+- auto approx_ptr_table_size = ht.Count() * 3 * sizeof(data_ptr_t);
+- if (can_go_external && ht.SizeInBytes() + approx_ptr_table_size >= gstate.sink_memory_per_thread) {
+-  lstate.hash_table->SwizzleBlocks();
+-  gstate.external = true;
++  ht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);
+@@ -187,0 +184 @@ public:
++public:
+@@ -257,0 +255 @@ public:
++public:
+@@ -327,0 +326 @@ public:
++public:
+@@ -406,0 +406 @@ public:
++public:
+@@ -430,0 +431 @@ public:
++public:
+@@ -676,5 +677,2 @@ SourceResultType PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk
+- if (!sink.external) {
+-  if (IsRightOuterJoin(join_type)) {
+-   {
+-    lock_guard<mutex> guard(gstate.lock);
+-    lstate.ScanFullOuter(sink, gstate);
++ if (!sink.external && !IsRightOuterJoin(join_type)) {
++  return SourceResultType::FINISHED;
+@@ -682,5 +679,0 @@ SourceResultType PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk
+-   sink.hash_table->GatherFullOuter(chunk, lstate.addresses, lstate.full_outer_found_entries);
+-  }
+-  return chunk.size() == 0 ? SourceResultType::FINISHED : SourceResultType::HAVE_MORE_OUTPUT;
+- }
+- D_ASSERT(can_go_external);
+@@ -688 +681 @@ SourceResultType PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk
+-  gstate.Initialize(context.client, sink);
++  gstate.Initialize(sink);
+@@ -693,0 +687 @@ SourceResultType PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk
++   lock_guard<mutex> guard(gstate.lock);

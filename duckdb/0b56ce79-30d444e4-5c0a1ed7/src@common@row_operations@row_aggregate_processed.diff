@@ -1,0 +1,53 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/0b56ce79-30d444e4-5c0a1ed7/src@common@row_operations@row_aggregate.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/0b56ce79-30d444e4-5c0a1ed7/src@common@row_operations@row_aggregate.no_comments_merged.cpp
+@@ -3 +2,0 @@
+-#include "duckdb/common/types/row_layout.hpp"
+@@ -8,2 +7,18 @@ namespace duckdb {
+-void RowOperations::DestroyStates(RowLayout &layout, TupleDataLayout &layout, Vector &addresses,
+-                                  RowOperationsState &state, idx_t count) {
++void RowOperations::InitializeStates(TupleDataLayout &layout, Vector &addresses, const SelectionVector &sel,
++                                     idx_t count) {
++ if (count == 0) {
++  return;
++ }
++ auto pointers = FlatVector::GetData<data_ptr_t>(addresses);
++ auto &offsets = layout.GetOffsets();
++ auto aggr_idx = layout.ColumnCount();
++ for (const auto &aggr : layout.GetAggregates()) {
++  for (idx_t i = 0; i < count; ++i) {
++   auto row_idx = sel.get_index(i);
++   auto row = pointers[row_idx];
++   aggr.function.initialize(row + offsets[aggr_idx]);
++  }
++  ++aggr_idx;
++ }
++}
++void RowOperations::DestroyStates(RowOperationsState &state, TupleDataLayout &layout, Vector &addresses, idx_t count) {
+@@ -38,2 +53,2 @@ void RowOperations::UpdateFilteredStates(RowOperationsState &state, AggregateFil
+-void RowOperations::CombineStates(RowLayout &layout, TupleDataLayout &layout, Vector &sources, Vector &targets,
+-                                  RowOperationsState &state, idx_t count) {
++void RowOperations::CombineStates(RowOperationsState &state, TupleDataLayout &layout, Vector &sources, Vector &targets,
++                                  idx_t count) {
+@@ -53,2 +68,2 @@ void RowOperations::CombineStates(RowLayout &layout, TupleDataLayout &layout, Ve
+-void RowOperations::FinalizeStates(RowOperationsState &state, RowLayout &layout, Vector &addresses, DataChunk &result,
+-                                   idx_t aggr_idx) {
++void RowOperations::FinalizeStates(RowOperationsState &state, TupleDataLayout &layout, Vector &addresses,
++                                   DataChunk &result, idx_t aggr_idx) {
+@@ -65,17 +79,0 @@ void RowOperations::FinalizeStates(RowOperationsState &state, RowLayout &layout,
+-void RowOperations::InitializeStates(TupleDataLayout &layout, Vector &addresses, const SelectionVector &sel,
+-                                     idx_t count) {
+- if (count == 0) {
+-  return;
+- }
+- auto pointers = FlatVector::GetData<data_ptr_t>(addresses);
+- auto &offsets = layout.GetOffsets();
+- auto aggr_idx = layout.ColumnCount();
+- for (const auto &aggr : layout.GetAggregates()) {
+-  for (idx_t i = 0; i < count; ++i) {
+-   auto row_idx = sel.get_index(i);
+-   auto row = pointers[row_idx];
+-   aggr.function.initialize(row + offsets[aggr_idx]);
+-  }
+-  ++aggr_idx;
+- }
+-}

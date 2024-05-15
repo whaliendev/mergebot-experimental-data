@@ -1,0 +1,47 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_merged.cpp
+@@ -7,15 +7,7 @@ namespace android {
+-DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type)
+-    : DeviceDescriptorBase(type, ""),
+-      AudioPort("", AUDIO_PORT_TYPE_DEVICE,
+-                audio_is_output_device(type) ? AUDIO_PORT_ROLE_SINK
+-                                             : AUDIO_PORT_ROLE_SOURCE),
+-      mDeviceType(type) {
+-<<<<<<< HEAD
+-||||||| 11060fbe35
+-  if (audio_is_remote_submix_device(type)) {
+-    mAddress = "0";
+-  }
+-=======
+-  mDeviceTypeAddr.mType = type;
+-  if (audio_is_remote_submix_device(type)) {
+-    mDeviceTypeAddr.mAddress = "0";
++DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type) :
++        DeviceDescriptorBase(type, "")
++{
++}
++DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type, const std::string& address) :
++        DeviceDescriptorBase(AudioDeviceTypeAddr(type, address))
++{
+@@ -23,14 +15,7 @@ DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type)
+->>>>>>> decaebce1d97f871f80847999063c6ea56cf6b81
+-}
+-DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type,
+-                                           const std::string &address)
+-    : DeviceDescriptorBase(AudioDeviceTypeAddr(type, address)) {}
+-DeviceDescriptorBase::DeviceDescriptorBase(
+-    const AudioDeviceTypeAddr &deviceTypeAddr)
+-    : AudioPort("", AUDIO_PORT_TYPE_DEVICE,
+-                audio_is_output_device(deviceTypeAddr.mType)
+-                    ? AUDIO_PORT_ROLE_SINK
+-                    : AUDIO_PORT_ROLE_SOURCE),
+-      mDeviceTypeAddr(deviceTypeAddr) {
+-  if (mDeviceTypeAddr.mAddress.empty() &&
+-      audio_is_remote_submix_device(mDeviceTypeAddr.mType)) {
++DeviceDescriptorBase::DeviceDescriptorBase(const AudioDeviceTypeAddr &deviceTypeAddr) :
++        AudioPort("", AUDIO_PORT_TYPE_DEVICE,
++                  audio_is_output_device(deviceTypeAddr.mType) ? AUDIO_PORT_ROLE_SINK :
++                                         AUDIO_PORT_ROLE_SOURCE),
++        mDeviceTypeAddr(deviceTypeAddr)
++{
++    if (mDeviceTypeAddr.mAddress.empty() && audio_is_remote_submix_device(mDeviceTypeAddr.mType)) {

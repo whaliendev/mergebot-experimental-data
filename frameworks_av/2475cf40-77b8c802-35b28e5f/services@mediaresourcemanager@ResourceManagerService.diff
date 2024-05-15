@@ -1,0 +1,93 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@ResourceManagerService.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@ResourceManagerService.no_comments_merged.h
+index 8bab408..05fdc35 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@ResourceManagerService.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@ResourceManagerService.no_comments_merged.h
+@@ -1,2 +1,2 @@
+-#ifndef ANDROID_RESOURCEMANAGERSERVICE_H
+-#define ANDROID_RESOURCEMANAGERSERVICE_H 
++#ifndef ANDROID_MEDIA_RESOURCEMANAGERSERVICE_H
++#define ANDROID_MEDIA_RESOURCEMANAGERSERVICE_H 
+@@ -5 +4,0 @@
+-#include <binder/BinderService.h>
+@@ -12 +10,0 @@
+-#include <media/IResourceManagerService.h>
+@@ -13,0 +12,2 @@ namespace android {
++class DeathNotifier;
++class ResourceManagerService;
+@@ -16,4 +16,8 @@ struct ProcessInfoInterface;
+-typedef std::map<std::tuple<MediaResource::Type, MediaResource::SubType,
+-                            std::vector<uint8_t>>,
+-                 MediaResource>
+-    ResourceList;
++using Status = ::ndk::ScopedAStatus;
++using ::aidl::android::media::IResourceManagerClient;
++using ::aidl::android::media::BnResourceManagerService;
++using ::aidl::android::media::MediaResourceParcel;
++using ::aidl::android::media::MediaResourcePolicyParcel;
++typedef std::map<std::tuple<
++        MediaResource::Type, MediaResource::SubType, std::vector<int8_t>>,
++        MediaResourceParcel> ResourceList;
+@@ -31,2 +35,2 @@ class DeathNotifier : public RefBase {
+-  DeathNotifier(const std::shared_ptr<ResourceManagerService>& service, int pid,
+-                int64_t clientId);
++    DeathNotifier(const std::shared_ptr<ResourceManagerService> &service,
++            int pid, int64_t clientId);
+@@ -51,2 +55,2 @@ class ResourceManagerService : public BnResourceManagerService {
+-  virtual inline binder_status_t dump(int , const char** ,
+-                                      uint32_t );
++    virtual inline binder_status_t dump(
++            int , const char** , uint32_t );
+@@ -57,2 +61,2 @@ class ResourceManagerService : public BnResourceManagerService {
+-  Status config(
+-      const std::vector<MediaResourcePolicyParcel>& policies) override;
++    virtual ~ResourceManagerService();
++    Status config(const std::vector<MediaResourcePolicyParcel>& policies) override;
+@@ -60 +64,3 @@ class ResourceManagerService : public BnResourceManagerService {
+-      int32_t pid, int32_t uid, int64_t clientId,
++            int32_t pid,
++            int32_t uid,
++            int64_t clientId,
+@@ -64 +70,2 @@ class ResourceManagerService : public BnResourceManagerService {
+-      int32_t pid, int64_t clientId,
++            int32_t pid,
++            int64_t clientId,
+@@ -67 +74,2 @@ class ResourceManagerService : public BnResourceManagerService {
+-  Status reclaimResource(int32_t callingPid,
++    Status reclaimResource(
++            int32_t callingPid,
+@@ -71,2 +78,0 @@ class ResourceManagerService : public BnResourceManagerService {
+- protected:
+-  virtual ~ResourceManagerService();
+@@ -75,2 +81 @@ class ResourceManagerService : public BnResourceManagerService {
+-  bool getAllClients_l(
+-      int callingPid, MediaResource::Type type,
++    bool getAllClients_l(int callingPid, MediaResource::Type type,
+@@ -78,2 +83 @@ class ResourceManagerService : public BnResourceManagerService {
+-  bool getLowestPriorityBiggestClient_l(
+-      int callingPid, MediaResource::Type type,
++    bool getLowestPriorityBiggestClient_l(int callingPid, MediaResource::Type type,
+@@ -81,2 +85 @@ class ResourceManagerService : public BnResourceManagerService {
+-  bool getLowestPriorityPid_l(MediaResource::Type type, int* pid,
+-                              int* priority);
++    bool getLowestPriorityPid_l(MediaResource::Type type, int *pid, int *priority);
+@@ -86,2 +89 @@ class ResourceManagerService : public BnResourceManagerService {
+-  void getClientForResource_l(
+-      int callingPid, const MediaResourceParcel* res,
++    void getClientForResource_l(int callingPid, const MediaResourceParcel *res,
+@@ -89,5 +91,3 @@ class ResourceManagerService : public BnResourceManagerService {
+-  void onFirstAdded(const MediaResourceParcel& res,
+-                    const ResourceInfo& clientInfo);
+-  void onLastRemoved(const MediaResourceParcel& res,
+-                     const ResourceInfo& clientInfo);
+-  void mergeResources(MediaResource& r1, const MediaResource& r2);
++    void onFirstAdded(const MediaResourceParcel& res, const ResourceInfo& clientInfo);
++    void onLastRemoved(const MediaResourceParcel& res, const ResourceInfo& clientInfo);
++    void mergeResources(MediaResourceParcel& r1, const MediaResourceParcel& r2);
+@@ -104,7 +103,0 @@ class ResourceManagerService : public BnResourceManagerService {
+-class DeathNotifier;
+-class ResourceManagerService;
+-using ::aidl::android::media::MediaResourcePolicyParcel;
+-typedef std::map<std::tuple<MediaResource::Type, MediaResource::SubType,
+-                            std::vector<int8_t>>,
+-                 MediaResourceParcel>
+-    ResourceList;

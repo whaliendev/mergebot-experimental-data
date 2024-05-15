@@ -1,0 +1,212 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/793c8f6c-9cd52ba9-f17bebe8/services@audiopolicy@service@Spatializer.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/793c8f6c-9cd52ba9-f17bebe8/services@audiopolicy@service@Spatializer.no_comments_merged.h
+index 754fa7a..7205450 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/793c8f6c-9cd52ba9-f17bebe8/services@audiopolicy@service@Spatializer.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/793c8f6c-9cd52ba9-f17bebe8/services@audiopolicy@service@Spatializer.no_comments_merged.h
+@@ -23 +23 @@ class SpatializerPolicyCallback {
+-    virtual ~SpatializerPolicyCallback()
++    virtual ~SpatializerPolicyCallback() = default;
+@@ -40,2 +40,4 @@ class Spatializer : public media::BnSpatializer,
+-    binder::Status setDesiredHeadTrackingMode(media::SpatializerHeadTrackingMode mode) override;
+-    binder::Status getActualHeadTrackingMode(media::SpatializerHeadTrackingMode* mode) override;
++    binder::Status setDesiredHeadTrackingMode(
++            media::SpatializerHeadTrackingMode mode) override;
++    binder::Status getActualHeadTrackingMode(
++            media::SpatializerHeadTrackingMode* mode) override;
+@@ -55,2 +57,2 @@ class Spatializer : public media::BnSpatializer,
+-    void onSupportedLatencyModesChanged(audio_io_handle_t output,
+-                                        const std::vector<audio_latency_mode_t>& modes) override;
++    void onSupportedLatencyModesChanged(
++            audio_io_handle_t output, const std::vector<audio_latency_mode_t>& modes) override;
+@@ -59,4 +61 @@ class Spatializer : public media::BnSpatializer,
+-    media::SpatializationLevel getLevel() const {
+-        std::lock_guard lock(mLock);
+-        return mLevel;
+-    }
++    media::SpatializationLevel getLevel() const { std::lock_guard lock(mLock); return mLevel; }
+@@ -65,4 +64 @@ class Spatializer : public media::BnSpatializer,
+-    audio_io_handle_t getOutput() const {
+-        std::lock_guard lock(mLock);
+-        return mOutput;
+-    }
++    audio_io_handle_t getOutput() const { std::lock_guard lock(mLock); return mOutput; }
+@@ -72,2 +68 @@ class Spatializer : public media::BnSpatializer,
+-    NO_THREAD_SAFETY_ANALYSIS;
+-    NO_THREAD_SAFETY_ANALYSIS;
++    std::string toString(unsigned level) const NO_THREAD_SAFETY_ANALYSIS;
+@@ -76,2 +71,2 @@ class Spatializer : public media::BnSpatializer,
+-        return result.has_value() ? media::audio::common::toString(*result)
+-                                  : "unknown_latency_mode";
++        return result.has_value() ?
++                media::audio::common::toString(*result) : "unknown_latency_mode";
+@@ -81 +76,2 @@ class Spatializer : public media::BnSpatializer,
+-    Spatializer(effect_descriptor_t engineDescriptor, SpatializerPolicyCallback* callback);
++    Spatializer(effect_descriptor_t engineDescriptor,
++                     SpatializerPolicyCallback *callback);
+@@ -87,2 +83,2 @@ class Spatializer : public media::BnSpatializer,
+-    void onSupportedLatencyModesChangedMsg(audio_io_handle_t output,
+-                                           std::vector<audio_latency_mode_t>&& modes);
++    void onSupportedLatencyModesChangedMsg(
++            audio_io_handle_t output, std::vector<audio_latency_mode_t>&& modes);
+@@ -91 +87,2 @@ class Spatializer : public media::BnSpatializer,
+-    status_t getHalParameter(sp<EffectHalInterface> effect, uint32_t type, std::vector<T>* values) {
++    status_t getHalParameter(sp<EffectHalInterface> effect, uint32_t type,
++                                          std::vector<T> *values) {
+@@ -104,3 +101,3 @@ class Spatializer : public media::BnSpatializer,
+-        status_t status =
+-                effect->command(EFFECT_CMD_GET_PARAM, sizeof(effect_param_t) + sizeof(uint32_t),
+-                                cmd, &replySize, reply);
++        status_t status = effect->command(EFFECT_CMD_GET_PARAM,
++                                          sizeof(effect_param_t) + sizeof(uint32_t), cmd,
++                                          &replySize, reply);
+@@ -129 +126,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mLock) {
++    template<typename T>
++    status_t setEffectParameter_l(uint32_t type, const std::vector<T>& values) REQUIRES(mLock) {
+@@ -146 +144,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mLock) {
++    template<typename T>
++    status_t getEffectParameter_l(uint32_t type, std::vector<T> *values) REQUIRES(mLock) {
+@@ -167,8 +166,4 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
+-    REQUIRES(mLock);
++    void checkSensorsState_l() REQUIRES(mLock);
++    void checkPoseController_l() REQUIRES(mLock);
++    void checkEngineState_l() REQUIRES(mLock);
++    void resetEngineHeadPose_l() REQUIRES(mLock);
+@@ -177 +172,2 @@ class Spatializer : public media::BnSpatializer,
+-    static constexpr const char* kDefaultMetricsId = AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER "0";
++    static constexpr const char* kDefaultMetricsId =
++            AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER "0";
+@@ -179,9 +175,2 @@ class Spatializer : public media::BnSpatializer,
+-    GUARDED_BY(mLock) = kDisplayOrientationInvalid;
+-    const std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
++    mutable std::mutex mLock;
++    sp<AudioEffect> mEngine GUARDED_BY(mLock);
+@@ -189,61 +178,10 @@ class Spatializer : public media::BnSpatializer,
+-    sp<media::INativeSpatializerCallback> mSpatializerCallbackconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
+-            };
+-    sp<media::ISpatializerHeadTrackingCallback> mHeadTrackingCallbackconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
+-            };
+-    const std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
+-    std::shared_ptr<SpatializerPoseController> mPoseControllerconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
+-            };
+-    media::HeadTrackingMode mDesiredHeadTrackingMode GUARDED_BY(mLock) = kDisplayOrientationInvalid;
+-    media::SpatializerHeadTrackingMode mActualHeadTrackingModeconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
+-            };
+-    int32_t mHeadSensorconst std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
+-    int32_t mScreenSensorconst std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
++    sp<media::INativeSpatializerCallback> mSpatializerCallback GUARDED_BY(mLock);
++    sp<media::ISpatializerHeadTrackingCallback> mHeadTrackingCallback GUARDED_BY(mLock);
++    media::SpatializationLevel mLevel GUARDED_BY(mLock) = media::SpatializationLevel::NONE;
++    std::shared_ptr<SpatializerPoseController> mPoseController GUARDED_BY(mLock);
++    media::HeadTrackingMode mDesiredHeadTrackingMode GUARDED_BY(mLock)
++            = media::HeadTrackingMode::STATIC;
++    media::SpatializerHeadTrackingMode mActualHeadTrackingMode GUARDED_BY(mLock)
++            = media::SpatializerHeadTrackingMode::DISABLED;
++    int32_t mHeadSensor GUARDED_BY(mLock) = SpatializerPoseController::INVALID_SENSOR;
++    int32_t mScreenSensor GUARDED_BY(mLock) = SpatializerPoseController::INVALID_SENSOR;
+@@ -260,17 +198,2 @@ class Spatializer : public media::BnSpatializer,
+-    size_t mNumActiveTracksconst std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
+-    std::vector<audio_latency_mode_t> mSupportedLatencyModesconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
+-            };
++    size_t mNumActiveTracks GUARDED_BY(mLock) = 0;
++    std::vector<audio_latency_mode_t> mSupportedLatencyModes GUARDED_BY(mLock);
+@@ -280,16 +203,4 @@ class Spatializer : public media::BnSpatializer,
+-    media::VectorRecorder mPoseRecorderconst std::vector<const char*> Spatializer::sHeadPoseKeys = {
+-            Spatializer::EngineCallbackHandler::kTranslation0Key,
+-            Spatializer::EngineCallbackHandler::kTranslation1Key,
+-            Spatializer::EngineCallbackHandler::kTranslation2Key,
+-            Spatializer::EngineCallbackHandler::kRotation0Key,
+-            Spatializer::EngineCallbackHandler::kRotation1Key,
+-            Spatializer::EngineCallbackHandler::kRotation2Key,
+-    };
+-    media::VectorRecorder mPoseDurableRecorderconst std::vector<const char*>
+-            Spatializer::sHeadPoseKeys = {
+-                    Spatializer::EngineCallbackHandler::kTranslation0Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation1Key,
+-                    Spatializer::EngineCallbackHandler::kTranslation2Key,
+-                    Spatializer::EngineCallbackHandler::kRotation0Key,
+-                    Spatializer::EngineCallbackHandler::kRotation1Key,
+-                    Spatializer::EngineCallbackHandler::kRotation2Key,
++    media::VectorRecorder mPoseRecorder GUARDED_BY(mLock) {
++        6 , std::chrono::seconds(1), mMaxLocalLogLine, { 3 } };
++    media::VectorRecorder mPoseDurableRecorder GUARDED_BY(mLock) {
++        6 , std::chrono::minutes(1), mMaxLocalLogLine, { 3 } };
+@@ -298 +208,0 @@ class Spatializer : public media::BnSpatializer,
+-}

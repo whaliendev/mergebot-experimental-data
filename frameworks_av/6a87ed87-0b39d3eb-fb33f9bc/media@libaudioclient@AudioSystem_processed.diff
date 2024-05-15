@@ -1,0 +1,57 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+@@ -14,15 +14,9 @@ namespace android {
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-const sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
++Mutex AudioSystem::gLock;
++Mutex AudioSystem::gLockAPS;
++sp<IAudioFlinger> AudioSystem::gAudioFlinger;
++sp<AudioSystem::AudioFlingerClient> AudioSystem::gAudioFlingerClient;
++audio_error_callback AudioSystem::gAudioErrorCallback = NULL;
++dynamic_policy_callback AudioSystem::gDynPolicyCallback = NULL;
++record_config_callback AudioSystem::gRecordConfigCallback = NULL;
++const sp<IAudioFlinger> AudioSystem::get_audio_flinger()
++{
+@@ -419,3 +437 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() new %s %s %d samplingRate %u, format %#x "
+-            "channel mask %#x "
++            ALOGV("ioConfigChanged() new %s %s %d samplingRate %u, format %#x channel mask %#x "
+@@ -463,3 +474 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() new config for %s %d samplingRate %u, format "
+-            "%#x "
++            ALOGV("ioConfigChanged() new config for %s %d samplingRate %u, format %#x "
+@@ -479,3 +487 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() AUDIO_CLIENT_STARTED  io %d port %d num "
+-            "callbacks %zu",
++            ALOGV("ioConfigChanged() AUDIO_CLIENT_STARTED  io %d port %d num callbacks %zu",
+@@ -518,3 +525 @@ status_t AudioSystem::AudioFlingerClient::getInputBufferSize(
+-      ALOGE(
+-          "AudioSystem::getInputBufferSize failed sampleRate %d format %#x "
+-          "channelMask %#x",
++            ALOGE("AudioSystem::getInputBufferSize failed sampleRate %d format %#x channelMask %#x",
+@@ -591,5 +597,4 @@ void AudioSystem::setRecordConfigCallback(record_config_callback cb) {
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-const sp<IAudioPolicyService> AudioSystem::get_audio_policy_service() {
++sp<IAudioPolicyService> AudioSystem::gAudioPolicyService;
++sp<AudioSystem::AudioPolicyServiceClient> AudioSystem::gAudioPolicyServiceClient;
++const sp<IAudioPolicyService> AudioSystem::get_audio_policy_service()
++{

@@ -1,0 +1,53 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@runtime.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@runtime.no_comments_merged.cc
+@@ -159 +158,0 @@
+-#include "well_known_classes.h"
+@@ -176 +175,2 @@ static constexpr double kNormalMaxLoadFactor = 0.7;
+-void Runtime::EndThreadBirth() struct TraceConfig {
++Runtime* Runtime::instance_ = nullptr;
++struct TraceConfig {
+@@ -638 +640 @@ bool Runtime::ParseOptions(const RuntimeOptions& raw_options,
+-{
++static bool IsSafeToCallAbort() NO_THREAD_SAFETY_ANALYSIS {
+@@ -1317 +1325,0 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
+-<<<<<<< HEAD
+@@ -1319,6 +1326,0 @@ bool Runtime::Init(RuntimeArgumentMap&& runtime_options_in) {
+-|||||||
+-    if (implicit_null_checks_ || implicit_so_checks_ || implicit_suspend_checks_) {
+-      fault_manager.Init();
+-=======
+-    if (implicit_null_checks_ || implicit_so_checks_ || implicit_suspend_checks_) {
+->>>>>>> f4a0906b4690ed3a710be7c04c989b1e55caa50c
+@@ -2346 +2367,5 @@ bool Runtime::IsVerificationEnabled() const {
+-  return verify_ == verifier::VerifyMode::kEnable || verify_ == verifier::VerifyMode::kSoftFail;
++  return verify_ == verifier::VerifyMode::kEnable ||
++      verify_ == verifier::VerifyMode::kSoftFail;
++}
++bool Runtime::IsVerificationSoftFail() const {
++  return verify_ == verifier::VerifyMode::kSoftFail;
+@@ -2348 +2372,0 @@ bool Runtime::IsVerificationEnabled() const {
+-bool Runtime::IsVerificationSoftFail() const { return verify_ == verifier::VerifyMode::kSoftFail; }
+@@ -2606,0 +2646,23 @@ void Runtime::AppendToBootClassPath(const std::string& filename, const std::stri
++void Runtime::AppendToBootClassPath(
++    const std::string& filename,
++    const std::string& location,
++    const std::vector<std::unique_ptr<const art::DexFile>>& dex_files) {
++  AppendToBootClassPath(filename, location);
++  ScopedObjectAccess soa(Thread::Current());
++  for (const std::unique_ptr<const art::DexFile>& dex_file : dex_files) {
++    DCHECK_NE(DexFileLoader::IsMultiDexLocation(dex_file->GetLocation().c_str()),
++              dex_file.get() == dex_files.begin()->get());
++    GetClassLinker()->AppendToBootClassPath(Thread::Current(), dex_file.get());
++  }
++}
++void Runtime::AppendToBootClassPath(const std::string& filename,
++                                    const std::string& location,
++                                    const std::vector<const art::DexFile*>& dex_files) {
++  AppendToBootClassPath(filename, location);
++  ScopedObjectAccess soa(Thread::Current());
++  for (const art::DexFile* dex_file : dex_files) {
++    DCHECK_NE(DexFileLoader::IsMultiDexLocation(dex_file->GetLocation().c_str()),
++              dex_file == *dex_files.begin());
++    GetClassLinker()->AppendToBootClassPath(Thread::Current(), dex_file);
++  }
++}

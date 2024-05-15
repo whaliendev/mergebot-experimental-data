@@ -1,0 +1,139 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_merged.cpp
+index 30cddf4..2440721 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/d2572133-decaebce-11060fbe/media@libaudiofoundation@DeviceDescriptorBase.no_comments_merged.cpp
+@@ -7,15 +7,7 @@ namespace android {
+-DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type)
+-    : DeviceDescriptorBase(type, ""),
+-      AudioPort("", AUDIO_PORT_TYPE_DEVICE,
+-                audio_is_output_device(type) ? AUDIO_PORT_ROLE_SINK
+-                                             : AUDIO_PORT_ROLE_SOURCE),
+-      mDeviceType(type) {
+-<<<<<<< HEAD
+-||||||| 11060fbe35
+-  if (audio_is_remote_submix_device(type)) {
+-    mAddress = "0";
+-  }
+-=======
+-  mDeviceTypeAddr.mType = type;
+-  if (audio_is_remote_submix_device(type)) {
+-    mDeviceTypeAddr.mAddress = "0";
++DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type) :
++        DeviceDescriptorBase(type, "")
++{
++}
++DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type, const std::string& address) :
++        DeviceDescriptorBase(AudioDeviceTypeAddr(type, address))
++{
+@@ -23,14 +15,7 @@ DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type)
+->>>>>>> decaebce1d97f871f80847999063c6ea56cf6b81
+-}
+-DeviceDescriptorBase::DeviceDescriptorBase(audio_devices_t type,
+-                                           const std::string &address)
+-    : DeviceDescriptorBase(AudioDeviceTypeAddr(type, address)) {}
+-DeviceDescriptorBase::DeviceDescriptorBase(
+-    const AudioDeviceTypeAddr &deviceTypeAddr)
+-    : AudioPort("", AUDIO_PORT_TYPE_DEVICE,
+-                audio_is_output_device(deviceTypeAddr.mType)
+-                    ? AUDIO_PORT_ROLE_SINK
+-                    : AUDIO_PORT_ROLE_SOURCE),
+-      mDeviceTypeAddr(deviceTypeAddr) {
+-  if (mDeviceTypeAddr.mAddress.empty() &&
+-      audio_is_remote_submix_device(mDeviceTypeAddr.mType)) {
++DeviceDescriptorBase::DeviceDescriptorBase(const AudioDeviceTypeAddr &deviceTypeAddr) :
++        AudioPort("", AUDIO_PORT_TYPE_DEVICE,
++                  audio_is_output_device(deviceTypeAddr.mType) ? AUDIO_PORT_ROLE_SINK :
++                                         AUDIO_PORT_ROLE_SOURCE),
++        mDeviceTypeAddr(deviceTypeAddr)
++{
++    if (mDeviceTypeAddr.mAddress.empty() && audio_is_remote_submix_device(mDeviceTypeAddr.mType)) {
+@@ -40,3 +25,3 @@ DeviceDescriptorBase::DeviceDescriptorBase(
+-void DeviceDescriptorBase::toAudioPortConfig(
+-    struct audio_port_config *dstConfig,
+-    const struct audio_port_config *srcConfig) const {
++void DeviceDescriptorBase::toAudioPortConfig(struct audio_port_config *dstConfig,
++                                             const struct audio_port_config *srcConfig) const
++{
+@@ -57,3 +42,2 @@ void DeviceDescriptorBase::toAudioPortConfig(
+-  dstConfig->role = audio_is_output_device(mDeviceTypeAddr.mType)
+-                        ? AUDIO_PORT_ROLE_SINK
+-                        : AUDIO_PORT_ROLE_SOURCE;
++    dstConfig->role = audio_is_output_device(mDeviceTypeAddr.mType) ?
++                        AUDIO_PORT_ROLE_SINK : AUDIO_PORT_ROLE_SOURCE;
+@@ -62,2 +46 @@ void DeviceDescriptorBase::toAudioPortConfig(
+-  (void)audio_utils_strlcpy_zerofill(dstConfig->ext.device.address,
+-                                     mDeviceTypeAddr.getAddress());
++    (void)audio_utils_strlcpy_zerofill(dstConfig->ext.device.address, mDeviceTypeAddr.getAddress());
+@@ -65,3 +48,3 @@ void DeviceDescriptorBase::toAudioPortConfig(
+-void DeviceDescriptorBase::toAudioPort(struct audio_port *port) const {
+-  ALOGV("DeviceDescriptorBase::toAudioPort() handle %d type %08x", mId,
+-        mDeviceTypeAddr.mType);
++void DeviceDescriptorBase::toAudioPort(struct audio_port *port) const
++{
++    ALOGV("DeviceDescriptorBase::toAudioPort() handle %d type %08x", mId, mDeviceTypeAddr.mType);
+@@ -72,2 +55 @@ void DeviceDescriptorBase::toAudioPort(struct audio_port *port) const {
+-  (void)audio_utils_strlcpy_zerofill(port->ext.device.address,
+-                                     mDeviceTypeAddr.getAddress());
++    (void)audio_utils_strlcpy_zerofill(port->ext.device.address, mDeviceTypeAddr.getAddress());
+@@ -76 +58,2 @@ void DeviceDescriptorBase::dump(std::string *dst, int spaces, int index,
+-                                const char *extraInfo, bool verbose) const {
++                                const char* extraInfo, bool verbose) const
++{
+@@ -84,3 +67,2 @@ void DeviceDescriptorBase::dump(std::string *dst, int spaces, int index,
+-  dst->append(
+-      base::StringPrintf("%*s- type: %-48s\n", spaces, "",
+-                         ::android::toString(mDeviceTypeAddr.mType).c_str()));
++    dst->append(base::StringPrintf("%*s- type: %-48s\n",
++            spaces, "", ::android::toString(mDeviceTypeAddr.mType).c_str()));
+@@ -88,2 +70,2 @@ void DeviceDescriptorBase::dump(std::string *dst, int spaces, int index,
+-    dst->append(base::StringPrintf("%*s- address: %-32s\n", spaces, "",
+-                                   mDeviceTypeAddr.getAddress()));
++        dst->append(base::StringPrintf(
++                "%*s- address: %-32s\n", spaces, "", mDeviceTypeAddr.getAddress()));
+@@ -93 +75,2 @@ void DeviceDescriptorBase::dump(std::string *dst, int spaces, int index,
+-std::string DeviceDescriptorBase::toString() const {
++std::string DeviceDescriptorBase::toString() const
++{
+@@ -95,2 +78 @@ std::string DeviceDescriptorBase::toString() const {
+-  sstream << "type:0x" << std::hex << type()
+-          << ",@:" << mDeviceTypeAddr.mAddress;
++    sstream << "type:0x" << std::hex << type() << ",@:" << mDeviceTypeAddr.mAddress;
+@@ -99 +81,2 @@ std::string DeviceDescriptorBase::toString() const {
+-void DeviceDescriptorBase::log() const {
++void DeviceDescriptorBase::log() const
++{
+@@ -105 +88,2 @@ void DeviceDescriptorBase::log() const {
+-bool DeviceDescriptorBase::equals(const sp<DeviceDescriptorBase> &other) const {
++bool DeviceDescriptorBase::equals(const sp<DeviceDescriptorBase> &other) const
++{
+@@ -111 +95,2 @@ bool DeviceDescriptorBase::equals(const sp<DeviceDescriptorBase> &other) const {
+-status_t DeviceDescriptorBase::writeToParcel(Parcel *parcel) const {
++status_t DeviceDescriptorBase::writeToParcel(Parcel *parcel) const
++{
+@@ -114,4 +99,2 @@ status_t DeviceDescriptorBase::writeToParcel(Parcel *parcel) const {
+-  if ((status = AudioPortConfig::writeToParcel(parcel)) != NO_ERROR)
+-    return status;
+-  if ((status = parcel->writeParcelable(mDeviceTypeAddr)) != NO_ERROR)
+-    return status;
++    if ((status = AudioPortConfig::writeToParcel(parcel)) != NO_ERROR) return status;
++    if ((status = parcel->writeParcelable(mDeviceTypeAddr)) != NO_ERROR) return status;
+@@ -120 +103,2 @@ status_t DeviceDescriptorBase::writeToParcel(Parcel *parcel) const {
+-status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel) {
++status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel)
++{
+@@ -123,4 +107,2 @@ status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel) {
+-  if ((status = AudioPortConfig::readFromParcel(parcel)) != NO_ERROR)
+-    return status;
+-  if ((status = parcel->readParcelable(&mDeviceTypeAddr)) != NO_ERROR)
+-    return status;
++    if ((status = AudioPortConfig::readFromParcel(parcel)) != NO_ERROR) return status;
++    if ((status = parcel->readParcelable(&mDeviceTypeAddr)) != NO_ERROR) return status;
+@@ -129 +111,2 @@ status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel) {
+-std::string toString(const DeviceDescriptorBaseVector &devices) {
++std::string toString(const DeviceDescriptorBaseVector& devices)
++{
+@@ -139,2 +122,2 @@ std::string toString(const DeviceDescriptorBaseVector &devices) {
+-AudioDeviceTypeAddrVector deviceTypeAddrsFromDescriptors(
+-    const DeviceDescriptorBaseVector &devices) {
++AudioDeviceTypeAddrVector deviceTypeAddrsFromDescriptors(const DeviceDescriptorBaseVector& devices)
++{

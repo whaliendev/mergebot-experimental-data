@@ -1,0 +1,493 @@
+#include "confighandler.h"
+#include "src/tools/capturetool.h"
+#include "src/utils/configshortcuts.h"
+#include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QKeySequence>
+#include <QStandardPaths>
+#include <algorithm>
+ConfigHandler::ConfigHandler()
+{
+    m_settings.setDefaultFormat(QSettings::IniFormat);
+}
+QVector<CaptureToolButton::ButtonType> ConfigHandler::getButtons()
+{
+    QVector<CaptureToolButton::ButtonType> buttons;
+    if (m_settings.contains(QStringLiteral("buttons"))) {
+        QVector<int> buttonsInt = m_settings.value(QStringLiteral("buttons"))
+                                    .value<QList<int>>()
+                                    .toVector();
+        bool modified = normalizeButtons(buttonsInt);
+        if (modified) {
+            m_settings.setValue(QStringLiteral("buttons"),
+                                QVariant::fromValue(buttonsInt.toList()));
+        }
+        buttons = fromIntToButton(buttonsInt);
+    } else {
+        buttons << CaptureToolButton::TYPE_PENCIL
+                << CaptureToolButton::TYPE_DRAWER
+                << CaptureToolButton::TYPE_ARROW
+                << CaptureToolButton::TYPE_SELECTION
+                << CaptureToolButton::TYPE_RECTANGLE
+                << CaptureToolButton::TYPE_CIRCLE
+                << CaptureToolButton::TYPE_MARKER
+                << CaptureToolButton::TYPE_PIXELATE
+                << CaptureToolButton::TYPE_SELECTIONINDICATOR
+                << CaptureToolButton::TYPE_MOVESELECTION
+                << CaptureToolButton::TYPE_UNDO << CaptureToolButton::TYPE_REDO
+                << CaptureToolButton::TYPE_COPY << CaptureToolButton::TYPE_SAVE
+                << CaptureToolButton::TYPE_EXIT
+                << CaptureToolButton::TYPE_IMAGEUPLOADER
+#if not(defined(Q_OS_MAC) || defined(Q_OS_MAC64) || defined(Q_OS_MACOS) || \
+        defined(Q_OS_MACX))
+                << CaptureToolButton::TYPE_OPEN_APP
+#endif
+                << CaptureToolButton::TYPE_PIN << CaptureToolButton::TYPE_TEXT
+                << CaptureToolButton::TYPE_CIRCLECOUNT;
+    }
+    using bt = CaptureToolButton::ButtonType;
+    std::sort(buttons.begin(), buttons.end(), [](bt a, bt b) {
+        return CaptureToolButton::getPriorityByButton(a) <
+               CaptureToolButton::getPriorityByButton(b);
+    });
+    return buttons;
+}
+void ConfigHandler::setButtons(
+  const QVector<CaptureToolButton::ButtonType>& buttons)
+{
+    QVector<int> l = fromButtonToInt(buttons);
+    normalizeButtons(l);
+    m_settings.setValue(QStringLiteral("buttons"),
+                        QVariant::fromValue(l.toList()));
+}
+QVector<QColor> ConfigHandler::getUserColors()
+{
+    QVector<QColor> colors;
+    const QVector<QColor>& defaultColors = {
+        Qt::darkRed, Qt::red, Qt::yellow, Qt::green, Qt::darkGreen,
+        Qt::cyan, Qt::blue, Qt::magenta, Qt::darkMagenta, QColor()
+    };
+    if (m_settings.contains(QStringLiteral("userColors"))) {
+        for (const QString& hex :
+             m_settings.value(QStringLiteral("userColors")).toStringList()) {
+            if (QColor::isValidColor(hex)) {
+                colors.append(QColor(hex));
+            }
+        }
+        if (colors.isEmpty()) {
+            colors = defaultColors;
+        }
+    } else {
+        colors = defaultColors;
+    }
+    return colors;
+}
+void ConfigHandler::setUserColors(const QVector<QColor>& l)
+{
+    QStringList hexColors;
+    for (const QColor& color : l) {
+        hexColors.append(color.name());
+    }
+    m_settings.setValue(QStringLiteral("userColors"),
+                        QVariant::fromValue(hexColors));
+}
+QString ConfigHandler::savePath()
+{
+    return m_settings.value(QStringLiteral("savePath")).toString();
+}
+void ConfigHandler::setSavePath(const QString& savePath)
+{
+    m_settings.setValue(QStringLiteral("savePath"), savePath);
+}
+bool ConfigHandler::savePathFixed()
+{
+    if (!m_settings.contains(QStringLiteral("savePathFixed"))) {
+        m_settings.setValue(QStringLiteral("savePathFixed"), false);
+    }
+    return m_settings.value(QStringLiteral("savePathFixed")).toBool();
+}
+void ConfigHandler::setSavePathFixed(bool savePathFixed)
+{
+    m_settings.setValue(QStringLiteral("savePathFixed"), savePathFixed);
+}
+QColor ConfigHandler::uiMainColorValue()
+{
+    QColor res = QColor(116, 0, 150);
+    if (m_settings.contains(QStringLiteral("uiColor"))) {
+        QString hex = m_settings.value(QStringLiteral("uiColor")).toString();
+        if (QColor::isValidColor(hex)) {
+            res = QColor(hex);
+        }
+    }
+    return res;
+}
+void ConfigHandler::setUIMainColor(const QColor& c)
+{
+    m_settings.setValue(QStringLiteral("uiColor"), c.name());
+}
+QColor ConfigHandler::uiContrastColorValue()
+{
+    QColor res = QColor(39, 0, 50);
+    if (m_settings.contains(QStringLiteral("contrastUiColor"))) {
+        QString hex =
+          m_settings.value(QStringLiteral("contrastUiColor")).toString();
+        if (QColor::isValidColor(hex)) {
+            res = QColor(hex);
+        }
+    }
+    return res;
+}
+void ConfigHandler::setUIContrastColor(const QColor& c)
+{
+    m_settings.setValue(QStringLiteral("contrastUiColor"), c.name());
+}
+QColor ConfigHandler::drawColorValue()
+{
+    QColor res(Qt::red);
+    if (m_settings.contains(QStringLiteral("drawColor"))) {
+        QString hex = m_settings.value(QStringLiteral("drawColor")).toString();
+        if (QColor::isValidColor(hex)) {
+            res = QColor(hex);
+        }
+    }
+    return res;
+}
+void ConfigHandler::setDrawColor(const QColor& c)
+{
+    m_settings.setValue(QStringLiteral("drawColor"), c.name());
+}
+bool ConfigHandler::showHelpValue()
+{
+    bool res = true;
+    if (m_settings.contains(QStringLiteral("showHelp"))) {
+        res = m_settings.value(QStringLiteral("showHelp")).toBool();
+    }
+    return res;
+}
+void ConfigHandler::setShowHelp(const bool showHelp)
+{
+    m_settings.setValue(QStringLiteral("showHelp"), showHelp);
+}
+bool ConfigHandler::showSidePanelButtonValue()
+{
+    return m_settings.value(QStringLiteral("showSidePanelButton"), true)
+      .toBool();
+}
+void ConfigHandler::setShowSidePanelButton(const bool showSidePanelButton)
+{
+    m_settings.setValue(QStringLiteral("showSidePanelButton"),
+                        showSidePanelButton);
+}
+void ConfigHandler::setIgnoreUpdateToVersion(const QString& text)
+{
+    m_settings.setValue(QStringLiteral("ignoreUpdateToVersion"), text);
+}
+QString ConfigHandler::ignoreUpdateToVersion()
+{
+    return m_settings.value(QStringLiteral("ignoreUpdateToVersion")).toString();
+}
+bool ConfigHandler::desktopNotificationValue()
+{
+    bool res = true;
+    if (m_settings.contains(QStringLiteral("showDesktopNotification"))) {
+        res =
+          m_settings.value(QStringLiteral("showDesktopNotification")).toBool();
+    }
+    return res;
+}
+void ConfigHandler::setDesktopNotification(const bool showDesktopNotification)
+{
+    m_settings.setValue(QStringLiteral("showDesktopNotification"),
+                        showDesktopNotification);
+}
+QString ConfigHandler::filenamePatternValue()
+{
+    return m_settings.value(QStringLiteral("filenamePattern")).toString();
+}
+void ConfigHandler::setFilenamePattern(const QString& pattern)
+{
+    return m_settings.setValue(QStringLiteral("filenamePattern"), pattern);
+}
+bool ConfigHandler::disabledTrayIconValue()
+{
+    bool res = false;
+    if (m_settings.contains(QStringLiteral("disabledTrayIcon"))) {
+        res = m_settings.value(QStringLiteral("disabledTrayIcon")).toBool();
+    }
+    return res;
+}
+void ConfigHandler::setDisabledTrayIcon(const bool disabledTrayIcon)
+{
+    m_settings.setValue(QStringLiteral("disabledTrayIcon"), disabledTrayIcon);
+}
+int ConfigHandler::drawThicknessValue()
+{
+    int res = 0;
+    if (m_settings.contains(QStringLiteral("drawThickness"))) {
+        res = m_settings.value(QStringLiteral("drawThickness")).toInt();
+    }
+    return res;
+}
+void ConfigHandler::setdrawThickness(const int thickness)
+{
+    m_settings.setValue(QStringLiteral("drawThickness"), thickness);
+}
+bool ConfigHandler::keepOpenAppLauncherValue()
+{
+    return m_settings.value(QStringLiteral("keepOpenAppLauncher")).toBool();
+}
+void ConfigHandler::setKeepOpenAppLauncher(const bool keepOpen)
+{
+    m_settings.setValue(QStringLiteral("keepOpenAppLauncher"), keepOpen);
+}
+bool ConfigHandler::startupLaunchValue()
+{
+    bool res = true;
+    if (m_settings.contains(QStringLiteral("startupLaunch"))) {
+        res = m_settings.value(QStringLiteral("startupLaunch")).toBool();
+    }
+    if (res != verifyLaunchFile()) {
+        setStartupLaunch(res);
+    }
+    return res;
+}
+bool ConfigHandler::verifyLaunchFile()
+{
+    bool res = false;
+#if defined(Q_OS_LINUX) || defined(Q_OS_UNIX)
+    QString path = QStandardPaths::locate(QStandardPaths::GenericConfigLocation,
+                                          "autostart/",
+                                          QStandardPaths::LocateDirectory) +
+                   "Flameshot.desktop";
+    res = QFile(path).exists();
+#elif defined(Q_OS_WIN)
+    QSettings bootUpSettings(
+      "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+      QSettings::NativeFormat);
+    res = bootUpSettings.value("Flameshot").toString() ==
+          QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+#endif
+    return res;
+}
+void ConfigHandler::setStartupLaunch(const bool start)
+{
+#if defined(Q_OS_LINUX) || defined(Q_OS_UNIX)
+    QString path = QStandardPaths::locate(QStandardPaths::GenericConfigLocation,
+                                          "autostart/",
+                                          QStandardPaths::LocateDirectory);
+    QDir autostartDir(path);
+    if (!autostartDir.exists()) {
+        autostartDir.mkpath(".");
+    }
+    QFile file(path + "Flameshot.desktop");
+    if (start) {
+        if (file.open(QIODevice::WriteOnly)) {
+            QByteArray data("[Desktop Entry]\nName=flameshot\nIcon=flameshot"
+                            "\nExec=flameshot\nTerminal=false\nType=Application"
+                            "\nX-GNOME-Autostart-enabled=true\n");
+            file.write(data);
+        }
+    } else {
+        file.remove();
+    }
+#elif defined(Q_OS_WIN)
+    QSettings bootUpSettings(
+      "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+      QSettings::NativeFormat);
+    QSettings bootUpPath(
+      "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App "
+      "Paths",
+      QSettings::NativeFormat);
+    if (start) {
+        QString app_path =
+          QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+        bootUpSettings.setValue("Flameshot", app_path);
+        bootUpPath.beginGroup("flameshot.exe");
+        bootUpPath.setValue("Path", QCoreApplication::applicationDirPath());
+        bootUpPath.endGroup();
+    } else {
+        bootUpSettings.remove("Flameshot");
+        bootUpPath.beginGroup("flameshot.exe");
+        bootUpPath.remove("");
+        bootUpPath.endGroup();
+    }
+#endif
+    m_settings.setValue(QStringLiteral("startupLaunch"), start);
+}
+int ConfigHandler::contrastOpacityValue()
+{
+    int opacity = 190;
+    if (m_settings.contains(QStringLiteral("contrastOpacity"))) {
+        opacity = m_settings.value(QStringLiteral("contrastOpacity")).toInt();
+        opacity = qBound(0, opacity, 255);
+    }
+    return opacity;
+}
+void ConfigHandler::setContrastOpacity(const int transparency)
+{
+    m_settings.setValue(QStringLiteral("contrastOpacity"), transparency);
+}
+bool ConfigHandler::saveAfterCopyValue()
+{
+    return m_settings.value(QStringLiteral("saveAfterCopy")).toBool();
+}
+void ConfigHandler::setSaveAfterCopy(const bool save)
+{
+    m_settings.setValue(QStringLiteral("saveAfterCopy"), save);
+}
+bool ConfigHandler::copyPathAfterSaveEnabled()
+{
+    bool res = false;
+    if (m_settings.contains(QStringLiteral("copyPathAfterSave"))) {
+        res = m_settings.value(QStringLiteral("copyPathAfterSave")).toBool();
+    }
+    return res;
+}
+void ConfigHandler::setCopyPathAfterSaveEnabled(const bool value)
+{
+    m_settings.setValue(QStringLiteral("copyPathAfterSave"), value);
+}
+QString ConfigHandler::saveAfterCopyPathValue()
+{
+    return m_settings.value(QStringLiteral("saveAfterCopyPath")).toString();
+}
+void ConfigHandler::setSaveAfterCopyPath(const QString& path)
+{
+    m_settings.setValue(QStringLiteral("saveAfterCopyPath"), path);
+}
+void ConfigHandler::setDefaults()
+{
+    m_settings.clear();
+}
+void ConfigHandler::setAllTheButtons()
+{
+    QVector<int> buttons;
+    auto listTypes = CaptureToolButton::getIterableButtonTypes();
+    for (const CaptureToolButton::ButtonType t : listTypes) {
+        buttons << static_cast<int>(t);
+    }
+    m_settings.setValue(QStringLiteral("buttons"),
+                        QVariant::fromValue(buttons.toList()));
+}
+QString ConfigHandler::configFilePath() const
+{
+    return m_settings.fileName();
+}
+bool ConfigHandler::normalizeButtons(QVector<int>& buttons)
+{
+    auto listTypes = CaptureToolButton::getIterableButtonTypes();
+    QVector<int> listTypesInt;
+    for (auto i : listTypes)
+        listTypesInt << static_cast<int>(i);
+    bool hasChanged = false;
+    for (int i = 0; i < buttons.size(); i++) {
+        if (!listTypesInt.contains(buttons.at(i))) {
+            buttons.remove(i);
+            hasChanged = true;
+        }
+    }
+    return hasChanged;
+}
+QVector<CaptureToolButton::ButtonType> ConfigHandler::fromIntToButton(
+  const QVector<int>& l)
+{
+    QVector<CaptureToolButton::ButtonType> buttons;
+    for (auto const i : l)
+        buttons << static_cast<CaptureToolButton::ButtonType>(i);
+    return buttons;
+}
+QVector<int> ConfigHandler::fromButtonToInt(
+  const QVector<CaptureToolButton::ButtonType>& l)
+{
+    QVector<int> buttons;
+    for (auto const i : l)
+        buttons << static_cast<int>(i);
+    return buttons;
+}
+QVector<QStringList> ConfigHandler::shortcuts()
+{
+    ConfigShortcuts configShortcuts;
+    m_shortcuts = configShortcuts.captureShortcutsDefault(getButtons());
+    return m_shortcuts;
+}
+void ConfigHandler::setShortcutsDefault()
+{
+    ConfigShortcuts configShortcuts;
+    for (auto shortcutItem : shortcuts()) {
+        QString shortcutName = shortcutItem.at(0);
+        QString shortcutDescription = shortcutItem.at(1);
+        QString shortcutValueDefault = shortcutItem.at(2);
+        QString shortcutValue = shortcut(shortcutName);
+        QKeySequence ks = QKeySequence();
+        if (shortcutValue.isNull()) {
+            ks = QKeySequence(shortcutValueDefault);
+            if (!setShortcut(shortcutName, ks.toString())) {
+                shortcutValue = shortcutValueDefault;
+            }
+        }
+        m_shortcuts << (QStringList() << shortcutName << shortcutDescription
+                                      << shortcutValue);
+    }
+}
+bool ConfigHandler::setShortcut(const QString& shortcutName,
+                                const QString& shortutValue)
+{
+    bool error = false;
+    m_settings.beginGroup("Shortcuts");
+    QVector<QKeySequence> reservedShortcuts;
+    reservedShortcuts << QKeySequence(Qt::Key_Backspace)
+                      << QKeySequence(Qt::Key_Escape);
+    if (shortutValue.isEmpty()) {
+        m_settings.setValue(shortcutName, "");
+    } else if (reservedShortcuts.contains(QKeySequence(shortutValue))) {
+        error = true;
+    } else {
+        QString shortcutItem = shortutValue;
+        if (shortcutItem == "Enter") {
+            shortcutItem = QKeySequence(Qt::Key_Return).toString();
+        }
+        foreach (auto currentShortcutName, m_settings.allKeys()) {
+            if (m_settings.value(currentShortcutName) == shortcutItem) {
+                m_settings.setValue(shortcutName, "");
+                error = true;
+                break;
+            }
+        }
+        if (!error) {
+            m_settings.setValue(shortcutName, shortcutItem);
+        }
+    }
+    m_settings.endGroup();
+    return !error;
+}
+const QString& ConfigHandler::shortcut(const QString& shortcutName)
+{
+    m_settings.beginGroup("Shortcuts");
+    m_strRes = m_settings.value(shortcutName).toString();
+    m_settings.endGroup();
+    return m_strRes;
+}
+void ConfigHandler::setValue(const QString& group,
+                             const QString& key,
+                             const QVariant& value)
+{
+    if (!group.isEmpty()) {
+        m_settings.beginGroup(group);
+    }
+    m_settings.setValue(key, value);
+    if (!group.isEmpty()) {
+        m_settings.endGroup();
+    }
+}
+QVariant& ConfigHandler::value(const QString& group, const QString& key)
+{
+    if (!group.isEmpty()) {
+        m_settings.beginGroup(group);
+    }
+    m_varRes = m_settings.value(key);
+    if (!group.isEmpty()) {
+        m_settings.endGroup();
+    }
+    return m_varRes;
+}

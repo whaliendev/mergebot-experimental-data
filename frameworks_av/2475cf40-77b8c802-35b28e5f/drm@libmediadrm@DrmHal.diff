@@ -1,0 +1,526 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_merged.cpp
+index d458d60..c4a5148 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_merged.cpp
+@@ -4,2 +3,0 @@
+-#include <binder/IPCThreadState.h>
+-#include <binder/IServiceManager.h>
+@@ -26,9 +23,0 @@
+-using ::android::sp;
+-using ::android::hardware::hidl_array;
+-using ::android::hardware::hidl_string;
+-using ::android::hardware::hidl_vec;
+-using ::android::hardware::Return;
+-using ::android::hardware::Void;
+-using ::android::hardware::drm::V1_1::DrmMetricGroup;
+-using ::android::hidl::manager::V1_0::IServiceManager;
+-using ::android::os::PersistableBundle;
+@@ -46,0 +36,8 @@ using drm::V1_2::KeyStatusType;
++using ::android::hardware::drm::V1_1::DrmMetricGroup;
++using ::android::hardware::hidl_array;
++using ::android::hardware::hidl_string;
++using ::android::hardware::hidl_vec;
++using ::android::hardware::Return;
++using ::android::hardware::Void;
++using ::android::os::PersistableBundle;
++using ::android::sp;
+@@ -66,16 +62,0 @@ std::string toBase64StringNoPad(const T *data, size_t size) {
+-namespace {
+-constexpr char kPropertyDeviceUniqueId[] = "deviceUniqueId";
+-constexpr char kEqualsSign[] = "=";
+-template <typename T>
+-std::string toBase64StringNoPad(const T *data, size_t size) {
+-  if (size == 0 || sizeof(data[0]) != 1) {
+-    return "";
+-  }
+-  android::AString outputString;
+-  encodeBase64(data, size, &outputString);
+-  while (outputString.size() > 0 && outputString.endsWith(kEqualsSign)) {
+-    outputString.erase(outputString.size() - 1, 1);
+-  }
+-  return std::string(outputString.c_str(), outputString.size());
+-}
+-}
+@@ -82,0 +64 @@ namespace android {
++#define INIT_CHECK() {if (mInitCheck != OK) return mInitCheck;}
+@@ -162,2 +144,2 @@ static DrmPlugin::HdcpLevel toHdcpLevel(HdcpLevel_V1_2 level) {
+-static ::KeyedVector toHidlKeyedVector(
+-    const KeyedVector<String8, String8> &keyedVector) {
++static ::KeyedVector toHidlKeyedVector(const KeyedVector<String8, String8>&
++        keyedVector) {
+@@ -173,2 +155,2 @@ static ::KeyedVector toHidlKeyedVector(
+-static KeyedVector<String8, String8> toKeyedVector(
+-    const ::KeyedVector &hKeyedVector) {
++static KeyedVector<String8, String8> toKeyedVector(const ::KeyedVector&
++        hKeyedVector) {
+@@ -182,2 +164,2 @@ static KeyedVector<String8, String8> toKeyedVector(
+-static List<Vector<uint8_t>> toSecureStops(
+-    const hidl_vec<SecureStop> &hSecureStops) {
++static List<Vector<uint8_t>> toSecureStops(const hidl_vec<SecureStop>&
++        hSecureStops) {
+@@ -190,2 +172,2 @@ static List<Vector<uint8_t>> toSecureStops(
+-static List<Vector<uint8_t>> toSecureStopIds(
+-    const hidl_vec<SecureStopId> &hSecureStopIds) {
++static List<Vector<uint8_t>> toSecureStopIds(const hidl_vec<SecureStopId>&
++        hSecureStopIds) {
+@@ -198 +180,2 @@ static List<Vector<uint8_t>> toSecureStopIds(
+-static List<Vector<uint8_t>> toKeySetIds(const hidl_vec<KeySetId> &hKeySetIds) {
++static List<Vector<uint8_t>> toKeySetIds(const hidl_vec<KeySetId>&
++        hKeySetIds) {
+@@ -256,2 +239 @@ Mutex DrmHal::mLock;
+-struct DrmHal::DrmSessionClient
+-    : public aidl::android::media::BnResourceManagerClient {
++struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient {
+@@ -259 +241,2 @@ struct DrmHal::DrmSessionClient
+-      : mSessionId(sessionId), mDrm(drm) {}
++      : mSessionId(sessionId),
++        mDrm(drm) {}
+@@ -268 +251,2 @@ struct DrmHal::DrmSessionClient
+-bool DrmHal::DrmSessionClient::reclaimResource() {
++::ndk::ScopedAStatus DrmHal::DrmSessionClient::reclaimResource(bool* _aidl_return) {
++    auto sessionId = mSessionId;
+@@ -271 +255,2 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-    return true;
++        *_aidl_return = true;
++        return ::ndk::ScopedAStatus::ok();
+@@ -273 +258 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-  status_t err = drm->closeSession(mSessionId);
++    status_t err = drm->closeSession(sessionId);
+@@ -275 +260,2 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-    return false;
++        *_aidl_return = false;
++        return ::ndk::ScopedAStatus::ok();
+@@ -277,3 +263,4 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-  drm->sendEvent(EventType::SESSION_RECLAIMED, toHidlVec(mSessionId),
+-                 hidl_vec<uint8_t>());
+-  return true;
++    drm->sendEvent(EventType::SESSION_RECLAIMED,
++            toHidlVec(sessionId), hidl_vec<uint8_t>());
++    *_aidl_return = true;
++    return ::ndk::ScopedAStatus::ok();
+@@ -281 +268 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-String8 DrmHal::DrmSessionClient::getName() {
++::ndk::ScopedAStatus DrmHal::DrmSessionClient::getName(::std::string* _aidl_return) {
+@@ -286,2 +273,2 @@ String8 DrmHal::DrmSessionClient::getName() {
+-  } else if (drm->getPropertyStringInternal(String8("vendor"), name) != OK ||
+-             name.isEmpty()) {
++    } else if (drm->getPropertyStringInternal(String8("vendor"), name) != OK
++        || name.isEmpty()) {
+@@ -295 +282,2 @@ String8 DrmHal::DrmSessionClient::getName() {
+-  return name;
++    *_aidl_return = name;
++    return ::ndk::ScopedAStatus::ok();
+@@ -301,3 +289,3 @@ DrmHal::DrmHal()
+-    : mDrmSessionClient(new DrmSessionClient(this)),
+-      mFactories(makeDrmFactories()),
+-      mInitCheck((mFactories.size() == 0) ? ERROR_UNSUPPORTED : NO_INIT) {}
++   : mFactories(makeDrmFactories()),
++     mInitCheck((mFactories.size() == 0) ? ERROR_UNSUPPORTED : NO_INIT) {
++}
+@@ -314 +302,2 @@ void DrmHal::closeOpenSessions() {
+-DrmHal::~DrmHal() {}
++DrmHal::~DrmHal() {
++}
+@@ -349,2 +338 @@ sp<IDrmPlugin> DrmHal::makeDrmPlugin(const sp<IDrmFactory> &factory,
+-                                     const uint8_t uuid[16],
+-                                     const String8 &appPackageName) {
++        const uint8_t uuid[16], const String8& appPackageName) {
+@@ -355,2 +343 @@ sp<IDrmPlugin> DrmHal::makeDrmPlugin(const sp<IDrmFactory> &factory,
+-  Return<void> hResult =
+-      factory->createPlugin(uuid, appPackageName.string(),
++    Return<void> hResult = factory->createPlugin(uuid, appPackageName.string(),
+@@ -363 +350,2 @@ sp<IDrmPlugin> DrmHal::makeDrmPlugin(const sp<IDrmFactory> &factory,
+-                            });
++            }
++        );
+@@ -369,2 +357,5 @@ sp<IDrmPlugin> DrmHal::makeDrmPlugin(const sp<IDrmFactory> &factory,
+-status_t DrmHal::initCheck() const { return mInitCheck; }
+-status_t DrmHal::setListener(const sp<IDrmClient> &listener) {
++status_t DrmHal::initCheck() const {
++    return mInitCheck;
++}
++status_t DrmHal::setListener(const sp<IDrmClient>& listener)
++{
+@@ -376,2 +367 @@ Return<void> DrmHal::sendEvent(EventType hEventType,
+-                               const hidl_vec<uint8_t> &sessionId,
+-                               const hidl_vec<uint8_t> &data) {
++        const hidl_vec<uint8_t>& sessionId, const hidl_vec<uint8_t>& data) {
+@@ -419,2 +409 @@ Return<void> DrmHal::sendExpirationUpdate(const hidl_vec<uint8_t> &sessionId,
+-Return<void> DrmHal::sendKeysChange(
+-    const hidl_vec<uint8_t> &sessionId,
++Return<void> DrmHal::sendKeysChange(const hidl_vec<uint8_t>& sessionId,
+@@ -430,2 +419 @@ Return<void> DrmHal::sendKeysChange(
+-Return<void> DrmHal::sendKeysChange_1_2(
+-    const hidl_vec<uint8_t> &sessionId,
++Return<void> DrmHal::sendKeysChange_1_2(const hidl_vec<uint8_t>& sessionId,
+@@ -476 +464,2 @@ Return<void> DrmHal::sendKeysChange_1_2(
+-Return<void> DrmHal::sendSessionLostState(const hidl_vec<uint8_t> &sessionId) {
++Return<void> DrmHal::sendSessionLostState(
++        const hidl_vec<uint8_t>& sessionId) {
+@@ -502,2 +491 @@ status_t DrmHal::matchMimeTypeAndSecurityLevel(const sp<IDrmFactory> &factory,
+-  sp<drm::V1_2::IDrmFactory> factoryV1_2 =
+-      drm::V1_2::IDrmFactory::castFrom(factory);
++    sp<drm::V1_2::IDrmFactory> factoryV1_2 = drm::V1_2::IDrmFactory::castFrom(factory);
+@@ -507,2 +495,2 @@ status_t DrmHal::matchMimeTypeAndSecurityLevel(const sp<IDrmFactory> &factory,
+-    *isSupported = factoryV1_2->isCryptoSchemeSupported_1_2(
+-        uuid, mimeType.string(), toHidlSecurityLevel(level));
++        *isSupported = factoryV1_2->isCryptoSchemeSupported_1_2(uuid,
++                mimeType.string(), toHidlSecurityLevel(level));
+@@ -520,2 +508,2 @@ status_t DrmHal::isCryptoSchemeSupported(const uint8_t uuid[16],
+-      return matchMimeTypeAndSecurityLevel(mFactories[i], uuid, mimeType, level,
+-                                           isSupported);
++            return matchMimeTypeAndSecurityLevel(mFactories[i],
++                    uuid, mimeType, level, isSupported);
+@@ -582,2 +570,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-      hResult =
+-          mPlugin->openSession([&](Status status, const hidl_vec<uint8_t> &id) {
++            hResult = mPlugin->openSession(
++                    [&](Status status,const hidl_vec<uint8_t>& id) {
+@@ -588 +576,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-          });
++                    }
++                );
+@@ -590,2 +579,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-      hResult = mPluginV1_1->openSession_1_1(
+-          hSecurityLevel, [&](Status status, const hidl_vec<uint8_t> &id) {
++            hResult = mPluginV1_1->openSession_1_1(hSecurityLevel,
++                    [&](Status status, const hidl_vec<uint8_t>& id) {
+@@ -596 +585,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-          });
++                    }
++                );
+@@ -603,2 +593 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-      retry = DrmSessionManager::Instance()->reclaimSession(
+-          AIBinder_getCallingPid());
++            retry = DrmSessionManager::Instance()->reclaimSession(AIBinder_getCallingPid());
+@@ -611,5 +600,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-<<<<<<< HEAD
+-    std::shared_ptr<DrmSessionClient> client(
+-        new DrmSessionClient(this, sessionId));
+-    DrmSessionManager::Instance()->addSession(
+-        AIBinder_getCallingPid(),
++        std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
++        DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(),
+@@ -618,10 +603,0 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-||||||| 35b28e5f80
+-    DrmSessionManager::Instance()->addSession(getCallingPid(),
+-                                              mDrmSessionClient, sessionId);
+-    mOpenSessions.push(sessionId);
+-=======
+-    sp<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
+-    DrmSessionManager::Instance()->addSession(getCallingPid(), client,
+-                                              sessionId);
+-    mOpenSessions.push(client);
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2
+@@ -640 +615,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-<<<<<<< HEAD
+@@ -644,9 +618,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-||||||| 35b28e5f80
+-      for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-        if (mOpenSessions[i] == sessionId) {
+-          mOpenSessions.removeAt(i);
+-=======
+-      for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-        if (isEqualSessionId(mOpenSessions[i]->mSessionId, sessionId)) {
+-          mOpenSessions.removeAt(i);
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2
+@@ -696,6 +662,5 @@ static DrmPlugin::KeyRequestType toKeyRequestType_1_1(
+-status_t DrmHal::getKeyRequest(
+-    Vector<uint8_t> const &sessionId, Vector<uint8_t> const &initData,
+-    String8 const &mimeType, DrmPlugin::KeyType keyType,
+-    KeyedVector<String8, String8> const &optionalParameters,
+-    Vector<uint8_t> &request, String8 &defaultUrl,
+-    DrmPlugin::KeyRequestType *keyRequestType) {
++status_t DrmHal::getKeyRequest(Vector<uint8_t> const &sessionId,
++        Vector<uint8_t> const &initData, String8 const &mimeType,
++        DrmPlugin::KeyType keyType, KeyedVector<String8,
++        String8> const &optionalParameters, Vector<uint8_t> &request,
++        String8 &defaultUrl, DrmPlugin::KeyRequestType *keyRequestType) {
+@@ -722,2 +687,2 @@ status_t DrmHal::getKeyRequest(
+-        toHidlVec(sessionId), toHidlVec(initData), toHidlString(mimeType),
+-        hKeyType, hOptionalParameters,
++                toHidlVec(sessionId), toHidlVec(initData),
++                toHidlString(mimeType), hKeyType, hOptionalParameters,
+@@ -736,2 +701,2 @@ status_t DrmHal::getKeyRequest(
+-        toHidlVec(sessionId), toHidlVec(initData), toHidlString(mimeType),
+-        hKeyType, hOptionalParameters,
++                toHidlVec(sessionId), toHidlVec(initData),
++                toHidlString(mimeType), hKeyType, hOptionalParameters,
+@@ -750,2 +715,2 @@ status_t DrmHal::getKeyRequest(
+-        toHidlVec(sessionId), toHidlVec(initData), toHidlString(mimeType),
+-        hKeyType, hOptionalParameters,
++                toHidlVec(sessionId), toHidlVec(initData),
++                toHidlString(mimeType), hKeyType, hOptionalParameters,
+@@ -753 +718,2 @@ status_t DrmHal::getKeyRequest(
+-            KeyRequestType hKeyRequestType, const hidl_string &hDefaultUrl) {
++                        KeyRequestType hKeyRequestType,
++                        const hidl_string& hDefaultUrl) {
+@@ -767,2 +733 @@ status_t DrmHal::provideKeyResponse(Vector<uint8_t> const &sessionId,
+-                                    Vector<uint8_t> const &response,
+-                                    Vector<uint8_t> &keySetId) {
++        Vector<uint8_t> const &response, Vector<uint8_t> &keySetId) {
+@@ -774,2 +739,2 @@ status_t DrmHal::provideKeyResponse(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPlugin->provideKeyResponse(
+-      toHidlVec(sessionId), toHidlVec(response),
++    Return<void> hResult = mPlugin->provideKeyResponse(toHidlVec(sessionId),
++            toHidlVec(response),
+@@ -781 +746,2 @@ status_t DrmHal::provideKeyResponse(Vector<uint8_t> const &sessionId,
+-      });
++            }
++        );
+@@ -797,2 +763,2 @@ status_t DrmHal::restoreKeys(Vector<uint8_t> const &sessionId,
+-  Return<Status> status =
+-      mPlugin->restoreKeys(toHidlVec(sessionId), toHidlVec(keySetId));
++    Return<Status> status = mPlugin->restoreKeys(toHidlVec(sessionId),
++            toHidlVec(keySetId));
+@@ -808,2 +774,2 @@ status_t DrmHal::queryKeyStatus(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPlugin->queryKeyStatus(
+-      toHidlVec(sessionId), [&](Status status, const hidl_vec<KeyValue> &map) {
++    Return<void> hResult = mPlugin->queryKeyStatus(toHidlVec(sessionId),
++            [&](Status status, const hidl_vec<KeyValue>& map) {
+@@ -814 +780,2 @@ status_t DrmHal::queryKeyStatus(Vector<uint8_t> const &sessionId,
+-      });
++            }
++        );
+@@ -818,2 +785 @@ status_t DrmHal::getProvisionRequest(String8 const &certType,
+-                                     String8 const &certAuthority,
+-                                     Vector<uint8_t> &request,
++        String8 const &certAuthority, Vector<uint8_t> &request,
+@@ -835 +801,2 @@ status_t DrmHal::getProvisionRequest(String8 const &certType,
+-        });
++                }
++            );
+@@ -846 +813,2 @@ status_t DrmHal::getProvisionRequest(String8 const &certType,
+-        });
++                }
++            );
+@@ -853,2 +821 @@ status_t DrmHal::provideProvisionResponse(Vector<uint8_t> const &response,
+-                                          Vector<uint8_t> &certificate,
+-                                          Vector<uint8_t> &wrappedKey) {
++        Vector<uint8_t> &certificate, Vector<uint8_t> &wrappedKey) {
+@@ -858,2 +825 @@ status_t DrmHal::provideProvisionResponse(Vector<uint8_t> const &response,
+-  Return<void> hResult = mPlugin->provideProvisionResponse(
+-      toHidlVec(response),
++    Return<void> hResult = mPlugin->provideProvisionResponse(toHidlVec(response),
+@@ -867 +833,2 @@ status_t DrmHal::provideProvisionResponse(Vector<uint8_t> const &response,
+-      });
++            }
++        );
+@@ -882 +849,2 @@ status_t DrmHal::getSecureStops(List<Vector<uint8_t>> &secureStops) {
+-      });
++            }
++    );
+@@ -900 +868,2 @@ status_t DrmHal::getSecureStopIds(List<Vector<uint8_t>> &secureStopIds) {
+-      });
++            }
++    );
+@@ -903,2 +872 @@ status_t DrmHal::getSecureStopIds(List<Vector<uint8_t>> &secureStopIds) {
+-status_t DrmHal::getSecureStop(Vector<uint8_t> const &ssid,
+-                               Vector<uint8_t> &secureStop) {
++status_t DrmHal::getSecureStop(Vector<uint8_t> const &ssid, Vector<uint8_t> &secureStop) {
+@@ -908,2 +876,2 @@ status_t DrmHal::getSecureStop(Vector<uint8_t> const &ssid,
+-  Return<void> hResult = mPlugin->getSecureStop(
+-      toHidlVec(ssid), [&](Status status, const SecureStop &hSecureStop) {
++    Return<void> hResult = mPlugin->getSecureStop(toHidlVec(ssid),
++            [&](Status status, const SecureStop& hSecureStop) {
+@@ -914 +882,2 @@ status_t DrmHal::getSecureStop(Vector<uint8_t> const &ssid,
+-      });
++            }
++    );
+@@ -965,2 +934 @@ status_t DrmHal::getHdcpLevels(DrmPlugin::HdcpLevel *connected,
+-        [&](Status_V1_2 status, const HdcpLevel_V1_2 &hConnected,
+-            const HdcpLevel_V1_2 &hMax) {
++                [&](Status_V1_2 status, const HdcpLevel_V1_2& hConnected, const HdcpLevel_V1_2& hMax) {
+@@ -1006 +974,2 @@ status_t DrmHal::getNumberOfSessions(uint32_t *open, uint32_t *max) const {
+-      });
++            }
++    );
+@@ -1021,2 +990,2 @@ status_t DrmHal::getSecurityLevel(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPluginV1_1->getSecurityLevel(
+-      toHidlVec(sessionId), [&](Status status, SecurityLevel hLevel) {
++    Return<void> hResult = mPluginV1_1->getSecurityLevel(toHidlVec(sessionId),
++            [&](Status status, SecurityLevel hLevel) {
+@@ -1027 +996,2 @@ status_t DrmHal::getSecurityLevel(Vector<uint8_t> const &sessionId,
+-      });
++            }
++    );
+@@ -1030,2 +1000 @@ status_t DrmHal::getSecurityLevel(Vector<uint8_t> const &sessionId,
+-status_t DrmHal::getOfflineLicenseKeySetIds(
+-    List<Vector<uint8_t>> &keySetIds) const {
++status_t DrmHal::getOfflineLicenseKeySetIds(List<Vector<uint8_t>> &keySetIds) const {
+@@ -1046 +1015,2 @@ status_t DrmHal::getOfflineLicenseKeySetIds(
+-      });
++            }
++    );
+@@ -1057,2 +1027 @@ status_t DrmHal::removeOfflineLicense(Vector<uint8_t> const &keySetId) {
+-  Return<Status> status =
+-      mPluginV1_2->removeOfflineLicense(toHidlVec(keySetId));
++    Return<Status> status = mPluginV1_2->removeOfflineLicense(toHidlVec(keySetId));
+@@ -1061,2 +1030 @@ status_t DrmHal::removeOfflineLicense(Vector<uint8_t> const &keySetId) {
+-status_t DrmHal::getOfflineLicenseState(
+-    Vector<uint8_t> const &keySetId,
++status_t DrmHal::getOfflineLicenseState(Vector<uint8_t> const &keySetId,
+@@ -1073,2 +1041 @@ status_t DrmHal::getOfflineLicenseState(
+-  Return<void> hResult = mPluginV1_2->getOfflineLicenseState(
+-      toHidlVec(keySetId),
++    Return<void> hResult = mPluginV1_2->getOfflineLicenseState(toHidlVec(keySetId),
+@@ -1080 +1047,2 @@ status_t DrmHal::getOfflineLicenseState(
+-      });
++            }
++    );
+@@ -1087,2 +1055 @@ status_t DrmHal::getPropertyString(String8 const &name, String8 &value) const {
+-status_t DrmHal::getPropertyStringInternal(String8 const &name,
+-                                           String8 &value) const {
++status_t DrmHal::getPropertyStringInternal(String8 const &name, String8 &value) const {
+@@ -1091,2 +1058,2 @@ status_t DrmHal::getPropertyStringInternal(String8 const &name,
+-  Return<void> hResult = mPlugin->getPropertyString(
+-      toHidlString(name), [&](Status status, const hidl_string &hValue) {
++    Return<void> hResult = mPlugin->getPropertyString(toHidlString(name),
++            [&](Status status, const hidl_string& hValue) {
+@@ -1097 +1064,2 @@ status_t DrmHal::getPropertyStringInternal(String8 const &name,
+-      });
++            }
++    );
+@@ -1100,2 +1068 @@ status_t DrmHal::getPropertyStringInternal(String8 const &name,
+-status_t DrmHal::getPropertyByteArray(String8 const &name,
+-                                      Vector<uint8_t> &value) const {
++status_t DrmHal::getPropertyByteArray(String8 const &name, Vector<uint8_t> &value ) const {
+@@ -1105,2 +1072 @@ status_t DrmHal::getPropertyByteArray(String8 const &name,
+-status_t DrmHal::getPropertyByteArrayInternal(String8 const &name,
+-                                              Vector<uint8_t> &value) const {
++status_t DrmHal::getPropertyByteArrayInternal(String8 const &name, Vector<uint8_t> &value ) const {
+@@ -1109,2 +1075,2 @@ status_t DrmHal::getPropertyByteArrayInternal(String8 const &name,
+-  Return<void> hResult = mPlugin->getPropertyByteArray(
+-      toHidlString(name), [&](Status status, const hidl_vec<uint8_t> &hValue) {
++    Return<void> hResult = mPlugin->getPropertyByteArray(toHidlString(name),
++            [&](Status status, const hidl_vec<uint8_t>& hValue) {
+@@ -1115 +1081,2 @@ status_t DrmHal::getPropertyByteArrayInternal(String8 const &name,
+-      });
++            }
++    );
+@@ -1122,2 +1089 @@ status_t DrmHal::getPropertyByteArrayInternal(String8 const &name,
+-status_t DrmHal::setPropertyString(String8 const &name,
+-                                   String8 const &value) const {
++status_t DrmHal::setPropertyString(String8 const &name, String8 const &value ) const {
+@@ -1126,2 +1092,2 @@ status_t DrmHal::setPropertyString(String8 const &name,
+-  Return<Status> status =
+-      mPlugin->setPropertyString(toHidlString(name), toHidlString(value));
++    Return<Status> status = mPlugin->setPropertyString(toHidlString(name),
++            toHidlString(value));
+@@ -1134,2 +1100,2 @@ status_t DrmHal::setPropertyByteArray(String8 const &name,
+-  Return<Status> status =
+-      mPlugin->setPropertyByteArray(toHidlString(name), toHidlVec(value));
++    Return<Status> status = mPlugin->setPropertyByteArray(toHidlString(name),
++            toHidlVec(value));
+@@ -1146,2 +1112,2 @@ status_t DrmHal::getMetrics(const sp<IDrmMetricsConsumer> &consumer) {
+-    if (getPropertyStringInternal(String8("vendor"), vendor) != OK ||
+-        vendor.isEmpty()) {
++        if (getPropertyStringInternal(String8("vendor"), vendor) != OK
++            || vendor.isEmpty()) {
+@@ -1151,2 +1117,2 @@ status_t DrmHal::getMetrics(const sp<IDrmMetricsConsumer> &consumer) {
+-    if (getPropertyStringInternal(String8("description"), description) != OK ||
+-        description.isEmpty()) {
++        if (getPropertyStringInternal(String8("description"), description) != OK
++            || description.isEmpty()) {
+@@ -1187,2 +1153,2 @@ status_t DrmHal::setMacAlgorithm(Vector<uint8_t> const &sessionId,
+-  Return<Status> status =
+-      mPlugin->setMacAlgorithm(toHidlVec(sessionId), toHidlString(algorithm));
++    Return<Status> status = mPlugin->setMacAlgorithm(toHidlVec(sessionId),
++            toHidlString(algorithm));
+@@ -1192,2 +1158 @@ status_t DrmHal::encrypt(Vector<uint8_t> const &sessionId,
+-                         Vector<uint8_t> const &keyId,
+-                         Vector<uint8_t> const &input,
++        Vector<uint8_t> const &keyId, Vector<uint8_t> const &input,
+@@ -1199,2 +1164,2 @@ status_t DrmHal::encrypt(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPlugin->encrypt(
+-      toHidlVec(sessionId), toHidlVec(keyId), toHidlVec(input), toHidlVec(iv),
++    Return<void> hResult = mPlugin->encrypt(toHidlVec(sessionId),
++            toHidlVec(keyId), toHidlVec(input), toHidlVec(iv),
+@@ -1206 +1171,2 @@ status_t DrmHal::encrypt(Vector<uint8_t> const &sessionId,
+-      });
++            }
++    );
+@@ -1210,2 +1176 @@ status_t DrmHal::decrypt(Vector<uint8_t> const &sessionId,
+-                         Vector<uint8_t> const &keyId,
+-                         Vector<uint8_t> const &input,
++        Vector<uint8_t> const &keyId, Vector<uint8_t> const &input,
+@@ -1217,2 +1182,2 @@ status_t DrmHal::decrypt(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPlugin->decrypt(
+-      toHidlVec(sessionId), toHidlVec(keyId), toHidlVec(input), toHidlVec(iv),
++    Return<void> hResult = mPlugin->decrypt(toHidlVec(sessionId),
++            toHidlVec(keyId), toHidlVec(input), toHidlVec(iv),
+@@ -1224 +1189,2 @@ status_t DrmHal::decrypt(Vector<uint8_t> const &sessionId,
+-      });
++            }
++    );
+@@ -1228,2 +1194 @@ status_t DrmHal::sign(Vector<uint8_t> const &sessionId,
+-                      Vector<uint8_t> const &keyId,
+-                      Vector<uint8_t> const &message,
++        Vector<uint8_t> const &keyId, Vector<uint8_t> const &message,
+@@ -1235,2 +1200,2 @@ status_t DrmHal::sign(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult =
+-      mPlugin->sign(toHidlVec(sessionId), toHidlVec(keyId), toHidlVec(message),
++    Return<void> hResult = mPlugin->sign(toHidlVec(sessionId),
++            toHidlVec(keyId), toHidlVec(message),
+@@ -1242 +1207,2 @@ status_t DrmHal::sign(Vector<uint8_t> const &sessionId,
+-                    });
++            }
++    );
+@@ -1246,2 +1212 @@ status_t DrmHal::verify(Vector<uint8_t> const &sessionId,
+-                        Vector<uint8_t> const &keyId,
+-                        Vector<uint8_t> const &message,
++        Vector<uint8_t> const &keyId, Vector<uint8_t> const &message,
+@@ -1253,3 +1218,3 @@ status_t DrmHal::verify(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult = mPlugin->verify(
+-      toHidlVec(sessionId), toHidlVec(keyId), toHidlVec(message),
+-      toHidlVec(signature), [&](Status status, bool hMatch) {
++    Return<void> hResult = mPlugin->verify(toHidlVec(sessionId),toHidlVec(keyId),
++            toHidlVec(message), toHidlVec(signature),
++            [&](Status status, bool hMatch) {
+@@ -1262 +1227,2 @@ status_t DrmHal::verify(Vector<uint8_t> const &sessionId,
+-      });
++            }
++    );
+@@ -1266,4 +1232,2 @@ status_t DrmHal::signRSA(Vector<uint8_t> const &sessionId,
+-                         String8 const &algorithm,
+-                         Vector<uint8_t> const &message,
+-                         Vector<uint8_t> const &wrappedKey,
+-                         Vector<uint8_t> &signature) {
++        String8 const &algorithm, Vector<uint8_t> const &message,
++        Vector<uint8_t> const &wrappedKey, Vector<uint8_t> &signature) {
+@@ -1274,3 +1238,2 @@ status_t DrmHal::signRSA(Vector<uint8_t> const &sessionId,
+-  Return<void> hResult =
+-      mPlugin->signRSA(toHidlVec(sessionId), toHidlString(algorithm),
+-                       toHidlVec(message), toHidlVec(wrappedKey),
++    Return<void> hResult = mPlugin->signRSA(toHidlVec(sessionId),
++            toHidlString(algorithm), toHidlVec(message), toHidlVec(wrappedKey),
+@@ -1282 +1245,2 @@ status_t DrmHal::signRSA(Vector<uint8_t> const &sessionId,
+-                       });
++            }
++        );
+@@ -1285 +1249,2 @@ status_t DrmHal::signRSA(Vector<uint8_t> const &sessionId,
+-void DrmHal::reportFrameworkMetrics() const {
++void DrmHal::reportFrameworkMetrics() const
++{
+@@ -1307,2 +1272,2 @@ void DrmHal::reportFrameworkMetrics() const {
+-  std::string b64EncodedMetrics =
+-      toBase64StringNoPad(serializedMetrics.data(), serializedMetrics.size());
++    std::string b64EncodedMetrics = toBase64StringNoPad(serializedMetrics.data(),
++                                                        serializedMetrics.size());
+@@ -1310,2 +1275 @@ void DrmHal::reportFrameworkMetrics() const {
+-    mediametrics_setCString(item, "serialized_metrics",
+-                            b64EncodedMetrics.c_str());
++        mediametrics_setCString(item, "serialized_metrics", b64EncodedMetrics.c_str());
+@@ -1318 +1282,2 @@ void DrmHal::reportFrameworkMetrics() const {
+-void DrmHal::reportPluginMetrics() const {
++void DrmHal::reportPluginMetrics() const
++{
+@@ -1325,4 +1290,4 @@ void DrmHal::reportPluginMetrics() const {
+-    std::string metricsString =
+-        toBase64StringNoPad(metricsVector.array(), metricsVector.size());
+-    status_t res = android::reportDrmPluginMetrics(
+-        metricsString, vendor, description, mMetrics.GetAppUid());
++        std::string metricsString = toBase64StringNoPad(metricsVector.array(),
++                                                        metricsVector.size());
++        status_t res = android::reportDrmPluginMetrics(metricsString, vendor,
++                                                       description, mMetrics.GetAppUid());

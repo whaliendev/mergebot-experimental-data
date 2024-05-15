@@ -1,0 +1,38 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@execution@aggregate_hashtable.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@execution@aggregate_hashtable.no_comments_merged.cpp
+@@ -8 +7,0 @@
+-#include "duckdb/common/types/row_data_collection.hpp"
+@@ -27 +26 @@ GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, All
+-    : GroupedAggregateHashTable(context, allocator, std::move(group_types), {
++    : GroupedAggregateHashTable(context, allocator, std::move(group_types), {}, vector<AggregateObject>()) {
+@@ -46 +45 @@ GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, All
+- data_collection = make_unique<TupleDataCollection>(buffer_manager, layout);
++ data_collection = make_uniq<TupleDataCollection>(buffer_manager, layout);
+@@ -65,6 +63,0 @@ GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, All
+-<<<<<<< HEAD
+-|||||||
+- string_heap = make_unique<RowDataCollection>(buffer_manager, (idx_t)Storage::BLOCK_SIZE, 1, true);
+-=======
+- string_heap = make_uniq<RowDataCollection>(buffer_manager, (idx_t)Storage::BLOCK_SIZE, 1, true);
+->>>>>>> 5b9bcdfbd9ba800dc7cd42ceb7a3ec9c9968e387
+@@ -427,7 +420,3 @@ struct FlushMoveState {
+- DataChunk groups;
+- idx_t hash_col_idx;
+- Vector hashes;
+- AggregateHTAppendState append_state;
+- Vector group_addresses;
+- SelectionVector new_groups_sel;
+- explicitFlushMoveState(TupleDataCollection &collection_p): collection(collection_p), hashes(LogicalType::HASH), group_addresses(LogicalType::POINTER), new_groups_sel(STANDARD_VECTOR_SIZE) {
++ explicit FlushMoveState(TupleDataCollection &collection_p)
++     : collection(collection_p), hashes(LogicalType::HASH), group_addresses(LogicalType::POINTER),
++       new_groups_sel(STANDARD_VECTOR_SIZE) {
+@@ -446,0 +436,6 @@ struct FlushMoveState {
++ DataChunk groups;
++ idx_t hash_col_idx;
++ Vector hashes;
++ AggregateHTAppendState append_state;
++ Vector group_addresses;
++ SelectionVector new_groups_sel;
+@@ -477 +472 @@ void GroupedAggregateHashTable::Partition(vector<GroupedAggregateHashTable *> &p
+-     make_unique<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);
++     make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);

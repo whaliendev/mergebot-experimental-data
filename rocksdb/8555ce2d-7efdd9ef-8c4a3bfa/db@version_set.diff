@@ -1,0 +1,206 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_merged.cc
+index 55159aa..69b5b22 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_merged.cc
+@@ -56 +56,2 @@ int FindFile(const InternalKeyComparator& icmp,
+-             const std::vector<FileMetaData*>& files, const Slice& key) {
++             const std::vector<FileMetaData*>& files,
++             const Slice& key) {
+@@ -70,2 +71,2 @@ int FindFile(const InternalKeyComparator& icmp,
+-static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
+-                      const FileMetaData* f) {
++static bool AfterFile(const Comparator* ucmp,
++                      const Slice* user_key, const FileMetaData* f) {
+@@ -75,2 +76,2 @@ static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
+-static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
+-                       const FileMetaData* f) {
++static bool BeforeFile(const Comparator* ucmp,
++                       const Slice* user_key, const FileMetaData* f) {
+@@ -80 +81,2 @@ static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
+-bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
++bool SomeFileOverlapsRange(
++    const InternalKeyComparator& icmp,
+@@ -99,2 +101 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
+-    InternalKey small(*smallest_user_key, kMaxSequenceNumber,
+-                      kValueTypeForSeek);
++    InternalKey small(*smallest_user_key, kMaxSequenceNumber,kValueTypeForSeek);
+@@ -119 +120,6 @@ class Version::LevelFileNumIterator : public Iterator {
+-      : icmp_(icmp), flist_(flist), index_(flist->size()) {
++      : icmp_(icmp),
++        flist_(flist),
++        index_(flist->size()) {
++  }
++  virtual bool Valid() const {
++    return index_ < flist_->size();
+@@ -121 +126,0 @@ class Version::LevelFileNumIterator : public Iterator {
+-  virtual bool Valid() const { return index_ < flist_->size(); }
+@@ -192,2 +197,2 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-  } else if (ExtractUserKey(level_iter->key())
+-                 .starts_with(ExtractUserKey(internal_prefix))) {
++  } else if (ExtractUserKey(level_iter->key()).starts_with(
++                                             ExtractUserKey(internal_prefix))) {
+@@ -196,12 +200,0 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-<<<<<<< HEAD
+-    const FileMetaData* meta_file =
+-        reinterpret_cast<const FileMetaData*>(level_iter->value().data());
+-    may_match = cfd_->table_cache()->PrefixMayMatch(
+-        options, cfd_->internal_comparator(), *meta_file, internal_prefix,
+-        nullptr);
+-||||||| 8c4a3bfa5
+-    const FileMetaData* meta_file =
+-        reinterpret_cast<const FileMetaData*>(level_iter->value().data());
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, *meta_file, internal_prefix, nullptr);
+-=======
+@@ -213,3 +206,2 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-    may_match = vset_->table_cache_->PrefixMayMatch(options, vset_->icmp_, meta,
+-                                                    internal_prefix, nullptr);
+->>>>>>> 7efdd9ef4db90728b85085e05aa367a6ea727b0f
++    may_match = cfd_->table_cache()->PrefixMayMatch(
++        options, cfd_->internal_comparator(), meta, internal_prefix, nullptr);
+@@ -265,2 +257,2 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
+-    if (!PrefixMayMatch(options, soptions, internal_prefix.Encode(),
+-                        level_iter)) {
++    if (!PrefixMayMatch(options, soptions,
++                        internal_prefix.Encode(), level_iter)) {
+@@ -406,4 +398,8 @@ Version::Version(ColumnFamilyData* cfd, VersionSet* vset,
+-void Version::Get(const ReadOptions& options, const LookupKey& k,
+-                  std::string* value, Status* status,
+-                  MergeContext* merge_context, GetStats* stats,
+-                  const Options& db_options, bool* value_found) {
++void Version::Get(const ReadOptions& options,
++                  const LookupKey& k,
++                  std::string* value,
++                  Status* status,
++                  MergeContext* merge_context,
++                  GetStats* stats,
++                  const Options& db_options,
++                  bool* value_found) {
+@@ -502,2 +498,2 @@ void Version::Get(const ReadOptions& options, const LookupKey& k,
+-                                  saver.merge_context->GetOperands(), value,
+-                                  logger)) {
++                                  saver.merge_context->GetOperands(),
++                                  value, logger)) {
+@@ -632 +628,3 @@ void Version::UpdateFilesBySize() {
+-void Version::Ref() { ++refs_; }
++void Version::Ref() {
++  ++refs_;
++}
+@@ -657 +655,2 @@ bool Version::NeedsCompaction() const {
+-bool Version::OverlapInLevel(int level, const Slice* smallest_user_key,
++bool Version::OverlapInLevel(int level,
++                             const Slice* smallest_user_key,
+@@ -663 +662,2 @@ bool Version::OverlapInLevel(int level, const Slice* smallest_user_key,
+-int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
++int Version::PickLevelForMemTableOutput(
++    const Slice& smallest_user_key,
+@@ -689 +689,2 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
+-void Version::GetOverlappingInputs(int level, const InternalKey* begin,
++void Version::GetOverlappingInputs(int level,
++                                   const InternalKey* begin,
+@@ -692 +693,2 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
+-                                   int hint_index, int* file_index) {
++                                   int hint_index,
++                                   int* file_index) {
+@@ -723,2 +725,2 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
+-        } else if (end != nullptr &&
+-                   user_cmp->Compare(file_limit, user_end) > 0) {
++        } else if (end != nullptr
++            && user_cmp->Compare(file_limit, user_end) > 0) {
+@@ -736,2 +738,6 @@ void Version::GetOverlappingInputsBinarySearch(
+-    int level, const Slice& user_begin, const Slice& user_end,
+-    std::vector<FileMetaData*>* inputs, int hint_index, int* file_index) {
++    int level,
++    const Slice& user_begin,
++    const Slice& user_end,
++    std::vector<FileMetaData*>* inputs,
++    int hint_index,
++    int* file_index) {
+@@ -770 +776,3 @@ void Version::GetOverlappingInputsBinarySearch(
+-void Version::ExtendOverlappingInputs(int level, const Slice& user_begin,
++void Version::ExtendOverlappingInputs(
++    int level,
++    const Slice& user_begin,
+@@ -817 +825,2 @@ void Version::ExtendOverlappingInputs(int level, const Slice& user_begin,
+-bool Version::HasOverlappingUserKey(const std::vector<FileMetaData*>* inputs,
++bool Version::HasOverlappingUserKey(
++    const std::vector<FileMetaData*>* inputs,
+@@ -868,5 +877,8 @@ const char* Version::LevelFileSummary(FileSummaryStorage* scratch,
+-    int ret = snprintf(
+-        scratch->buffer + len, sz, "#%lu(seq=%lu,sz=%lu,%lu) ",
+-        (unsigned long)f->number, (unsigned long)f->smallest_seqno,
+-        (unsigned long)f->file_size, (unsigned long)f->being_compacted);
+-    if (ret < 0 || ret >= sz) break;
++    int ret = snprintf(scratch->buffer + len, sz,
++                       "#%lu(seq=%lu,sz=%lu,%lu) ",
++                       (unsigned long)f->number,
++                       (unsigned long)f->smallest_seqno,
++                       (unsigned long)f->file_size,
++                       (unsigned long)f->being_compacted);
++    if (ret < 0 || ret >= sz)
++      break;
+@@ -985,2 +997,2 @@ class VersionSet::Builder {
+-      for (FileSet::const_iterator it = added->begin(); it != added->end();
+-           ++it) {
++      for (FileSet::const_iterator it = added->begin();
++          it != added->end(); ++it) {
+@@ -1100 +1112,2 @@ class VersionSet::Builder {
+-             base_iter != bpos; ++base_iter) {
++             base_iter != bpos;
++             ++base_iter) {
+@@ -1138,2 +1151,2 @@ VersionSet::VersionSet(const std::string& dbname, const DBOptions* options,
+-    : column_family_set_(
+-          new ColumnFamilySet(dbname, options, storage_options, table_cache)),
++    : column_family_set_(new ColumnFamilySet(dbname, options, storage_options,
++                                             table_cache)),
+@@ -1159,7 +1171,0 @@ VersionSet::~VersionSet() {
+-{
+-  column_family_set_.reset();
+-  for (auto file : obsolete_files_) {
+-    delete file;
+-  }
+-  obsolete_files_.clear();
+-}
+@@ -1417,2 +1423,3 @@ Status VersionSet::Recover(
+-  Status s =
+-      ReadFileToString(env_, CurrentFileName(dbname_), &manifest_filename);
++  Status s = ReadFileToString(
++      env_, CurrentFileName(dbname_), &manifest_filename
++  );
+@@ -1422 +1429,2 @@ Status VersionSet::Recover(
+-  if (manifest_filename.empty() || manifest_filename.back() != '\n') {
++  if (manifest_filename.empty() ||
++      manifest_filename.back() != '\n') {
+@@ -1612,2 +1620 @@ Status VersionSet::Recover(
+-    Log(options_->info_log,
+-        "Recovered from manifest file:%s succeeded,"
++    Log(options_->info_log, "Recovered from manifest file:%s succeeded,"
+@@ -1618,3 +1625,6 @@ Status VersionSet::Recover(
+-        manifest_filename.c_str(), (unsigned long)manifest_file_number_,
+-        (unsigned long)next_file_number_, (unsigned long)last_sequence_,
+-        (unsigned long)log_number, (unsigned long)prev_log_number_,
++        manifest_filename.c_str(),
++        (unsigned long)manifest_file_number_,
++        (unsigned long)next_file_number_,
++        (unsigned long)last_sequence_,
++        (unsigned long)log_number,
++        (unsigned long)prev_log_number_,
+@@ -1792,2 +1802,2 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
+-        printf("*************************Edit[%d] = %s\n", count,
+-               edit.DebugString(hex).c_str());
++        printf("*************************Edit[%d] = %s\n",
++                count, edit.DebugString(hex).c_str());
+@@ -1933,2 +1943,7 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-          edit.AddFile(level, f->number, f->file_size, f->smallest, f->largest,
+-                       f->smallest_seqno, f->largest_seqno);
++          edit.AddFile(level,
++                       f->number,
++                       f->file_size,
++                       f->smallest,
++                       f->largest,
++                       f->smallest_seqno,
++                       f->largest_seqno);
+@@ -1950 +1965,2 @@ bool VersionSet::ManifestContains(uint64_t manifest_file_number,
+-  std::string fname = DescriptorFileName(dbname_, manifest_file_number);
++  std::string fname =
++      DescriptorFileName(dbname_, manifest_file_number);

@@ -1,0 +1,334 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@gc@collector@mark_compact.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@gc@collector@mark_compact.no_comments_merged.h
+@@ -32,2 +31,0 @@ class MarkCompact final : public GarbageCollector {
+- private:
+-  using ObjReference = mirror::CompressedReference<mirror::Object>;
+@@ -46,2 +44 @@ class MarkCompact final : public GarbageCollector {
+-  void RunPhases() overrideprivate : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
++  void RunPhases() override REQUIRES(!Locks::mutator_lock_, !lock_);
+@@ -50,17 +47,22 @@ class MarkCompact final : public GarbageCollector {
+-  bool SigbusHandler(siginfo_t* info) private : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
+-  GcType GetGcType() const override { return kGcTypeFull; }
+-  CollectorType GetCollectorType() const override { return kCollectorTypeCMC; }
+-  Barrier& GetBarrier() { return gc_barrier_; }
+-  mirror::Object* MarkObject(mirror::Object* obj) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
+-  void MarkHeapReference(mirror::HeapReference<mirror::Object>* obj, bool do_atomic_update) override
+-      private : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
+-  void VisitRoots(mirror::Object*** roots, size_t count, const RootInfo& info) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
++  bool SigbusHandler(siginfo_t* info) REQUIRES(!lock_) NO_THREAD_SAFETY_ANALYSIS;
++  GcType GetGcType() const override {
++    return kGcTypeFull;
++  }
++  CollectorType GetCollectorType() const override {
++    return kCollectorTypeCMC;
++  }
++  Barrier& GetBarrier() {
++    return gc_barrier_;
++  }
++  mirror::Object* MarkObject(mirror::Object* obj) override
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkHeapReference(mirror::HeapReference<mirror::Object>* obj,
++                         bool do_atomic_update) override
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void VisitRoots(mirror::Object*** roots,
++                  size_t count,
++                  const RootInfo& info) override
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -69,4 +71,3 @@ class MarkCompact final : public GarbageCollector {
+-                  const RootInfo& info) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
++                  const RootInfo& info) override
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -74,4 +75,3 @@ class MarkCompact final : public GarbageCollector {
+-                                   bool do_atomic_update) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
++                                   bool do_atomic_update) override
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -80,8 +80,4 @@ class MarkCompact final : public GarbageCollector {
+-                              ObjPtr<mirror::Reference> reference) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
+-  mirror::Object* IsMarked(mirror::Object* obj) override private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
+-  void CompactionPause() private : DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+- public:
++                              ObjPtr<mirror::Reference> reference) override
++      REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
++  mirror::Object* IsMarked(mirror::Object* obj) override
++      REQUIRES_SHARED(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
+@@ -107,0 +104 @@ class MarkCompact final : public GarbageCollector {
++  using ObjReference = mirror::CompressedReference<mirror::Object>;
+@@ -124,2 +121,7 @@ class MarkCompact final : public GarbageCollector {
+-    REQUIRES_SHARED(Locks::mutator_lock_);
+-    REQUIRES_SHARED(Locks::mutator_lock_);
++    ALWAYS_INLINE uintptr_t SetLiveWords(uintptr_t begin, size_t size);
++    ALWAYS_INLINE size_t CountLiveWordsUpto(size_t bit_idx) const;
++    template <typename Visitor>
++    ALWAYS_INLINE void VisitLiveStrides(uintptr_t begin_bit_idx,
++                                        uint8_t* end,
++                                        const size_t bytes,
++                                        Visitor&& visitor) const
+@@ -129,3 +131,3 @@ class MarkCompact final : public GarbageCollector {
+-    ALWAYS_INLINE uintptr_t GetWord(size_t index) const {
+-      static_assert(kBitmapWordsPerVectorWord == 1);
+-      return Bitmap::Begin()[index * kBitmapWordsPerVectorWord];
++    ALWAYS_INLINE uintptr_t Begin() const { return MemRangeBitmap::CoverBegin(); }
++    ALWAYS_INLINE bool HasAddress(mirror::Object* obj) const {
++      return MemRangeBitmap::HasAddress(reinterpret_cast<uintptr_t>(obj));
+@@ -133,7 +135,2 @@ class MarkCompact final : public GarbageCollector {
+-    ALWAYS_INLINE uintptr_t GetWord(size_t index) const {
+-      static_assert(kBitmapWordsPerVectorWord == 1);
+-      return Bitmap::Begin()[index * kBitmapWordsPerVectorWord];
+-    }
+-    ALWAYS_INLINE uintptr_t GetWord(size_t index) const {
+-      static_assert(kBitmapWordsPerVectorWord == 1);
+-      return Bitmap::Begin()[index * kBitmapWordsPerVectorWord];
++    ALWAYS_INLINE bool Test(uintptr_t bit_index) const {
++      return Bitmap::TestBit(bit_index);
+@@ -141,3 +138,2 @@ class MarkCompact final : public GarbageCollector {
+-    ALWAYS_INLINE uintptr_t GetWord(size_t index) const {
+-      static_assert(kBitmapWordsPerVectorWord == 1);
+-      return Bitmap::Begin()[index * kBitmapWordsPerVectorWord];
++    ALWAYS_INLINE bool Test(mirror::Object* obj) const {
++      return MemRangeBitmap::Test(reinterpret_cast<uintptr_t>(obj));
+@@ -155,2 +151,4 @@ class MarkCompact final : public GarbageCollector {
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  bool IsValidObject(mirror::Object* obj) const DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  template <typename Callback>
++  void VerifyObject(mirror::Object* ref, Callback& callback) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  bool IsValidObject(mirror::Object* obj) const REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -158,4 +156,3 @@ class MarkCompact final : public GarbageCollector {
+-  void FinishPhase() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkingPhase() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void CompactionPhase() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  void FinishPhase() REQUIRES(!Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !lock_);
++  void MarkingPhase() REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::heap_bitmap_lock_);
++  void CompactionPhase() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -163,3 +160,4 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::heap_bitmap_lock_);
++  ALWAYS_INLINE void UpdateRef(mirror::Object* obj, MemberOffset offset)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -169 +167 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -172 +170 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -175,14 +173,14 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  ALWAYS_INLINE mirror::Object* PostCompactAddress(mirror::Object* old_ref)
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void BindAndResetBitmaps() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkingPause() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void PrepareForCompaction() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ALWAYS_INLINE mirror::Object* PostCompactAddress(mirror::Object* old_ref) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ALWAYS_INLINE mirror::Object* PostCompactAddressUnchecked(mirror::Object* old_ref) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ALWAYS_INLINE mirror::Object* PostCompactOldObjAddr(mirror::Object* old_ref) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ALWAYS_INLINE mirror::Object* PostCompactBlackObjAddr(mirror::Object* old_ref) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void BindAndResetBitmaps() REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkingPause() REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_);
++  void CompactionPause() REQUIRES(Locks::mutator_lock_);
++  void PrepareForCompaction() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -190,3 +188,10 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  template <int kMode>
++  void CompactMovingSpace(uint8_t* page) REQUIRES_SHARED(Locks::mutator_lock_);
++  template <int kMode, typename CompactionFn>
++  ALWAYS_INLINE void DoPageCompactionWithStateChange(size_t page_idx,
++                                                     size_t status_arr_len,
++                                                     uint8_t* to_space_page,
++                                                     uint8_t* page,
++                                                     CompactionFn func)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -194,7 +199,6 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void UpdateNonMovingSpace() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void InitNonMovingSpaceFirstObjects() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void InitMovingSpaceFirstObjects(const size_t vec_len)
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void UpdateMovingSpaceBlackAllocations() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void UpdateNonMovingSpaceBlackAllocations() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void UpdateNonMovingSpace() REQUIRES_SHARED(Locks::mutator_lock_);
++  void InitNonMovingSpaceFirstObjects() REQUIRES_SHARED(Locks::mutator_lock_);
++  void InitMovingSpaceFirstObjects(const size_t vec_len) REQUIRES_SHARED(Locks::mutator_lock_);
++  void UpdateMovingSpaceBlackAllocations() REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
++  void UpdateNonMovingSpaceBlackAllocations() REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
+@@ -205,13 +209,10 @@ class MarkCompact final : public GarbageCollector {
+-                      bool needs_memset_zero) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ReclaimPhase() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ReMarkRoots(Runtime* runtime) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkRoots(VisitRootFlags flags) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkRootsCheckpoint(Thread* self, Runtime* runtime)
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void PreCleanCards() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkNonThreadRoots(Runtime* runtime) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++                      bool needs_memset_zero) REQUIRES_SHARED(Locks::mutator_lock_);
++  void ReclaimPhase() REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::heap_bitmap_lock_);
++  void ReMarkRoots(Runtime* runtime) REQUIRES(Locks::mutator_lock_, Locks::heap_bitmap_lock_);
++  void MarkRoots(VisitRootFlags flags) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkRootsCheckpoint(Thread* self, Runtime* runtime) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void PreCleanCards() REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkNonThreadRoots(Runtime* runtime) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -219,9 +220,7 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void MarkReachableObjects() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void UpdateAndMarkModUnion() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ScanDirtyObjects(bool paused, uint8_t minimum_age)
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkReachableObjects() REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void UpdateAndMarkModUnion() REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void ScanDirtyObjects(bool paused, uint8_t minimum_age) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -229,13 +228,16 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ProcessMarkStack() override DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ExpandMarkStack() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void PushOnMarkStack(mirror::Object* obj) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void UpdateLivenessInfo(mirror::Object* obj) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ProcessReferences(Thread* self) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void ProcessMarkStack() override REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void ExpandMarkStack() REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  template <bool kUpdateLiveWords>
++  void ScanObject(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void PushOnMarkStack(mirror::Object* obj)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void UpdateLivenessInfo(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_);
++  void ProcessReferences(Thread* self)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::heap_bitmap_lock_);
+@@ -245,2 +247,2 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -248,8 +250,12 @@ class MarkCompact final : public GarbageCollector {
+-      DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void Sweep(bool swap_bitmaps) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void SweepLargeObjects(bool swap_bitmaps) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  template <bool kParallel>
++  bool MarkObjectNonNullNoPush(mirror::Object* obj,
++                               mirror::Object* holder = nullptr,
++                               MemberOffset offset = MemberOffset(0))
++      REQUIRES(Locks::heap_bitmap_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void Sweep(bool swap_bitmaps) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void SweepLargeObjects(bool swap_bitmaps) REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -264,4 +270,11 @@ class MarkCompact final : public GarbageCollector {
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  void ProcessLinearAlloc() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  template <int kMode>
++  void ConcurrentCompaction(uint8_t* buf) REQUIRES_SHARED(Locks::mutator_lock_);
++  template <int kMode>
++  void ConcurrentlyProcessMovingPage(uint8_t* fault_page,
++                                     uint8_t* buf,
++                                     size_t nr_moving_space_used_pages)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  template <int kMode>
++  void ConcurrentlyProcessLinearAllocPage(uint8_t* fault_page, bool is_minor_fault)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void ProcessLinearAlloc() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -269,2 +282,6 @@ class MarkCompact final : public GarbageCollector {
+-  void FreeFromSpacePages(size_t cur_page_idx) DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  void FreeFromSpacePages(size_t cur_page_idx) REQUIRES_SHARED(Locks::mutator_lock_);
++  template <bool kFirstPageMapping>
++  void MapProcessedPages(uint8_t* to_space_start,
++                         Atomic<PageState>* state_arr,
++                         size_t arr_idx,
++                         size_t arr_len) REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -272 +289,2 @@ class MarkCompact final : public GarbageCollector {
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  ALWAYS_INLINE void UpdateClassAfterObjectMap(mirror::Object* obj)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -274,2 +292,2 @@ class MarkCompact final : public GarbageCollector {
+-  void MarkZygoteLargeObjects() DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(MarkCompact);
++  void MarkZygoteLargeObjects() REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
+@@ -287 +305,2 @@ class MarkCompact final : public GarbageCollector {
+-  std::unique_ptr<std::unordered_set<void*>> updated_roots_ MemMap from_space_map_;
++  std::unique_ptr<std::unordered_set<void*>> updated_roots_ GUARDED_BY(lock_);
++  MemMap from_space_map_;

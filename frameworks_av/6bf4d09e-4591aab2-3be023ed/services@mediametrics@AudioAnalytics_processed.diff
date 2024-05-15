@@ -1,0 +1,110 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@AudioAnalytics.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@AudioAnalytics.no_comments_merged.cpp
+@@ -1137,4 +1271,7 @@ void AudioAnalytics::Health::onAudioServerTimeout(
+-                                   mStopTime - mAudioFlingerCtorTime)
+-                                   .count();
+-    ALOGW("%s: (key=%s) %s timeout %s(%lld) restarts:%lld uptimeMs:%f", __func__,
+-          item->getKey().c_str(), moduleName.c_str(), methodName.c_str(), (long long)methodCode,
++            mStopTime - mAudioFlingerCtorTime).count();
++    ALOGW("%s: (key=%s) %s timeout %s(%lld) restarts:%lld uptimeMs:%f",
++         __func__, item->getKey().c_str(), moduleName.c_str(),
++         methodName.c_str(), (long long)methodCode,
++         (long long)restarts, uptimeMs);
++    mSimpleLog.log("%s timeout %s(%lld) restarts:%lld uptimeMs:%f",
++            moduleName.c_str(), methodName.c_str(), (long long)methodCode,
+@@ -1142,2 +1278,0 @@ void AudioAnalytics::Health::onAudioServerTimeout(
+-    mSimpleLog.log("%s timeout %s(%lld) restarts:%lld uptimeMs:%f", moduleName.c_str(),
+-                   methodName.c_str(), (long long)methodCode, (long long)restarts, uptimeMs);
+@@ -1180,5 +1314,8 @@ void AudioAnalytics::Spatializer::onEvent(
+-        int32_t channelMask = 0;
+-        (void)item->get(AMEDIAMETRICS_PROP_CHANNELMASK, &channelMask);
+-        LOG(LOG_LEVEL) << "key:" << key << " headTrackingModes:" << headTrackingModes
+-                       << " levels:" << levels << " modes:" << modes
+-                       << " channelMask:" << channelMask;
++        std::string channelMasks;
++        (void)item->get(AMEDIAMETRICS_PROP_CHANNELMASKS, &channelMasks);
++        LOG(LOG_LEVEL) << "key:" << key
++                << " headTrackingModes:" << headTrackingModes
++                << " levels:" << levels
++                << " modes:" << modes
++                << " channelMasks:" << channelMasks
++                ;
+@@ -1190,0 +1328,11 @@ void AudioAnalytics::Spatializer::onEvent(
++        const std::vector<int64_t> channelMasksVector =
++                types::channelMaskVectorFromString(channelMasks);
++        const auto [ result, str ] = sendToStatsd(SpatializerCapabilitiesFields,
++                CONDITION(android::util::MEDIAMETRICS_SPATIALIZERCAPABILITIES_REPORTED)
++                , headTrackingModesVector
++                , levelsVector
++                , modesVector
++                , channelMasksVector
++                );
++        mAudioAnalytics.mStatsdLog->log(
++                android::util::MEDIAMETRICS_SPATIALIZERCAPABILITIES_REPORTED, str);
+@@ -1192,2 +1340,5 @@ void AudioAnalytics::Spatializer::onEvent(
+-        mSimpleLog.log("%s suffix: %s item: %s", __func__, suffix.c_str(),
+-                       item->toString().c_str());
++        if (mFirstCreateTimeNs == 0) {
++            mFirstCreateTimeNs = item->getTimestamp();
++        }
++        mSimpleLog.log("%s suffix: %s item: %s",
++                __func__, suffix.c_str(), item->toString().c_str());
+@@ -1197 +1348,5 @@ void AudioAnalytics::Spatializer::onEvent(
+-        std::string deviceType = suffix.substr(std::size("device.") - 1);
++        const std::string deviceType = suffix.substr(std::size("device.") - 1);
++        const int32_t deviceTypeStatsd =
++                types::lookup<types::AUDIO_DEVICE_INFO_TYPE, int32_t>(deviceType);
++        std::string address;
++        (void)item->get(AMEDIAMETRICS_PROP_ADDRESS, &address);
+@@ -1205 +1360,5 @@ void AudioAnalytics::Spatializer::onEvent(
+-        DeviceState& deviceState = mDeviceStateMap[deviceType];
++        std::string deviceKey(deviceType);
++        deviceKey.append("_").append(address);
++        DeviceState& deviceState = mDeviceStateMap[deviceKey];
++        const bool withinBoot =
++                item->getTimestamp() - mFirstCreateTimeNs < kBootDurationThreshold;
+@@ -1207,0 +1367,2 @@ void AudioAnalytics::Spatializer::onEvent(
++                const int32_t settingEventStatsd =
++                        classifySettingEvent(!deviceState.enabled.empty(), withinBoot);
+@@ -1210,2 +1371,8 @@ void AudioAnalytics::Spatializer::onEvent(
+-                (void)mAudioAnalytics;
+-                (void)enabledStatsd;
++                const auto [ result, str ] = sendToStatsd(SpatializerDeviceEnabledFields,
++                        CONDITION(android::util::MEDIAMETRICS_SPATIALIZERDEVICEENABLED_REPORTED)
++                        , deviceTypeStatsd
++                        , settingEventStatsd
++                        , enabledStatsd
++                        );
++                mAudioAnalytics.mStatsdLog->log(
++                        android::util::MEDIAMETRICS_SPATIALIZERDEVICEENABLED_REPORTED, str);
+@@ -1215,0 +1383,2 @@ void AudioAnalytics::Spatializer::onEvent(
++                const int32_t settingEventStatsd =
++                        classifySettingEvent(!deviceState.hasHeadTracker.empty(), withinBoot);
+@@ -1218 +1387,8 @@ void AudioAnalytics::Spatializer::onEvent(
+-                (void)supportedStatsd;
++                const auto [ result, str ] = sendToStatsd(HeadTrackerDeviceSupportedFields,
++                        CONDITION(android::util::MEDIAMETRICS_HEADTRACKERDEVICESUPPORTED_REPORTED)
++                        , deviceTypeStatsd
++                        , settingEventStatsd
++                        , supportedStatsd
++                        );
++                mAudioAnalytics.mStatsdLog->log(
++                        android::util::MEDIAMETRICS_HEADTRACKERDEVICESUPPORTED_REPORTED, str);
+@@ -1222,0 +1399,2 @@ void AudioAnalytics::Spatializer::onEvent(
++                const int32_t settingEventStatsd =
++                        classifySettingEvent(!deviceState.headTrackerEnabled.empty(), withinBoot);
+@@ -1225 +1403,8 @@ void AudioAnalytics::Spatializer::onEvent(
+-                (void)enabledStatsd;
++                const auto [ result, str ] = sendToStatsd(HeadTrackerDeviceEnabledFields,
++                        CONDITION(android::util::MEDIAMETRICS_HEADTRACKERDEVICEENABLED_REPORTED)
++                        , deviceTypeStatsd
++                        , settingEventStatsd
++                        , enabledStatsd
++                        );
++                mAudioAnalytics.mStatsdLog->log(
++                        android::util::MEDIAMETRICS_HEADTRACKERDEVICEENABLED_REPORTED, str);
+@@ -1228,2 +1413,2 @@ void AudioAnalytics::Spatializer::onEvent(
+-        mSimpleLog.log("%s deviceType: %s item: %s", __func__, deviceType.c_str(),
+-                       item->toString().c_str());
++        mSimpleLog.log("%s deviceKey: %s item: %s",
++                __func__, deviceKey.c_str(), item->toString().c_str());

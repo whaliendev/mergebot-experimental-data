@@ -1,0 +1,579 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/926bb129-5c7935f8-f2b19cdc/services@surfaceflinger@SurfaceFlinger.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/926bb129-5c7935f8-f2b19cdc/services@surfaceflinger@SurfaceFlinger.no_comments_merged.cpp
+@@ -38 +37,0 @@
+-#include <ftl/small_map.h>
+@@ -85,4 +83,0 @@
+-#include "BufferLayer.h"
+-#include "BufferQueueLayer.h"
+-#include "ContainerLayer.h"
+-#include "BufferStateLayer.h"
+@@ -92 +86,0 @@
+-#include "EffectLayer.h"
+@@ -101 +94,0 @@
+-#include "MonitoredProducer.h"
+@@ -163,0 +157 @@ using KernelIdleTimerController = scheduler::RefreshRateConfigs::KernelIdleTimer
++namespace hal = android::hardware::graphics::composer::hal;
+@@ -164,0 +159,2 @@ namespace {
++#pragma clang diagnostic push
++#pragma clang diagnostic error "-Wswitch-enum"
+@@ -185,0 +182 @@ bool isWideColorMode(const ColorMode colorMode) {
++#pragma clang diagnostic pop
+@@ -234,85 +231,13 @@ static const int MAX_TRACING_MEMORY = 1024 * 1024 * 1024;
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-                            FTL_FAKE_GUARD(kMainThreadContext) = default;{
+-                            ALOGI( "SurfaceFlinger's main thread ready to run. "
+-                            "Initializing graphics H/W...");
+-                            Mutex::Autolock lock(mStateLock);
+-                            auto builder = renderengine::RenderEngineCreationArgs::Builder()
+-                            .setPixelFormat(static_cast<int32_t>(defaultCompositionPixelFormat))
+-                            .setImageCacheSize(maxFrameBufferAcquiredBuffers)
+-                            .setUseColorManagerment(useColorManagement)
+-                            .setEnableProtectedContext(enable_protected_contents(false))
+-                            .setPrecacheToneMapperShaderOnly(false)
+-                            .setSupportsBackgroundBlur(mSupportsBlur)
+-                            .setContextPriority(
+-                                   useContextPriority
+-                                           ? renderengine::RenderEngine::ContextPriority::REALTIME
+-                                           : renderengine::RenderEngine::ContextPriority::MEDIUM);
+-                            if (auto type = chooseRenderEngineTypeViaSysProp()) {
+-                            builder.setRenderEngineType(type.value());
+-                            }
+-                            mCompositionEngine->setRenderEngine(renderengine::RenderEngine::create(builder.build()));
+-                            mMaxRenderTargetSize =
+-                            std::min(getRenderEngine().getMaxTextureSize(), getRenderEngine().getMaxViewportDims());
+-                            if (!SetTaskProfiles(0, {"SFMainPolicy"})) {
+-                            ALOGW("Failed to set main task profile");
+-                            }
+-                            mCompositionEngine->setTimeStats(mTimeStats);
+-                            mCompositionEngine->setHwComposer(getFactory().createHWComposer(mHwcServiceName));
+-                            mCompositionEngine->getHwComposer().setCallback(*this);
+-                            ClientCache::getInstance().setRenderEngine(&getRenderEngine());
+-                            enableLatchUnsignaledConfig = getLatchUnsignaledConfig();
+-                            if (base::GetBoolProperty("debug.sf.enable_hwc_vds"s, false)) {
+-                            enableHalVirtualDisplays(true);
+-                            }
+-                            LOG_ALWAYS_FATAL_IF(!configureLocked(),
+-                            "Initial display configuration failed: HWC did not hotplug");
+-                            sp<const DisplayDevice> display;
+-                            if (const auto indexOpt = mCurrentState.getDisplayIndex(getPrimaryDisplayIdLocked())) {
+-                            const auto& displays = mCurrentState.displays;
+-                            const auto& token = displays.keyAt(*indexOpt);
+-                            const auto& state = displays.valueAt(*indexOpt);
+-                            processDisplayAdded(token, state);
+-                            mDrawingState.displays.add(token, state);
+-                            display = getDefaultDisplayDeviceLocked();
+-                            }
+-                            LOG_ALWAYS_FATAL_IF(!display, "Failed to configure the primary display");
+-                            LOG_ALWAYS_FATAL_IF(!getHwComposer().isConnected(display->getPhysicalId()),
+-                            "Primary display is disconnected");
+-                            initScheduler(display);
+-                            dispatchDisplayHotplugEvent(display->getPhysicalId(), true);
+-                            processDisplayChangesLocked();
+-                            mDrawingState = mCurrentState;
+-                            initializeDisplays();
+-                            mPowerAdvisor->init();
+-                            char primeShaderCache[PROPERTY_VALUE_MAX];
+-                            property_get("service.sf.prime_shader_cache", primeShaderCache, "1");
+-                            if (atoi(primeShaderCache)) {
+-                            if (setSchedFifo(false) != NO_ERROR) {
+-                            ALOGW("Can't set SCHED_OTHER for primeCache");
+-                            }
+-                            mRenderEnginePrimeCacheFuture = getRenderEngine().primeCache();
+-                            if (setSchedFifo(true) != NO_ERROR) {
+-                            ALOGW("Can't set SCHED_OTHER for primeCache");
+-                            }
+-                            }
+-                            onActiveDisplaySizeChanged(display);
+-                            const bool presentFenceReliable =
+-                            !getHwComposer().hasCapability(Capability::PRESENT_FENCE_IS_NOT_RELIABLE);
+-                            mStartPropertySetThread = getFactory().createStartPropertySetThread(presentFenceReliable);
+-                            if (mStartPropertySetThread->Start() != NO_ERROR) {
+-                            ALOGE("Run StartPropertySetThread failed!");
+-                            }
+-                            ALOGV("Done initializing");
+-                            }
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++int64_t SurfaceFlinger::dispSyncPresentTimeOffset;
++bool SurfaceFlinger::useHwcForRgbToYuv;
++bool SurfaceFlinger::hasSyncFramework;
++int64_t SurfaceFlinger::maxFrameBufferAcquiredBuffers;
++uint32_t SurfaceFlinger::maxGraphicsWidth;
++uint32_t SurfaceFlinger::maxGraphicsHeight;
++bool SurfaceFlinger::hasWideColorDisplay;
++bool SurfaceFlinger::useContextPriority;
++Dataspace SurfaceFlinger::defaultCompositionDataspace = Dataspace::V0_SRGB;
++ui::PixelFormat SurfaceFlinger::defaultCompositionPixelFormat = ui::PixelFormat::RGBA_8888;
++Dataspace SurfaceFlinger::wideColorGamutCompositionDataspace = Dataspace::V0_SRGB;
++ui::PixelFormat SurfaceFlinger::wideColorGamutCompositionPixelFormat = ui::PixelFormat::RGBA_8888;
++LatchUnsignaledConfig SurfaceFlinger::enableLatchUnsignaledConfig;
+@@ -363,2 +287,0 @@ SurfaceFlinger::SurfaceFlinger(Factory& factory) : SurfaceFlinger(factory, SkipI
+-    ALOGI("SurfaceFlinger is starting");
+-    hasSyncFramework {
+@@ -448 +371 @@ LatchUnsignaledConfig SurfaceFlinger::getLatchUnsignaledConfig() {
+-SurfaceFlinger::~SurfaceFlinger()
++SurfaceFlinger::~SurfaceFlinger() = default;
+@@ -677,0 +602,72 @@ chooseRenderEngineTypeViaSysProp() {
++void SurfaceFlinger::init() FTL_FAKE_GUARD(kMainThreadContext) {
++    ALOGI( "SurfaceFlinger's main thread ready to run. "
++            "Initializing graphics H/W...");
++    Mutex::Autolock lock(mStateLock);
++    auto builder = renderengine::RenderEngineCreationArgs::Builder()
++                           .setPixelFormat(static_cast<int32_t>(defaultCompositionPixelFormat))
++                           .setImageCacheSize(maxFrameBufferAcquiredBuffers)
++                           .setUseColorManagerment(useColorManagement)
++                           .setEnableProtectedContext(enable_protected_contents(false))
++                           .setPrecacheToneMapperShaderOnly(false)
++                           .setSupportsBackgroundBlur(mSupportsBlur)
++                           .setContextPriority(
++                                   useContextPriority
++                                           ? renderengine::RenderEngine::ContextPriority::REALTIME
++                                           : renderengine::RenderEngine::ContextPriority::MEDIUM);
++    if (auto type = chooseRenderEngineTypeViaSysProp()) {
++        builder.setRenderEngineType(type.value());
++    }
++    mCompositionEngine->setRenderEngine(renderengine::RenderEngine::create(builder.build()));
++    mMaxRenderTargetSize =
++            std::min(getRenderEngine().getMaxTextureSize(), getRenderEngine().getMaxViewportDims());
++    if (!SetTaskProfiles(0, {"SFMainPolicy"})) {
++        ALOGW("Failed to set main task profile");
++    }
++    mCompositionEngine->setTimeStats(mTimeStats);
++    mCompositionEngine->setHwComposer(getFactory().createHWComposer(mHwcServiceName));
++    mCompositionEngine->getHwComposer().setCallback(*this);
++    ClientCache::getInstance().setRenderEngine(&getRenderEngine());
++    enableLatchUnsignaledConfig = getLatchUnsignaledConfig();
++    if (base::GetBoolProperty("debug.sf.enable_hwc_vds"s, false)) {
++        enableHalVirtualDisplays(true);
++    }
++    LOG_ALWAYS_FATAL_IF(!configureLocked(),
++                        "Initial display configuration failed: HWC did not hotplug");
++    sp<const DisplayDevice> display;
++    if (const auto indexOpt = mCurrentState.getDisplayIndex(getPrimaryDisplayIdLocked())) {
++        const auto& displays = mCurrentState.displays;
++        const auto& token = displays.keyAt(*indexOpt);
++        const auto& state = displays.valueAt(*indexOpt);
++        processDisplayAdded(token, state);
++        mDrawingState.displays.add(token, state);
++        display = getDefaultDisplayDeviceLocked();
++    }
++    LOG_ALWAYS_FATAL_IF(!display, "Failed to configure the primary display");
++    LOG_ALWAYS_FATAL_IF(!getHwComposer().isConnected(display->getPhysicalId()),
++                        "Primary display is disconnected");
++    initScheduler(display);
++    dispatchDisplayHotplugEvent(display->getPhysicalId(), true);
++    processDisplayChangesLocked();
++    mDrawingState = mCurrentState;
++    initializeDisplays();
++    mPowerAdvisor->init();
++    char primeShaderCache[PROPERTY_VALUE_MAX];
++    property_get("service.sf.prime_shader_cache", primeShaderCache, "1");
++    if (atoi(primeShaderCache)) {
++        if (setSchedFifo(false) != NO_ERROR) {
++            ALOGW("Can't set SCHED_OTHER for primeCache");
++        }
++        mRenderEnginePrimeCacheFuture = getRenderEngine().primeCache();
++        if (setSchedFifo(true) != NO_ERROR) {
++            ALOGW("Can't set SCHED_OTHER for primeCache");
++        }
++    }
++    onActiveDisplaySizeChanged(display);
++    const bool presentFenceReliable =
++            !getHwComposer().hasCapability(Capability::PRESENT_FENCE_IS_NOT_RELIABLE);
++    mStartPropertySetThread = getFactory().createStartPropertySetThread(presentFenceReliable);
++    if (mStartPropertySetThread->Start() != NO_ERROR) {
++        ALOGE("Run StartPropertySetThread failed!");
++    }
++    ALOGV("Done initializing");
++}
+@@ -696 +692,12 @@ void SurfaceFlinger::startBootAnim() {
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++status_t SurfaceFlinger::getSupportedFrameTimestamps(
++        std::vector<FrameEvent>* outSupported) const {
++    *outSupported = {
++        FrameEvent::REQUESTED_PRESENT,
++        FrameEvent::ACQUIRE,
++        FrameEvent::LATCH,
++        FrameEvent::FIRST_REFRESH_START,
++        FrameEvent::LAST_REFRESH_START,
++        FrameEvent::GPU_COMPOSITION_DONE,
++        FrameEvent::DEQUEUE_READY,
++        FrameEvent::RELEASE,
++    };
+@@ -697,0 +705,4 @@ void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++    if (!getHwComposer().hasCapability(Capability::PRESENT_FENCE_IS_NOT_RELIABLE)) {
++        outSupported->push_back(FrameEvent::DISPLAY_PRESENT);
++    }
++    return NO_ERROR;
+@@ -1334,0 +1346,4 @@ status_t SurfaceFlinger::setDisplayBrightness(const sp<IBinder>& displayToken,
++           }))
++            .then([](ftl::Future<status_t> task) { return task; })
++            .get();
++}
+@@ -1517,109 +1532 @@ TimePoint SurfaceFlinger::calculateExpectedPresentTime(TimePoint frameTime) cons
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-        FTL_FAKE_GUARD(kMainThreadContext){
+-        ATRACE_FORMAT("%s %" PRId64, __func__, vsyncId.value);
+-        compositionengine::CompositionRefreshArgs refreshArgs;
+-        const auto& displays = FTL_FAKE_GUARD(mStateLock, mDisplays);
+-        refreshArgs.outputs.reserve(displays.size());
+-        std::vector<DisplayId> displayIds;
+-        for (const auto& [_, display] : displays) {
+-        refreshArgs.outputs.push_back(display->getCompositionDisplay());
+-        displayIds.push_back(display->getId());
+-        }
+-        mPowerAdvisor->setDisplays(displayIds);
+-        if (DOES_CONTAIN_BORDER) {
+-        refreshArgs.borderInfoList.clear();
+-        mDrawingState.traverse([&refreshArgs](Layer* layer) {
+-            if (layer->isBorderEnabled()) {
+-                compositionengine::BorderRenderInfo info;
+-                info.width = layer->getBorderWidth();
+-                info.color = layer->getBorderColor();
+-                layer->traverse(LayerVector::StateSet::Drawing, [&info](Layer* ilayer) {
+-                    info.layerIds.push_back(ilayer->getSequence());
+-                });
+-                refreshArgs.borderInfoList.emplace_back(std::move(info));
+-            }
+-        });
+-        }
+-        refreshArgs.layersWithQueuedFrames.reserve(mLayersWithQueuedFrames.size());
+-        for (auto layer : mLayersWithQueuedFrames) {
+-        if (auto layerFE = layer->getCompositionEngineLayerFE())
+-            refreshArgs.layersWithQueuedFrames.push_back(layerFE);
+-        }
+-        refreshArgs.outputColorSetting = useColorManagement
+-            ? mDisplayColorSetting
+-            : compositionengine::OutputColorSetting::kUnmanaged;
+-        refreshArgs.colorSpaceAgnosticDataspace = mColorSpaceAgnosticDataspace;
+-        refreshArgs.forceOutputColorMode = mForceColorMode;
+-        refreshArgs.updatingOutputGeometryThisFrame = mVisibleRegionsDirty;
+-        refreshArgs.updatingGeometryThisFrame = mGeometryDirty.exchange(false) || mVisibleRegionsDirty;
+-        mDrawingState.traverseInZOrder([&refreshArgs](Layer* layer) {
+-        layer->updateSnapshot(refreshArgs.updatingGeometryThisFrame);
+-        if (auto layerFE = layer->getCompositionEngineLayerFE()) {
+-            refreshArgs.layers.push_back(layerFE);
+-        }
+-        });
+-        refreshArgs.blursAreExpensive = mBlursAreExpensive;
+-        refreshArgs.internalDisplayRotationFlags = DisplayDevice::getPrimaryDisplayRotationFlags();
+-        if (CC_UNLIKELY(mDrawingState.colorMatrixChanged)) {
+-        refreshArgs.colorTransformMatrix = mDrawingState.colorMatrix;
+-        mDrawingState.colorMatrixChanged = false;
+-        }
+-        refreshArgs.devOptForceClientComposition = mDebugDisableHWC;
+-        if (mDebugFlashDelay != 0) {
+-        refreshArgs.devOptForceClientComposition = true;
+-        refreshArgs.devOptFlashDirtyRegionsDelay = std::chrono::milliseconds(mDebugFlashDelay);
+-        }
+-        const auto prevVsyncTime = mExpectedPresentTime - mScheduler->getVsyncSchedule().period();
+-        const auto hwcMinWorkDuration = mVsyncConfiguration->getCurrentConfigs().hwcMinWorkDuration;
+-        refreshArgs.earliestPresentTime = prevVsyncTime - hwcMinWorkDuration;
+-        refreshArgs.previousPresentFence = mPreviousPresentFences[0].fenceTime;
+-        refreshArgs.scheduledFrameTime = mScheduler->getScheduledFrameTime();
+-        refreshArgs.expectedPresentTime = mExpectedPresentTime.ns();
+-        const auto presentTime = systemTime();
+-        mCompositionEngine->present(refreshArgs);
+-        mTimeStats->recordFrameDuration(frameTime.ns(), systemTime());
+-        if (mPowerHintSessionEnabled) {
+-        mPowerAdvisor->setSfPresentTiming(TimePoint::fromNs(mPreviousPresentFences[0]
+-                                                                    .fenceTime->getSignalTime()),
+-                                          TimePoint::now());
+-        if (mPowerHintSessionMode.late) {
+-            mPowerAdvisor->sendActualWorkDuration();
+-        }
+-        }
+-        if (mScheduler->onPostComposition(presentTime)) {
+-        scheduleComposite(FrameHint::kNone);
+-        }
+-        postComposition();
+-        const bool prevFrameHadClientComposition = mHadClientComposition;
+-        mHadClientComposition = mHadDeviceComposition = mReusedClientComposition = false;
+-        TimeStats::ClientCompositionRecord clientCompositionRecord;
+-        for (const auto& [_, display] : displays) {
+-        const auto& state = display->getCompositionDisplay()->getState();
+-        mHadClientComposition |= state.usesClientComposition && !state.reusedClientComposition;
+-        mHadDeviceComposition |= state.usesDeviceComposition;
+-        mReusedClientComposition |= state.reusedClientComposition;
+-        clientCompositionRecord.predicted |=
+-                (state.strategyPrediction != CompositionStrategyPredictionState::DISABLED);
+-        clientCompositionRecord.predictionSucceeded |=
+-                (state.strategyPrediction == CompositionStrategyPredictionState::SUCCESS);
+-        }
+-        clientCompositionRecord.hadClientComposition = mHadClientComposition;
+-        clientCompositionRecord.reused = mReusedClientComposition;
+-        clientCompositionRecord.changed = prevFrameHadClientComposition != mHadClientComposition;
+-        mTimeStats->pushCompositionStrategyState(clientCompositionRecord);
+-        const bool usedGpuComposition = mHadClientComposition || mReusedClientComposition;
+-        modulateVsync(&VsyncModulator::onDisplayRefresh, usedGpuComposition);
+-        mLayersWithQueuedFrames.clear();
+-        if (mLayerTracingEnabled && mLayerTracing.flagIsSet(LayerTracing::TRACE_COMPOSITION)) {
+-        mLayerTracing.notify(mVisibleRegionsDirty, frameTime.ns(), vsyncId.value);
+-        }
+-        mVisibleRegionsWereDirtyThisFrame = mVisibleRegionsDirty;
+-        mVisibleRegionsDirty = false;
+-        if (mCompositionEngine->needsAnotherUpdate()) {
+-        scheduleCommit(FrameHint::kNone);
+-        }
+-        if (mPowerHintSessionEnabled) {
+-        mPowerAdvisor->setCompositeEnd(TimePoint::now());
+-        }
+-        }
+-                                 FTL_FAKE_GUARD(kMainThreadContext){
++void SurfaceFlinger::configure() FTL_FAKE_GUARD(kMainThreadContext) {
+@@ -1630,0 +1538 @@ void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++bool SurfaceFlinger::commit(TimePoint frameTime, VsyncId vsyncId, TimePoint expectedVsyncTime)
+@@ -1753 +1661,108 @@ void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++void SurfaceFlinger::composite(TimePoint frameTime, VsyncId vsyncId)
++        FTL_FAKE_GUARD(kMainThreadContext) {
++    ATRACE_FORMAT("%s %" PRId64, __func__, vsyncId.value);
++    compositionengine::CompositionRefreshArgs refreshArgs;
++    const auto& displays = FTL_FAKE_GUARD(mStateLock, mDisplays);
++    refreshArgs.outputs.reserve(displays.size());
++    std::vector<DisplayId> displayIds;
++    for (const auto& [_, display] : displays) {
++        refreshArgs.outputs.push_back(display->getCompositionDisplay());
++        displayIds.push_back(display->getId());
++    }
++    mPowerAdvisor->setDisplays(displayIds);
++    if (DOES_CONTAIN_BORDER) {
++        refreshArgs.borderInfoList.clear();
++        mDrawingState.traverse([&refreshArgs](Layer* layer) {
++            if (layer->isBorderEnabled()) {
++                compositionengine::BorderRenderInfo info;
++                info.width = layer->getBorderWidth();
++                info.color = layer->getBorderColor();
++                layer->traverse(LayerVector::StateSet::Drawing, [&info](Layer* ilayer) {
++                    info.layerIds.push_back(ilayer->getSequence());
++                });
++                refreshArgs.borderInfoList.emplace_back(std::move(info));
++            }
++        });
++    }
++    refreshArgs.layersWithQueuedFrames.reserve(mLayersWithQueuedFrames.size());
++    for (auto layer : mLayersWithQueuedFrames) {
++        if (auto layerFE = layer->getCompositionEngineLayerFE())
++            refreshArgs.layersWithQueuedFrames.push_back(layerFE);
++    }
++    refreshArgs.outputColorSetting = useColorManagement
++            ? mDisplayColorSetting
++            : compositionengine::OutputColorSetting::kUnmanaged;
++    refreshArgs.colorSpaceAgnosticDataspace = mColorSpaceAgnosticDataspace;
++    refreshArgs.forceOutputColorMode = mForceColorMode;
++    refreshArgs.updatingOutputGeometryThisFrame = mVisibleRegionsDirty;
++    refreshArgs.updatingGeometryThisFrame = mGeometryDirty.exchange(false) || mVisibleRegionsDirty;
++    mDrawingState.traverseInZOrder([&refreshArgs](Layer* layer) {
++        layer->updateSnapshot(refreshArgs.updatingGeometryThisFrame);
++        if (auto layerFE = layer->getCompositionEngineLayerFE()) {
++            refreshArgs.layers.push_back(layerFE);
++        }
++    });
++    refreshArgs.blursAreExpensive = mBlursAreExpensive;
++    refreshArgs.internalDisplayRotationFlags = DisplayDevice::getPrimaryDisplayRotationFlags();
++    if (CC_UNLIKELY(mDrawingState.colorMatrixChanged)) {
++        refreshArgs.colorTransformMatrix = mDrawingState.colorMatrix;
++        mDrawingState.colorMatrixChanged = false;
++    }
++    refreshArgs.devOptForceClientComposition = mDebugDisableHWC;
++    if (mDebugFlashDelay != 0) {
++        refreshArgs.devOptForceClientComposition = true;
++        refreshArgs.devOptFlashDirtyRegionsDelay = std::chrono::milliseconds(mDebugFlashDelay);
++    }
++    const auto prevVsyncTime = mExpectedPresentTime - mScheduler->getVsyncSchedule().period();
++    const auto hwcMinWorkDuration = mVsyncConfiguration->getCurrentConfigs().hwcMinWorkDuration;
++    refreshArgs.earliestPresentTime = prevVsyncTime - hwcMinWorkDuration;
++    refreshArgs.previousPresentFence = mPreviousPresentFences[0].fenceTime;
++    refreshArgs.scheduledFrameTime = mScheduler->getScheduledFrameTime();
++    refreshArgs.expectedPresentTime = mExpectedPresentTime.ns();
++    const auto presentTime = systemTime();
++    mCompositionEngine->present(refreshArgs);
++    mTimeStats->recordFrameDuration(frameTime.ns(), systemTime());
++    if (mPowerHintSessionEnabled) {
++        mPowerAdvisor->setSfPresentTiming(TimePoint::fromNs(mPreviousPresentFences[0]
++                                                                    .fenceTime->getSignalTime()),
++                                          TimePoint::now());
++        if (mPowerHintSessionMode.late) {
++            mPowerAdvisor->sendActualWorkDuration();
++        }
++    }
++    if (mScheduler->onPostComposition(presentTime)) {
++        scheduleComposite(FrameHint::kNone);
++    }
++    postComposition();
++    const bool prevFrameHadClientComposition = mHadClientComposition;
++    mHadClientComposition = mHadDeviceComposition = mReusedClientComposition = false;
++    TimeStats::ClientCompositionRecord clientCompositionRecord;
++    for (const auto& [_, display] : displays) {
++        const auto& state = display->getCompositionDisplay()->getState();
++        mHadClientComposition |= state.usesClientComposition && !state.reusedClientComposition;
++        mHadDeviceComposition |= state.usesDeviceComposition;
++        mReusedClientComposition |= state.reusedClientComposition;
++        clientCompositionRecord.predicted |=
++                (state.strategyPrediction != CompositionStrategyPredictionState::DISABLED);
++        clientCompositionRecord.predictionSucceeded |=
++                (state.strategyPrediction == CompositionStrategyPredictionState::SUCCESS);
++    }
++    clientCompositionRecord.hadClientComposition = mHadClientComposition;
++    clientCompositionRecord.reused = mReusedClientComposition;
++    clientCompositionRecord.changed = prevFrameHadClientComposition != mHadClientComposition;
++    mTimeStats->pushCompositionStrategyState(clientCompositionRecord);
++    const bool usedGpuComposition = mHadClientComposition || mReusedClientComposition;
++    modulateVsync(&VsyncModulator::onDisplayRefresh, usedGpuComposition);
++    mLayersWithQueuedFrames.clear();
++    if (mLayerTracingEnabled && mLayerTracing.flagIsSet(LayerTracing::TRACE_COMPOSITION)) {
++        mLayerTracing.notify(mVisibleRegionsDirty, frameTime.ns(), vsyncId.value);
++    }
++    mVisibleRegionsWereDirtyThisFrame = mVisibleRegionsDirty;
++    mVisibleRegionsDirty = false;
++    if (mCompositionEngine->needsAnotherUpdate()) {
++        scheduleCommit(FrameHint::kNone);
++    }
++    if (mPowerHintSessionEnabled) {
++        mPowerAdvisor->setCompositeEnd(TimePoint::now());
++    }
++}
+@@ -3691 +3708,0 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
+-<<<<<<< HEAD
+@@ -3694,7 +3710,0 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
+-|||||||
+-    const auto refreshRate = display->refreshRateConfigs().getActiveMode()->getFps();
+-    if (currentMode == hal::PowerMode::OFF) {
+-=======
+-    const auto refreshRate = display->refreshRateConfigs().getActiveMode()->getFps();
+-    if (*currentMode == hal::PowerMode::OFF) {
+->>>>>>> 5c7935f8a0691737c871c4ef99993453cc8ae17a
+@@ -3734 +3743,0 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
+-<<<<<<< HEAD
+@@ -3739,5 +3747,0 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
+-|||||||
+-        if (isDisplayActiveLocked(display) && currentMode == hal::PowerMode::DOZE_SUSPEND) {
+-=======
+-        if (isDisplayActiveLocked(display) && *currentMode == hal::PowerMode::DOZE_SUSPEND) {
+->>>>>>> 5c7935f8a0691737c871c4ef99993453cc8ae17a
+@@ -5665,0 +5671,31 @@ bool SurfaceFlinger::commitCreatedLayers(VsyncId vsyncId) {
++binder::Status SurfaceComposerAIDL::bootFinished() {
++    status_t status = checkAccessPermission();
++    if (status != OK) {
++        return binderStatusFromStatusT(status);
++    }
++    mFlinger->bootFinished();
++    return binder::Status::ok();
++}
++binder::Status SurfaceComposerAIDL::createDisplayEventConnection(
++        VsyncSource vsyncSource, EventRegistration eventRegistration,
++        sp<IDisplayEventConnection>* outConnection) {
++    sp<IDisplayEventConnection> conn =
++            mFlinger->createDisplayEventConnection(vsyncSource, eventRegistration);
++    if (conn == nullptr) {
++        *outConnection = nullptr;
++        return binderStatusFromStatusT(BAD_VALUE);
++    } else {
++        *outConnection = conn;
++        return binder::Status::ok();
++    }
++}
++binder::Status SurfaceComposerAIDL::createConnection(sp<gui::ISurfaceComposerClient>* outClient) {
++    const sp<Client> client = sp<Client>::make(mFlinger);
++    if (client->initCheck() == NO_ERROR) {
++        *outClient = client;
++        return binder::Status::ok();
++    } else {
++        *outClient = nullptr;
++        return binderStatusFromStatusT(BAD_VALUE);
++    }
++}
+@@ -6227,0 +6291,46 @@ binder::Status SurfaceComposerAIDL::getGpuContextPriority(int32_t* outPriority)
++binder::Status SurfaceComposerAIDL::getMaxAcquiredBufferCount(int32_t* buffers) {
++    status_t status = mFlinger->getMaxAcquiredBufferCount(buffers);
++    return binderStatusFromStatusT(status);
++}
++binder::Status SurfaceComposerAIDL::addWindowInfosListener(
++        const sp<gui::IWindowInfosListener>& windowInfosListener) {
++    status_t status;
++    const int uid = IPCThreadState::self()->getCallingUid();
++    if (uid == AID_SYSTEM || uid == AID_GRAPHICS) {
++        status = mFlinger->addWindowInfosListener(windowInfosListener);
++    } else {
++        status = PERMISSION_DENIED;
++    }
++    return binderStatusFromStatusT(status);
++}
++binder::Status SurfaceComposerAIDL::removeWindowInfosListener(
++        const sp<gui::IWindowInfosListener>& windowInfosListener) {
++    status_t status;
++    const int uid = IPCThreadState::self()->getCallingUid();
++    if (uid == AID_SYSTEM || uid == AID_GRAPHICS) {
++        status = mFlinger->removeWindowInfosListener(windowInfosListener);
++    } else {
++        status = PERMISSION_DENIED;
++    }
++    return binderStatusFromStatusT(status);
++}
++status_t SurfaceComposerAIDL::checkAccessPermission(bool usePermissionCache) {
++    if (!mFlinger->callingThreadHasUnscopedSurfaceFlingerAccess(usePermissionCache)) {
++        IPCThreadState* ipc = IPCThreadState::self();
++        ALOGE("Permission Denial: can't access SurfaceFlinger pid=%d, uid=%d", ipc->getCallingPid(),
++              ipc->getCallingUid());
++        return PERMISSION_DENIED;
++    }
++    return OK;
++}
++status_t SurfaceComposerAIDL::checkControlDisplayBrightnessPermission() {
++    IPCThreadState* ipc = IPCThreadState::self();
++    const int pid = ipc->getCallingPid();
++    const int uid = ipc->getCallingUid();
++    if ((uid != AID_GRAPHICS) &&
++        !PermissionCache::checkPermission(sControlDisplayBrightness, pid, uid)) {
++        ALOGE("Permission Denial: can't control brightness pid=%d, uid=%d", pid, uid);
++        return PERMISSION_DENIED;
++    }
++    return OK;
++}
+@@ -6238,28 +6346,0 @@ status_t SurfaceComposerAIDL::checkReadFrameBufferPermission() {
+-binder::Status SurfaceComposerAIDL::bootFinished() {
+-    status_t status = checkAccessPermission();
+-    if (status != OK) {
+-        return binderStatusFromStatusT(status);
+-    }
+-    mFlinger->bootFinished();
+-    return binder::Status::ok();
+-}
+-binder::Status SurfaceComposerAIDL::createDisplayEventConnection(VsyncSource vsyncSource, EventRegistration eventRegistration, sp<IDisplayEventConnection>* outConnection) {
+-    sp<IDisplayEventConnection> conn =
+-            mFlinger->createDisplayEventConnection(vsyncSource, eventRegistration);
+-    if (conn == nullptr) {
+-        *outConnection = nullptr;
+-        return binderStatusFromStatusT(BAD_VALUE);
+-    } else {
+-        *outConnection = conn;
+-        return binder::Status::ok();
+-    }
+-}
+-binder::Status SurfaceComposerAIDL::createConnection(sp<gui::ISurfaceComposerClient>* outClient) {
+-    const sp<Client> client = sp<Client>::make(mFlinger);
+-    if (client->initCheck() == NO_ERROR) {
+-        *outClient = client;
+-        return binder::Status::ok();
+-    } else {
+-        *outClient = nullptr;
+-        return binderStatusFromStatusT(BAD_VALUE);
+-    }
+@@ -6266,0 +6348,7 @@ binder::Status SurfaceComposerAIDL::createConnection(sp<gui::ISurfaceComposerCli
++#if defined(__gl_h_)
++#error "don't include gl/gl.h in this file"
++#endif
++#if defined(__gl2_h_)
++#error "don't include gl2/gl2.h in this file"
++#endif
++#pragma clang diagnostic pop

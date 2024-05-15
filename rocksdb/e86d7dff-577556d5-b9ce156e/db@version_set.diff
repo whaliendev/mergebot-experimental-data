@@ -1,0 +1,511 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_merged.cc
+index 0faf7a2..5346b1e 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_merged.cc
+@@ -56 +56,2 @@ int FindFile(const InternalKeyComparator& icmp,
+-             const std::vector<FileMetaData*>& files, const Slice& key) {
++             const std::vector<FileMetaData*>& files,
++             const Slice& key) {
+@@ -70,2 +71,2 @@ int FindFile(const InternalKeyComparator& icmp,
+-static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
+-                      const FileMetaData* f) {
++static bool AfterFile(const Comparator* ucmp,
++                      const Slice* user_key, const FileMetaData* f) {
+@@ -75,2 +76,2 @@ static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
+-static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
+-                       const FileMetaData* f) {
++static bool BeforeFile(const Comparator* ucmp,
++                       const Slice* user_key, const FileMetaData* f) {
+@@ -80 +81,2 @@ static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
+-bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
++bool SomeFileOverlapsRange(
++    const InternalKeyComparator& icmp,
+@@ -99,2 +101 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
+-    InternalKey small(*smallest_user_key, kMaxSequenceNumber,
+-                      kValueTypeForSeek);
++    InternalKey small(*smallest_user_key, kMaxSequenceNumber,kValueTypeForSeek);
+@@ -112 +113,6 @@ class Version::LevelFileNumIterator : public Iterator {
+-      : icmp_(icmp), flist_(flist), index_(flist->size()) {
++      : icmp_(icmp),
++        flist_(flist),
++        index_(flist->size()) {
++  }
++  virtual bool Valid() const {
++    return index_ < flist_->size();
+@@ -114 +119,0 @@ class Version::LevelFileNumIterator : public Iterator {
+-  virtual bool Valid() const { return index_ < flist_->size(); }
+@@ -178,2 +183,2 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-  } else if (ExtractUserKey(level_iter->key())
+-                 .starts_with(ExtractUserKey(internal_prefix))) {
++  } else if (ExtractUserKey(level_iter->key()).starts_with(
++                                             ExtractUserKey(internal_prefix))) {
+@@ -182,12 +186,0 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-<<<<<<< HEAD
+-    may_match = cfd_->table_cache()->PrefixMayMatch(
+-        options, cfd_->internal_comparator(),
+-        DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-||||||| b9ce156e3
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-=======
+@@ -196,3 +189,3 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, *meta_file, internal_prefix, nullptr);
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
++    may_match = cfd_->table_cache()->PrefixMayMatch(
++        options, cfd_->internal_comparator(), *meta_file, internal_prefix,
++        nullptr);
+@@ -248,2 +241,2 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
+-    if (!PrefixMayMatch(options, soptions, internal_prefix.Encode(),
+-                        level_iter)) {
++    if (!PrefixMayMatch(options, soptions,
++                        internal_prefix.Encode(), level_iter)) {
+@@ -291,21 +283,0 @@ struct Saver {
+-namespace {
+-enum SaverState {
+-  kNotFound,
+-  kFound,
+-  kDeleted,
+-  kCorrupt,
+-  kMerge
+-};
+-struct Saver {
+-  SaverState state;
+-  const Comparator* ucmp;
+-  Slice user_key;
+-  bool* value_found;
+-  std::string* value;
+-  const MergeOperator* merge_operator;
+-  MergeContext* merge_context;
+-  Logger* logger;
+-  bool didIO;
+-  Statistics* statistics;
+-};
+-}
+@@ -410,4 +382,8 @@ Version::Version(ColumnFamilyData* cfd, VersionSet* vset,
+-void Version::Get(const ReadOptions& options, const LookupKey& k,
+-                  std::string* value, Status* status,
+-                  MergeContext* merge_context, GetStats* stats,
+-                  const Options& db_options, bool* value_found) {
++void Version::Get(const ReadOptions& options,
++                  const LookupKey& k,
++                  std::string* value,
++                  Status* status,
++                  MergeContext* merge_context,
++                  GetStats* stats,
++                  const Options& db_options,
++                  bool* value_found) {
+@@ -506,2 +482,2 @@ void Version::Get(const ReadOptions& options, const LookupKey& k,
+-                                  saver.merge_context->GetOperands(), value,
+-                                  logger)) {
++                                  saver.merge_context->GetOperands(),
++                                  value, logger)) {
+@@ -602,15 +577,0 @@ bool CompareSeqnoDescending(const Version::Fsize& first,
+-namespace {
+-bool CompareSizeDescending(const Version::Fsize& first,
+-                           const Version::Fsize& second) {
+-  return (first.file->file_size > second.file->file_size);
+-}
+-bool CompareSeqnoDescending(const Version::Fsize& first,
+-                            const Version::Fsize& second) {
+-  if (first.file->smallest_seqno > second.file->smallest_seqno) {
+-    assert(first.file->largest_seqno > second.file->largest_seqno);
+-    return true;
+-  }
+-  assert(first.file->largest_seqno <= second.file->largest_seqno);
+-  return false;
+-}
+-}
+@@ -651 +612,3 @@ void Version::UpdateFilesBySize() {
+-void Version::Ref() { ++refs_; }
++void Version::Ref() {
++  ++refs_;
++}
+@@ -676 +639,2 @@ bool Version::NeedsCompaction() const {
+-bool Version::OverlapInLevel(int level, const Slice* smallest_user_key,
++bool Version::OverlapInLevel(int level,
++                             const Slice* smallest_user_key,
+@@ -682 +646,2 @@ bool Version::OverlapInLevel(int level, const Slice* smallest_user_key,
+-int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
++int Version::PickLevelForMemTableOutput(
++    const Slice& smallest_user_key,
+@@ -708 +673,2 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
+-void Version::GetOverlappingInputs(int level, const InternalKey* begin,
++void Version::GetOverlappingInputs(int level,
++                                   const InternalKey* begin,
+@@ -711 +677,2 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
+-                                   int hint_index, int* file_index) {
++                                   int hint_index,
++                                   int* file_index) {
+@@ -742,2 +709,2 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
+-        } else if (end != nullptr &&
+-                   user_cmp->Compare(file_limit, user_end) > 0) {
++        } else if (end != nullptr
++            && user_cmp->Compare(file_limit, user_end) > 0) {
+@@ -755,2 +722,6 @@ void Version::GetOverlappingInputsBinarySearch(
+-    int level, const Slice& user_begin, const Slice& user_end,
+-    std::vector<FileMetaData*>* inputs, int hint_index, int* file_index) {
++    int level,
++    const Slice& user_begin,
++    const Slice& user_end,
++    std::vector<FileMetaData*>* inputs,
++    int hint_index,
++    int* file_index) {
+@@ -789 +760,3 @@ void Version::GetOverlappingInputsBinarySearch(
+-void Version::ExtendOverlappingInputs(int level, const Slice& user_begin,
++void Version::ExtendOverlappingInputs(
++    int level,
++    const Slice& user_begin,
+@@ -836 +809,2 @@ void Version::ExtendOverlappingInputs(int level, const Slice& user_begin,
+-bool Version::HasOverlappingUserKey(const std::vector<FileMetaData*>* inputs,
++bool Version::HasOverlappingUserKey(
++    const std::vector<FileMetaData*>* inputs,
+@@ -887,5 +861,8 @@ const char* Version::LevelFileSummary(FileSummaryStorage* scratch,
+-    int ret = snprintf(
+-        scratch->buffer + len, sz, "#%lu(seq=%lu,sz=%lu,%lu) ",
+-        (unsigned long)f->number, (unsigned long)f->smallest_seqno,
+-        (unsigned long)f->file_size, (unsigned long)f->being_compacted);
+-    if (ret < 0 || ret >= sz) break;
++    int ret = snprintf(scratch->buffer + len, sz,
++                       "#%lu(seq=%lu,sz=%lu,%lu) ",
++                       (unsigned long)f->number,
++                       (unsigned long)f->smallest_seqno,
++                       (unsigned long)f->file_size,
++                       (unsigned long)f->being_compacted);
++    if (ret < 0 || ret >= sz)
++      break;
+@@ -987 +963,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+@@ -989,12 +964,0 @@ class VersionSet::Builder {
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &cfd_->internal_comparator();
+-    for (int level = 0; level < base_->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-||||||| b9ce156e3
+-    levels_ = new LevelState[base->NumberLevels()];
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-    for (int level = 0; level < base->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-=======
+-    levels_ = new LevelState[base->NumberLevels()];
+@@ -1002 +966 @@ class VersionSet::Builder {
+-        (vset_->options_->compaction_style == kCompactionStyleUniversal)
++        (cfd_->options()->compaction_style == kCompactionStyleUniversal)
+@@ -1006 +970 @@ class VersionSet::Builder {
+-    level_nonzero_cmp_.internal_comparator = &vset_->icmp_;
++    level_nonzero_cmp_.internal_comparator = &cfd->internal_comparator();
+@@ -1008 +972 @@ class VersionSet::Builder {
+-    for (int level = 1; level < base->NumberLevels(); level++) {
++    for (int level = 1; level < base_->NumberLevels(); level++) {
+@@ -1010 +973,0 @@ class VersionSet::Builder {
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1018,2 +981,2 @@ class VersionSet::Builder {
+-      for (FileSet::const_iterator it = added->begin(); it != added->end();
+-           ++it) {
++      for (FileSet::const_iterator it = added->begin();
++          it != added->end(); ++it) {
+@@ -1046 +1009 @@ class VersionSet::Builder {
+-          if (vset_->options_->compaction_style == kCompactionStyleUniversal) {
++          if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+@@ -1051,6 +1014 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-          if (level > 0) {
+-            for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-              const InternalKey& prev_end = v->files_[level][i - 1]->largest;
+-              const InternalKey& this_begin = v->files_[level][i]->smallest;
+-              if (cfd_->internal_comparator().Compare(prev_end, this_begin) >=
++          if (cfd_->internal_comparator().Compare(f1->largest, f2->smallest) >=
+@@ -1058,9 +1015,0 @@ class VersionSet::Builder {
+-||||||| b9ce156e3
+-          if (level > 0) {
+-            for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-              const InternalKey& prev_end = v->files_[level][i - 1]->largest;
+-              const InternalKey& this_begin = v->files_[level][i]->smallest;
+-              if (vset_->icmp_.Compare(prev_end, this_begin) >= 0) {
+-=======
+-          if (vset_->icmp_.Compare(f1->largest, f2->smallest) >= 0) {
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1138,8 +1086,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-        BySmallestKey cmp;
+-        cmp.internal_comparator = &cfd_->internal_comparator();
+-||||||| b9ce156e3
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-=======
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1155 +1096,2 @@ class VersionSet::Builder {
+-                 base_iter != bpos; ++base_iter) {
++             base_iter != bpos;
++             ++base_iter) {
+@@ -1164,15 +1105,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-        if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+-          std::sort(v->files_[0].begin(), v->files_[0].end(),
+-                    NewestFirstBySeqNo);
+-        } else {
+-          std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-        }
+-||||||| b9ce156e3
+-    if (v->vset_->options_->compaction_style == kCompactionStyleUniversal) {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirstBySeqNo);
+-    } else {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-    }
+-=======
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1207,4 +1134,3 @@ class VersionSet::Builder {
+-                           const EnvOptions& storage_options,
+-                           Cache* table_cache)
+-        : column_family_set_(new ColumnFamilySet(dbname, options,
+-                                                 storage_options, table_cache)),
++                       const EnvOptions& storage_options, Cache* table_cache)
++    : column_family_set_(new ColumnFamilySet(dbname, options, storage_options,
++                                             table_cache)),
+@@ -1230,7 +1155,0 @@ class VersionSet::Builder {
+-    {
+-      column_family_set_.reset();
+-      for (auto file : obsolete_files_) {
+-        delete file;
+-      }
+-      obsolete_files_.clear();
+-    }
+@@ -1253,3 +1172,3 @@ class VersionSet::Builder {
+-    Status VersionSet::LogAndApply(
+-        ColumnFamilyData * column_family_data, VersionEdit * edit,
+-        port::Mutex * mu, Directory * db_directory, bool new_descriptor_log,
++Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
++                               VersionEdit* edit, port::Mutex* mu,
++                               Directory* db_directory, bool new_descriptor_log,
+@@ -1295,2 +1214,2 @@ class VersionSet::Builder {
+-          LogAndApplyHelper(column_family_data, builder.get(), v,
+-                            last_writer->edit, mu);
++      LogAndApplyHelper(column_family_data, builder.get(), v, last_writer->edit,
++                        mu);
+@@ -1325,2 +1244 @@ class VersionSet::Builder {
+-        if (!edit->IsColumnFamilyManipulation() &&
+-            options_->max_open_files == -1) {
++    if (!edit->IsColumnFamilyManipulation() && options_->max_open_files == -1) {
+@@ -1333,2 +1251 @@ class VersionSet::Builder {
+-              &descriptor_file,
+-              env_->OptimizeForManifestWrite(storage_options_));
++          &descriptor_file, env_->OptimizeForManifestWrite(storage_options_));
+@@ -1367,2 +1284 @@ class VersionSet::Builder {
+-            Log(options_->info_log, "MANIFEST write: %s\n",
+-                s.ToString().c_str());
++        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
+@@ -1380,4 +1296,2 @@ class VersionSet::Builder {
+-                  "MANIFEST contains log record despite error; advancing to "
+-                  "new "
+-                  "version to prevent mismatch between in-memory and logged "
+-                  "state"
++              "MANIFEST contains log record despite error; advancing to new "
++              "version to prevent mismatch between in-memory and logged state"
+@@ -1395,2 +1309 @@ class VersionSet::Builder {
+-            env_->DeleteFile(
+-                DescriptorFileName(dbname_, manifest_file_number_));
++        env_->DeleteFile(DescriptorFileName(dbname_, manifest_file_number_));
+@@ -1428,2 +1341 @@ class VersionSet::Builder {
+-            assert(column_family_data->GetLogNumber() <
+-                   max_log_number_in_batch);
++        assert(column_family_data->GetLogNumber() < max_log_number_in_batch);
+@@ -1471,3 +1383,3 @@ class VersionSet::Builder {
+-    void VersionSet::LogAndApplyHelper(ColumnFamilyData * cfd,
+-                                       Builder * builder, Version * v,
+-                                       VersionEdit * edit, port::Mutex * mu) {
++void VersionSet::LogAndApplyHelper(ColumnFamilyData* cfd, Builder* builder,
++                                   Version* v, VersionEdit* edit,
++                                   port::Mutex* mu) {
+@@ -1495,2 +1407,3 @@ class VersionSet::Builder {
+-      Status s =
+-          ReadFileToString(env_, CurrentFileName(dbname_), &manifest_filename);
++  Status s = ReadFileToString(
++      env_, CurrentFileName(dbname_), &manifest_filename
++  );
+@@ -1500 +1413,2 @@ class VersionSet::Builder {
+-      if (manifest_filename.empty() || manifest_filename.back() != '\n') {
++  if (manifest_filename.empty() ||
++      manifest_filename.back() != '\n') {
+@@ -1534,2 +1448 @@ class VersionSet::Builder {
+-      auto default_cf_iter =
+-          cf_name_to_options.find(default_column_family_name);
++  auto default_cf_iter = cf_name_to_options.find(default_column_family_name);
+@@ -1548,2 +1461,2 @@ class VersionSet::Builder {
+-        log::Reader reader(std::move(manifest_file), &reporter,
+-                           true , 0 );
++    log::Reader reader(std::move(manifest_file), &reporter, true ,
++                       0 );
+@@ -1615 +1527,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+@@ -1617,8 +1528,0 @@ class VersionSet::Builder {
+-||||||| b9ce156e3
+-      builder.Apply(&edit);
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+-=======
+-      builder.Apply(&edit);
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1626 +1529,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+@@ -1628,6 +1530,0 @@ class VersionSet::Builder {
+-                log_number_decrease = true;
+-||||||| b9ce156e3
+-        if (have_log_number && log_number >= edit.log_number_) {
+-          log_number_decrease = true;
+-=======
+-        if (have_log_number && log_number >= edit.log_number_) {
+@@ -1635,3 +1532,2 @@ class VersionSet::Builder {
+-              "decreasing of log_number is detected "
+-              "in MANIFEST\n");
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
++                "MANIFEST corruption detected, but ignored - Log numbers in "
++                "records NOT monotonically increasing");
+@@ -1651,3 +1546,0 @@ class VersionSet::Builder {
+-          if (edit.has_version_number_) {
+-            have_version_number = true;
+-          }
+@@ -1670,24 +1562,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-        if (s.ok() && log_number_decrease) {
+-          if (have_version_number) {
+-            s = Status::Corruption(
+-                "MANIFEST corruption - Log numbers in records NOT "
+-                "monotonically increasing");
+-          } else {
+-            Log(options_->info_log,
+-                "MANIFEST corruption detected, but ignored - Log numbers in "
+-                "records NOT monotonically increasing");
+-          }
+-        }
+-||||||| b9ce156e3
+-  if (s.ok() && log_number_decrease) {
+-    if (have_version_number) {
+-      s = Status::Corruption("log number decreases");
+-    } else {
+-      Log(options_->info_log,
+-          "decreasing of log_number is detected "
+-          "in MANIFEST\n");
+-    }
+-  }
+-=======
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -1735,2 +1604 @@ class VersionSet::Builder {
+-        Log(options_->info_log,
+-            "Recovered from manifest file:%s succeeded,"
++    Log(options_->info_log, "Recovered from manifest file:%s succeeded,"
+@@ -1741,3 +1609,6 @@ class VersionSet::Builder {
+-            manifest_filename.c_str(), (unsigned long)manifest_file_number_,
+-            (unsigned long)next_file_number_, (unsigned long)last_sequence_,
+-            (unsigned long)log_number, (unsigned long)prev_log_number_,
++        manifest_filename.c_str(),
++        (unsigned long)manifest_file_number_,
++        (unsigned long)next_file_number_,
++        (unsigned long)last_sequence_,
++        (unsigned long)log_number,
++        (unsigned long)prev_log_number_,
+@@ -1756,3 +1627,2 @@ class VersionSet::Builder {
+-    Status VersionSet::ListColumnFamilies(
+-        std::vector<std::string> * column_families, const std::string& dbname,
+-        Env* env) {
++Status VersionSet::ListColumnFamilies(std::vector<std::string>* column_families,
++                                      const std::string& dbname, Env* env) {
+@@ -1792,2 +1662 @@ class VersionSet::Builder {
+-            s = Status::Corruption(
+-                "Manifest adding the same column family twice");
++        s = Status::Corruption("Manifest adding the same column family twice");
+@@ -1816,3 +1685,4 @@ class VersionSet::Builder {
+-    Status VersionSet::ReduceNumberOfLevels(
+-        const std::string& dbname, const Options* options,
+-        const EnvOptions& storage_options, int new_levels) {
++Status VersionSet::ReduceNumberOfLevels(const std::string& dbname,
++                                        const Options* options,
++                                        const EnvOptions& storage_options,
++                                        int new_levels) {
+@@ -1877,2 +1747,2 @@ class VersionSet::Builder {
+-      return versions.LogAndApply(versions.GetColumnFamilySet()->GetDefault(),
+-                                  &ve, &dummy_mutex, nullptr, true);
++  return versions.LogAndApply(versions.GetColumnFamilySet()->GetDefault(), &ve,
++                              &dummy_mutex, nullptr, true);
+@@ -1883,2 +1753 @@ class VersionSet::Builder {
+-      Status s =
+-          options.env->NewSequentialFile(dscname, &file, storage_options_);
++  Status s = options.env->NewSequentialFile(dscname, &file, storage_options_);
+@@ -1917,2 +1786,2 @@ class VersionSet::Builder {
+-            printf("*************************Edit[%d] = %s\n", count,
+-                   edit.DebugString(hex).c_str());
++        printf("*************************Edit[%d] = %s\n",
++                count, edit.DebugString(hex).c_str());
+@@ -2007,2 +1876 @@ class VersionSet::Builder {
+-          printf(
+-              "--------------- Column family \"%s\"  (ID %u) --------------\n",
++      printf("--------------- Column family \"%s\"  (ID %u) --------------\n",
+@@ -2038 +1905,0 @@ class VersionSet::Builder {
+-      bool first_record = false;
+@@ -2042,5 +1908,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-          if (first_record) {
+-            edit.SetVersionNumber();
+-            first_record = false;
+-          }
+@@ -2060,6 +1921,0 @@ class VersionSet::Builder {
+-||||||| b9ce156e3
+-      edit.SetVersionNumber();
+-      edit.SetComparatorName(icmp_.user_comparator()->Name());
+-=======
+-      edit.SetComparatorName(icmp_.user_comparator()->Name());
+->>>>>>> 577556d5f98a905c3cce2cf6684b11cc3e73fa23
+@@ -2071,2 +1927,7 @@ class VersionSet::Builder {
+-              edit.AddFile(level, f->number, f->file_size, f->smallest,
+-                           f->largest, f->smallest_seqno, f->largest_seqno);
++          edit.AddFile(level,
++                       f->number,
++                       f->file_size,
++                       f->smallest,
++                       f->largest,
++                       f->smallest_seqno,
++                       f->largest_seqno);
+@@ -2088 +1949,2 @@ class VersionSet::Builder {
+-      std::string fname = DescriptorFileName(dbname_, manifest_file_number);
++  std::string fname =
++      DescriptorFileName(dbname_, manifest_file_number);
+@@ -2109,2 +1971 @@ class VersionSet::Builder {
+-      Log(options_->info_log, "ManifestContains: result = %d\n",
+-          result ? 1 : 0);
++  Log(options_->info_log, "ManifestContains: result = %d\n", result ? 1 : 0);
+@@ -2113,2 +1974 @@ class VersionSet::Builder {
+-    uint64_t VersionSet::ApproximateOffsetOf(Version * v,
+-                                             const InternalKey& ikey) {
++uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
+@@ -2179,2 +2039,2 @@ class VersionSet::Builder {
+-                  c->column_family_data()->internal_comparator(), *file,
+-                  nullptr, true );
++              c->column_family_data()->internal_comparator(), *file, nullptr,
++              true );
+@@ -2187,3 +2047,2 @@ class VersionSet::Builder {
+-                &GetFileIterator, c->column_family_data()->table_cache(),
+-                options, storage_options_,
+-                c->column_family_data()->internal_comparator(),
++            &GetFileIterator, c->column_family_data()->table_cache(), options,
++            storage_options_, c->column_family_data()->internal_comparator(),
+@@ -2204,2 +2063 @@ class VersionSet::Builder {
+-        Log(options_->info_log,
+-            "VerifyCompactionFileConsistency version mismatch");
++    Log(options_->info_log, "VerifyCompactionFileConsistency version mismatch");
+@@ -2258,2 +2116 @@ class VersionSet::Builder {
+-    void VersionSet::GetLiveFilesMetaData(std::vector<LiveFileMetaData> *
+-                                          metadata) {
++void VersionSet::GetLiveFilesMetaData(std::vector<LiveFileMetaData>* metadata) {
+@@ -2277,2 +2134 @@ class VersionSet::Builder {
+-      files->insert(files->end(), obsolete_files_.begin(),
+-                    obsolete_files_.end());
++  files->insert(files->end(), obsolete_files_.begin(), obsolete_files_.end());
+@@ -2286,2 +2142 @@ class VersionSet::Builder {
+-          edit->column_family_name_, edit->column_family_, dummy_versions,
+-          options);
++      edit->column_family_name_, edit->column_family_, dummy_versions, options);

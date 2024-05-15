@@ -1,0 +1,53 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/65d6f39b-d49f15fb-cc7f34be/libs@gui@Surface.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/65d6f39b-d49f15fb-cc7f34be/libs@gui@Surface.no_comments_merged.cpp
+@@ -183,2 +194 @@ static bool checkConsumerForUpdates(
+-            !e->hasLastRefreshStartInfo() && (e->frameNumber != lastFrameNumber);
+-    bool checkForDequeueReady = (outDequeueReadyTime != nullptr) && !e->hasDequeueReadyInfo() &&
++            !e->hasLastRefreshStartInfo() &&
+@@ -186,5 +196,7 @@ static bool checkConsumerForUpdates(
+-    bool checkForRelease = (outReleaseTime != nullptr) && !e->hasReleaseInfo() &&
+-            (e->frameNumber != lastFrameNumber);
+-    return checkForLatch || checkForFirstRefreshStart || checkForLastRefreshStart ||
+-            checkForGpuCompositionDone || checkForDisplayPresent || checkForDequeueReady ||
+-            checkForRelease;
++    bool checkForDequeueReady = (outDequeueReadyTime != nullptr) &&
++            !e->hasDequeueReadyInfo() && (e->frameNumber != lastFrameNumber);
++    bool checkForRelease = (outReleaseTime != nullptr) &&
++            !e->hasReleaseInfo() && (e->frameNumber != lastFrameNumber);
++    return checkForLatch || checkForFirstRefreshStart ||
++            checkForLastRefreshStart || checkForGpuCompositionDone ||
++            checkForDisplayPresent || checkForDequeueReady || checkForRelease;
+@@ -420,0 +449,2 @@ private:
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wmissing-noreturn"
+@@ -425,0 +456 @@ private:
++#pragma clang diagnostic pop
+@@ -759,5 +796,7 @@ int Surface::getSlotFromBufferLocked(android_native_buffer_t* buffer) const {
+-int Surface::lockBuffer_DEPRECATED(android_native_buffer_t* buffer __attribute__((
+-        unused))) void Surface::getQueueBufferInputLocked(android_native_buffer_t* buffer,
+-                                                          int fenceFd, nsecs_t timestamp,
+-                                                          IGraphicBufferProducer::QueueBufferInput*
+-                                                                  out) {
++int Surface::lockBuffer_DEPRECATED(android_native_buffer_t* buffer __attribute__((unused))) {
++    ALOGV("Surface::lockBuffer");
++    Mutex::Autolock lock(mMutex);
++    return OK;
++}
++void Surface::getQueueBufferInputLocked(android_native_buffer_t* buffer, int fenceFd,
++        nsecs_t timestamp, IGraphicBufferProducer::QueueBufferInput* out) {
+@@ -1479 +1529,0 @@ int Surface::dispatchSetFrameTimelineInfo(va_list args) {
+-<<<<<<< HEAD
+@@ -1485,5 +1534,0 @@ int Surface::dispatchSetFrameTimelineInfo(va_list args) {
+-|||||||
+-    return setFrameTimelineInfo({frameTimelineVsyncId, inputEventId, startTimeNanos});
+-=======
+-    return setFrameTimelineInfo(frameNumber, {frameTimelineVsyncId, inputEventId, startTimeNanos});
+->>>>>>> d49f15fbd6f51b0cb49afa3b4641669b83a69b8b
+@@ -2092,2 +2171,2 @@ status_t Surface::setFrameTimelineInfo(uint64_t ,
+-                                       const FrameTimelineInfo& frameTimelineInfo) {
+-    return composerService()->setFrameTimelineInfo(mGraphicBufferProducer, frameTimelineInfo);
++                                       const FrameTimelineInfo& ) {
++    return BAD_VALUE;
+@@ -2110 +2189 @@ const char* Surface::getDebugName() {
+-}
++};

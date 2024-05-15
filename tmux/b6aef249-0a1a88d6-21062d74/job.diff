@@ -1,0 +1,94 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/tmux/b6aef249-0a1a88d6-21062d74/job.no_comments_mergebot.c b/home/whalien/codebase/cpp/mergebot/eva/output/tmux/b6aef249-0a1a88d6-21062d74/job.no_comments_merged.c
+index 0a30893..571c6a1 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/tmux/b6aef249-0a1a88d6-21062d74/job.no_comments_mergebot.c
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/tmux/b6aef249-0a1a88d6-21062d74/job.no_comments_merged.c
+@@ -4,2 +3,0 @@
+-#include <paths.h>
+-#include <signal.h>
+@@ -8,0 +7 @@
++#include <signal.h>
+@@ -12,4 +11,5 @@ void job_write_callback(struct bufferevent *, void *);
+-extern struct joblist all_jobs;
+-struct job *job_run(const char *cmd, struct session *s,
+-                    void (*callbackfn)(struct job *), void (*freefn)(void *),
+-                    void *data) {
++struct joblist all_jobs = LIST_HEAD_INITIALIZER(all_jobs);
++struct job *
++job_run(const char *cmd, struct session *s,
++    void (*callbackfn)(struct job *), void (*freefn)(void *), void *data)
++{
+@@ -20 +20,2 @@ struct job *job_run(const char *cmd, struct session *s,
+-  if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, out) != 0) return (NULL);
++ if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, out) != 0)
++  return (NULL);
+@@ -23 +24,2 @@ struct job *job_run(const char *cmd, struct session *s,
+-  if (s != NULL) environ_copy(&s->environ, &env);
++ if (s != NULL)
++  environ_copy(&s->environ, &env);
+@@ -35,3 +37,6 @@ struct job *job_run(const char *cmd, struct session *s,
+-      if (dup2(out[1], STDIN_FILENO) == -1) fatal("dup2 failed");
+-      if (dup2(out[1], STDOUT_FILENO) == -1) fatal("dup2 failed");
+-      if (out[1] != STDIN_FILENO && out[1] != STDOUT_FILENO) close(out[1]);
++  if (dup2(out[1], STDIN_FILENO) == -1)
++   fatal("dup2 failed");
++  if (dup2(out[1], STDOUT_FILENO) == -1)
++   fatal("dup2 failed");
++  if (out[1] != STDIN_FILENO && out[1] != STDOUT_FILENO)
++   close(out[1]);
+@@ -40,3 +45,6 @@ struct job *job_run(const char *cmd, struct session *s,
+-      if (nullfd < 0) fatal("open failed");
+-      if (dup2(nullfd, STDERR_FILENO) == -1) fatal("dup2 failed");
+-      if (nullfd != STDERR_FILENO) close(nullfd);
++  if (nullfd < 0)
++   fatal("open failed");
++  if (dup2(nullfd, STDERR_FILENO) == -1)
++   fatal("dup2 failed");
++  if (nullfd != STDERR_FILENO)
++   close(nullfd);
+@@ -59,2 +67,2 @@ struct job *job_run(const char *cmd, struct session *s,
+-  job->event =
+-      bufferevent_new(job->fd, NULL, job_write_callback, job_callback, job);
++ job->event = bufferevent_new(job->fd, NULL, job_write_callback,
++     job_callback, job);
+@@ -65 +73,3 @@ struct job *job_run(const char *cmd, struct session *s,
+-void job_free(struct job *job) {
++void
++job_free(struct job *job)
++{
+@@ -69,4 +79,8 @@ void job_free(struct job *job) {
+-  if (job->freefn != NULL && job->data != NULL) job->freefn(job->data);
+-  if (job->pid != -1) kill(job->pid, SIGTERM);
+-  if (job->event != NULL) bufferevent_free(job->event);
+-  if (job->fd != -1) close(job->fd);
++ if (job->freefn != NULL && job->data != NULL)
++  job->freefn(job->data);
++ if (job->pid != -1)
++  kill(job->pid, SIGTERM);
++ if (job->event != NULL)
++  bufferevent_free(job->event);
++ if (job->fd != -1)
++  close(job->fd);
+@@ -75 +89,3 @@ void job_free(struct job *job) {
+-void job_write_callback(unused struct bufferevent *bufev, void *data) {
++void
++job_write_callback(unused struct bufferevent *bufev, void *data)
++{
+@@ -85,2 +101,3 @@ void job_write_callback(unused struct bufferevent *bufev, void *data) {
+-void job_callback(unused struct bufferevent *bufev, unused short events,
+-                  void *data) {
++void
++job_callback(unused struct bufferevent *bufev, unused short events, void *data)
++{
+@@ -90 +107,2 @@ void job_callback(unused struct bufferevent *bufev, unused short events,
+-    if (job->callbackfn != NULL) job->callbackfn(job);
++  if (job->callbackfn != NULL)
++   job->callbackfn(job);
+@@ -98 +116,3 @@ void job_callback(unused struct bufferevent *bufev, unused short events,
+-void job_died(struct job *job, int status) {
++void
++job_died(struct job *job, int status)
++{
+@@ -102 +122,2 @@ void job_died(struct job *job, int status) {
+-    if (job->callbackfn != NULL) job->callbackfn(job);
++  if (job->callbackfn != NULL)
++   job->callbackfn(job);

@@ -1,0 +1,268 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_merged.cpp
+@@ -5,3 +4,0 @@
+-#include "include/SecureBuffer.h"
+-#include "StagefrightPluginLoader.h"
+-#include "include/SharedMemoryBuffer.h"
+@@ -10,2 +6,0 @@
+-#include <binder/IPCThreadState.h>
+-#include <binder/IServiceManager.h>
+@@ -15,2 +9,0 @@
+-#include <media/IResourceManagerService.h>
+-#include <media/MediaAnalyticsItem.h>
+@@ -50,0 +44,4 @@ namespace android {
++using Status = ::ndk::ScopedAStatus;
++using aidl::android::media::BnResourceManagerClient;
++using aidl::android::media::IResourceManagerClient;
++using aidl::android::media::IResourceManagerService;
+@@ -145 +122,0 @@ struct ResourceManagerClient : public BnResourceManagerClient {
+- protected:
+@@ -181 +155 @@ MediaCodec::ResourceManagerServiceProxy::ResourceManagerServiceProxy(
+-~ResourceManagerServiceProxy() {
++MediaCodec::ResourceManagerServiceProxy::~ResourceManagerServiceProxy() {
+@@ -243,102 +214,0 @@ bool MediaCodec::ResourceManagerServiceProxy::reclaimResource(
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
+-    }
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
+-  }
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
+-}
+@@ -367 +237 @@ class BufferCallback : public CodecBase::BufferCallback {
+-  virtual ~BufferCallback()
++    virtual ~BufferCallback() = default;
+@@ -395 +266 @@ class CodecCallback : public CodecBase::CodecCallback {
+-  virtual ~CodecCallback()
++    virtual ~CodecCallback() = default;
+@@ -583 +456,0 @@ MediaCodec::MediaCodec(const sp<ALooper> &looper, pid_t pid, uid_t uid)
+-      mAnalyticsItem(NULL),
+@@ -627,0 +501,9 @@ void MediaCodec::initMediametrics() {
++    {
++        Mutex::Autolock al(mLatencyLock);
++        mBuffersInFlight.clear();
++        mNumLowLatencyEnables = 0;
++        mNumLowLatencyDisables = 0;
++        mIsLowLatencyModeOn = false;
++        mIndexOfFirstFrameWhenLowLatencyOn = -1;
++        mInputBufferCounter = 0;
++    }
+@@ -649,2 +527,8 @@ void MediaCodec::updateMediametrics() {
+-    mediametrics_setInt64(mMetricsHandle, kCodecLatencyUnknown,
+-                          mLatencyUnknown);
++        mediametrics_setInt64(mMetricsHandle, kCodecLatencyUnknown, mLatencyUnknown);
++    }
++    {
++        Mutex::Autolock al(mLatencyLock);
++        mediametrics_setInt64(mMetricsHandle, kCodecNumLowLatencyModeOn, mNumLowLatencyEnables);
++        mediametrics_setInt64(mMetricsHandle, kCodecNumLowLatencyModeOff, mNumLowLatencyDisables);
++        mediametrics_setInt64(mMetricsHandle, kCodecFirstFrameIndexLowLatencyModeOn,
++                              mIndexOfFirstFrameWhenLowLatencyOn);
+@@ -706,9 +589,4 @@ void MediaCodec::updateLowLatency(const sp<AMessage> &msg) {
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
++bool MediaCodec::Histogram::setup(int nbuckets, int64_t width, int64_t floor)
++{
++    if (nbuckets <= 0 || width <= 0) {
++        return false;
+@@ -716,2 +594,25 @@ std::string MediaCodec::Histogram::emit() {
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
++    if (nbuckets == mBucketCount && mBuckets != NULL) {
++        memset(mBuckets, 0, sizeof(*mBuckets) * mBucketCount);
++    } else {
++        int64_t *newbuckets = (int64_t *)calloc(nbuckets, sizeof (*mBuckets));
++        if (newbuckets == NULL) {
++            goto bad;
++        }
++        if (mBuckets != NULL)
++            free(mBuckets);
++        mBuckets = newbuckets;
++    }
++    mWidth = width;
++    mFloor = floor;
++    mCeiling = floor + nbuckets * width;
++    mBucketCount = nbuckets;
++    mMin = INT64_MAX;
++    mMax = INT64_MIN;
++    mSum = 0;
++    mCount = 0;
++    mBelow = mAbove = 0;
++    return true;
++  bad:
++    if (mBuckets != NULL) {
++        free(mBuckets);
++        mBuckets = NULL;
+@@ -719,3 +620 @@ std::string MediaCodec::Histogram::emit() {
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
++    return false;
+@@ -723,9 +622,4 @@ std::string MediaCodec::Histogram::emit() {
+-std::string MediaCodec::Histogram::emit() {
+-  std::string value;
+-  char buffer[64];
+-  snprintf(buffer, sizeof(buffer), "%" PRId64 ",%" PRId64 ",%" PRId64 "{",
+-           mFloor, mWidth, mBelow);
+-  value = buffer;
+-  for (int i = 0; i < mBucketCount; i++) {
+-    if (i != 0) {
+-      value = value + ",";
++void MediaCodec::Histogram::insert(int64_t sample)
++{
++    if (mBuckets == NULL) {
++        return;
+@@ -733,2 +627,12 @@ std::string MediaCodec::Histogram::emit() {
+-    snprintf(buffer, sizeof(buffer), "%" PRId64, mBuckets[i]);
+-    value = value + buffer;
++    mCount++;
++    mSum += sample;
++    if (mMin > sample) mMin = sample;
++    if (mMax < sample) mMax = sample;
++    if (sample < mFloor) {
++        mBelow++;
++    } else if (sample >= mCeiling) {
++        mAbove++;
++    } else {
++        int64_t slot = (sample - mFloor) / mWidth;
++        CHECK(slot < mBucketCount);
++        mBuckets[slot]++;
+@@ -736,3 +640 @@ std::string MediaCodec::Histogram::emit() {
+-  snprintf(buffer, sizeof(buffer), "}%" PRId64, mAbove);
+-  value = value + buffer;
+-  return value;
++    return;
+@@ -1747 +1667,0 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
+-<<<<<<< HEAD
+@@ -1749,7 +1668,0 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
+-||||||| faafe2989a
+-            resourceType = MediaResource::kSecureCodec;
+-            mAnalyticsItem->setInt32(kCodecSecure, 1);
+-=======
+-            resourceType = MediaResource::kSecureCodec;
+-            mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);
+->>>>>>> e23cbd26568fdd243d8dc6e052e664b885101688
+@@ -1758,7 +1670,0 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
+-<<<<<<< HEAD
+-            mediametrics_setInt32(mMetricsHandle, kCodecSecure, 0);
+-||||||| faafe2989a
+-            resourceType = MediaResource::kNonSecureCodec;
+-            mAnalyticsItem->setInt32(kCodecSecure, 0);
+-=======
+-            resourceType = MediaResource::kNonSecureCodec;
+@@ -1766 +1671,0 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
+->>>>>>> e23cbd26568fdd243d8dc6e052e664b885101688
+@@ -1821,4 +1727,3 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
+-            ALOGV(
+-                "[%s] input surface created as input format: %s, output "
+-                "format: %s",
+-                mComponentName.c_str(), mInputFormat->debugString(4).c_str(),
++                        ALOGV("[%s] input surface created as input format: %s, output format: %s",
++                                mComponentName.c_str(),
++                                mInputFormat->debugString(4).c_str(),
+@@ -3064,4 +2991,0 @@ std::string MediaCodec::stateString(State state) {
+-using Status = ::ndk::ScopedAStatus;
+-using aidl::android::media::BnResourceManagerClient;
+-using aidl::android::media::IResourceManagerClient;
+-using aidl::android::media::IResourceManagerService;

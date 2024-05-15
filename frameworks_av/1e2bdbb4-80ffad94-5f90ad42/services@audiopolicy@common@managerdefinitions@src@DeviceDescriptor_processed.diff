@@ -1,0 +1,81 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_merged.cpp
+@@ -9 +9,30 @@ namespace android {
+-void DeviceDescriptor::attach(const sp<HwModule> &module) {
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type) :
++        DeviceDescriptor(type, "" )
++{
++}
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(type, tagName, "" , encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const std::string &address,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName, encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptorBase(deviceTypeAddr), mTagName(tagName), mEncodedFormats(encodedFormats)
++{
++    mCurrentEncodedFormat = AUDIO_FORMAT_DEFAULT;
++    if (mDeviceTypeAddr.mType == AUDIO_DEVICE_OUT_HDMI && mEncodedFormats.empty()) {
++        mEncodedFormats.push_back(AUDIO_FORMAT_AC3);
++        mEncodedFormats.push_back(AUDIO_FORMAT_IEC61937);
++    }
++}
++void DeviceDescriptor::attach(const sp<HwModule>& module)
++{
+@@ -72,4 +105,3 @@ void DeviceDescriptor::toAudioPortConfig(
+-void DeviceDescriptor::toAudioPort(struct audio_port *port) const {
+-<<<<<<< HEAD
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceTypeAddr.mType);
++void DeviceDescriptor::toAudioPort(struct audio_port *port) const
++{
++    ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId, mDeviceTypeAddr.mType);
+@@ -77,12 +108,0 @@ void DeviceDescriptor::toAudioPort(struct audio_port *port) const {
+-||||||| 5f90ad4290
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceType);
+-  AudioPort::toAudioPort(port);
+-  port->id = mId;
+-  toAudioPortConfig(&port->active_config);
+-  port->ext.device.type = mDeviceType;
+-=======
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceType);
+-  DeviceDescriptorBase::toAudioPort(port);
+->>>>>>> 80ffad94f2b41098bad4f35f2399eb05e8c5ee34
+@@ -326,25 +350,0 @@ DeviceVector DeviceVector::filterForEngine() const {
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type)
+-    : DeviceDescriptor(type, "" ) {}
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
+-                                   const std::string &tagName,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptor(type, tagName, "" , encodedFormats) {}
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
+-                                   const std::string &tagName,
+-                                   const std::string &address,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName,
+-                       encodedFormats) {}
+-DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr,
+-                                   const std::string &tagName,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptorBase(deviceTypeAddr),
+-      mTagName(tagName),
+-      mEncodedFormats(encodedFormats) {
+-  mCurrentEncodedFormat = AUDIO_FORMAT_DEFAULT;
+-  if (mDeviceTypeAddr.mType == AUDIO_DEVICE_OUT_HDMI &&
+-      mEncodedFormats.empty()) {
+-    mEncodedFormats.push_back(AUDIO_FORMAT_AC3);
+-    mEncodedFormats.push_back(AUDIO_FORMAT_IEC61937);
+-  }
+-}

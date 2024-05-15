@@ -1,0 +1,61 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_merged.h
+index eab7c0a..075777f 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_merged.h
+@@ -30 +30,2 @@ class ArtdCancellationSignal : public aidl::com::android::server::art::BnArtdCan
+-  {}
++  explicit ArtdCancellationSignal(std::function<int(pid_t, int)> kill_func)
++      : kill_(std::move(kill_func)) {}
+@@ -34 +35 @@ class ArtdCancellationSignal : public aidl::com::android::server::art::BnArtdCan
+-  GUARDED_BY(mu_) = false;
++  std::mutex mu_;
+@@ -42 +43,9 @@ class Artd : public aidl::com::android::server::art::BnArtd {
+-  {}
++  explicit Artd(std::unique_ptr<art::tools::SystemProperties> props =
++                    std::make_unique<art::tools::SystemProperties>(),
++                std::unique_ptr<ExecUtils> exec_utils = std::make_unique<ExecUtils>(),
++                std::function<int(pid_t, int)> kill_func = kill,
++                std::function<int(int, struct stat*)> fstat_func = fstat)
++      : props_(std::move(props)),
++        exec_utils_(std::move(exec_utils)),
++        kill_(std::move(kill_func)),
++        fstat_(std::move(fstat_func)) {}
+@@ -123,0 +133 @@ class Artd : public aidl::com::android::server::art::BnArtd {
++  android::base::Result<OatFileAssistantContext*> GetOatFileAssistantContext()
+@@ -125,14 +135 @@ class Artd : public aidl::com::android::server::art::BnArtd {
+-  EXCLUDES(ofa_context_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  REQUIRES(cache_mu_);
+-  REQUIRES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  EXCLUDES(cache_mu_);
+-  REQUIRES(cache_mu_);
+-  REQUIRES(cache_mu_);
+-  EXCLUDES(cache_mu_);
++  android::base::Result<const std::vector<std::string>*> GetBootImageLocations()
+@@ -140,2 +137,7 @@ class Artd : public aidl::com::android::server::art::BnArtd {
+-  REQUIRES(cache_mu_);
+-  REQUIRES(cache_mu_);
++  android::base::Result<const std::vector<std::string>*> GetBootClassPath() EXCLUDES(cache_mu_);
++  bool UseJitZygote() EXCLUDES(cache_mu_);
++  bool UseJitZygoteLocked() REQUIRES(cache_mu_);
++  const std::string& GetUserDefinedBootImageLocations() EXCLUDES(cache_mu_);
++  const std::string& GetUserDefinedBootImageLocationsLocked() REQUIRES(cache_mu_);
++  bool DenyArtApexDataFiles() EXCLUDES(cache_mu_);
++  bool DenyArtApexDataFilesLocked() REQUIRES(cache_mu_);
+@@ -167,5 +169,5 @@ class Artd : public aidl::com::android::server::art::BnArtd {
+-  std::optional<std::vector<std::string>> cached_boot_image_locations_ GUARDED_BY(ofa_context_mu_);
+-  std::optional<std::vector<std::string>> cached_boot_class_path_ GUARDED_BY(ofa_context_mu_);
+-  std::optional<bool> cached_use_jit_zygote_ GUARDED_BY(ofa_context_mu_);
+-  std::optional<std::string> cached_user_defined_boot_image_locations_ GUARDED_BY(ofa_context_mu_);
+-  std::optional<bool> cached_deny_art_apex_data_files_ GUARDED_BY(ofa_context_mu_);
++  std::optional<std::vector<std::string>> cached_boot_image_locations_ GUARDED_BY(cache_mu_);
++  std::optional<std::vector<std::string>> cached_boot_class_path_ GUARDED_BY(cache_mu_);
++  std::optional<bool> cached_use_jit_zygote_ GUARDED_BY(cache_mu_);
++  std::optional<std::string> cached_user_defined_boot_image_locations_ GUARDED_BY(cache_mu_);
++  std::optional<bool> cached_deny_art_apex_data_files_ GUARDED_BY(cache_mu_);

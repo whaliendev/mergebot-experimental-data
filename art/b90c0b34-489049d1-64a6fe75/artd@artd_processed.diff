@@ -1,0 +1,256 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@artd.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@artd.no_comments_merged.cc
+@@ -51 +50,0 @@
+-#include "fmt/format.h"
+@@ -66,240 +64,0 @@ using ::aidl::com::android::server::art::ArtifactsPath;
+-using ::aidl::com::android::server::art::DexMetadataPath;
+-using ::aidl::com::android::server::art::DexoptOptions;
+-using ::aidl::com::android::server::art::DexoptTrigger;
+-using ::aidl::com::android::server::art::FileVisibility;
+-using ::aidl::com::android::server::art::FsPermission;
+-using ::aidl::com::android::server::art::GetDexoptNeededResult;
+-using ::aidl::com::android::server::art::GetDexoptStatusResult;
+-using ::aidl::com::android::server::art::IArtdCancellationSignal;
+-using ::aidl::com::android::server::art::MergeProfileOptions;
+-using ::aidl::com::android::server::art::OutputArtifacts;
+-using ::aidl::com::android::server::art::OutputProfile;
+-using ::aidl::com::android::server::art::PriorityClass;
+-using ::aidl::com::android::server::art::ProfilePath;
+-using ::aidl::com::android::server::art::VdexPath;
+-using ::android::base::Dirname;
+-using ::android::base::Error;
+-using ::android::base::Join;
+-using ::android::base::make_scope_guard;
+-using ::android::base::ReadFileToString;
+-using ::android::base::Result;
+-using ::android::base::Split;
+-using ::android::base::StringReplace;
+-using ::android::base::WriteStringToFd;
+-using ::android::fs_mgr::FstabEntry;
+-using ::art::tools::CmdlineBuilder;
+-using ::ndk::ScopedAStatus;
+-using ArtifactsLocation = GetDexoptNeededResult::ArtifactsLocation;
+-using TmpProfilePath = ProfilePath::TmpProfilePath;
+-constexpr const char* kServiceName = "artd";
+-constexpr const char* kArtdCancellationSignalType = "ArtdCancellationSignal";
+-constexpr int kShortTimeoutSec =
+-    60;
+-constexpr int kLongTimeoutSec = 570;
+-std::optional<int64_t> GetSize(std::string_view path) {
+-  std::error_code ec;
+-  int64_t size = std::filesystem::file_size(path, ec);
+-  if (ec) {
+-    if (ec.value() != ENOENT) {
+-      LOG(ERROR) << ART_FORMAT("Failed to get the file size of '{}': {}", path, ec.message());
+-    }
+-    return std::nullopt;
+-  }
+-  return size;
+-}
+-int64_t GetSizeAndDeleteFile(const std::string& path) {
+-  std::optional<int64_t> size = GetSize(path);
+-  if (!size.has_value()) {
+-    return 0;
+-  }
+-  std::error_code ec;
+-  if (!std::filesystem::remove(path, ec)) {
+-    LOG(ERROR) << ART_FORMAT("Failed to remove '{}': {}", path, ec.message());
+-    return 0;
+-  }
+-  return size.value();
+-}
+-std::string EscapeErrorMessage(const std::string& message) {
+-  return StringReplace(message, std::string("\0", 1), "\\0", true);
+-}
+-ScopedAStatus Fatal(const std::string& message) {
+-  return ScopedAStatus::fromExceptionCodeWithMessage(EX_ILLEGAL_STATE,
+-                                                     EscapeErrorMessage(message).c_str());
+-}
+-ScopedAStatus NonFatal(const std::string& message) {
+-  constexpr int32_t kArtdNonFatalErrorCode = 1;
+-  return ScopedAStatus::fromServiceSpecificErrorWithMessage(kArtdNonFatalErrorCode,
+-                                                            EscapeErrorMessage(message).c_str());
+-}
+-Result<CompilerFilter::Filter> ParseCompilerFilter(const std::string& compiler_filter_str) {
+-  CompilerFilter::Filter compiler_filter;
+-  if (!CompilerFilter::ParseCompilerFilter(compiler_filter_str.c_str(), &compiler_filter)) {
+-    return Errorf("Failed to parse compiler filter '{}'", compiler_filter_str);
+-  }
+-  return compiler_filter;
+-}
+-OatFileAssistant::DexOptTrigger DexOptTriggerFromAidl(int32_t aidl_value) {
+-  OatFileAssistant::DexOptTrigger trigger{};
+-  if ((aidl_value & static_cast<int32_t>(DexoptTrigger::COMPILER_FILTER_IS_BETTER)) != 0) {
+-    trigger.targetFilterIsBetter = true;
+-  }
+-  if ((aidl_value & static_cast<int32_t>(DexoptTrigger::COMPILER_FILTER_IS_SAME)) != 0) {
+-    trigger.targetFilterIsSame = true;
+-  }
+-  if ((aidl_value & static_cast<int32_t>(DexoptTrigger::COMPILER_FILTER_IS_WORSE)) != 0) {
+-    trigger.targetFilterIsWorse = true;
+-  }
+-  if ((aidl_value & static_cast<int32_t>(DexoptTrigger::PRIMARY_BOOT_IMAGE_BECOMES_USABLE)) != 0) {
+-    trigger.primaryBootImageBecomesUsable = true;
+-  }
+-  if ((aidl_value & static_cast<int32_t>(DexoptTrigger::NEED_EXTRACTION)) != 0) {
+-    trigger.needExtraction = true;
+-  }
+-  return trigger;
+-}
+-ArtifactsLocation ArtifactsLocationToAidl(OatFileAssistant::Location location) {
+-  switch (location) {
+-    case OatFileAssistant::Location::kLocationNoneOrError:
+-      return ArtifactsLocation::NONE_OR_ERROR;
+-    case OatFileAssistant::Location::kLocationOat:
+-      return ArtifactsLocation::DALVIK_CACHE;
+-    case OatFileAssistant::Location::kLocationOdex:
+-      return ArtifactsLocation::NEXT_TO_DEX;
+-    case OatFileAssistant::Location::kLocationDm:
+-      return ArtifactsLocation::DM;
+-  }
+-  LOG(FATAL) << "Unexpected Location " << location;
+-}
+-Result<void> PrepareArtifactsDir(const std::string& path, const FsPermission& fs_permission) {
+-  std::error_code ec;
+-  bool created = std::filesystem::create_directory(path, ec);
+-  if (ec) {
+-    return Errorf("Failed to create directory '{}': {}", path, ec.message());
+-  }
+-  auto cleanup = make_scope_guard([&] {
+-    if (created) {
+-      std::filesystem::remove(path, ec);
+-    }
+-  });
+-  if (chmod(path.c_str(), DirFsPermissionToMode(fs_permission)) != 0) {
+-    return ErrnoErrorf("Failed to chmod directory '{}'", path);
+-  }
+-  OR_RETURN(Chown(path, fs_permission));
+-  cleanup.Disable();
+-  return {};
+-}
+-Result<void> PrepareArtifactsDirs(const OutputArtifacts& output_artifacts,
+-                                          std::string* oat_dir_path) {
+-  if (output_artifacts.artifactsPath.isInDalvikCache) {
+-    return {};
+-  }
+-  std::filesystem::path oat_path(OR_RETURN(BuildOatPath(output_artifacts.artifactsPath)));
+-  std::filesystem::path isa_dir = oat_path.parent_path();
+-  std::filesystem::path oat_dir = isa_dir.parent_path();
+-  DCHECK_EQ(oat_dir.filename(), "oat");
+-  OR_RETURN(PrepareArtifactsDir(oat_dir, output_artifacts.permissionSettings.dirFsPermission));
+-  OR_RETURN(PrepareArtifactsDir(isa_dir, output_artifacts.permissionSettings.dirFsPermission));
+-  *oat_dir_path = oat_dir;
+-  return {};
+-}
+-Result<void> Restorecon(
+-    const std::string& path,
+-    const std::optional<OutputArtifacts::PermissionSettings::SeContext>& se_context) {
+-  if (!kIsTargetAndroid) {
+-    return {};
+-  }
+-  int res = 0;
+-  if (se_context.has_value()) {
+-    res = selinux_android_restorecon_pkgdir(path.c_str(),
+-                                            se_context->seInfo.c_str(),
+-                                            se_context->uid,
+-                                            SELINUX_ANDROID_RESTORECON_RECURSE);
+-  } else {
+-    res = selinux_android_restorecon(path.c_str(), SELINUX_ANDROID_RESTORECON_RECURSE);
+-  }
+-  if (res != 0) {
+-    return ErrnoErrorf("Failed to restorecon directory '{}'", path);
+-  }
+-  return {};
+-}
+-Result<FileVisibility> GetFileVisibility(const std::string& file) {
+-  std::error_code ec;
+-  std::filesystem::file_status status = std::filesystem::status(file, ec);
+-  if (!std::filesystem::status_known(status)) {
+-    return Errorf("Failed to get status of '{}': {}", file, ec.message());
+-  }
+-  if (!std::filesystem::exists(status)) {
+-    return FileVisibility::NOT_FOUND;
+-  }
+-  return (status.permissions() & std::filesystem::perms::others_read) !=
+-                 std::filesystem::perms::none ?
+-             FileVisibility::OTHER_READABLE :
+-             FileVisibility::NOT_OTHER_READABLE;
+-}
+-Result<ArtdCancellationSignal*> ToArtdCancellationSignal(IArtdCancellationSignal* input) {
+-  if (input == nullptr) {
+-    return Error() << "Cancellation signal must not be nullptr";
+-  }
+-  int64_t type;
+-  if (!input->getType(&type).isOk() ||
+-      type != reinterpret_cast<intptr_t>(kArtdCancellationSignalType)) {
+-    return Error() << "Invalid cancellation signal type";
+-  }
+-  return static_cast<ArtdCancellationSignal*>(input);
+-}
+-Result<void> CopyFile(const std::string& src_path, const NewFile& dst_file) {
+-  std::string content;
+-  if (!ReadFileToString(src_path, &content)) {
+-    return Errorf("Failed to read file '{}': {}", src_path, strerror(errno));
+-  }
+-  if (!WriteStringToFd(content, dst_file.Fd())) {
+-    return Errorf("Failed to write file '{}': {}", dst_file.TempPath(), strerror(errno));
+-  }
+-  if (fsync(dst_file.Fd()) != 0) {
+-    return Errorf("Failed to flush file '{}': {}", dst_file.TempPath(), strerror(errno));
+-  }
+-  if (lseek(dst_file.Fd(), 0, SEEK_SET) != 0) {
+-    return Errorf(
+-        "Failed to reset the offset for file '{}': {}", dst_file.TempPath(), strerror(errno));
+-  }
+-  return {};
+-}
+-Result<void> SetLogVerbosity() {
+-  std::string options = android::base::GetProperty("dalvik.vm.artd-verbose", "");
+-  if (options.empty()) {
+-    return {};
+-  }
+-  CmdlineType<LogVerbosity> parser;
+-  CmdlineParseResult<LogVerbosity> result = parser.Parse(options);
+-  if (!result.IsSuccess()) {
+-    return Error() << result.GetMessage();
+-  }
+-  gLogVerbosity = result.ReleaseValue();
+-  return {};
+-}
+-class FdLogger {
+- public:
+-  void Add(const NewFile& file) { fd_mapping_.emplace_back(file.Fd(), file.TempPath()); }
+-  void Add(const File& file) { fd_mapping_.emplace_back(file.Fd(), file.GetPath()); }
+-  std::string GetFds() {
+-    std::vector<int> fds;
+-    fds.reserve(fd_mapping_.size());
+-    for (const auto& [fd, path] : fd_mapping_) {
+-      fds.push_back(fd);
+-    }
+-    return Join(fds, ':');
+-  }
+- private:
+-  std::vector<std::pair<int, std::string>> fd_mapping_;
+-  friend std::ostream& operator<<(std::ostream& os, const FdLogger& fd_logger);
+-};
+-std::ostream& operator<<(std::ostream& os, const FdLogger& fd_logger) {
+-  for (const auto& [fd, path] : fd_logger.fd_mapping_) {
+-    os << fd << ":" << path << ' ';
+-  }
+-  return os;
+-}
+-}
+-namespace {
+-using ::aidl::com::android::server::art::ArtdDexoptResult;
+-using ::aidl::com::android::server::art::ArtifactsPath;
+@@ -586,0 +345,10 @@ std::ostream& operator<<(std::ostream& os, const FdLogger& fd_logger) {
++#define OR_RETURN_ERROR(func,expr) \
++  ({ \
++    decltype(expr)&& tmp = (expr); \
++    if (!tmp.ok()) { \
++      return (func)(tmp.error().message()); \
++    } \
++    std::move(tmp).value(); \
++  })
++#define OR_RETURN_FATAL(expr) OR_RETURN_ERROR(Fatal, expr)
++#define OR_RETURN_NON_FATAL(expr) OR_RETURN_ERROR(NonFatal, expr)

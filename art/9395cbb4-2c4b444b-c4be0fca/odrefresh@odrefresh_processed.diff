@@ -1,0 +1,147 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/9395cbb4-2c4b444b-c4be0fca/odrefresh@odrefresh.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/9395cbb4-2c4b444b-c4be0fca/odrefresh@odrefresh.no_comments_merged.cc
+@@ -27 +26,0 @@
+-#include <regex>
+@@ -72,0 +72,3 @@ namespace odrefresh {
++namespace apex = com::android::apex;
++namespace art_apex = com::android::art;
++using android::base::Result;
+@@ -80 +81,0 @@ constexpr const char* kMinimalBootImageBasename = "boot_minimal.art";
+-using ::android::base::Result;
+@@ -160,2 +162,5 @@ template <typename T>
+-Result<void> CheckComponents(const std::vector<T>& expected_components, const std::vector<T>& actual_components, const std::function<Result<void>(const T& expected, const T& actual)>& custom_checker =
+-        [](const T&, const T&) -> Result<void> {
++Result<void> CheckComponents(
++    const std::vector<T>& expected_components,
++    const std::vector<T>& actual_components,
++    const std::function<Result<void>(const T& expected, const T& actual)>& custom_checker =
++        [](const T&, const T&) -> Result<void> { return {}; }) {
+@@ -422,20 +443,0 @@ std::string GetSystemBootImageDir() { return GetAndroidRoot() + "/framework"; }
+-Result<int> ParseSecurityPatchStr(const std::string& security_patch_str) {
+-  std::regex security_patch_regex(R"re((\d{4})-(\d{2})-(\d{2}))re");
+-  std::smatch m;
+-  if (!std::regex_match(security_patch_str, m, security_patch_regex)) {
+-    return Errorf("Invalid security patch string \"{}\"", security_patch_str);
+-  }
+-  int year = 0, month = 0, day = 0;
+-  if (!android::base::ParseInt(m[1], &year) || !android::base::ParseInt(m[2], &month) ||
+-      !android::base::ParseInt(m[3], &day)) {
+-    return Errorf("Unknown error when parsing security patch string \"{}\"", security_patch_str);
+-  }
+-  return year * 10000 + month * 100 + day;
+-}
+-bool ShouldDisablePartialCompilation(const std::string& security_patch_str) {
+-  Result<int> security_patch_value = ParseSecurityPatchStr(security_patch_str);
+-  if (!security_patch_value.ok()) {
+-    LOG(ERROR) << security_patch_value.error();
+-    return false;
+-  }
+-  return security_patch_value.value() < ParseSecurityPatchStr("2022-03-05").value();
+@@ -443,3 +445,11 @@ bool ShouldDisablePartialCompilation(const std::string& security_patch_str) {
+-}
+-using android::base::Result;
+-OnDeviceRefresh::OnDeviceRefresh(const OdrConfig& config, const std::string& cache_info_filename, std::unique_ptr<ExecUtils> exec_utils): config_ {
++OnDeviceRefresh::OnDeviceRefresh(const OdrConfig& config)
++    : OnDeviceRefresh(config,
++                      Concatenate({config.GetArtifactDirectory(), "/", kCacheInfoFile}),
++                      std::make_unique<ExecUtils>()) {}
++OnDeviceRefresh::OnDeviceRefresh(const OdrConfig& config,
++                                 const std::string& cache_info_filename,
++                                 std::unique_ptr<ExecUtils> exec_utils)
++    : config_{config},
++      cache_info_filename_{cache_info_filename},
++      start_time_{time(nullptr)},
++      exec_utils_{std::move(exec_utils)} {
+@@ -460,0 +471,8 @@ OnDeviceRefresh::OnDeviceRefresh(const OdrConfig& config, const std::string& cac
++time_t OnDeviceRefresh::GetExecutionTimeUsed() const { return time(nullptr) - start_time_; }
++time_t OnDeviceRefresh::GetExecutionTimeRemaining() const {
++  return std::max(static_cast<time_t>(0),
++                  kMaximumExecutionSeconds - GetExecutionTimeUsed());
++}
++time_t OnDeviceRefresh::GetSubprocessTimeout() const {
++  return std::min(GetExecutionTimeRemaining(), kMaxChildProcessSeconds);
++}
+@@ -491 +509,56 @@ std::optional<art_apex::CacheInfo> OnDeviceRefresh::ReadCacheInfo() const {
+-static void ReportNextBootAnimationProgress(uint32_t current_compilation, uint32_t number_of_compilations) {
++Result<void> OnDeviceRefresh::WriteCacheInfo() const {
++  if (OS::FileExists(cache_info_filename_.c_str())) {
++    if (unlink(cache_info_filename_.c_str()) != 0) {
++      return ErrnoErrorf("Failed to unlink() file {}", QuotePath(cache_info_filename_));
++    }
++  }
++  const std::string dir_name = android::base::Dirname(cache_info_filename_);
++  if (!EnsureDirectoryExists(dir_name)) {
++    return Errorf("Could not create directory {}", QuotePath(dir_name));
++  }
++  std::optional<std::vector<apex::ApexInfo>> apex_info_list = GetApexInfoList();
++  if (!apex_info_list.has_value()) {
++    return Errorf("Could not update {}: no APEX info", QuotePath(cache_info_filename_));
++  }
++  std::optional<apex::ApexInfo> art_apex_info = GetArtApexInfo(apex_info_list.value());
++  if (!art_apex_info.has_value()) {
++    return Errorf("Could not update {}: no ART APEX info", QuotePath(cache_info_filename_));
++  }
++  art_apex::ModuleInfo art_module_info = GenerateModuleInfo(art_apex_info.value());
++  std::vector<art_apex::ModuleInfo> module_info_list =
++      GenerateModuleInfoList(apex_info_list.value());
++  std::optional<std::vector<art_apex::Component>> bcp_components =
++      GenerateBootClasspathComponents();
++  if (!bcp_components.has_value()) {
++    return Errorf("No boot classpath components.");
++  }
++  std::optional<std::vector<art_apex::Component>> bcp_compilable_components =
++      GenerateBootClasspathCompilableComponents();
++  if (!bcp_compilable_components.has_value()) {
++    return Errorf("No boot classpath compilable components.");
++  }
++  std::optional<std::vector<art_apex::SystemServerComponent>> system_server_components =
++      GenerateSystemServerComponents();
++  if (!system_server_components.has_value()) {
++    return Errorf("No system_server components.");
++  }
++  std::ofstream out(cache_info_filename_.c_str());
++  if (out.fail()) {
++    return Errorf("Cannot open {} for writing.", QuotePath(cache_info_filename_));
++  }
++  art_apex::CacheInfo info(
++      {art_module_info},
++      {art_apex::ModuleInfoList(module_info_list)},
++      {art_apex::Classpath(bcp_components.value())},
++      {art_apex::Classpath(bcp_compilable_components.value())},
++      {art_apex::SystemServerComponents(system_server_components.value())},
++      config_.GetCompilationOsMode() ? std::make_optional(true) : std::nullopt);
++  art_apex::write(out, info);
++  out.close();
++  if (out.fail()) {
++    return Errorf("Cannot write to {}", QuotePath(cache_info_filename_));
++  }
++  return {};
++}
++static void ReportNextBootAnimationProgress(uint32_t current_compilation,
++                                            uint32_t number_of_compilations) {
+@@ -501,0 +575,9 @@ std::vector<art_apex::Component> OnDeviceRefresh::GenerateBootClasspathCompilabl
++std::vector<art_apex::SystemServerComponent> OnDeviceRefresh::GenerateSystemServerComponents()
++    const {
++  return GenerateComponents<art_apex::SystemServerComponent>(
++      all_systemserver_jars_,
++      [&](const std::string& path, uint64_t size, const std::string& checksum) {
++        bool isInClasspath = ContainsElement(systemserver_classpath_jars_, path);
++        return art_apex::SystemServerComponent{path, size, checksum, isInClasspath};
++      });
++}
+@@ -525,0 +610,15 @@ std::string OnDeviceRefresh::GetSystemBootImageExtensionPath(const InstructionSe
++std::string OnDeviceRefresh::GetSystemServerImagePath(bool on_system,
++                                                      const std::string& jar_path) const {
++  if (on_system) {
++    if (LocationIsOnApex(jar_path)) {
++      return GetSystemOdexFilenameForApex(jar_path, config_.GetSystemServerIsa());
++    }
++    const std::string jar_name = android::base::Basename(jar_path);
++    const std::string image_name = ReplaceFileExtension(jar_name, "art");
++    const char* isa_str = GetInstructionSetString(config_.GetSystemServerIsa());
++    return Concatenate({GetAndroidRoot(), "/framework/oat/", isa_str, "/", image_name});
++  } else {
++    const std::string image = GetApexDataImage(jar_path.c_str());
++    return GetSystemImageFilename(image.c_str(), config_.GetSystemServerIsa());
++  }
++}

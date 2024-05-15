@@ -1,0 +1,123 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@test@ResourceManagerService_test.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/services@mediaresourcemanager@test@ResourceManagerService_test.no_comments_merged.cpp
+@@ -5 +4,0 @@
+-#include <media/IResourceManagerService.h>
+@@ -20,0 +18,4 @@ namespace android {
++using Status = ::ndk::ScopedAStatus;
++using ::aidl::android::media::BnResourceManagerClient;
++using ::aidl::android::media::IResourceManagerService;
++using ::aidl::android::media::IResourceManagerClient;
+@@ -40 +41 @@ struct TestSystemCallback :
+-        mLastEvent({}
++        mLastEvent({EventType::INVALID, 0}), mEventCount(0) {}
+@@ -82,0 +84,10 @@ struct TestClient : public BnResourceManagerClient {
++    Status reclaimResource(bool* _aidl_return) override {
++        mService->removeClient(mPid, getId(ref<TestClient>()));
++        mReclaimed = true;
++        *_aidl_return = true;
++        return Status::ok();
++    }
++    Status getName(::std::string* _aidl_return) override {
++        *_aidl_return = "test_client";
++        return Status::ok();
++    }
+@@ -89 +99,0 @@ struct TestClient : public BnResourceManagerClient {
+-protected:
+@@ -96,10 +105,0 @@ private:
+-    Status reclaimResource(bool* _aidl_return) override {
+-        mService->removeClient(mPid, getId(ref<TestClient>()));
+-        mReclaimed = true;
+-        *_aidl_return = true;
+-        return Status::ok();
+-    }
+-    Status getName(::std::string* _aidl_return) override {
+-        *_aidl_return = "test_client";
+-        return Status::ok();
+-    }
+@@ -118,0 +119,4 @@ bool operator== (const EventEntry& lhs, const EventEntry& rhs) {
++#define CHECK_STATUS_TRUE(condition) \
++    EXPECT_TRUE((condition).isOk() && (result))
++#define CHECK_STATUS_FALSE(condition) \
++    EXPECT_TRUE((condition).isOk() && !(result))
+@@ -134 +137,0 @@ protected:
+-<<<<<<< HEAD
+@@ -138,8 +140,0 @@ protected:
+-||||||| 35b28e5f80
+-            const auto resType = std::make_pair(resources1[i].mType, resources1[i].mSubType);
+-            r1[resType] = resources1[i];
+-=======
+-            const auto &res = resources1[i];
+-            const auto resType = std::tuple(res.mType, res.mSubType, res.mId);
+-            r1[resType] = res;
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2
+@@ -548,2 +543,2 @@ protected:
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, config) {
++    testConfig();
+@@ -551,2 +546,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, addResource) {
++    addResource();
+@@ -554,2 +549,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, combineResource) {
++    testCombineResource();
+@@ -557,2 +552,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, combineResourceNegative) {
++    testCombineResourceWithNegativeValues();
+@@ -560,2 +555,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, removeResource) {
++    testRemoveResource();
+@@ -563,2 +558,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, removeClient) {
++    testRemoveClient();
+@@ -566,2 +561,3 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, reclaimResource) {
++    testReclaimResourceSecure();
++    testReclaimResourceNonSecure();
+@@ -569,2 +565,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, getAllClients_l) {
++    testGetAllClients();
+@@ -572,2 +568,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, getLowestPriorityBiggestClient_l) {
++    testGetLowestPriorityBiggestClient();
+@@ -575,2 +571,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, getLowestPriorityPid_l) {
++    testGetLowestPriorityPid();
+@@ -578,2 +574,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, getBiggestClient_l) {
++    testGetBiggestClient();
+@@ -581,2 +577,2 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, isCallingPriorityHigher_l) {
++    testIsCallingPriorityHigher();
+@@ -584,2 +580,5 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(ResourceManagerServiceTest, testBatteryStats) {
++    testBatteryStats();
++}
++TEST_F(ResourceManagerServiceTest, testCpusetBoost) {
++    testCpusetBoost();
+@@ -587 +585,0 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-using ::aidl::android::media::IResourceManagerService;

@@ -1,0 +1,26 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_merged.cpp
+@@ -24 +23,0 @@ PhysicalBatchInsert::PhysicalBatchInsert(LogicalOperator &op, SchemaCatalogEntry
+-{ PhysicalInsert::GetInsertInfo(*info, insert_types, bound_defaults); }
+@@ -30,0 +30 @@ public:
++public:
+@@ -91,0 +92 @@ public:
++public:
+@@ -275,0 +277 @@ SinkResultType PhysicalBatchInsert::Sink(ExecutionContext &context, DataChunk &c
++ auto batch_index = lstate.partition_info.batch_index.GetIndex();
+@@ -280,7 +282,2 @@ SinkResultType PhysicalBatchInsert::Sink(ExecutionContext &context, DataChunk &c
+- } else if (lstate.current_index != lstate.batch_index) {
+-  TransactionData tdata(0, 0);
+-  lstate.current_collection->FinalizeAppend(tdata, lstate.current_append_state);
+-  lstate.FlushToDisk();
+-  gstate.AddCollection(context.client, lstate.current_index, std::move(lstate.current_collection), lstate.writer,
+-                       &lstate.written_to_disk);
+-  lstate.CreateNewCollection(table, insert_types);
++ } else if (lstate.current_index != batch_index) {
++  throw InternalException("Current batch differs from batch - but NextBatch was not called!?");
+@@ -288 +285 @@ SinkResultType PhysicalBatchInsert::Sink(ExecutionContext &context, DataChunk &c
+- lstate.current_index = lstate.batch_index;
++ lstate.current_index = batch_index;
+@@ -292 +289 @@ SinkResultType PhysicalBatchInsert::Sink(ExecutionContext &context, DataChunk &c
+-  lstate.writer->CheckFlushToDisk(*lstate.current_collection);
++  lstate.writer->WriteNewRowGroup(*lstate.current_collection);

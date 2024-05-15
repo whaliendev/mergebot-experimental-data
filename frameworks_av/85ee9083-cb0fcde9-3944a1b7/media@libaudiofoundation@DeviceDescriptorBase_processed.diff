@@ -1,0 +1,37 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@DeviceDescriptorBase.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@DeviceDescriptorBase.no_comments_merged.cpp
+@@ -93,2 +93 @@ bool DeviceDescriptorBase::equals(const sp<DeviceDescriptorBase> &other) const {
+-         mAddress.compare(other->address()) == 0 &&
+-         mDeviceType == other->type();
++           mDeviceTypeAddr.equals(other->mDeviceTypeAddr);
+@@ -99,4 +99,2 @@ status_t DeviceDescriptorBase::writeToParcel(Parcel *parcel) const {
+-  if ((status = AudioPortConfig::writeToParcel(parcel)) != NO_ERROR)
+-    return status;
+-  if ((status = parcel->writeUtf8AsUtf16(mAddress)) != NO_ERROR) return status;
+-  if ((status = parcel->writeUint32(mDeviceType)) != NO_ERROR) return status;
++    if ((status = AudioPortConfig::writeToParcel(parcel)) != NO_ERROR) return status;
++    if ((status = parcel->writeParcelable(mDeviceTypeAddr)) != NO_ERROR) return status;
+@@ -108,5 +107,2 @@ status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel) {
+-  if ((status = AudioPortConfig::readFromParcel(parcel)) != NO_ERROR)
+-    return status;
+-  if ((status = parcel->readUtf8FromUtf16(&mAddress)) != NO_ERROR)
+-    return status;
+-  if ((status = parcel->readUint32(&mDeviceType)) != NO_ERROR) return status;
++    if ((status = AudioPortConfig::readFromParcel(parcel)) != NO_ERROR) return status;
++    if ((status = parcel->readParcelable(&mDeviceTypeAddr)) != NO_ERROR) return status;
+@@ -115,2 +111,13 @@ status_t DeviceDescriptorBase::readFromParcel(const Parcel *parcel) {
+-AudioDeviceTypeAddrVector deviceTypeAddrsFromDescriptors(
+-    const DeviceDescriptorBaseVector &devices) {
++std::string toString(const DeviceDescriptorBaseVector& devices)
++{
++    std::string ret;
++    for (const auto& device : devices) {
++        if (device != *devices.begin()) {
++            ret += ";";
++        }
++        ret += device->toString();
++    }
++    return ret;
++}
++AudioDeviceTypeAddrVector deviceTypeAddrsFromDescriptors(const DeviceDescriptorBaseVector& devices)
++{

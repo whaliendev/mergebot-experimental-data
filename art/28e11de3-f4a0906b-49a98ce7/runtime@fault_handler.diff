@@ -1,0 +1,82 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_merged.cc
+index 67895c2..4745197 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_merged.cc
+@@ -12 +11,0 @@
+-#include "gc/space/bump_pointer_space.h"
+@@ -38 +37,2 @@ FaultManager::FaultManager()
+-FaultManager::~FaultManager() {}
++FaultManager::~FaultManager() {
++}
+@@ -42,10 +42,5 @@ static const char* SignalCodeName(int sig, int code) {
+-      case SEGV_MAPERR:
+-        return "SEGV_MAPERR";
+-      case SEGV_ACCERR:
+-        return "SEGV_ACCERR";
+-      case 8:
+-        return "SEGV_MTEAERR";
+-      case 9:
+-        return "SEGV_MTESERR";
+-      default:
+-        return "SEGV_UNKNOWN";
++      case SEGV_MAPERR: return "SEGV_MAPERR";
++      case SEGV_ACCERR: return "SEGV_ACCERR";
++      case 8: return "SEGV_MTEAERR";
++      case 9: return "SEGV_MTESERR";
++      default: return "SEGV_UNKNOWN";
+@@ -55,8 +50,4 @@ static const char* SignalCodeName(int sig, int code) {
+-      case BUS_ADRALN:
+-        return "BUS_ADRALN";
+-      case BUS_ADRERR:
+-        return "BUS_ADRERR";
+-      case BUS_OBJERR:
+-        return "BUS_OBJERR";
+-      default:
+-        return "BUS_UNKNOWN";
++      case BUS_ADRALN: return "BUS_ADRALN";
++      case BUS_ADRERR: return "BUS_ADRERR";
++      case BUS_OBJERR: return "BUS_OBJERR";
++      default: return "BUS_UNKNOWN";
+@@ -70,2 +61,2 @@ static std::ostream& PrintSignalInfo(std::ostream& os, siginfo_t* info) {
+-     << "  si_code: " << info->si_code << " (" << SignalCodeName(info->si_signo, info->si_code)
+-     << ")";
++     << "  si_code: " << info->si_code
++     << " (" << SignalCodeName(info->si_signo, info->si_code) << ")";
+@@ -73,2 +64 @@ static std::ostream& PrintSignalInfo(std::ostream& os, siginfo_t* info) {
+-    os << "\n"
+-       << "  si_addr: " << info->si_addr;
++    os << "\n" << "  si_addr: " << info->si_addr;
+@@ -101,0 +92,17 @@ void FaultManager::Init(bool use_sig_chain) {
++    int result = art::membarrier(MembarrierCommand::kRegisterPrivateExpedited);
++    if (result != 0) {
++      LOG(WARNING) << "FaultHandler: MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED failed: "
++                   << errno << " " << strerror(errno);
++    }
++    {
++      MutexLock lock(Thread::Current(), generated_code_ranges_lock_);
++      for (size_t i = 0; i != kNumLocalGeneratedCodeRanges; ++i) {
++        GeneratedCodeRange* next = (i + 1u != kNumLocalGeneratedCodeRanges)
++            ? &generated_code_ranges_storage_[i + 1u]
++            : nullptr;
++        generated_code_ranges_storage_[i].next.store(next, std::memory_order_relaxed);
++        generated_code_ranges_storage_[i].start = nullptr;
++        generated_code_ranges_storage_[i].size = 0u;
++      }
++      free_generated_code_ranges_ = generated_code_ranges_storage_;
++    }
+@@ -175 +182 @@ bool FaultManager::HandleSigbusFault(int sig, siginfo_t* info, void* context ATT
+-bool FaultManager::HandleFault(int sig, siginfo_t* info, void* context) {
++bool FaultManager::HandleSigsegvFault(int sig, siginfo_t* info, void* context) {
+@@ -218,2 +225,2 @@ void FaultManager::RemoveHandler(FaultHandler* handler) {
+-inline FaultManager::GeneratedCodeRange* FaultManager::CreateGeneratedCodeRange(const void* start,
+-                                                                                size_t size) {
++inline FaultManager::GeneratedCodeRange* FaultManager::CreateGeneratedCodeRange(
++    const void* start, size_t size) {
+@@ -334 +341,2 @@ bool FaultManager::IsInGeneratedCode(siginfo_t* siginfo, void* context) {
+-FaultHandler::FaultHandler(FaultManager* manager) : manager_(manager) {}
++FaultHandler::FaultHandler(FaultManager* manager) : manager_(manager) {
++}
+@@ -345 +353,2 @@ bool NullPointerHandler::IsValidMethod(ArtMethod* method) {
+-  mirror::Object* klass = method->GetDeclaringClassAddressWithoutBarrier()->AsMirrorPtr();
++  mirror::Object* klass =
++      method->GetDeclaringClassAddressWithoutBarrier()->AsMirrorPtr();

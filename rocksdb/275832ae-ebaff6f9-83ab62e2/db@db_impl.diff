@@ -1,0 +1,450 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_merged.cc
+index 53d5228..f9f4ef5 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_merged.cc
+@@ -59 +58,0 @@ namespace rocksdb {
+-const std::string kNullString = "NULL";
+@@ -60,0 +60 @@ const std::string default_column_family_name("default");
++const std::string kNullString = "NULL";
+@@ -302,5 +301,0 @@ DBImpl::~DBImpl() {
+-  if (flush_on_destroy_) {
+-    autovector<ColumnFamilyData*> to_delete;
+-    for (auto cfd : *versions_->GetColumnFamilySet()) {
+-      if (cfd->mem()->GetFirstSequenceNumber() !{
+-  mutex_.Lock();
+@@ -678 +673,3 @@ void DBImpl::PurgeObsoleteWALFiles() {
+-Status DBImpl::Recover(const std::vector<ColumnFamilyDescriptor>& column_families, bool read_only, bool error_if_log_file_exist) {
++Status DBImpl::Recover(
++    const std::vector<ColumnFamilyDescriptor>& column_families, bool read_only,
++    bool error_if_log_file_exist) {
+@@ -863 +860,2 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, SequenceNumber* max_sequence,
+-Status DBImpl::WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem, VersionEdit* edit) {
++Status DBImpl::WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem,
++                                           VersionEdit* edit) {
+@@ -905 +903,3 @@ Status DBImpl::WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem,
+-Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd, autovector<MemTable*>& mems, VersionEdit* edit, uint64_t* filenumber, LogBuffer* log_buffer) {
++Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd,
++                                autovector<MemTable*>& mems, VersionEdit* edit,
++                                uint64_t* filenumber, LogBuffer* log_buffer) {
+@@ -1124,0 +1125,17 @@ Status DBImpl::ReFitLevel(ColumnFamilyData* cfd, int level, int target_level) {
++int DBImpl::NumberLevels(ColumnFamilyHandle* column_family) {
++  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
++  return cfh->cfd()->NumberLevels();
++}
++int DBImpl::MaxMemCompactionLevel(ColumnFamilyHandle* column_family) {
++  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
++  return cfh->cfd()->options()->max_mem_compaction_level;
++}
++int DBImpl::Level0StopWriteTrigger(ColumnFamilyHandle* column_family) {
++  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
++  return cfh->cfd()->options()->level0_stop_writes_trigger;
++}
++Status DBImpl::Flush(const FlushOptions& options,
++                     ColumnFamilyHandle* column_family) {
++  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
++  return FlushMemTable(cfh->cfd(), options);
++}
+@@ -1836 +1853,11 @@ inline SequenceNumber DBImpl::findEarliestVisibleSnapshot(
+-Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, SequenceNumber earliest_snapshot, SequenceNumber latest_snapshot, DeletionState& deletion_state, bool bottommost_level, int64_t& imm_micros, Iterator* input, CompactionState* compact, bool is_compaction_v2, LogBuffer* log_buffer) {
++Status DBImpl::ProcessKeyValueCompaction(
++    SequenceNumber visible_at_tip,
++    SequenceNumber earliest_snapshot,
++    SequenceNumber latest_snapshot,
++    DeletionState& deletion_state,
++    bool bottommost_level,
++    int64_t& imm_micros,
++    Iterator* input,
++    CompactionState* compact,
++    bool is_compaction_v2,
++    LogBuffer* log_buffer) {
+@@ -1847,3 +1874,4 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-  MergeHelper merge(user_comparator(), options_.merge_operator.get(),
+-                    options_.info_log.get(),
+-                    options_.min_partial_merge_operands,
++  ColumnFamilyData* cfd = compact->compaction->column_family_data();
++  MergeHelper merge(
++      cfd->user_comparator(), cfd->options()->merge_operator.get(),
++      options_.info_log.get(), cfd->options()->min_partial_merge_operands,
+@@ -1851 +1879 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-  auto compaction_filter = options_.compaction_filter;
++  auto compaction_filter = cfd->options()->compaction_filter;
+@@ -1856 +1884,2 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-      options_.compaction_filter_factory->CreateCompactionFilter(context);
++        cfd->options()->compaction_filter_factory->CreateCompactionFilter(
++            context);
+@@ -1860,12 +1888,0 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-      const uint64_t imm_start = env_->NowMicros();
+-      LogFlush(options_.info_log);
+-      mutex_.Lock();
+-      if (imm_.IsFlushPending()) {
+-        FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-        bg_cv_.SignalAll();
+-      }
+-      mutex_.Unlock();
+-      log_buffer->FlushBufferToLog();
+-      imm_micros += (env_->NowMicros() - imm_start);
+-    }
+@@ -1902 +1919 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-          user_comparator()->Compare(ikey.user_key,
++          cfd->user_comparator()->Compare(ikey.user_key,
+@@ -1913,5 +1930,3 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-          bool to_delete =
+-            compaction_filter->Filter(compact->compaction->level(),
+-                ikey.user_key, value,
+-                &compaction_filter_value,
+-                &value_changed);
++          bool to_delete = compaction_filter->Filter(
++              compact->compaction->level(), ikey.user_key, value,
++              &compaction_filter_value, &value_changed);
+@@ -2047 +2062,2 @@ Status DBImpl::ProcessKeyValueCompaction(SequenceNumber visible_at_tip, Sequence
+-void DBImpl::CallCompactionFilterV2(CompactionState* compact, CompactionFilterV2* compaction_filter_v2) {
++void DBImpl::CallCompactionFilterV2(CompactionState* compact,
++  CompactionFilterV2* compaction_filter_v2) {
+@@ -2099,2 +2115 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-  assert(compact->compaction->input_version()->NumLevelFiles(
+-             compact->compaction->level()) > 0);
++  assert(cfd->current()->NumLevelFiles(compact->compaction->level()) > 0);
+@@ -2126,29 +2140,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-<<<<<<< HEAD
+-  std::string current_user_key;
+-  bool has_current_user_key = false;
+-  SequenceNumber last_sequence_for_key __attribute__((unused)) =
+-    kMaxSequenceNumber;
+-  SequenceNumber visible_in_snapshot = kMaxSequenceNumber;
+-  std::string compaction_filter_value;
+-  std::vector<char> delete_key;
+-  MergeHelper merge(
+-      cfd->user_comparator(), cfd->options()->merge_operator.get(),
+-      options_.info_log.get(), false );
+-  auto compaction_filter = cfd->options()->compaction_filter;
+-  std::unique_ptr<CompactionFilter> compaction_filter_from_factory = nullptr;
+-  if (!compaction_filter) {
+-||||||| 83ab62e2b
+-  std::string current_user_key;
+-  bool has_current_user_key = false;
+-  SequenceNumber last_sequence_for_key __attribute__((unused)) =
+-    kMaxSequenceNumber;
+-  SequenceNumber visible_in_snapshot = kMaxSequenceNumber;
+-  std::string compaction_filter_value;
+-  std::vector<char> delete_key;
+-  MergeHelper merge(user_comparator(), options_.merge_operator.get(),
+-                    options_.info_log.get(),
+-                    false );
+-  auto compaction_filter = options_.compaction_filter;
+-  std::unique_ptr<CompactionFilter> compaction_filter_from_factory = nullptr;
+-  if (!compaction_filter) {
+-=======
+@@ -2157 +2142,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+->>>>>>> ebaff6f9e281024d1dbb36d628303a153a858db9
+@@ -2159,12 +2143,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-<<<<<<< HEAD
+-    compaction_filter_from_factory =
+-        cfd->options()->compaction_filter_factory->CreateCompactionFilter(
+-            context);
+-    compaction_filter = compaction_filter_from_factory.get();
+-  }
+-||||||| 83ab62e2b
+-    compaction_filter_from_factory =
+-      options_.compaction_filter_factory->CreateCompactionFilter(context);
+-    compaction_filter = compaction_filter_from_factory.get();
+-  }
+-=======
+@@ -2172 +2145,2 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    options_.compaction_filter_factory_v2->CreateCompactionFilterV2(context);
++      cfd->options()->compaction_filter_factory_v2->CreateCompactionFilterV2(
++          context);
+@@ -2175,23 +2148,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+->>>>>>> ebaff6f9e281024d1dbb36d628303a153a858db9
+-<<<<<<< HEAD
+-  while (input->Valid() && !shutting_down_.Acquire_Load() &&
+-         !cfd->IsDropped()) {
+-    Slice key = input->key();
+-    Slice value = input->value();
+-||||||| 83ab62e2b
+-  for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {
+-    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-      const uint64_t imm_start = env_->NowMicros();
+-      LogFlush(options_.info_log);
+-      mutex_.Lock();
+-      if (imm_.IsFlushPending()) {
+-        FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-        bg_cv_.SignalAll();
+-      }
+-      mutex_.Unlock();
+-      log_buffer->FlushBufferToLog();
+-      imm_micros += (env_->NowMicros() - imm_start);
+-    }
+-    Slice key = input->key();
+-    Slice value = input->value();
+-=======
+@@ -2199,12 +2150,2 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    for (; backup_input->Valid() && !shutting_down_.Acquire_Load(); ) {
+-      if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-        const uint64_t imm_start = env_->NowMicros();
+-        LogFlush(options_.info_log);
+-        mutex_.Lock();
+-        if (imm_.IsFlushPending()) {
+-          FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-          bg_cv_.SignalAll();
+-        }
+-        mutex_.Unlock();
+-        imm_micros += (env_->NowMicros() - imm_start);
+-      }
++    while (backup_input->Valid() && !shutting_down_.Acquire_Load() &&
++           !cfd->IsDropped()) {
+@@ -2213 +2153,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+->>>>>>> ebaff6f9e281024d1dbb36d628303a153a858db9
+@@ -2215 +2155 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        options_.compaction_filter_factory_v2->GetPrefixExtractor();
++          cfd->options()->compaction_filter_factory_v2->GetPrefixExtractor();
+@@ -2225,21 +2164,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-<<<<<<< HEAD
+-      if (!has_current_user_key ||
+-          cfd->user_comparator()->Compare(ikey.user_key,
+-                                          Slice(current_user_key)) != 0) {
+-        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+-        has_current_user_key = true;
+-        last_sequence_for_key = kMaxSequenceNumber;
+-        visible_in_snapshot = kMaxSequenceNumber;
+-        if (compaction_filter &&
+-            ikey.type == kTypeValue &&
+-||||||| 83ab62e2b
+-      if (!has_current_user_key ||
+-          user_comparator()->Compare(ikey.user_key,
+-                                     Slice(current_user_key)) != 0) {
+-        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+-        has_current_user_key = true;
+-        last_sequence_for_key = kMaxSequenceNumber;
+-        visible_in_snapshot = kMaxSequenceNumber;
+-        if (compaction_filter &&
+-            ikey.type == kTypeValue &&
+-=======
+@@ -2248 +2166,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+->>>>>>> ebaff6f9e281024d1dbb36d628303a153a858db9
+@@ -2250,87 +2167,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-<<<<<<< HEAD
+-          bool value_changed = false;
+-          compaction_filter_value.clear();
+-          bool to_delete = compaction_filter->Filter(
+-              compact->compaction->level(), ikey.user_key, value,
+-              &compaction_filter_value, &value_changed);
+-          if (to_delete) {
+-            delete_key.assign(key.data(), key.data() + key.size());
+-            UpdateInternalKey(&delete_key[0], delete_key.size(),
+-                              ikey.sequence, kTypeDeletion);
+-            key = Slice(&delete_key[0], delete_key.size());
+-            ParseInternalKey(key, &ikey);
+-            value.clear();
+-            RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_USER);
+-          } else if (value_changed) {
+-            value = compaction_filter_value;
+-          }
+-        }
+-      }
+-      SequenceNumber prev_snapshot = 0;
+-      SequenceNumber visible = visible_at_tip ?
+-        visible_at_tip :
+-        findEarliestVisibleSnapshot(ikey.sequence,
+-                                    compact->existing_snapshots,
+-                                    &prev_snapshot);
+-      if (visible_in_snapshot == visible) {
+-        assert(last_sequence_for_key >= ikey.sequence);
+-        drop = true;
+-        RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_NEWER_ENTRY);
+-      } else if (ikey.type == kTypeDeletion &&
+-                 ikey.sequence <= earliest_snapshot &&
+-                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+-        drop = true;
+-        RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_OBSOLETE);
+-      } else if (ikey.type == kTypeMerge) {
+-        merge.MergeUntil(input.get(), prev_snapshot, bottommost_level,
+-                         options_.statistics.get());
+-        current_entry_is_merging = true;
+-        if (merge.IsSuccess()) {
+-          key = merge.key();
+-          ParseInternalKey(key, &ikey);
+-          value = merge.value();
+-||||||| 83ab62e2b
+-          bool value_changed = false;
+-          compaction_filter_value.clear();
+-          bool to_delete =
+-            compaction_filter->Filter(compact->compaction->level(),
+-                                               ikey.user_key, value,
+-                                               &compaction_filter_value,
+-                                               &value_changed);
+-          if (to_delete) {
+-            delete_key.assign(key.data(), key.data() + key.size());
+-            UpdateInternalKey(&delete_key[0], delete_key.size(),
+-                              ikey.sequence, kTypeDeletion);
+-            key = Slice(&delete_key[0], delete_key.size());
+-            ParseInternalKey(key, &ikey);
+-            value.clear();
+-            RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_USER);
+-          } else if (value_changed) {
+-            value = compaction_filter_value;
+-          }
+-        }
+-      }
+-      SequenceNumber prev_snapshot = 0;
+-      SequenceNumber visible = visible_at_tip ?
+-        visible_at_tip :
+-        findEarliestVisibleSnapshot(ikey.sequence,
+-                                    compact->existing_snapshots,
+-                                    &prev_snapshot);
+-      if (visible_in_snapshot == visible) {
+-        assert(last_sequence_for_key >= ikey.sequence);
+-        drop = true;
+-        RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_NEWER_ENTRY);
+-      } else if (ikey.type == kTypeDeletion &&
+-                 ikey.sequence <= earliest_snapshot &&
+-                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+-        drop = true;
+-        RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_OBSOLETE);
+-      } else if (ikey.type == kTypeMerge) {
+-        merge.MergeUntil(input.get(), prev_snapshot, bottommost_level,
+-                         options_.statistics.get());
+-        current_entry_is_merging = true;
+-        if (merge.IsSuccess()) {
+-          key = merge.key();
+-          ParseInternalKey(key, &ikey);
+-          value = merge.value();
+-=======
+@@ -2338 +2168,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+->>>>>>> ebaff6f9e281024d1dbb36d628303a153a858db9
+@@ -2351 +2181 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-      compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++      compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2379 +2209 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++        compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2398 +2228 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++    compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2426 +2256 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        "Database shutdown started during compaction");
++        "Database shutdown or Column family drop during compaction");
+@@ -2493 +2323,2 @@ struct IterState {
+-  IterState(DBImpl* db, port::Mutex* mu, SuperVersion* super_version): db(db), mu(mu), super_version(super_version) {}
++  IterState(DBImpl* db, port::Mutex* mu, SuperVersion* super_version)
++      : db(db), mu(mu), super_version(super_version) {}
+@@ -2515,24 +2345,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-namespace {
+-struct IterState {
+-  IterState(DBImpl* db, port::Mutex* mu, DBImpl::SuperVersion* super_version): db(db), mu(mu), super_version(super_version) {}
+-  DBImpl* db;
+-  port::Mutex* mu;
+-  DBImpl::SuperVersion* super_version;
+-};
+-static void CleanupIteratorState(void* arg1, void* arg2) {
+-  IterState* state = reinterpret_cast<IterState*>(arg1);
+-  bool need_cleanup = state->super_version->Unref();
+-  if (need_cleanup) {
+-    DBImpl::DeletionState deletion_state;
+-    state->mu->Lock();
+-    state->super_version->Cleanup();
+-    state->db->FindObsoleteFiles(deletion_state, false, true);
+-    state->mu->Unlock();
+-    delete state->super_version;
+-    if (deletion_state.HaveSomethingToDelete()) {
+-      state->db->PurgeObsoleteFiles(deletion_state);
+-    }
+-  }
+-  delete state;
+-}
+-}
+@@ -2616,2 +2423,2 @@ Status DBImpl::Get(const ReadOptions& options,
+-DBImpl::SuperVersion* DBImpl::InstallSuperVersion(
+-    SuperVersion* new_superversion) {
++void DBImpl::InstallSuperVersion(ColumnFamilyData* cfd,
++                                 DeletionState& deletion_state) {
+@@ -2619,26 +2426,10 @@ DBImpl::SuperVersion* DBImpl::InstallSuperVersion(
+-  new_superversion->Init(mem_, imm_.current(), versions_->current());
+-  SuperVersion* old_superversion = super_version_;
+-  super_version_ = new_superversion;
+-  super_version_->db = this;
+-  ++super_version_number_;
+-  super_version_->version_number = super_version_number_;
+-  if (old_superversion != nullptr && old_superversion->Unref()) {
+-    old_superversion->Cleanup();
+-    return old_superversion;
+-  }
+-  return nullptr;
+-}
+-DBImpl::SuperVersion* DBImpl::InstallSuperVersion(
+-    SuperVersion* new_superversion) {
+-  mutex_.AssertHeld();
+-  new_superversion->Init(mem_, imm_.current(), versions_->current());
+-  SuperVersion* old_superversion = super_version_;
+-  super_version_ = new_superversion;
+-  super_version_->db = this;
+-  ++super_version_number_;
+-  super_version_->version_number = super_version_number_;
+-  if (old_superversion != nullptr && old_superversion->Unref()) {
+-    old_superversion->Cleanup();
+-    return old_superversion;
+-  }
+-  return nullptr;
++  SuperVersion* new_superversion =
++    (deletion_state.new_superversion != nullptr) ?
++    deletion_state.new_superversion : new SuperVersion();
++  SuperVersion* old_superversion =
++      cfd->InstallSuperVersion(new_superversion, &mutex_);
++  deletion_state.new_superversion = nullptr;
++  deletion_state.superversions_to_free.push_back(old_superversion);
++  if (options_.allow_thread_local) {
++    cfd->ResetThreadLocalSuperVersions();
++  }
+@@ -2839 +2630,3 @@ std::vector<Status> DBImpl::MultiGet(
+-Status DBImpl::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
++Status DBImpl::CreateColumnFamily(const ColumnFamilyOptions& options,
++                                  const std::string& column_family_name,
++                                  ColumnFamilyHandle** handle) {
+@@ -2938 +2731,4 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options,
+-Status DBImpl::NewIterators(const ReadOptions& options, const std::vector<ColumnFamilyHandle*>& column_families, std::vector<Iterator*>* iterators) {
++Status DBImpl::NewIterators(
++    const ReadOptions& options,
++    const std::vector<ColumnFamilyHandle*>& column_families,
++    std::vector<Iterator*>* iterators) {
+@@ -3553 +3349,3 @@ Status DB::Merge(const WriteOptions& opt, ColumnFamilyHandle* column_family,
+-Status DB::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
++Status DB::CreateColumnFamily(const ColumnFamilyOptions& options,
++                              const std::string& column_family_name,
++                              ColumnFamilyHandle** handle) {
+@@ -3559,0 +3358,14 @@ DB::~DB() { }
++Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
++  DBOptions db_options(options);
++  ColumnFamilyOptions cf_options(options);
++  std::vector<ColumnFamilyDescriptor> column_families;
++  column_families.push_back(
++      ColumnFamilyDescriptor(default_column_family_name, cf_options));
++  std::vector<ColumnFamilyHandle*> handles;
++  Status s = DB::Open(db_options, dbname, column_families, &handles, dbptr);
++  if (s.ok()) {
++    assert(handles.size() == 1);
++    delete handles[0];
++  }
++  return s;
++}
+@@ -3651 +3463,3 @@ Status DB::Open(const DBOptions& db_options, const std::string& dbname,
+-Status DB::ListColumnFamilies(const DBOptions& db_options, const std::string& name, std::vector<std::string>* column_families) {
++Status DB::ListColumnFamilies(const DBOptions& db_options,
++                              const std::string& name,
++                              std::vector<std::string>* column_families) {
+@@ -3720,16 +3533,0 @@ void DumpLeveldbBuildVersion(Logger * log) {
+-int DBImpl::NumberLevels(ColumnFamilyHandle* column_family) {
+-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+-  return cfh->cfd()->NumberLevels();
+-}
+-int DBImpl::MaxMemCompactionLevel(ColumnFamilyHandle* column_family) {
+-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+-  return cfh->cfd()->options()->max_mem_compaction_level;
+-}
+-int DBImpl::Level0StopWriteTrigger(ColumnFamilyHandle* column_family) {
+-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+-  return cfh->cfd()->options()->level0_stop_writes_trigger;
+-}
+-Status DBImpl::Flush(const FlushOptions& options, ColumnFamilyHandle* column_family) {
+-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+-  return FlushMemTable(cfh->cfd(), options);
+-}

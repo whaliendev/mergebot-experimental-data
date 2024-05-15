@@ -1,0 +1,854 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/runtime@runtime.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/runtime@runtime.no_comments_merged.h
+index bc02593..7a7a633 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/runtime@runtime.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/runtime@runtime.no_comments_merged.h
+@@ -54,4 +54,2 @@ class DexCache;
+-template <class T>
+-class ObjectArray;
+-template <class T>
+-class PrimitiveArray;
++template<class T> class ObjectArray;
++template<class T> class PrimitiveArray;
+@@ -104,3 +102,4 @@ class Runtime {
+-  static bool Create(RuntimeArgumentMap&& runtime_options) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  static bool Create(RuntimeArgumentMap&& runtime_options)
++      SHARED_TRYLOCK_FUNCTION(true, Locks::mutator_lock_);
++  static bool Create(const RuntimeOptions& raw_options, bool ignore_unrecognized)
++      SHARED_TRYLOCK_FUNCTION(true, Locks::mutator_lock_);
+@@ -112,3 +110,0 @@ class Runtime {
+-  static bool Create(const RuntimeOptions& raw_options, bool ignore_unrecognized) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+@@ -117,2 +113,6 @@ class Runtime {
+-  bool IsAotCompiler() const { return !UseJitCompilation() && IsCompiler(); }
+-  bool IsCompiler() const { return compiler_callbacks_ != nullptr; }
++  bool IsAotCompiler() const {
++    return !UseJitCompilation() && IsCompiler();
++  }
++  bool IsCompiler() const {
++    return compiler_callbacks_ != nullptr;
++  }
+@@ -121,4 +121,12 @@ class Runtime {
+-  bool ShouldRelocate() const { return must_relocate_ && CanRelocate(); }
+-  bool MustRelocateIfPossible() const { return must_relocate_; }
+-  bool IsImageDex2OatEnabled() const { return image_dex2oat_enabled_; }
+-  CompilerCallbacks* GetCompilerCallbacks() { return compiler_callbacks_; }
++  bool ShouldRelocate() const {
++    return must_relocate_ && CanRelocate();
++  }
++  bool MustRelocateIfPossible() const {
++    return must_relocate_;
++  }
++  bool IsImageDex2OatEnabled() const {
++    return image_dex2oat_enabled_;
++  }
++  CompilerCallbacks* GetCompilerCallbacks() {
++    return compiler_callbacks_;
++  }
+@@ -129,3 +137,9 @@ class Runtime {
+-  bool IsZygote() const { return is_zygote_; }
+-  bool IsPrimaryZygote() const { return is_primary_zygote_; }
+-  bool IsSystemServer() const { return is_system_server_; }
++  bool IsZygote() const {
++    return is_zygote_;
++  }
++  bool IsPrimaryZygote() const {
++    return is_primary_zygote_;
++  }
++  bool IsSystemServer() const {
++    return is_system_server_;
++  }
+@@ -142 +156,3 @@ class Runtime {
+-  bool IsExplicitGcDisabled() const { return is_explicit_gc_disabled_; }
++  bool IsExplicitGcDisabled() const {
++    return is_explicit_gc_disabled_;
++  }
+@@ -144,2 +160,6 @@ class Runtime {
+-  const std::vector<std::string>& GetCompilerOptions() const { return compiler_options_; }
+-  void AddCompilerOption(const std::string& option) { compiler_options_.push_back(option); }
++  const std::vector<std::string>& GetCompilerOptions() const {
++    return compiler_options_;
++  }
++  void AddCompilerOption(const std::string& option) {
++    compiler_options_.push_back(option);
++  }
+@@ -149,4 +169,4 @@ class Runtime {
+-  const std::vector<std::string>& GetImageLocations() const { return image_locations_; }
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  const std::vector<std::string>& GetImageLocations() const {
++    return image_locations_;
++  }
++  bool Start() UNLOCK_FUNCTION(Locks::mutator_lock_);
+@@ -154,3 +174,2 @@ class Runtime {
+-  bool IsShuttingDownLocked() const REQUIRES(Locks::mutator_lock_) {
+-    FunctionReflectiveValueVisitor frvv(fv, mv);
+-    VisitReflectiveTargets(&frvv);
++  bool IsShuttingDownLocked() const REQUIRES(Locks::runtime_shutdown_lock_) {
++    return shutting_down_.load(std::memory_order_relaxed);
+@@ -158,7 +177,2 @@ class Runtime {
+-  bool IsShuttingDownUnsafe() const { return shutting_down_.load(std::memory_order_relaxed); }
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  REQUIRES(Locks::mutator_lock_) {
+-    FunctionReflectiveValueVisitor frvv(fv, mv);
+-    VisitReflectiveTargets(&frvv);
++  bool IsShuttingDownUnsafe() const {
++    return shutting_down_.load(std::memory_order_relaxed);
+@@ -166,6 +180,2 @@ class Runtime {
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  REQUIRES(Locks::mutator_lock_) {
+-    FunctionReflectiveValueVisitor frvv(fv, mv);
+-    VisitReflectiveTargets(&frvv);
++  void SetShuttingDown() REQUIRES(Locks::runtime_shutdown_lock_) {
++    shutting_down_.store(true, std::memory_order_relaxed);
+@@ -173,6 +183,16 @@ class Runtime {
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  REQUIRES(Locks::mutator_lock_) {
+-    FunctionReflectiveValueVisitor frvv(fv, mv);
+-    VisitReflectiveTargets(&frvv);
++  size_t NumberOfThreadsBeingBorn() const REQUIRES(Locks::runtime_shutdown_lock_) {
++    return threads_being_born_;
++  }
++  void StartThreadBirth() REQUIRES(Locks::runtime_shutdown_lock_) {
++    threads_being_born_++;
++  }
++  void EndThreadBirth() REQUIRES(Locks::runtime_shutdown_lock_);
++  bool IsStarted() const {
++    return started_;
++  }
++  bool IsFinishedStarting() const {
++    return finished_starting_;
++  }
++  void RunRootClinits(Thread* self) REQUIRES_SHARED(Locks::mutator_lock_);
++  static Runtime* Current() {
++    return instance_;
+@@ -180,9 +199,0 @@ class Runtime {
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  bool IsStarted() const { return started_; }
+-  bool IsFinishedStarting() const { return finished_starting_; }
+-  void RunRootClinits(Thread* self) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  static Runtime* Current() { return instance_; }
+@@ -190,3 +201 @@ class Runtime {
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  NO_RETURN static void Abort(const char* msg) REQUIRES(!Locks::abort_lock_);
+@@ -202,3 +211 @@ class Runtime {
+-  void DetachCurrentThread(bool should_run_callbacks = true) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void DetachCurrentThread(bool should_run_callbacks = true) REQUIRES(!Locks::mutator_lock_);
+@@ -209 +216,3 @@ class Runtime {
+-  const std::vector<std::string>& GetBootClassPath() const { return boot_class_path_; }
++  const std::vector<std::string>& GetBootClassPath() const {
++    return boot_class_path_;
++  }
+@@ -229,12 +238,36 @@ class Runtime {
+-  const std::vector<int>& GetBootClassPathFds() const { return boot_class_path_fds_; }
+-  const std::vector<int>& GetBootClassPathImageFds() const { return boot_class_path_image_fds_; }
+-  const std::vector<int>& GetBootClassPathVdexFds() const { return boot_class_path_vdex_fds_; }
+-  const std::vector<int>& GetBootClassPathOatFds() const { return boot_class_path_oat_fds_; }
+-  const std::string& GetBootClassPathChecksums() const { return boot_class_path_checksums_; }
+-  const std::string& GetClassPathString() const { return class_path_string_; }
+-  ClassLinker* GetClassLinker() const { return class_linker_; }
+-  jni::SmallLrtAllocator* GetSmallLrtAllocator() const { return small_lrt_allocator_; }
+-  jni::JniIdManager* GetJniIdManager() const { return jni_id_manager_.get(); }
+-  size_t GetDefaultStackSize() const { return default_stack_size_; }
+-  unsigned int GetFinalizerTimeoutMs() const { return finalizer_timeout_ms_; }
+-  gc::Heap* GetHeap() const { return heap_; }
++  const std::vector<int>& GetBootClassPathFds() const {
++    return boot_class_path_fds_;
++  }
++  const std::vector<int>& GetBootClassPathImageFds() const {
++    return boot_class_path_image_fds_;
++  }
++  const std::vector<int>& GetBootClassPathVdexFds() const {
++    return boot_class_path_vdex_fds_;
++  }
++  const std::vector<int>& GetBootClassPathOatFds() const {
++    return boot_class_path_oat_fds_;
++  }
++  const std::string& GetBootClassPathChecksums() const {
++    return boot_class_path_checksums_;
++  }
++  const std::string& GetClassPathString() const {
++    return class_path_string_;
++  }
++  ClassLinker* GetClassLinker() const {
++    return class_linker_;
++  }
++  jni::SmallLrtAllocator* GetSmallLrtAllocator() const {
++    return small_lrt_allocator_;
++  }
++  jni::JniIdManager* GetJniIdManager() const {
++    return jni_id_manager_.get();
++  }
++  size_t GetDefaultStackSize() const {
++    return default_stack_size_;
++  }
++  unsigned int GetFinalizerTimeoutMs() const {
++    return finalizer_timeout_ms_;
++  }
++  gc::Heap* GetHeap() const {
++    return heap_;
++  }
+@@ -245 +278,3 @@ class Runtime {
+-  JavaVMExt* GetJavaVM() const { return java_vm_.get(); }
++  JavaVMExt* GetJavaVM() const {
++    return java_vm_.get();
++  }
+@@ -249,27 +284,30 @@ class Runtime {
+-  MonitorList* GetMonitorList() const { return monitor_list_; }
+-  MonitorPool* GetMonitorPool() const { return monitor_pool_; }
+-  bool IsClearedJniWeakGlobal(ObjPtr<mirror::Object> obj) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  mirror::Object* GetClearedJniWeakGlobal() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenThrowingException() private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenThrowingOOME() private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenHandlingStackOverflow() private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  mirror::Throwable* GetPreAllocatedNoClassDefFoundError() private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  const std::vector<std::string>& GetProperties() const { return properties_; }
+-  ThreadList* GetThreadList() const { return thread_list_; }
+-  static const char* GetVersion() { return "2.1.0"; }
+-  bool IsMethodHandlesEnabled() const { return true; }
+-  void DisallowNewSystemWeaks() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void AllowNewSystemWeaks() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  MonitorList* GetMonitorList() const {
++    return monitor_list_;
++  }
++  MonitorPool* GetMonitorPool() const {
++    return monitor_pool_;
++  }
++  bool IsClearedJniWeakGlobal(ObjPtr<mirror::Object> obj) REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Object* GetClearedJniWeakGlobal() REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenThrowingException()
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenThrowingOOME()
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Throwable* GetPreAllocatedOutOfMemoryErrorWhenHandlingStackOverflow()
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Throwable* GetPreAllocatedNoClassDefFoundError()
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  const std::vector<std::string>& GetProperties() const {
++    return properties_;
++  }
++  ThreadList* GetThreadList() const {
++    return thread_list_;
++  }
++  static const char* GetVersion() {
++    return "2.1.0";
++  }
++  bool IsMethodHandlesEnabled() const {
++    return true;
++  }
++  void DisallowNewSystemWeaks() REQUIRES_SHARED(Locks::mutator_lock_);
++  void AllowNewSystemWeaks() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -277,6 +315,4 @@ class Runtime {
+-  void VisitRoots(RootVisitor* visitor, VisitRootFlags flags = kVisitRootFlagAllRoots) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void VisitImageRoots(RootVisitor* visitor) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void VisitRoots(RootVisitor* visitor, VisitRootFlags flags = kVisitRootFlagAllRoots)
++      REQUIRES(!Locks::classlinker_classes_lock_, !Locks::trace_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void VisitImageRoots(RootVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -284,14 +320,11 @@ class Runtime {
+-                            VisitRootFlags flags = kVisitRootFlagAllRoots) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void VisitNonThreadRoots(RootVisitor* visitor) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void VisitTransactionRoots(RootVisitor* visitor) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void SweepSystemWeaks(IsMarkedVisitor* visitor) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void VisitReflectiveTargets(ReflectiveValueVisitor* visitor) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  REQUIRES(Locks::mutator_lock_) {
++                            VisitRootFlags flags = kVisitRootFlagAllRoots)
++      REQUIRES(!Locks::classlinker_classes_lock_, !Locks::trace_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void VisitNonThreadRoots(RootVisitor* visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void VisitTransactionRoots(RootVisitor* visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void SweepSystemWeaks(IsMarkedVisitor* visitor) REQUIRES_SHARED(Locks::mutator_lock_);
++  void VisitReflectiveTargets(ReflectiveValueVisitor* visitor) REQUIRES(Locks::mutator_lock_);
++  template <typename FieldVis, typename MethodVis>
++  void VisitReflectiveTargets(FieldVis&& fv, MethodVis&& mv) REQUIRES(Locks::mutator_lock_) {
+@@ -301,9 +334,9 @@ class Runtime {
+- private:
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  bool HasResolutionMethod() const { return resolution_method_ != nullptr; }
+-  void SetResolutionMethod(ArtMethod* method) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void ClearResolutionMethod() { resolution_method_ = nullptr; }
+-  ArtMethod* CreateResolutionMethod() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  ArtMethod* GetResolutionMethod();
++  bool HasResolutionMethod() const {
++    return resolution_method_ != nullptr;
++  }
++  void SetResolutionMethod(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_);
++  void ClearResolutionMethod() {
++    resolution_method_ = nullptr;
++  }
++  ArtMethod* CreateResolutionMethod() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -312,12 +345,14 @@ class Runtime {
+-  bool HasImtConflictMethod() const { return imt_conflict_method_ != nullptr; }
+-  void ClearImtConflictMethod() { imt_conflict_method_ = nullptr; }
+-  void FixupConflictTables() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void SetImtConflictMethod(ArtMethod* method) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void SetImtUnimplementedMethod(ArtMethod* method) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  ArtMethod* CreateImtConflictMethod(LinearAlloc* linear_alloc) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void ClearImtUnimplementedMethod() { imt_unimplemented_method_ = nullptr; }
++  bool HasImtConflictMethod() const {
++    return imt_conflict_method_ != nullptr;
++  }
++  void ClearImtConflictMethod() {
++    imt_conflict_method_ = nullptr;
++  }
++  void FixupConflictTables() REQUIRES_SHARED(Locks::mutator_lock_);
++  void SetImtConflictMethod(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_);
++  void SetImtUnimplementedMethod(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_);
++  ArtMethod* CreateImtConflictMethod(LinearAlloc* linear_alloc)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void ClearImtUnimplementedMethod() {
++    imt_unimplemented_method_ = nullptr;
++  }
+@@ -327,8 +362,6 @@ class Runtime {
+-  ArtMethod* GetCalleeSaveMethod(CalleeSaveType type) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  ArtMethod* GetCalleeSaveMethodUnchecked(CalleeSaveType type) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  QuickMethodFrameInfo GetRuntimeMethodFrameInfo(ArtMethod* method) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  ArtMethod* GetCalleeSaveMethod(CalleeSaveType type)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ArtMethod* GetCalleeSaveMethodUnchecked(CalleeSaveType type)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  QuickMethodFrameInfo GetRuntimeMethodFrameInfo(ArtMethod* method)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -341 +374,3 @@ class Runtime {
+-  InstructionSet GetInstructionSet() const { return instruction_set_; }
++  InstructionSet GetInstructionSet() const {
++    return instruction_set_;
++  }
+@@ -346,2 +381 @@ class Runtime {
+-  ArtMethod* CreateCalleeSaveMethod() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  ArtMethod* CreateCalleeSaveMethod() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -349,2 +383,6 @@ class Runtime {
+-  RuntimeStats* GetStats() { return &stats_; }
+-  bool HasStatsEnabled() const { return stats_enabled_; }
++  RuntimeStats* GetStats() {
++    return &stats_;
++  }
++  bool HasStatsEnabled() const {
++    return stats_enabled_;
++  }
+@@ -352,2 +390,2 @@ class Runtime {
+-  void SetStatsEnabled(bool new_state) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void SetStatsEnabled(bool new_state)
++      REQUIRES(!Locks::instrument_entrypoints_lock_, !Locks::mutator_lock_);
+@@ -358,2 +396,6 @@ class Runtime {
+-  jit::Jit* GetJit() const { return jit_.get(); }
+-  jit::JitCodeCache* GetJitCodeCache() const { return jit_code_cache_.get(); }
++  jit::Jit* GetJit() const {
++    return jit_.get();
++  }
++  jit::JitCodeCache* GetJitCodeCache() const {
++    return jit_code_cache_.get();
++  }
+@@ -363 +405,2 @@ class Runtime {
+-  void InitNonZygoteOrPostFork(JNIEnv* env,
++  void InitNonZygoteOrPostFork(
++      JNIEnv* env,
+@@ -369,2 +412,6 @@ class Runtime {
+-  const instrumentation::Instrumentation* GetInstrumentation() const { return &instrumentation_; }
+-  instrumentation::Instrumentation* GetInstrumentation() { return &instrumentation_; }
++  const instrumentation::Instrumentation* GetInstrumentation() const {
++    return &instrumentation_;
++  }
++  instrumentation::Instrumentation* GetInstrumentation() {
++    return &instrumentation_;
++  }
+@@ -377,5 +424,4 @@ class Runtime {
+-  void EnterTransactionMode(bool strict, mirror::Class* root) void ExitTransactionMode();
+-  void RollbackAllTransactions() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RollbackAndExitTransactionMode() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void EnterTransactionMode(bool strict, mirror::Class* root) REQUIRES_SHARED(Locks::mutator_lock_);
++  void ExitTransactionMode();
++  void RollbackAllTransactions() REQUIRES_SHARED(Locks::mutator_lock_);
++  void RollbackAndExitTransactionMode() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -386,5 +432,4 @@ class Runtime {
+-  void AbortTransactionAndThrowAbortError(Thread* self, const std::string& abort_message) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void ThrowTransactionAbortError(Thread* self) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void AbortTransactionAndThrowAbortError(Thread* self, const std::string& abort_message)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void ThrowTransactionAbortError(Thread* self)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -418,24 +463,16 @@ class Runtime {
+-                                 bool is_volatile) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordWriteArray(mirror::Array* array, size_t index, uint64_t value) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordStrongStringInsertion(ObjPtr<mirror::String> s) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordWeakStringInsertion(ObjPtr<mirror::String> s) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordStrongStringRemoval(ObjPtr<mirror::String> s) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordWeakStringRemoval(ObjPtr<mirror::String> s) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordResolveString(ObjPtr<mirror::DexCache> dex_cache, dex::StringIndex string_idx) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void RecordResolveMethodType(ObjPtr<mirror::DexCache> dex_cache,
+-                               dex::ProtoIndex proto_idx) private
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++                                 bool is_volatile)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void RecordWriteArray(mirror::Array* array, size_t index, uint64_t value)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void RecordStrongStringInsertion(ObjPtr<mirror::String> s)
++      REQUIRES(Locks::intern_table_lock_);
++  void RecordWeakStringInsertion(ObjPtr<mirror::String> s)
++      REQUIRES(Locks::intern_table_lock_);
++  void RecordStrongStringRemoval(ObjPtr<mirror::String> s)
++      REQUIRES(Locks::intern_table_lock_);
++  void RecordWeakStringRemoval(ObjPtr<mirror::String> s)
++      REQUIRES(Locks::intern_table_lock_);
++  void RecordResolveString(ObjPtr<mirror::DexCache> dex_cache, dex::StringIndex string_idx)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void RecordResolveMethodType(ObjPtr<mirror::DexCache> dex_cache, dex::ProtoIndex proto_idx)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -444,3 +481,9 @@ class Runtime {
+-  bool GetImplicitStackOverflowChecks() const { return implicit_so_checks_; }
+-  bool GetImplicitSuspendChecks() const { return implicit_suspend_checks_; }
+-  bool GetImplicitNullChecks() const { return implicit_null_checks_; }
++  bool GetImplicitStackOverflowChecks() const {
++    return implicit_so_checks_;
++  }
++  bool GetImplicitSuspendChecks() const {
++    return implicit_suspend_checks_;
++  }
++  bool GetImplicitNullChecks() const {
++    return implicit_null_checks_;
++  }
+@@ -453 +496,3 @@ class Runtime {
+-  hiddenapi::EnforcementPolicy GetHiddenApiEnforcementPolicy() const { return hidden_api_policy_; }
++  hiddenapi::EnforcementPolicy GetHiddenApiEnforcementPolicy() const {
++    return hidden_api_policy_;
++  }
+@@ -463 +508,3 @@ class Runtime {
+-  hiddenapi::EnforcementPolicy GetTestApiEnforcementPolicy() const { return test_api_policy_; }
++  hiddenapi::EnforcementPolicy GetTestApiEnforcementPolicy() const {
++    return test_api_policy_;
++  }
+@@ -467,6 +514,18 @@ class Runtime {
+-  const std::vector<std::string>& GetHiddenApiExemptions() { return hidden_api_exemptions_; }
+-  void SetDedupeHiddenApiWarnings(bool value) { dedupe_hidden_api_warnings_ = value; }
+-  bool ShouldDedupeHiddenApiWarnings() { return dedupe_hidden_api_warnings_; }
+-  void SetHiddenApiEventLogSampleRate(uint32_t rate) { hidden_api_access_event_log_rate_ = rate; }
+-  uint32_t GetHiddenApiEventLogSampleRate() const { return hidden_api_access_event_log_rate_; }
+-  const std::string& GetProcessPackageName() const { return process_package_name_; }
++  const std::vector<std::string>& GetHiddenApiExemptions() {
++    return hidden_api_exemptions_;
++  }
++  void SetDedupeHiddenApiWarnings(bool value) {
++    dedupe_hidden_api_warnings_ = value;
++  }
++  bool ShouldDedupeHiddenApiWarnings() {
++    return dedupe_hidden_api_warnings_;
++  }
++  void SetHiddenApiEventLogSampleRate(uint32_t rate) {
++    hidden_api_access_event_log_rate_ = rate;
++  }
++  uint32_t GetHiddenApiEventLogSampleRate() const {
++    return hidden_api_access_event_log_rate_;
++  }
++  const std::string& GetProcessPackageName() const {
++    return process_package_name_;
++  }
+@@ -480 +539,3 @@ class Runtime {
+-  const std::string& GetProcessDataDirectory() const { return process_data_directory_; }
++  const std::string& GetProcessDataDirectory() const {
++    return process_data_directory_;
++  }
+@@ -488,6 +549,18 @@ class Runtime {
+-  const std::vector<std::string>& GetCpuAbilist() const { return cpu_abilist_; }
+-  bool IsRunningOnMemoryTool() const { return is_running_on_memory_tool_; }
+-  void SetTargetSdkVersion(uint32_t version) { target_sdk_version_ = version; }
+-  uint32_t GetTargetSdkVersion() const { return target_sdk_version_; }
+-  CompatFramework& GetCompatFramework() { return compat_framework_; }
+-  uint32_t GetZygoteMaxFailedBoots() const { return zygote_max_failed_boots_; }
++  const std::vector<std::string>& GetCpuAbilist() const {
++    return cpu_abilist_;
++  }
++  bool IsRunningOnMemoryTool() const {
++    return is_running_on_memory_tool_;
++  }
++  void SetTargetSdkVersion(uint32_t version) {
++    target_sdk_version_ = version;
++  }
++  uint32_t GetTargetSdkVersion() const {
++    return target_sdk_version_;
++  }
++  CompatFramework& GetCompatFramework() {
++    return compat_framework_;
++  }
++  uint32_t GetZygoteMaxFailedBoots() const {
++    return zygote_max_failed_boots_;
++  }
+@@ -499,4 +572,12 @@ class Runtime {
+-  ArenaPool* GetLinearAllocArenaPool() { return linear_alloc_arena_pool_.get(); }
+-  ArenaPool* GetArenaPool() { return arena_pool_.get(); }
+-  const ArenaPool* GetArenaPool() const { return arena_pool_.get(); }
+-  ArenaPool* GetJitArenaPool() { return jit_arena_pool_.get(); }
++  ArenaPool* GetLinearAllocArenaPool() {
++    return linear_alloc_arena_pool_.get();
++  }
++  ArenaPool* GetArenaPool() {
++    return arena_pool_.get();
++  }
++  const ArenaPool* GetArenaPool() const {
++    return arena_pool_.get();
++  }
++  ArenaPool* GetJitArenaPool() {
++    return jit_arena_pool_.get();
++  }
+@@ -504,3 +585,9 @@ class Runtime {
+-  LinearAlloc* GetLinearAlloc() { return linear_alloc_.get(); }
+-  LinearAlloc* GetStartupLinearAlloc() { return startup_linear_alloc_.get(); }
+-  jit::JitOptions* GetJITOptions() { return jit_options_.get(); }
++  LinearAlloc* GetLinearAlloc() {
++    return linear_alloc_.get();
++  }
++  LinearAlloc* GetStartupLinearAlloc() {
++    return startup_linear_alloc_.get();
++  }
++  jit::JitOptions* GetJITOptions() {
++    return jit_options_.get();
++  }
+@@ -514,4 +601,12 @@ class Runtime {
+-  void SetProfileableFromShell(bool value) { is_profileable_from_shell_ = value; }
+-  bool IsProfileableFromShell() const { return is_profileable_from_shell_; }
+-  void SetProfileable(bool value) { is_profileable_ = value; }
+-  bool IsProfileable() const { return is_profileable_; }
++  void SetProfileableFromShell(bool value) {
++    is_profileable_from_shell_ = value;
++  }
++  bool IsProfileableFromShell() const {
++    return is_profileable_from_shell_;
++  }
++  void SetProfileable(bool value) {
++    is_profileable_ = value;
++  }
++  bool IsProfileable() const {
++    return is_profileable_;
++  }
+@@ -519,4 +614,7 @@ class Runtime {
+-  void DeoptimizeBootImage() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  bool IsNativeDebuggable() const { return is_native_debuggable_; }
+-  void SetNativeDebuggable(bool value) { is_native_debuggable_ = value; }
++  void DeoptimizeBootImage() REQUIRES(Locks::mutator_lock_);
++  bool IsNativeDebuggable() const {
++    return is_native_debuggable_;
++  }
++  void SetNativeDebuggable(bool value) {
++    is_native_debuggable_ = value;
++  }
+@@ -524,9 +622,17 @@ class Runtime {
+-  bool AreNonStandardExitsEnabled() const { return non_standard_exits_enabled_; }
+-  void SetNonStandardExitsEnabled() { non_standard_exits_enabled_ = true; }
+-  bool AreAsyncExceptionsThrown() const { return async_exceptions_thrown_; }
+-  void SetAsyncExceptionsThrown() { async_exceptions_thrown_ = true; }
+-  std::string GetFingerprint() { return fingerprint_; }
+-  void SetSentinel(ObjPtr<mirror::Object> sentinel) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  GcRoot<mirror::Object> GetSentinel() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  bool AreNonStandardExitsEnabled() const {
++    return non_standard_exits_enabled_;
++  }
++  void SetNonStandardExitsEnabled() {
++    non_standard_exits_enabled_ = true;
++  }
++  bool AreAsyncExceptionsThrown() const {
++    return async_exceptions_thrown_;
++  }
++  void SetAsyncExceptionsThrown() {
++    async_exceptions_thrown_ = true;
++  }
++  std::string GetFingerprint() {
++    return fingerprint_;
++  }
++  void SetSentinel(ObjPtr<mirror::Object> sentinel) REQUIRES_SHARED(Locks::mutator_lock_);
++  GcRoot<mirror::Object> GetSentinel() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -538,2 +644,2 @@ class Runtime {
+-                               mirror::Class* update) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++                               mirror::Class* update)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -541,2 +647,2 @@ class Runtime {
+-  void SetupLinearAllocForPostZygoteFork(Thread* self) private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  void SetupLinearAllocForPostZygoteFork(Thread* self)
++      REQUIRES(!Locks::mutator_lock_, !Locks::classlinker_classes_lock_);
+@@ -549,3 +655,9 @@ class Runtime {
+-  bool IsSafeMode() const { return safe_mode_; }
+-  void SetSafeMode(bool mode) { safe_mode_ = mode; }
+-  bool GetDumpNativeStackOnSigQuit() const { return dump_native_stack_on_sig_quit_; }
++  bool IsSafeMode() const {
++    return safe_mode_;
++  }
++  void SetSafeMode(bool mode) {
++    safe_mode_ = mode;
++  }
++  bool GetDumpNativeStackOnSigQuit() const {
++    return dump_native_stack_on_sig_quit_;
++  }
+@@ -557,6 +669,11 @@ class Runtime {
+-  void SetZygoteNoThreadSection(bool val) { zygote_no_threads_ = val; }
+-  bool IsZygoteNoThreadSection() const { return zygote_no_threads_; }
+-  bool IsAsyncDeoptimizeable(ArtMethod* method, uintptr_t code) constprivate
+-      : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  char** GetEnvSnapshot() const { return env_snapshot_.GetSnapshot(); }
++  void SetZygoteNoThreadSection(bool val) {
++    zygote_no_threads_ = val;
++  }
++  bool IsZygoteNoThreadSection() const {
++    return zygote_no_threads_;
++  }
++  bool IsAsyncDeoptimizeable(ArtMethod* method, uintptr_t code) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  char** GetEnvSnapshot() const {
++    return env_snapshot_.GetSnapshot();
++  }
+@@ -566 +683,3 @@ class Runtime {
+-  const std::list<std::unique_ptr<ti::Agent>>& GetAgents() const { return agents_; }
++  const std::list<std::unique_ptr<ti::Agent>>& GetAgents() const {
++    return agents_;
++  }
+@@ -568 +687,3 @@ class Runtime {
+-  bool HasLoadedPlugins() const { return !plugins_.empty(); }
++  bool HasLoadedPlugins() const {
++    return !plugins_.empty();
++  }
+@@ -570,2 +691,6 @@ class Runtime {
+-  void SetDumpGCPerformanceOnShutdown(bool value) { dump_gc_performance_on_shutdown_ = value; }
+-  bool GetDumpGCPerformanceOnShutdown() const { return dump_gc_performance_on_shutdown_; }
++  void SetDumpGCPerformanceOnShutdown(bool value) {
++    dump_gc_performance_on_shutdown_ = value;
++  }
++  bool GetDumpGCPerformanceOnShutdown() const {
++    return dump_gc_performance_on_shutdown_;
++  }
+@@ -583,9 +708,27 @@ class Runtime {
+-  bool DenyArtApexDataFiles() const { return deny_art_apex_data_files_; }
+-  bool MAdviseRandomAccess() const { return madvise_random_access_; }
+-  size_t GetMadviseWillNeedSizeVdex() const { return madvise_willneed_vdex_filesize_; }
+-  size_t GetMadviseWillNeedSizeOdex() const { return madvise_willneed_odex_filesize_; }
+-  size_t GetMadviseWillNeedSizeArt() const { return madvise_willneed_art_filesize_; }
+-  const std::string& GetJdwpOptions() { return jdwp_options_; }
+-  JdwpProvider GetJdwpProvider() const { return jdwp_provider_; }
+-  JniIdType GetJniIdType() const { return jni_ids_indirection_; }
+-  bool CanSetJniIdType() const { return GetJniIdType() == JniIdType::kSwapablePointer; }
++  bool DenyArtApexDataFiles() const {
++    return deny_art_apex_data_files_;
++  }
++  bool MAdviseRandomAccess() const {
++    return madvise_random_access_;
++  }
++  size_t GetMadviseWillNeedSizeVdex() const {
++    return madvise_willneed_vdex_filesize_;
++  }
++  size_t GetMadviseWillNeedSizeOdex() const {
++    return madvise_willneed_odex_filesize_;
++  }
++  size_t GetMadviseWillNeedSizeArt() const {
++    return madvise_willneed_art_filesize_;
++  }
++  const std::string& GetJdwpOptions() {
++    return jdwp_options_;
++  }
++  JdwpProvider GetJdwpProvider() const {
++    return jdwp_provider_;
++  }
++  JniIdType GetJniIdType() const {
++    return jni_ids_indirection_;
++  }
++  bool CanSetJniIdType() const {
++    return GetJniIdType() == JniIdType::kSwapablePointer;
++  }
+@@ -593,5 +736,5 @@ class Runtime {
+-  uint32_t GetVerifierLoggingThresholdMs() const { return verifier_logging_threshold_ms_; }
+-  bool DeleteThreadPool() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
+-  void WaitForThreadPoolWorkersToStart() private : DISALLOW_COPY_AND_ASSIGN(Runtime);
+- public:
++  uint32_t GetVerifierLoggingThresholdMs() const {
++    return verifier_logging_threshold_ms_;
++  }
++  bool DeleteThreadPool() REQUIRES(!Locks::runtime_thread_pool_lock_);
++  void WaitForThreadPoolWorkersToStart() REQUIRES(!Locks::runtime_thread_pool_lock_);
+@@ -602 +745,3 @@ class Runtime {
+-    ThreadPool* GetThreadPool() const { return thread_pool_; }
++    ThreadPool* GetThreadPool() const {
++      return thread_pool_;
++    }
+@@ -606,3 +751,9 @@ class Runtime {
+-  LinearAlloc* ReleaseStartupLinearAlloc() { return startup_linear_alloc_.release(); }
+-  bool LoadAppImageStartupCache() const { return load_app_image_startup_cache_; }
+-  void SetLoadAppImageStartupCacheEnabled(bool enabled) { load_app_image_startup_cache_ = enabled; }
++  LinearAlloc* ReleaseStartupLinearAlloc() {
++    return startup_linear_alloc_.release();
++  }
++  bool LoadAppImageStartupCache() const {
++    return load_app_image_startup_cache_;
++  }
++  void SetLoadAppImageStartupCacheEnabled(bool enabled) {
++    load_app_image_startup_cache_ = enabled;
++  }
+@@ -613,6 +764,18 @@ class Runtime {
+-  bool IsVerifierMissingKThrowFatal() const { return verifier_missing_kthrow_fatal_; }
+-  bool IsJavaZygoteForkLoopRequired() const { return force_java_zygote_fork_loop_; }
+-  bool IsPerfettoHprofEnabled() const { return perfetto_hprof_enabled_; }
+-  bool IsPerfettoJavaHeapStackProfEnabled() const { return perfetto_javaheapprof_enabled_; }
+-  bool IsMonitorTimeoutEnabled() const { return monitor_timeout_enable_; }
+-  uint64_t GetMonitorTimeoutNs() const { return monitor_timeout_ns_; }
++  bool IsVerifierMissingKThrowFatal() const {
++    return verifier_missing_kthrow_fatal_;
++  }
++  bool IsJavaZygoteForkLoopRequired() const {
++    return force_java_zygote_fork_loop_;
++  }
++  bool IsPerfettoHprofEnabled() const {
++    return perfetto_hprof_enabled_;
++  }
++  bool IsPerfettoJavaHeapStackProfEnabled() const {
++    return perfetto_javaheapprof_enabled_;
++  }
++  bool IsMonitorTimeoutEnabled() const {
++    return monitor_timeout_enable_;
++  }
++  uint64_t GetMonitorTimeoutNs() const {
++    return monitor_timeout_ns_;
++  }
+@@ -629 +792,3 @@ class Runtime {
+-  const std::string& GetApexVersions() const { return apex_versions_; }
++  const std::string& GetApexVersions() const {
++    return apex_versions_;
++  }
+@@ -631 +796,3 @@ class Runtime {
+-  bool GetNoSigChain() const { return no_sig_chain_; }
++  bool GetNoSigChain() const {
++    return no_sig_chain_;
++  }
+@@ -633,0 +801 @@ class Runtime {
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -637 +805,3 @@ class Runtime {
+-  void SetOutOfMemoryErrorHook(void (*hook)()) { out_of_memory_error_hook_ = hook; }
++  void SetOutOfMemoryErrorHook(void (*hook)()) {
++    out_of_memory_error_hook_ = hook;
++  }
+@@ -651,2 +821,3 @@ class Runtime {
+-  bool Init(RuntimeArgumentMap&& runtime_options) DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  void InitNativeMethods() DISALLOW_COPY_AND_ASSIGN(Runtime);
++  bool Init(RuntimeArgumentMap&& runtime_options)
++      SHARED_TRYLOCK_FUNCTION(true, Locks::mutator_lock_);
++  void InitNativeMethods() REQUIRES(!Locks::mutator_lock_);
+@@ -655 +826,2 @@ class Runtime {
+-  void StartDaemonThreads() void StartSignalCatcher();
++  void StartDaemonThreads() REQUIRES_SHARED(Locks::mutator_lock_);
++  void StartSignalCatcher();
+@@ -658 +830 @@ class Runtime {
+-      DISALLOW_COPY_AND_ASSIGN(Runtime);
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -660,2 +832,3 @@ class Runtime {
+-      DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  void VisitConstantRoots(RootVisitor* visitor) DISALLOW_COPY_AND_ASSIGN(Runtime);
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void VisitConstantRoots(RootVisitor* visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -663,2 +836,2 @@ class Runtime {
+-  ThreadPool* AcquireThreadPool() DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  void ReleaseThreadPool() DISALLOW_COPY_AND_ASSIGN(Runtime);
++  ThreadPool* AcquireThreadPool() REQUIRES(!Locks::runtime_thread_pool_lock_);
++  void ReleaseThreadPool() REQUIRES(!Locks::runtime_thread_pool_lock_);
+@@ -671 +844 @@ class Runtime {
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
++  uint64_t callee_save_methods_[kCalleeSaveSize];
+@@ -726,2 +899,2 @@ class Runtime {
+-  std::unique_ptr<ThreadPool> thread_pool_ DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  size_t thread_pool_ref_count_ DISALLOW_COPY_AND_ASSIGN(Runtime);
++  std::unique_ptr<ThreadPool> thread_pool_ GUARDED_BY(Locks::runtime_thread_pool_lock_);
++  size_t thread_pool_ref_count_ GUARDED_BY(Locks::runtime_thread_pool_lock_);
+@@ -729,2 +902,2 @@ class Runtime {
+-  size_t threads_being_born_ DISALLOW_COPY_AND_ASSIGN(Runtime);
+-  std::unique_ptr<ConditionVariable> shutdown_cond_ DISALLOW_COPY_AND_ASSIGN(Runtime);
++  size_t threads_being_born_ GUARDED_BY(Locks::runtime_shutdown_lock_);
++  std::unique_ptr<ConditionVariable> shutdown_cond_ GUARDED_BY(Locks::runtime_shutdown_lock_);
+@@ -732 +905 @@ class Runtime {
+-  bool shutting_down_started_ DISALLOW_COPY_AND_ASSIGN(Runtime);
++  bool shutting_down_started_ GUARDED_BY(Locks::runtime_shutdown_lock_);
+@@ -805 +978,2 @@ class Runtime {
+-  DISALLOW_COPY_AND_ASSIGN(Runtime);
++  std::atomic<uint32_t> deoptimization_counts_[
++      static_cast<uint32_t>(DeoptimizationKind::kLast) + 1];
+@@ -826,2 +1000 @@ class Runtime {
+-inline metrics::ArtMetrics* GetMetrics() {
+-  return Runtime::Current()->GetMetrics() { return Runtime::Current()->GetMetrics(); }
++inline metrics::ArtMetrics* GetMetrics() { return Runtime::Current()->GetMetrics(); }

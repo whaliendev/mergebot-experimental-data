@@ -1,0 +1,248 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_merged.cpp
+index 5186291..fe9317b 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_merged.cpp
+@@ -9 +9,30 @@ namespace android {
+-void DeviceDescriptor::attach(const sp<HwModule> &module) {
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type) :
++        DeviceDescriptor(type, "" )
++{
++}
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(type, tagName, "" , encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const std::string &address,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName, encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptorBase(deviceTypeAddr), mTagName(tagName), mEncodedFormats(encodedFormats)
++{
++    mCurrentEncodedFormat = AUDIO_FORMAT_DEFAULT;
++    if (mDeviceTypeAddr.mType == AUDIO_DEVICE_OUT_HDMI && mEncodedFormats.empty()) {
++        mEncodedFormats.push_back(AUDIO_FORMAT_AC3);
++        mEncodedFormats.push_back(AUDIO_FORMAT_IEC61937);
++    }
++}
++void DeviceDescriptor::attach(const sp<HwModule>& module)
++{
+@@ -18 +47,2 @@ template <typename T>
+-bool checkEqual(const T &f1, const T &f2) {
++bool checkEqual(const T& f1, const T& f2)
++{
+@@ -23 +53,2 @@ bool checkEqual(const T &f1, const T &f2) {
+-bool DeviceDescriptor::equals(const sp<DeviceDescriptor> &other) const {
++bool DeviceDescriptor::equals(const sp<DeviceDescriptor>& other) const
++{
+@@ -30 +61,2 @@ bool DeviceDescriptor::equals(const sp<DeviceDescriptor> &other) const {
+-bool DeviceDescriptor::hasCurrentEncodedFormat() const {
++bool DeviceDescriptor::hasCurrentEncodedFormat() const
++{
+@@ -39 +71,2 @@ bool DeviceDescriptor::hasCurrentEncodedFormat() const {
+-bool DeviceDescriptor::supportsFormat(audio_format_t format) {
++bool DeviceDescriptor::supportsFormat(audio_format_t format)
++{
+@@ -50,4 +83,4 @@ bool DeviceDescriptor::supportsFormat(audio_format_t format) {
+-status_t DeviceDescriptor::applyAudioPortConfig(
+-    const struct audio_port_config *config, audio_port_config *backupConfig) {
+-  struct audio_port_config localBackupConfig = {.config_mask =
+-                                                    config->config_mask};
++status_t DeviceDescriptor::applyAudioPortConfig(const struct audio_port_config *config,
++                                                audio_port_config *backupConfig)
++{
++    struct audio_port_config localBackupConfig = { .config_mask = config->config_mask };
+@@ -65,3 +98,3 @@ status_t DeviceDescriptor::applyAudioPortConfig(
+-void DeviceDescriptor::toAudioPortConfig(
+-    struct audio_port_config *dstConfig,
+-    const struct audio_port_config *srcConfig) const {
++void DeviceDescriptor::toAudioPortConfig(struct audio_port_config *dstConfig,
++                                         const struct audio_port_config *srcConfig) const
++{
+@@ -72,4 +105,3 @@ void DeviceDescriptor::toAudioPortConfig(
+-void DeviceDescriptor::toAudioPort(struct audio_port *port) const {
+-<<<<<<< HEAD
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceTypeAddr.mType);
++void DeviceDescriptor::toAudioPort(struct audio_port *port) const
++{
++    ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId, mDeviceTypeAddr.mType);
+@@ -77,12 +108,0 @@ void DeviceDescriptor::toAudioPort(struct audio_port *port) const {
+-||||||| 5f90ad4290
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceType);
+-  AudioPort::toAudioPort(port);
+-  port->id = mId;
+-  toAudioPortConfig(&port->active_config);
+-  port->ext.device.type = mDeviceType;
+-=======
+-  ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId,
+-        mDeviceType);
+-  DeviceDescriptorBase::toAudioPort(port);
+->>>>>>> 80ffad94f2b41098bad4f35f2399eb05e8c5ee34
+@@ -99,2 +119,2 @@ void DeviceDescriptor::importAudioPortAndPickAudioProfile(
+-void DeviceDescriptor::dump(String8 *dst, int spaces, int index,
+-                            bool verbose) const {
++void DeviceDescriptor::dump(String8 *dst, int spaces, int index, bool verbose) const
++{
+@@ -106,2 +126 @@ void DeviceDescriptor::dump(String8 *dst, int spaces, int index,
+-  DeviceDescriptorBase::dump(&descBaseDumpStr, spaces, index,
+-                             extraInfo.string(), verbose);
++    DeviceDescriptorBase::dump(&descBaseDumpStr, spaces, index, extraInfo.string(), verbose);
+@@ -110 +129,2 @@ void DeviceDescriptor::dump(String8 *dst, int spaces, int index,
+-void DeviceVector::refreshTypes() {
++void DeviceVector::refreshTypes()
++{
+@@ -115,2 +135 @@ void DeviceVector::refreshTypes() {
+-  ALOGV("DeviceVector::refreshTypes() mDeviceTypes %s",
+-        dumpDeviceTypes(mDeviceTypes).c_str());
++    ALOGV("DeviceVector::refreshTypes() mDeviceTypes %s", dumpDeviceTypes(mDeviceTypes).c_str());
+@@ -118 +137,2 @@ void DeviceVector::refreshTypes() {
+-ssize_t DeviceVector::indexOf(const sp<DeviceDescriptor> &item) const {
++ssize_t DeviceVector::indexOf(const sp<DeviceDescriptor>& item) const
++{
+@@ -120,2 +140 @@ ssize_t DeviceVector::indexOf(const sp<DeviceDescriptor> &item) const {
+-    if (itemAt(i)->equals(
+-            item)) {
++        if (itemAt(i)->equals(item)) {
+@@ -127 +146,2 @@ ssize_t DeviceVector::indexOf(const sp<DeviceDescriptor> &item) const {
+-void DeviceVector::add(const DeviceVector &devices) {
++void DeviceVector::add(const DeviceVector &devices)
++{
+@@ -138 +158,2 @@ void DeviceVector::add(const DeviceVector &devices) {
+-ssize_t DeviceVector::add(const sp<DeviceDescriptor> &item) {
++ssize_t DeviceVector::add(const sp<DeviceDescriptor>& item)
++{
+@@ -151 +172,2 @@ ssize_t DeviceVector::add(const sp<DeviceDescriptor> &item) {
+-ssize_t DeviceVector::remove(const sp<DeviceDescriptor> &item) {
++ssize_t DeviceVector::remove(const sp<DeviceDescriptor>& item)
++{
+@@ -163 +185,2 @@ ssize_t DeviceVector::remove(const sp<DeviceDescriptor> &item) {
+-void DeviceVector::remove(const DeviceVector &devices) {
++void DeviceVector::remove(const DeviceVector &devices)
++{
+@@ -168,2 +191,2 @@ void DeviceVector::remove(const DeviceVector &devices) {
+-DeviceVector DeviceVector::getDevicesFromHwModule(
+-    audio_module_handle_t moduleHandle) const {
++DeviceVector DeviceVector::getDevicesFromHwModule(audio_module_handle_t moduleHandle) const
++{
+@@ -178,3 +201,3 @@ DeviceVector DeviceVector::getDevicesFromHwModule(
+-sp<DeviceDescriptor> DeviceVector::getDevice(audio_devices_t type,
+-                                             const String8 &address,
+-                                             audio_format_t format) const {
++sp<DeviceDescriptor> DeviceVector::getDevice(audio_devices_t type, const String8& address,
++                                             audio_format_t format) const
++{
+@@ -184,2 +207 @@ sp<DeviceDescriptor> DeviceVector::getDevice(audio_devices_t type,
+-      if (((address == "" ||
+-            (itemAt(i)->address().compare(address.c_str()) == 0)) &&
++            if (((address == "" || (itemAt(i)->address().compare(address.c_str()) == 0)) &&
+@@ -187,2 +209 @@ sp<DeviceDescriptor> DeviceVector::getDevice(audio_devices_t type,
+-          (itemAt(i)->supportsFormat(format) &&
+-           format != AUDIO_FORMAT_DEFAULT)) {
++                (itemAt(i)->supportsFormat(format) && format != AUDIO_FORMAT_DEFAULT)) {
+@@ -200,2 +221,2 @@ sp<DeviceDescriptor> DeviceVector::getDevice(audio_devices_t type,
+-sp<DeviceDescriptor> DeviceVector::getDeviceFromId(
+-    audio_port_handle_t id) const {
++sp<DeviceDescriptor> DeviceVector::getDeviceFromId(audio_port_handle_t id) const
++{
+@@ -211,2 +232,2 @@ sp<DeviceDescriptor> DeviceVector::getDeviceFromId(
+-DeviceVector DeviceVector::getDevicesFromTypes(
+-    const DeviceTypeSet &types) const {
++DeviceVector DeviceVector::getDevicesFromTypes(const DeviceTypeSet& types) const
++{
+@@ -220,2 +241,2 @@ DeviceVector DeviceVector::getDevicesFromTypes(
+-      ALOGV("DeviceVector::%s() for type %08x found %p", __func__,
+-            itemAt(i)->type(), itemAt(i).get());
++            ALOGV("DeviceVector::%s() for type %08x found %p",
++                    __func__, itemAt(i)->type(), itemAt(i).get());
+@@ -226,2 +247,2 @@ DeviceVector DeviceVector::getDevicesFromTypes(
+-sp<DeviceDescriptor> DeviceVector::getDeviceFromTagName(
+-    const std::string &tagName) const {
++sp<DeviceDescriptor> DeviceVector::getDeviceFromTagName(const std::string &tagName) const
++{
+@@ -236 +257,2 @@ DeviceVector DeviceVector::getFirstDevicesFromTypes(
+-    std::vector<audio_devices_t> orderedTypes) const {
++        std::vector<audio_devices_t> orderedTypes) const
++{
+@@ -249,2 +271 @@ sp<DeviceDescriptor> DeviceVector::getFirstExistingDevice(
+-    if ((device = getDevice(deviceType, String8(""), AUDIO_FORMAT_DEFAULT)) !=
+-        nullptr) {
++        if ((device = getDevice(deviceType, String8(""), AUDIO_FORMAT_DEFAULT)) != nullptr) {
+@@ -256 +277,2 @@ sp<DeviceDescriptor> DeviceVector::getFirstExistingDevice(
+-sp<DeviceDescriptor> DeviceVector::getDeviceForOpening() const {
++sp<DeviceDescriptor> DeviceVector::getDeviceForOpening() const
++{
+@@ -263,3 +285,2 @@ sp<DeviceDescriptor> DeviceVector::getDeviceForOpening() const {
+-    return deviceType == AUDIO_DEVICE_NONE
+-               ? nullptr
+-               : getDevice(deviceType, String8(""), AUDIO_FORMAT_DEFAULT);
++        return deviceType == AUDIO_DEVICE_NONE ? nullptr :
++                getDevice(deviceType, String8(""), AUDIO_FORMAT_DEFAULT);
+@@ -269,2 +290,2 @@ sp<DeviceDescriptor> DeviceVector::getDeviceForOpening() const {
+-void DeviceVector::replaceDevicesByType(audio_devices_t typeToRemove,
+-                                        const DeviceVector &devicesToAdd) {
++void DeviceVector::replaceDevicesByType(
++        audio_devices_t typeToRemove, const DeviceVector &devicesToAdd) {
+@@ -277,2 +298,2 @@ void DeviceVector::replaceDevicesByType(audio_devices_t typeToRemove,
+-void DeviceVector::dump(String8 *dst, const String8 &tag, int spaces,
+-                        bool verbose) const {
++void DeviceVector::dump(String8 *dst, const String8 &tag, int spaces, bool verbose) const
++{
+@@ -287 +308,2 @@ void DeviceVector::dump(String8 *dst, const String8 &tag, int spaces,
+-std::string DeviceVector::toString() const {
++std::string DeviceVector::toString() const
++{
+@@ -300 +322,2 @@ std::string DeviceVector::toString() const {
+-DeviceVector DeviceVector::filter(const DeviceVector &devices) const {
++DeviceVector DeviceVector::filter(const DeviceVector &devices) const
++{
+@@ -309 +332,2 @@ DeviceVector DeviceVector::filter(const DeviceVector &devices) const {
+-bool DeviceVector::containsAtLeastOne(const DeviceVector &devices) const {
++bool DeviceVector::containsAtLeastOne(const DeviceVector &devices) const
++{
+@@ -312 +336,2 @@ bool DeviceVector::containsAtLeastOne(const DeviceVector &devices) const {
+-bool DeviceVector::containsAllDevices(const DeviceVector &devices) const {
++bool DeviceVector::containsAllDevices(const DeviceVector &devices) const
++{
+@@ -315 +340,2 @@ bool DeviceVector::containsAllDevices(const DeviceVector &devices) const {
+-DeviceVector DeviceVector::filterForEngine() const {
++DeviceVector DeviceVector::filterForEngine() const
++{
+@@ -318,2 +344 @@ DeviceVector DeviceVector::filterForEngine() const {
+-    if (audio_is_remote_submix_device(device->type()) &&
+-        device->address() != "0") {
++        if (audio_is_remote_submix_device(device->type()) && device->address() != "0") {
+@@ -326,25 +350,0 @@ DeviceVector DeviceVector::filterForEngine() const {
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type)
+-    : DeviceDescriptor(type, "" ) {}
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
+-                                   const std::string &tagName,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptor(type, tagName, "" , encodedFormats) {}
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
+-                                   const std::string &tagName,
+-                                   const std::string &address,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName,
+-                       encodedFormats) {}
+-DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr,
+-                                   const std::string &tagName,
+-                                   const FormatVector &encodedFormats)
+-    : DeviceDescriptorBase(deviceTypeAddr),
+-      mTagName(tagName),
+-      mEncodedFormats(encodedFormats) {
+-  mCurrentEncodedFormat = AUDIO_FORMAT_DEFAULT;
+-  if (mDeviceTypeAddr.mType == AUDIO_DEVICE_OUT_HDMI &&
+-      mEncodedFormats.empty()) {
+-    mEncodedFormats.push_back(AUDIO_FORMAT_AC3);
+-    mEncodedFormats.push_back(AUDIO_FORMAT_IEC61937);
+-  }
+-}

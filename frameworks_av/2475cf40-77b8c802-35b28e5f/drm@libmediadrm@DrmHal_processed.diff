@@ -1,0 +1,111 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_merged.cpp
+@@ -4,2 +3,0 @@
+-#include <binder/IPCThreadState.h>
+-#include <binder/IServiceManager.h>
+@@ -26,9 +23,0 @@
+-using ::android::sp;
+-using ::android::hardware::hidl_array;
+-using ::android::hardware::hidl_string;
+-using ::android::hardware::hidl_vec;
+-using ::android::hardware::Return;
+-using ::android::hardware::Void;
+-using ::android::hardware::drm::V1_1::DrmMetricGroup;
+-using ::android::hidl::manager::V1_0::IServiceManager;
+-using ::android::os::PersistableBundle;
+@@ -46,0 +36,8 @@ using drm::V1_2::KeyStatusType;
++using ::android::hardware::drm::V1_1::DrmMetricGroup;
++using ::android::hardware::hidl_array;
++using ::android::hardware::hidl_string;
++using ::android::hardware::hidl_vec;
++using ::android::hardware::Return;
++using ::android::hardware::Void;
++using ::android::os::PersistableBundle;
++using ::android::sp;
+@@ -66,16 +62,0 @@ std::string toBase64StringNoPad(const T *data, size_t size) {
+-namespace {
+-constexpr char kPropertyDeviceUniqueId[] = "deviceUniqueId";
+-constexpr char kEqualsSign[] = "=";
+-template <typename T>
+-std::string toBase64StringNoPad(const T *data, size_t size) {
+-  if (size == 0 || sizeof(data[0]) != 1) {
+-    return "";
+-  }
+-  android::AString outputString;
+-  encodeBase64(data, size, &outputString);
+-  while (outputString.size() > 0 && outputString.endsWith(kEqualsSign)) {
+-    outputString.erase(outputString.size() - 1, 1);
+-  }
+-  return std::string(outputString.c_str(), outputString.size());
+-}
+-}
+@@ -82,0 +64 @@ namespace android {
++#define INIT_CHECK() {if (mInitCheck != OK) return mInitCheck;}
+@@ -268 +251,2 @@ struct DrmHal::DrmSessionClient
+-bool DrmHal::DrmSessionClient::reclaimResource() {
++::ndk::ScopedAStatus DrmHal::DrmSessionClient::reclaimResource(bool* _aidl_return) {
++    auto sessionId = mSessionId;
+@@ -271 +255,2 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-    return true;
++        *_aidl_return = true;
++        return ::ndk::ScopedAStatus::ok();
+@@ -273 +258 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-  status_t err = drm->closeSession(mSessionId);
++    status_t err = drm->closeSession(sessionId);
+@@ -275 +260,2 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-    return false;
++        *_aidl_return = false;
++        return ::ndk::ScopedAStatus::ok();
+@@ -277,3 +263,4 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-  drm->sendEvent(EventType::SESSION_RECLAIMED, toHidlVec(mSessionId),
+-                 hidl_vec<uint8_t>());
+-  return true;
++    drm->sendEvent(EventType::SESSION_RECLAIMED,
++            toHidlVec(sessionId), hidl_vec<uint8_t>());
++    *_aidl_return = true;
++    return ::ndk::ScopedAStatus::ok();
+@@ -281 +268 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-String8 DrmHal::DrmSessionClient::getName() {
++::ndk::ScopedAStatus DrmHal::DrmSessionClient::getName(::std::string* _aidl_return) {
+@@ -295 +282,2 @@ String8 DrmHal::DrmSessionClient::getName() {
+-  return name;
++    *_aidl_return = name;
++    return ::ndk::ScopedAStatus::ok();
+@@ -301,3 +289,3 @@ DrmHal::DrmHal()
+-    : mDrmSessionClient(new DrmSessionClient(this)),
+-      mFactories(makeDrmFactories()),
+-      mInitCheck((mFactories.size() == 0) ? ERROR_UNSUPPORTED : NO_INIT) {}
++   : mFactories(makeDrmFactories()),
++     mInitCheck((mFactories.size() == 0) ? ERROR_UNSUPPORTED : NO_INIT) {
++}
+@@ -611,5 +600,2 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-<<<<<<< HEAD
+-    std::shared_ptr<DrmSessionClient> client(
+-        new DrmSessionClient(this, sessionId));
+-    DrmSessionManager::Instance()->addSession(
+-        AIBinder_getCallingPid(),
++        std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
++        DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(),
+@@ -618,10 +603,0 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-||||||| 35b28e5f80
+-    DrmSessionManager::Instance()->addSession(getCallingPid(),
+-                                              mDrmSessionClient, sessionId);
+-    mOpenSessions.push(sessionId);
+-=======
+-    sp<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
+-    DrmSessionManager::Instance()->addSession(getCallingPid(), client,
+-                                              sessionId);
+-    mOpenSessions.push(client);
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2
+@@ -640 +615,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-<<<<<<< HEAD
+@@ -644,9 +618,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-||||||| 35b28e5f80
+-      for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-        if (mOpenSessions[i] == sessionId) {
+-          mOpenSessions.removeAt(i);
+-=======
+-      for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-        if (isEqualSessionId(mOpenSessions[i]->mSessionId, sessionId)) {
+-          mOpenSessions.removeAt(i);
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2

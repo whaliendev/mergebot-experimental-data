@@ -1,0 +1,848 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+index 01a9202..04310f9 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+@@ -14,15 +14,9 @@ namespace android {
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-const sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
++Mutex AudioSystem::gLock;
++Mutex AudioSystem::gLockAPS;
++sp<IAudioFlinger> AudioSystem::gAudioFlinger;
++sp<AudioSystem::AudioFlingerClient> AudioSystem::gAudioFlingerClient;
++audio_error_callback AudioSystem::gAudioErrorCallback = NULL;
++dynamic_policy_callback AudioSystem::gDynPolicyCallback = NULL;
++record_config_callback AudioSystem::gRecordConfigCallback = NULL;
++const sp<IAudioFlinger> AudioSystem::get_audio_flinger()
++{
+@@ -38 +32,2 @@ const sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-        if (binder != 0) break;
++                if (binder != 0)
++                    break;
+@@ -64 +59,2 @@ const sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-const sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
++const sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient()
++{
+@@ -70 +66,2 @@ const sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
+-sp<AudioIoDescriptor> AudioSystem::getIoDescriptor(audio_io_handle_t ioHandle) {
++sp<AudioIoDescriptor> AudioSystem::getIoDescriptor(audio_io_handle_t ioHandle)
++{
+@@ -78,3 +75,3 @@ sp<AudioIoDescriptor> AudioSystem::getIoDescriptor(audio_io_handle_t ioHandle) {
+-status_t AudioSystem::checkAudioFlinger() {
+-  if (defaultServiceManager()->checkService(String16("media.audio_flinger")) !=
+-      0) {
++             status_t AudioSystem::checkAudioFlinger()
++{
++    if (defaultServiceManager()->checkService(String16("media.audio_flinger")) != 0) {
+@@ -85 +82,2 @@ status_t AudioSystem::checkAudioFlinger() {
+-status_t AudioSystem::muteMicrophone(bool state) {
++status_t AudioSystem::muteMicrophone(bool state)
++{
+@@ -90 +88,2 @@ status_t AudioSystem::muteMicrophone(bool state) {
+-status_t AudioSystem::isMicrophoneMuted(bool* state) {
++status_t AudioSystem::isMicrophoneMuted(bool* state)
++{
+@@ -96 +95,2 @@ status_t AudioSystem::isMicrophoneMuted(bool* state) {
+-status_t AudioSystem::setMasterVolume(float value) {
++status_t AudioSystem::setMasterVolume(float value)
++{
+@@ -102 +102,2 @@ status_t AudioSystem::setMasterVolume(float value) {
+-status_t AudioSystem::setMasterMute(bool mute) {
++status_t AudioSystem::setMasterMute(bool mute)
++{
+@@ -108 +109,2 @@ status_t AudioSystem::setMasterMute(bool mute) {
+-status_t AudioSystem::getMasterVolume(float* volume) {
++status_t AudioSystem::getMasterVolume(float* volume)
++{
+@@ -114 +116,2 @@ status_t AudioSystem::getMasterVolume(float* volume) {
+-status_t AudioSystem::getMasterMute(bool* mute) {
++status_t AudioSystem::getMasterMute(bool* mute)
++{
+@@ -121 +124,2 @@ status_t AudioSystem::setStreamVolume(audio_stream_type_t stream, float value,
+-                                      audio_io_handle_t output) {
++        audio_io_handle_t output)
++{
+@@ -128 +132,2 @@ status_t AudioSystem::setStreamVolume(audio_stream_type_t stream, float value,
+-status_t AudioSystem::setStreamMute(audio_stream_type_t stream, bool mute) {
++status_t AudioSystem::setStreamMute(audio_stream_type_t stream, bool mute)
++{
+@@ -136 +141,2 @@ status_t AudioSystem::getStreamVolume(audio_stream_type_t stream, float* volume,
+-                                      audio_io_handle_t output) {
++        audio_io_handle_t output)
++{
+@@ -143 +149,2 @@ status_t AudioSystem::getStreamVolume(audio_stream_type_t stream, float* volume,
+-status_t AudioSystem::getStreamMute(audio_stream_type_t stream, bool* mute) {
++status_t AudioSystem::getStreamMute(audio_stream_type_t stream, bool* mute)
++{
+@@ -150 +157,2 @@ status_t AudioSystem::getStreamMute(audio_stream_type_t stream, bool* mute) {
+-status_t AudioSystem::setMode(audio_mode_t mode) {
++status_t AudioSystem::setMode(audio_mode_t mode)
++{
+@@ -156,2 +164,2 @@ status_t AudioSystem::setMode(audio_mode_t mode) {
+-status_t AudioSystem::setParameters(audio_io_handle_t ioHandle,
+-                                    const String8& keyValuePairs) {
++status_t AudioSystem::setParameters(audio_io_handle_t ioHandle, const String8& keyValuePairs)
++{
+@@ -162,2 +170,2 @@ status_t AudioSystem::setParameters(audio_io_handle_t ioHandle,
+-String8 AudioSystem::getParameters(audio_io_handle_t ioHandle,
+-                                   const String8& keys) {
++String8 AudioSystem::getParameters(audio_io_handle_t ioHandle, const String8& keys)
++{
+@@ -170 +178,2 @@ String8 AudioSystem::getParameters(audio_io_handle_t ioHandle,
+-status_t AudioSystem::setParameters(const String8& keyValuePairs) {
++status_t AudioSystem::setParameters(const String8& keyValuePairs)
++{
+@@ -173 +182,2 @@ status_t AudioSystem::setParameters(const String8& keyValuePairs) {
+-String8 AudioSystem::getParameters(const String8& keys) {
++String8 AudioSystem::getParameters(const String8& keys)
++{
+@@ -179 +189,2 @@ static const float dBConvertInverse = 1.0f / dBConvert;
+-float AudioSystem::linearToLog(int volume) {
++float AudioSystem::linearToLog(int volume)
++{
+@@ -182 +193,2 @@ float AudioSystem::linearToLog(int volume) {
+-int AudioSystem::logToLinear(float volume) {
++int AudioSystem::logToLinear(float volume)
++{
+@@ -187 +199,2 @@ size_t AudioSystem::calculateMinFrameCount(
+-    uint32_t sampleRate, float speed ) {
++        uint32_t sampleRate, float speed )
++{
+@@ -197,4 +210,2 @@ size_t AudioSystem::calculateMinFrameCount(
+-  ALOGV(
+-      "calculateMinFrameCount afLatency %u  afFrameCount %u  afSampleRate %u  "
+-      "sampleRate %u  speed %f  minBufCount: %u"
+-      ,
++    ALOGV("calculateMinFrameCount afLatency %u  afFrameCount %u  afSampleRate %u  "
++            "sampleRate %u  speed %f  minBufCount: %u" ,
+@@ -206,2 +217,2 @@ size_t AudioSystem::calculateMinFrameCount(
+-status_t AudioSystem::getOutputSamplingRate(uint32_t* samplingRate,
+-                                            audio_stream_type_t streamType) {
++status_t AudioSystem::getOutputSamplingRate(uint32_t* samplingRate, audio_stream_type_t streamType)
++{
+@@ -219 +230,2 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t ioHandle,
+-                                      uint32_t* samplingRate) {
++                                      uint32_t* samplingRate)
++{
+@@ -232,2 +244 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t ioHandle,
+-  ALOGV("getSamplingRate() ioHandle %d, sampling rate %u", ioHandle,
+-        *samplingRate);
++    ALOGV("getSamplingRate() ioHandle %d, sampling rate %u", ioHandle, *samplingRate);
+@@ -236,2 +247,2 @@ status_t AudioSystem::getSamplingRate(audio_io_handle_t ioHandle,
+-status_t AudioSystem::getOutputFrameCount(size_t* frameCount,
+-                                          audio_stream_type_t streamType) {
++status_t AudioSystem::getOutputFrameCount(size_t* frameCount, audio_stream_type_t streamType)
++{
+@@ -249 +260,2 @@ status_t AudioSystem::getFrameCount(audio_io_handle_t ioHandle,
+-                                    size_t* frameCount) {
++                                    size_t* frameCount)
++{
+@@ -265,2 +277,2 @@ status_t AudioSystem::getFrameCount(audio_io_handle_t ioHandle,
+-status_t AudioSystem::getOutputLatency(uint32_t* latency,
+-                                       audio_stream_type_t streamType) {
++status_t AudioSystem::getOutputLatency(uint32_t* latency, audio_stream_type_t streamType)
++{
+@@ -277 +289,3 @@ status_t AudioSystem::getOutputLatency(uint32_t* latency,
+-status_t AudioSystem::getLatency(audio_io_handle_t output, uint32_t* latency) {
++status_t AudioSystem::getLatency(audio_io_handle_t output,
++                                 uint32_t* latency)
++{
+@@ -289,4 +303,3 @@ status_t AudioSystem::getLatency(audio_io_handle_t output, uint32_t* latency) {
+-status_t AudioSystem::getInputBufferSize(uint32_t sampleRate,
+-                                         audio_format_t format,
+-                                         audio_channel_mask_t channelMask,
+-                                         size_t* buffSize) {
++status_t AudioSystem::getInputBufferSize(uint32_t sampleRate, audio_format_t format,
++        audio_channel_mask_t channelMask, size_t* buffSize)
++{
+@@ -299 +312,2 @@ status_t AudioSystem::getInputBufferSize(uint32_t sampleRate,
+-status_t AudioSystem::setVoiceVolume(float value) {
++status_t AudioSystem::setVoiceVolume(float value)
++{
+@@ -304,3 +318,3 @@ status_t AudioSystem::setVoiceVolume(float value) {
+-status_t AudioSystem::getRenderPosition(audio_io_handle_t output,
+-                                        uint32_t* halFrames,
+-                                        uint32_t* dspFrames) {
++status_t AudioSystem::getRenderPosition(audio_io_handle_t output, uint32_t *halFrames,
++                                        uint32_t *dspFrames)
++{
+@@ -311 +325,2 @@ status_t AudioSystem::getRenderPosition(audio_io_handle_t output,
+-uint32_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle) {
++uint32_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle)
++{
+@@ -319 +334,2 @@ uint32_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle) {
+-audio_unique_id_t AudioSystem::newAudioUniqueId(audio_unique_id_use_t use) {
++audio_unique_id_t AudioSystem::newAudioUniqueId(audio_unique_id_use_t use)
++{
+@@ -324,2 +340,2 @@ audio_unique_id_t AudioSystem::newAudioUniqueId(audio_unique_id_use_t use) {
+-void AudioSystem::acquireAudioSessionId(audio_session_t audioSession,
+-                                        pid_t pid) {
++void AudioSystem::acquireAudioSessionId(audio_session_t audioSession, pid_t pid)
++{
+@@ -331,2 +347,2 @@ void AudioSystem::acquireAudioSessionId(audio_session_t audioSession,
+-void AudioSystem::releaseAudioSessionId(audio_session_t audioSession,
+-                                        pid_t pid) {
++void AudioSystem::releaseAudioSessionId(audio_session_t audioSession, pid_t pid)
++{
+@@ -338,2 +354,2 @@ void AudioSystem::releaseAudioSessionId(audio_session_t audioSession,
+-audio_hw_sync_t AudioSystem::getAudioHwSyncForSession(
+-    audio_session_t sessionId) {
++audio_hw_sync_t AudioSystem::getAudioHwSyncForSession(audio_session_t sessionId)
++{
+@@ -344 +360,2 @@ audio_hw_sync_t AudioSystem::getAudioHwSyncForSession(
+-status_t AudioSystem::systemReady() {
++status_t AudioSystem::systemReady()
++{
+@@ -350 +367,2 @@ status_t AudioSystem::getFrameCountHAL(audio_io_handle_t ioHandle,
+-                                       size_t* frameCount) {
++                                       size_t* frameCount)
++{
+@@ -363,2 +381 @@ status_t AudioSystem::getFrameCountHAL(audio_io_handle_t ioHandle,
+-  ALOGV("getFrameCountHAL() ioHandle %d, frameCount %zu", ioHandle,
+-        *frameCount);
++    ALOGV("getFrameCountHAL() ioHandle %d, frameCount %zu", ioHandle, *frameCount);
+@@ -367 +384,2 @@ status_t AudioSystem::getFrameCountHAL(audio_io_handle_t ioHandle,
+-void AudioSystem::AudioFlingerClient::clearIoCache() {
++void AudioSystem::AudioFlingerClient::clearIoCache()
++{
+@@ -375,2 +393,2 @@ void AudioSystem::AudioFlingerClient::clearIoCache() {
+-void AudioSystem::AudioFlingerClient::binderDied(
+-    const wp<IBinder>& who __unused) {
++void AudioSystem::AudioFlingerClient::binderDied(const wp<IBinder>& who __unused)
++{
+@@ -389,2 +407,2 @@ void AudioSystem::AudioFlingerClient::binderDied(
+-void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-    audio_io_config_event event, const sp<AudioIoDescriptor>& ioDesc) {
++void AudioSystem::AudioFlingerClient::ioConfigChanged(audio_io_config_event event,
++                                                      const sp<AudioIoDescriptor>& ioDesc) {
+@@ -419,3 +437 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() new %s %s %d samplingRate %u, format %#x "
+-            "channel mask %#x "
++            ALOGV("ioConfigChanged() new %s %s %d samplingRate %u, format %#x channel mask %#x "
+@@ -423,8 +439,6 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-            event == AUDIO_OUTPUT_OPENED || event == AUDIO_OUTPUT_REGISTERED
+-                ? "output"
+-                : "input",
+-            event == AUDIO_OUTPUT_OPENED || event == AUDIO_INPUT_OPENED
+-                ? "opened"
+-                : "registered",
+-            ioDesc->mIoHandle, ioDesc->mSamplingRate, ioDesc->mFormat,
+-            ioDesc->mChannelMask, ioDesc->mFrameCount, ioDesc->getDeviceId());
++                    event == AUDIO_OUTPUT_OPENED || event == AUDIO_OUTPUT_REGISTERED ?
++                            "output" : "input",
++                            event == AUDIO_OUTPUT_OPENED || event == AUDIO_INPUT_OPENED ?
++                            "opened" : "registered",
++                    ioDesc->mIoHandle, ioDesc->mSamplingRate, ioDesc->mFormat, ioDesc->mChannelMask,
++                    ioDesc->mFrameCount, ioDesc->getDeviceId());
+@@ -436,2 +450 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-                event == AUDIO_OUTPUT_CLOSED ? "output" : "input",
+-                ioDesc->mIoHandle);
++                      event == AUDIO_OUTPUT_CLOSED ? "output" : "input", ioDesc->mIoHandle);
+@@ -441,2 +454 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-              event == AUDIO_OUTPUT_CLOSED ? "output" : "input",
+-              ioDesc->mIoHandle);
++                  event == AUDIO_OUTPUT_CLOSED ? "output" : "input", ioDesc->mIoHandle);
+@@ -450,2 +462 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-          ALOGW("ioConfigChanged() modifying unknown output! %d",
+-                ioDesc->mIoHandle);
++                ALOGW("ioConfigChanged() modifying unknown output! %d", ioDesc->mIoHandle);
+@@ -463,3 +474 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() new config for %s %d samplingRate %u, format "
+-            "%#x "
++            ALOGV("ioConfigChanged() new config for %s %d samplingRate %u, format %#x "
+@@ -475,2 +484 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-          ALOGW("ioConfigChanged() start client on unknown io! %d",
+-                ioDesc->mIoHandle);
++                ALOGW("ioConfigChanged() start client on unknown io! %d", ioDesc->mIoHandle);
+@@ -479,3 +487 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(
+-        ALOGV(
+-            "ioConfigChanged() AUDIO_CLIENT_STARTED  io %d port %d num "
+-            "callbacks %zu",
++            ALOGV("ioConfigChanged() AUDIO_CLIENT_STARTED  io %d port %d num callbacks %zu",
+@@ -508 +514,2 @@ status_t AudioSystem::AudioFlingerClient::getInputBufferSize(
+-    audio_channel_mask_t channelMask, size_t* buffSize) {
++                                                audio_channel_mask_t channelMask, size_t* buffSize)
++{
+@@ -514,2 +521,2 @@ status_t AudioSystem::AudioFlingerClient::getInputBufferSize(
+-  if ((mInBuffSize == 0) || (sampleRate != mInSamplingRate) ||
+-      (format != mInFormat) || (channelMask != mInChannelMask)) {
++    if ((mInBuffSize == 0) || (sampleRate != mInSamplingRate) || (format != mInFormat)
++        || (channelMask != mInChannelMask)) {
+@@ -518,3 +525 @@ status_t AudioSystem::AudioFlingerClient::getInputBufferSize(
+-      ALOGE(
+-          "AudioSystem::getInputBufferSize failed sampleRate %d format %#x "
+-          "channelMask %#x",
++            ALOGE("AudioSystem::getInputBufferSize failed sampleRate %d format %#x channelMask %#x",
+@@ -532,2 +537,2 @@ status_t AudioSystem::AudioFlingerClient::getInputBufferSize(
+-sp<AudioIoDescriptor> AudioSystem::AudioFlingerClient::getIoDescriptor_l(
+-    audio_io_handle_t ioHandle) {
++sp<AudioIoDescriptor> AudioSystem::AudioFlingerClient::getIoDescriptor_l(audio_io_handle_t ioHandle)
++{
+@@ -541,2 +546,2 @@ sp<AudioIoDescriptor> AudioSystem::AudioFlingerClient::getIoDescriptor_l(
+-sp<AudioIoDescriptor> AudioSystem::AudioFlingerClient::getIoDescriptor(
+-    audio_io_handle_t ioHandle) {
++sp<AudioIoDescriptor> AudioSystem::AudioFlingerClient::getIoDescriptor(audio_io_handle_t ioHandle)
++{
+@@ -548 +553,2 @@ status_t AudioSystem::AudioFlingerClient::addAudioDeviceCallback(
+-    audio_port_handle_t portId) {
++        audio_port_handle_t portId)
++{
+@@ -551,5 +557 @@ status_t AudioSystem::AudioFlingerClient::addAudioDeviceCallback(
+-  auto& callbacks =
+-      mAudioDeviceCallbacks
+-          .emplace(audioIo,
+-                   std::map<audio_port_handle_t, wp<AudioDeviceCallback>>())
+-          .first->second;
++    auto& callbacks = mAudioDeviceCallbacks.emplace(audioIo, std::map<audio_port_handle_t, wp<AudioDeviceCallback>>()).first->second;
+@@ -564 +566,2 @@ status_t AudioSystem::AudioFlingerClient::removeAudioDeviceCallback(
+-    audio_port_handle_t portId) {
++        audio_port_handle_t portId)
++{
+@@ -579 +582,2 @@ status_t AudioSystem::AudioFlingerClient::removeAudioDeviceCallback(
+-void AudioSystem::setErrorCallback(audio_error_callback cb) {
++             void AudioSystem::setErrorCallback(audio_error_callback cb)
++{
+@@ -583 +587,2 @@ void AudioSystem::setErrorCallback(audio_error_callback cb) {
+-void AudioSystem::setDynPolicyCallback(dynamic_policy_callback cb) {
++           void AudioSystem::setDynPolicyCallback(dynamic_policy_callback cb)
++{
+@@ -587 +592,2 @@ void AudioSystem::setDynPolicyCallback(dynamic_policy_callback cb) {
+-void AudioSystem::setRecordConfigCallback(record_config_callback cb) {
++           void AudioSystem::setRecordConfigCallback(record_config_callback cb)
++{
+@@ -591,5 +597,4 @@ void AudioSystem::setRecordConfigCallback(record_config_callback cb) {
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-sp<AudioSystem::AudioPolicyServiceClient>
+-    AudioSystem::gAudioPolicyServiceClient;
+-const sp<IAudioPolicyService> AudioSystem::get_audio_policy_service() {
++sp<IAudioPolicyService> AudioSystem::gAudioPolicyService;
++sp<AudioSystem::AudioPolicyServiceClient> AudioSystem::gAudioPolicyServiceClient;
++const sp<IAudioPolicyService> AudioSystem::get_audio_policy_service()
++{
+@@ -605 +610,2 @@ const sp<IAudioPolicyService> AudioSystem::get_audio_policy_service() {
+-        if (binder != 0) break;
++                if (binder != 0)
++                    break;
+@@ -633 +639,2 @@ status_t AudioSystem::setDeviceConnectionState(audio_devices_t device,
+-                                               audio_format_t encodedFormat) {
++                                               audio_format_t encodedFormat)
++{
+@@ -644,2 +651 @@ status_t AudioSystem::setDeviceConnectionState(audio_devices_t device,
+-  return aps->setDeviceConnectionState(device, state, address, name,
+-                                       encodedFormat);
++    return aps->setDeviceConnectionState(device, state, address, name, encodedFormat);
+@@ -647,2 +653,3 @@ status_t AudioSystem::setDeviceConnectionState(audio_devices_t device,
+-audio_policy_dev_state_t AudioSystem::getDeviceConnectionState(
+-    audio_devices_t device, const char* device_address) {
++audio_policy_dev_state_t AudioSystem::getDeviceConnectionState(audio_devices_t device,
++                                                  const char *device_address)
++{
+@@ -656 +663,2 @@ status_t AudioSystem::handleDeviceConfigChange(audio_devices_t device,
+-                                               audio_format_t encodedFormat) {
++                                               audio_format_t encodedFormat)
++{
+@@ -669 +677,2 @@ status_t AudioSystem::handleDeviceConfigChange(audio_devices_t device,
+-status_t AudioSystem::setPhoneState(audio_mode_t state) {
++status_t AudioSystem::setPhoneState(audio_mode_t state)
++{
+@@ -675,2 +684,2 @@ status_t AudioSystem::setPhoneState(audio_mode_t state) {
+-status_t AudioSystem::setForceUse(audio_policy_force_use_t usage,
+-                                  audio_policy_forced_cfg_t config) {
++status_t AudioSystem::setForceUse(audio_policy_force_use_t usage, audio_policy_forced_cfg_t config)
++{
+@@ -681,2 +690,2 @@ status_t AudioSystem::setForceUse(audio_policy_force_use_t usage,
+-audio_policy_forced_cfg_t AudioSystem::getForceUse(
+-    audio_policy_force_use_t usage) {
++audio_policy_forced_cfg_t AudioSystem::getForceUse(audio_policy_force_use_t usage)
++{
+@@ -687 +696,2 @@ audio_policy_forced_cfg_t AudioSystem::getForceUse(
+-audio_io_handle_t AudioSystem::getOutput(audio_stream_type_t stream) {
++audio_io_handle_t AudioSystem::getOutput(audio_stream_type_t stream)
++{
+@@ -692,6 +702,12 @@ audio_io_handle_t AudioSystem::getOutput(audio_stream_type_t stream) {
+-status_t AudioSystem::getOutputForAttr(
+-    audio_attributes_t* attr, audio_io_handle_t* output,
+-    audio_session_t session, audio_stream_type_t* stream, pid_t pid, uid_t uid,
+-    const audio_config_t* config, audio_output_flags_t flags,
+-    audio_port_handle_t* selectedDeviceId, audio_port_handle_t* portId,
+-    std::vector<audio_io_handle_t>* secondaryOutputs) {
++status_t AudioSystem::getOutputForAttr(audio_attributes_t *attr,
++                                        audio_io_handle_t *output,
++                                        audio_session_t session,
++                                        audio_stream_type_t *stream,
++                                        pid_t pid,
++                                        uid_t uid,
++                                        const audio_config_t *config,
++                                        audio_output_flags_t flags,
++                                        audio_port_handle_t *selectedDeviceId,
++                                        audio_port_handle_t *portId,
++                                        std::vector<audio_io_handle_t> *secondaryOutputs)
++{
+@@ -700,3 +716,3 @@ status_t AudioSystem::getOutputForAttr(
+-  return aps->getOutputForAttr(attr, output, session, stream, pid, uid, config,
+-                               flags, selectedDeviceId, portId,
+-                               secondaryOutputs);
++    return aps->getOutputForAttr(attr, output, session, stream, pid, uid,
++                                 config,
++                                 flags, selectedDeviceId, portId, secondaryOutputs);
+@@ -704 +720,2 @@ status_t AudioSystem::getOutputForAttr(
+-status_t AudioSystem::startOutput(audio_port_handle_t portId) {
++status_t AudioSystem::startOutput(audio_port_handle_t portId)
++{
+@@ -709 +726,2 @@ status_t AudioSystem::startOutput(audio_port_handle_t portId) {
+-status_t AudioSystem::stopOutput(audio_port_handle_t portId) {
++status_t AudioSystem::stopOutput(audio_port_handle_t portId)
++{
+@@ -714 +732,2 @@ status_t AudioSystem::stopOutput(audio_port_handle_t portId) {
+-void AudioSystem::releaseOutput(audio_port_handle_t portId) {
++void AudioSystem::releaseOutput(audio_port_handle_t portId)
++{
+@@ -719,6 +738,12 @@ void AudioSystem::releaseOutput(audio_port_handle_t portId) {
+-status_t AudioSystem::getInputForAttr(
+-    const audio_attributes_t* attr, audio_io_handle_t* input,
+-    audio_unique_id_t riid, audio_session_t session, pid_t pid, uid_t uid,
+-    const String16& opPackageName, const audio_config_base_t* config,
+-    audio_input_flags_t flags, audio_port_handle_t* selectedDeviceId,
+-    audio_port_handle_t* portId) {
++status_t AudioSystem::getInputForAttr(const audio_attributes_t *attr,
++                                audio_io_handle_t *input,
++                                audio_unique_id_t riid,
++                                audio_session_t session,
++                                pid_t pid,
++                                uid_t uid,
++                                const String16& opPackageName,
++                                const audio_config_base_t *config,
++                                audio_input_flags_t flags,
++                                audio_port_handle_t *selectedDeviceId,
++                                audio_port_handle_t *portId)
++{
+@@ -727,3 +752,3 @@ status_t AudioSystem::getInputForAttr(
+-  return aps->getInputForAttr(attr, input, riid, session, pid, uid,
+-                              opPackageName, config, flags, selectedDeviceId,
+-                              portId);
++    return aps->getInputForAttr(
++            attr, input, riid, session, pid, uid, opPackageName,
++            config, flags, selectedDeviceId, portId);
+@@ -731 +756,2 @@ status_t AudioSystem::getInputForAttr(
+-status_t AudioSystem::startInput(audio_port_handle_t portId) {
++status_t AudioSystem::startInput(audio_port_handle_t portId)
++{
+@@ -736 +762,2 @@ status_t AudioSystem::startInput(audio_port_handle_t portId) {
+-status_t AudioSystem::stopInput(audio_port_handle_t portId) {
++status_t AudioSystem::stopInput(audio_port_handle_t portId)
++{
+@@ -741 +768,2 @@ status_t AudioSystem::stopInput(audio_port_handle_t portId) {
+-void AudioSystem::releaseInput(audio_port_handle_t portId) {
++void AudioSystem::releaseInput(audio_port_handle_t portId)
++{
+@@ -746,2 +774,4 @@ void AudioSystem::releaseInput(audio_port_handle_t portId) {
+-status_t AudioSystem::initStreamVolume(audio_stream_type_t stream, int indexMin,
+-                                       int indexMax) {
++status_t AudioSystem::initStreamVolume(audio_stream_type_t stream,
++                                    int indexMin,
++                                    int indexMax)
++{
+@@ -753 +783,3 @@ status_t AudioSystem::setStreamVolumeIndex(audio_stream_type_t stream,
+-                                           int index, audio_devices_t device) {
++                                           int index,
++                                           audio_devices_t device)
++{
+@@ -759 +791,3 @@ status_t AudioSystem::getStreamVolumeIndex(audio_stream_type_t stream,
+-                                           int* index, audio_devices_t device) {
++                                           int *index,
++                                           audio_devices_t device)
++{
+@@ -764,2 +798,4 @@ status_t AudioSystem::getStreamVolumeIndex(audio_stream_type_t stream,
+-status_t AudioSystem::setVolumeIndexForAttributes(
+-    const audio_attributes_t& attr, int index, audio_devices_t device) {
++status_t AudioSystem::setVolumeIndexForAttributes(const audio_attributes_t &attr,
++                                                  int index,
++                                                  audio_devices_t device)
++{
+@@ -770,2 +806,4 @@ status_t AudioSystem::setVolumeIndexForAttributes(
+-status_t AudioSystem::getVolumeIndexForAttributes(
+-    const audio_attributes_t& attr, int& index, audio_devices_t device) {
++status_t AudioSystem::getVolumeIndexForAttributes(const audio_attributes_t &attr,
++                                                  int &index,
++                                                  audio_devices_t device)
++{
+@@ -776,2 +814,2 @@ status_t AudioSystem::getVolumeIndexForAttributes(
+-status_t AudioSystem::getMaxVolumeIndexForAttributes(
+-    const audio_attributes_t& attr, int& index) {
++status_t AudioSystem::getMaxVolumeIndexForAttributes(const audio_attributes_t &attr, int &index)
++{
+@@ -782,2 +820,2 @@ status_t AudioSystem::getMaxVolumeIndexForAttributes(
+-status_t AudioSystem::getMinVolumeIndexForAttributes(
+-    const audio_attributes_t& attr, int& index) {
++status_t AudioSystem::getMinVolumeIndexForAttributes(const audio_attributes_t &attr, int &index)
++{
+@@ -788 +826,2 @@ status_t AudioSystem::getMinVolumeIndexForAttributes(
+-uint32_t AudioSystem::getStrategyForStream(audio_stream_type_t stream) {
++uint32_t AudioSystem::getStrategyForStream(audio_stream_type_t stream)
++{
+@@ -793 +832,2 @@ uint32_t AudioSystem::getStrategyForStream(audio_stream_type_t stream) {
+-audio_devices_t AudioSystem::getDevicesForStream(audio_stream_type_t stream) {
++audio_devices_t AudioSystem::getDevicesForStream(audio_stream_type_t stream)
++{
+@@ -798,2 +838,2 @@ audio_devices_t AudioSystem::getDevicesForStream(audio_stream_type_t stream) {
+-audio_io_handle_t AudioSystem::getOutputForEffect(
+-    const effect_descriptor_t* desc) {
++audio_io_handle_t AudioSystem::getOutputForEffect(const effect_descriptor_t *desc)
++{
+@@ -805,2 +845,5 @@ status_t AudioSystem::registerEffect(const effect_descriptor_t* desc,
+-                                     audio_io_handle_t io, uint32_t strategy,
+-                                     audio_session_t session, int id) {
++                                audio_io_handle_t io,
++                                uint32_t strategy,
++                                audio_session_t session,
++                                int id)
++{
+@@ -811 +854,2 @@ status_t AudioSystem::registerEffect(const effect_descriptor_t* desc,
+-status_t AudioSystem::unregisterEffect(int id) {
++status_t AudioSystem::unregisterEffect(int id)
++{
+@@ -816 +860,2 @@ status_t AudioSystem::unregisterEffect(int id) {
+-status_t AudioSystem::setEffectEnabled(int id, bool enabled) {
++status_t AudioSystem::setEffectEnabled(int id, bool enabled)
++{
+@@ -821,2 +866,2 @@ status_t AudioSystem::setEffectEnabled(int id, bool enabled) {
+-status_t AudioSystem::moveEffectsToIo(const std::vector<int>& ids,
+-                                      audio_io_handle_t io) {
++status_t AudioSystem::moveEffectsToIo(const std::vector<int>& ids, audio_io_handle_t io)
++{
+@@ -827,2 +872,2 @@ status_t AudioSystem::moveEffectsToIo(const std::vector<int>& ids,
+-status_t AudioSystem::isStreamActive(audio_stream_type_t stream, bool* state,
+-                                     uint32_t inPastMs) {
++status_t AudioSystem::isStreamActive(audio_stream_type_t stream, bool* state, uint32_t inPastMs)
++{
+@@ -835,2 +880,3 @@ status_t AudioSystem::isStreamActive(audio_stream_type_t stream, bool* state,
+-status_t AudioSystem::isStreamActiveRemotely(audio_stream_type_t stream,
+-                                             bool* state, uint32_t inPastMs) {
++status_t AudioSystem::isStreamActiveRemotely(audio_stream_type_t stream, bool* state,
++        uint32_t inPastMs)
++{
+@@ -843 +889,2 @@ status_t AudioSystem::isStreamActiveRemotely(audio_stream_type_t stream,
+-status_t AudioSystem::isSourceActive(audio_source_t stream, bool* state) {
++status_t AudioSystem::isSourceActive(audio_source_t stream, bool* state)
++{
+@@ -850 +897,2 @@ status_t AudioSystem::isSourceActive(audio_source_t stream, bool* state) {
+-uint32_t AudioSystem::getPrimaryOutputSamplingRate() {
++uint32_t AudioSystem::getPrimaryOutputSamplingRate()
++{
+@@ -855 +903,2 @@ uint32_t AudioSystem::getPrimaryOutputSamplingRate() {
+-size_t AudioSystem::getPrimaryOutputFrameCount() {
++size_t AudioSystem::getPrimaryOutputFrameCount()
++{
+@@ -860,2 +909,2 @@ size_t AudioSystem::getPrimaryOutputFrameCount() {
+-status_t AudioSystem::setLowRamDevice(bool isLowRamDevice,
+-                                      int64_t totalMemory) {
++status_t AudioSystem::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory)
++{
+@@ -866 +915,2 @@ status_t AudioSystem::setLowRamDevice(bool isLowRamDevice,
+-void AudioSystem::clearAudioConfigCache() {
++void AudioSystem::clearAudioConfigCache()
++{
+@@ -880,2 +930 @@ void AudioSystem::clearAudioConfigCache() {
+-status_t AudioSystem::setAllowedCapturePolicy(uid_t uid,
+-                                              audio_flags_mask_t flags) {
++status_t AudioSystem::setAllowedCapturePolicy(uid_t uid, audio_flags_mask_t flags) {
+@@ -886 +935,2 @@ status_t AudioSystem::setAllowedCapturePolicy(uid_t uid,
+-bool AudioSystem::isOffloadSupported(const audio_offload_info_t& info) {
++bool AudioSystem::isOffloadSupported(const audio_offload_info_t& info)
++{
+@@ -896 +946,2 @@ status_t AudioSystem::listAudioPorts(audio_port_role_t role,
+-                                     unsigned int* generation) {
++                                     unsigned int *generation)
++{
+@@ -901 +952,2 @@ status_t AudioSystem::listAudioPorts(audio_port_role_t role,
+-status_t AudioSystem::getAudioPort(struct audio_port* port) {
++status_t AudioSystem::getAudioPort(struct audio_port *port)
++{
+@@ -907 +959,2 @@ status_t AudioSystem::createAudioPatch(const struct audio_patch* patch,
+-                                       audio_patch_handle_t* handle) {
++                                   audio_patch_handle_t *handle)
++{
+@@ -912 +965,2 @@ status_t AudioSystem::createAudioPatch(const struct audio_patch* patch,
+-status_t AudioSystem::releaseAudioPatch(audio_patch_handle_t handle) {
++status_t AudioSystem::releaseAudioPatch(audio_patch_handle_t handle)
++{
+@@ -919 +973,2 @@ status_t AudioSystem::listAudioPatches(unsigned int* num_patches,
+-                                       unsigned int* generation) {
++                                  unsigned int *generation)
++{
+@@ -924,2 +979,2 @@ status_t AudioSystem::listAudioPatches(unsigned int* num_patches,
+-status_t AudioSystem::setAudioPortConfig(
+-    const struct audio_port_config* config) {
++status_t AudioSystem::setAudioPortConfig(const struct audio_port_config *config)
++{
+@@ -930,2 +985,2 @@ status_t AudioSystem::setAudioPortConfig(
+-status_t AudioSystem::addAudioPortCallback(
+-    const sp<AudioPortCallback>& callback) {
++status_t AudioSystem::addAudioPortCallback(const sp<AudioPortCallback>& callback)
++{
+@@ -944,2 +999,2 @@ status_t AudioSystem::addAudioPortCallback(
+-status_t AudioSystem::removeAudioPortCallback(
+-    const sp<AudioPortCallback>& callback) {
++status_t AudioSystem::removeAudioPortCallback(const sp<AudioPortCallback>& callback)
++{
+@@ -958,2 +1013,2 @@ status_t AudioSystem::removeAudioPortCallback(
+-status_t AudioSystem::addAudioVolumeGroupCallback(
+-    const sp<AudioVolumeGroupCallback>& callback) {
++status_t AudioSystem::addAudioVolumeGroupCallback(const sp<AudioVolumeGroupCallback>& callback)
++{
+@@ -972,2 +1027,2 @@ status_t AudioSystem::addAudioVolumeGroupCallback(
+-status_t AudioSystem::removeAudioVolumeGroupCallback(
+-    const sp<AudioVolumeGroupCallback>& callback) {
++status_t AudioSystem::removeAudioVolumeGroupCallback(const sp<AudioVolumeGroupCallback>& callback)
++{
+@@ -988 +1043,2 @@ status_t AudioSystem::addAudioDeviceCallback(
+-    audio_port_handle_t portId) {
++        audio_port_handle_t portId)
++{
+@@ -1004 +1060,2 @@ status_t AudioSystem::removeAudioDeviceCallback(
+-    audio_port_handle_t portId) {
++        audio_port_handle_t portId)
++{
+@@ -1011 +1068,2 @@ status_t AudioSystem::removeAudioDeviceCallback(
+-audio_port_handle_t AudioSystem::getDeviceIdForIo(audio_io_handle_t audioIo) {
++audio_port_handle_t AudioSystem::getDeviceIdForIo(audio_io_handle_t audioIo)
++{
+@@ -1022 +1080,2 @@ status_t AudioSystem::acquireSoundTriggerSession(audio_session_t* session,
+-                                                 audio_devices_t* device) {
++                                       audio_devices_t *device)
++{
+@@ -1027 +1086,2 @@ status_t AudioSystem::acquireSoundTriggerSession(audio_session_t* session,
+-status_t AudioSystem::releaseSoundTriggerSession(audio_session_t session) {
++status_t AudioSystem::releaseSoundTriggerSession(audio_session_t session)
++{
+@@ -1032 +1092,2 @@ status_t AudioSystem::releaseSoundTriggerSession(audio_session_t session) {
+-audio_mode_t AudioSystem::getPhoneState() {
++audio_mode_t AudioSystem::getPhoneState()
++{
+@@ -1037,2 +1098,2 @@ audio_mode_t AudioSystem::getPhoneState() {
+-status_t AudioSystem::registerPolicyMixes(const Vector<AudioMix>& mixes,
+-                                          bool registration) {
++status_t AudioSystem::registerPolicyMixes(const Vector<AudioMix>& mixes, bool registration)
++{
+@@ -1043,2 +1104,2 @@ status_t AudioSystem::registerPolicyMixes(const Vector<AudioMix>& mixes,
+-status_t AudioSystem::setUidDeviceAffinities(
+-    uid_t uid, const Vector<AudioDeviceTypeAddr>& devices) {
++status_t AudioSystem::setUidDeviceAffinities(uid_t uid, const Vector<AudioDeviceTypeAddr>& devices)
++{
+@@ -1056 +1117,2 @@ status_t AudioSystem::startAudioSource(const struct audio_port_config* source,
+-                                       audio_port_handle_t* portId) {
++                                       audio_port_handle_t *portId)
++{
+@@ -1061 +1123,2 @@ status_t AudioSystem::startAudioSource(const struct audio_port_config* source,
+-status_t AudioSystem::stopAudioSource(audio_port_handle_t portId) {
++status_t AudioSystem::stopAudioSource(audio_port_handle_t portId)
++{
+@@ -1066 +1129,2 @@ status_t AudioSystem::stopAudioSource(audio_port_handle_t portId) {
+-status_t AudioSystem::setMasterMono(bool mono) {
++status_t AudioSystem::setMasterMono(bool mono)
++{
+@@ -1071 +1135,2 @@ status_t AudioSystem::setMasterMono(bool mono) {
+-status_t AudioSystem::getMasterMono(bool* mono) {
++status_t AudioSystem::getMasterMono(bool *mono)
++{
+@@ -1076 +1141,2 @@ status_t AudioSystem::getMasterMono(bool* mono) {
+-status_t AudioSystem::setMasterBalance(float balance) {
++status_t AudioSystem::setMasterBalance(float balance)
++{
+@@ -1081 +1147,2 @@ status_t AudioSystem::setMasterBalance(float balance) {
+-status_t AudioSystem::getMasterBalance(float* balance) {
++status_t AudioSystem::getMasterBalance(float *balance)
++{
+@@ -1086,2 +1153,2 @@ status_t AudioSystem::getMasterBalance(float* balance) {
+-float AudioSystem::getStreamVolumeDB(audio_stream_type_t stream, int index,
+-                                     audio_devices_t device) {
++float AudioSystem::getStreamVolumeDB(audio_stream_type_t stream, int index, audio_devices_t device)
++{
+@@ -1092,2 +1159,2 @@ float AudioSystem::getStreamVolumeDB(audio_stream_type_t stream, int index,
+-status_t AudioSystem::getMicrophones(
+-    std::vector<media::MicrophoneInfo>* microphones) {
++status_t AudioSystem::getMicrophones(std::vector<media::MicrophoneInfo> *microphones)
++{
+@@ -1106 +1173,2 @@ status_t AudioSystem::getSurroundFormats(unsigned int* numSurroundFormats,
+-                                         bool reported) {
++                                         bool reported)
++{
+@@ -1109,2 +1177,2 @@ status_t AudioSystem::getSurroundFormats(unsigned int* numSurroundFormats,
+-  return aps->getSurroundFormats(numSurroundFormats, surroundFormats,
+-                                 surroundFormatsEnabled, reported);
++    return aps->getSurroundFormats(
++            numSurroundFormats, surroundFormats, surroundFormatsEnabled, reported);
+@@ -1112,2 +1180,2 @@ status_t AudioSystem::getSurroundFormats(unsigned int* numSurroundFormats,
+-status_t AudioSystem::setSurroundFormatEnabled(audio_format_t audioFormat,
+-                                               bool enabled) {
++status_t AudioSystem::setSurroundFormatEnabled(audio_format_t audioFormat, bool enabled)
++{
+@@ -1118 +1186,2 @@ status_t AudioSystem::setSurroundFormatEnabled(audio_format_t audioFormat,
+-status_t AudioSystem::setAssistantUid(uid_t uid) {
++status_t AudioSystem::setAssistantUid(uid_t uid)
++{
+@@ -1123 +1192,2 @@ status_t AudioSystem::setAssistantUid(uid_t uid) {
+-status_t AudioSystem::setA11yServicesUids(const std::vector<uid_t>& uids) {
++status_t AudioSystem::setA11yServicesUids(const std::vector<uid_t>& uids)
++{
+@@ -1128 +1198,2 @@ status_t AudioSystem::setA11yServicesUids(const std::vector<uid_t>& uids) {
+-bool AudioSystem::isHapticPlaybackSupported() {
++bool AudioSystem::isHapticPlaybackSupported()
++{
+@@ -1135 +1206,2 @@ status_t AudioSystem::getHwOffloadEncodingFormatsSupportedForA2DP(
+-  const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    const sp <IAudioPolicyService>
++        & aps = AudioSystem::get_audio_policy_service();
+@@ -1139,2 +1211,2 @@ status_t AudioSystem::getHwOffloadEncodingFormatsSupportedForA2DP(
+-status_t AudioSystem::listAudioProductStrategies(
+-    AudioProductStrategyVector& strategies) {
++status_t AudioSystem::listAudioProductStrategies(AudioProductStrategyVector &strategies)
++{
+@@ -1145,2 +1217,2 @@ status_t AudioSystem::listAudioProductStrategies(
+-audio_attributes_t AudioSystem::streamTypeToAttributes(
+-    audio_stream_type_t stream) {
++audio_attributes_t AudioSystem::streamTypeToAttributes(audio_stream_type_t stream)
++{
+@@ -1151,4 +1223,2 @@ audio_attributes_t AudioSystem::streamTypeToAttributes(
+-    auto iter = std::find_if(begin(attrVect), end(attrVect),
+-                             [&stream](const auto& attributes) {
+-                               return attributes.getStreamType() == stream;
+-                             });
++        auto iter = std::find_if(begin(attrVect), end(attrVect), [&stream](const auto &attributes) {
++                         return attributes.getStreamType() == stream; });
+@@ -1159,2 +1229 @@ audio_attributes_t AudioSystem::streamTypeToAttributes(
+-  ALOGE("invalid stream type %s when converting to attributes",
+-        toString(stream).c_str());
++    ALOGE("invalid stream type %s when converting to attributes", toString(stream).c_str());
+@@ -1163,2 +1232,2 @@ audio_attributes_t AudioSystem::streamTypeToAttributes(
+-audio_stream_type_t AudioSystem::attributesToStreamType(
+-    const audio_attributes_t& attr) {
++audio_stream_type_t AudioSystem::attributesToStreamType(const audio_attributes_t &attr)
++{
+@@ -1166,2 +1235 @@ audio_stream_type_t AudioSystem::attributesToStreamType(
+-  status_t ret = AudioSystem::getProductStrategyFromAudioAttributes(
+-      AudioAttributes(attr), psId);
++    status_t ret = AudioSystem::getProductStrategyFromAudioAttributes(AudioAttributes(attr), psId);
+@@ -1177,2 +1245 @@ audio_stream_type_t AudioSystem::attributesToStreamType(
+-      auto iter = std::find_if(begin(attrVect), end(attrVect),
+-                               [&attr](const auto& refAttr) {
++            auto iter = std::find_if(begin(attrVect), end(attrVect), [&attr](const auto &refAttr) {
+@@ -1180,2 +1247 @@ audio_stream_type_t AudioSystem::attributesToStreamType(
+-                                     refAttr.getAttributes(), attr);
+-                               });
++                                 refAttr.getAttributes(), attr); });
+@@ -1187,2 +1253 @@ audio_stream_type_t AudioSystem::attributesToStreamType(
+-  ALOGE("invalid attributes %s when converting to stream",
+-        toString(attr).c_str());
++    ALOGE("invalid attributes %s when converting to stream", toString(attr).c_str());
+@@ -1191,2 +1256,3 @@ audio_stream_type_t AudioSystem::attributesToStreamType(
+-status_t AudioSystem::getProductStrategyFromAudioAttributes(
+-    const AudioAttributes& aa, product_strategy_t& productStrategy) {
++status_t AudioSystem::getProductStrategyFromAudioAttributes(const AudioAttributes &aa,
++                                                            product_strategy_t &productStrategy)
++{
+@@ -1197 +1263,2 @@ status_t AudioSystem::getProductStrategyFromAudioAttributes(
+-status_t AudioSystem::listAudioVolumeGroups(AudioVolumeGroupVector& groups) {
++status_t AudioSystem::listAudioVolumeGroups(AudioVolumeGroupVector &groups)
++{
+@@ -1202,2 +1269,3 @@ status_t AudioSystem::listAudioVolumeGroups(AudioVolumeGroupVector& groups) {
+-status_t AudioSystem::getVolumeGroupFromAudioAttributes(
+-    const AudioAttributes& aa, volume_group_t& volumeGroup) {
++status_t AudioSystem::getVolumeGroupFromAudioAttributes(const AudioAttributes &aa,
++                                                        volume_group_t &volumeGroup)
++{
+@@ -1208 +1276,2 @@ status_t AudioSystem::getVolumeGroupFromAudioAttributes(
+-status_t AudioSystem::setRttEnabled(bool enabled) {
++status_t AudioSystem::setRttEnabled(bool enabled)
++{
+@@ -1213 +1282,2 @@ status_t AudioSystem::setRttEnabled(bool enabled) {
+-bool AudioSystem::isCallScreenModeSupported() {
++bool AudioSystem::isCallScreenModeSupported()
++{
+@@ -1218,2 +1288,3 @@ bool AudioSystem::isCallScreenModeSupported() {
+-status_t AudioSystem::setPreferredDeviceForStrategy(
+-    product_strategy_t strategy, const AudioDeviceTypeAddr& device) {
++status_t AudioSystem::setPreferredDeviceForStrategy(product_strategy_t strategy,
++                                                    const AudioDeviceTypeAddr &device)
++{
+@@ -1226,2 +1297,2 @@ status_t AudioSystem::setPreferredDeviceForStrategy(
+-status_t AudioSystem::removePreferredDeviceForStrategy(
+-    product_strategy_t strategy) {
++status_t AudioSystem::removePreferredDeviceForStrategy(product_strategy_t strategy)
++{
+@@ -1234,2 +1305,3 @@ status_t AudioSystem::removePreferredDeviceForStrategy(
+-status_t AudioSystem::getPreferredDeviceForStrategy(
+-    product_strategy_t strategy, AudioDeviceTypeAddr& device) {
++status_t AudioSystem::getPreferredDeviceForStrategy(product_strategy_t strategy,
++        AudioDeviceTypeAddr &device)
++{
+@@ -1243 +1315,2 @@ int AudioSystem::AudioPolicyServiceClient::addAudioPortCallback(
+-    const sp<AudioPortCallback>& callback) {
++        const sp<AudioPortCallback>& callback)
++{
+@@ -1254 +1327,2 @@ int AudioSystem::AudioPolicyServiceClient::removeAudioPortCallback(
+-    const sp<AudioPortCallback>& callback) {
++        const sp<AudioPortCallback>& callback)
++{
+@@ -1268 +1342,2 @@ int AudioSystem::AudioPolicyServiceClient::removeAudioPortCallback(
+-void AudioSystem::AudioPolicyServiceClient::onAudioPortListUpdate() {
++void AudioSystem::AudioPolicyServiceClient::onAudioPortListUpdate()
++{
+@@ -1274 +1349,2 @@ void AudioSystem::AudioPolicyServiceClient::onAudioPortListUpdate() {
+-void AudioSystem::AudioPolicyServiceClient::onAudioPatchListUpdate() {
++void AudioSystem::AudioPolicyServiceClient::onAudioPatchListUpdate()
++{
+@@ -1281 +1357,2 @@ int AudioSystem::AudioPolicyServiceClient::addAudioVolumeGroupCallback(
+-    const sp<AudioVolumeGroupCallback>& callback) {
++        const sp<AudioVolumeGroupCallback>& callback)
++{
+@@ -1292 +1369,2 @@ int AudioSystem::AudioPolicyServiceClient::removeAudioVolumeGroupCallback(
+-    const sp<AudioVolumeGroupCallback>& callback) {
++        const sp<AudioVolumeGroupCallback>& callback)
++{
+@@ -1306,2 +1384,3 @@ int AudioSystem::AudioPolicyServiceClient::removeAudioVolumeGroupCallback(
+-void AudioSystem::AudioPolicyServiceClient::onAudioVolumeGroupChanged(
+-    volume_group_t group, int flags) {
++void AudioSystem::AudioPolicyServiceClient::onAudioVolumeGroupChanged(volume_group_t group,
++                                                                      int flags)
++{
+@@ -1314,3 +1393,3 @@ void AudioSystem::AudioPolicyServiceClient::onDynamicPolicyMixStateUpdate(
+-    String8 regId, int32_t state) {
+-  ALOGV("AudioPolicyServiceClient::onDynamicPolicyMixStateUpdate(%s, %d)",
+-        regId.string(), state);
++        String8 regId, int32_t state)
++{
++    ALOGV("AudioPolicyServiceClient::onDynamicPolicyMixStateUpdate(%s, %d)", regId.string(), state);
+@@ -1327 +1406,2 @@ void AudioSystem::AudioPolicyServiceClient::onRecordingConfigurationUpdate(
+-    int event, const record_client_info_t* clientInfo,
++                                                int event,
++                                                const record_client_info_t *clientInfo,
+@@ -1331 +1411,2 @@ void AudioSystem::AudioPolicyServiceClient::onRecordingConfigurationUpdate(
+-    std::vector<effect_descriptor_t> effects, audio_patch_handle_t patchHandle,
++                                                std::vector<effect_descriptor_t> effects,
++                                                audio_patch_handle_t patchHandle,
+@@ -1339,2 +1420,2 @@ void AudioSystem::AudioPolicyServiceClient::onRecordingConfigurationUpdate(
+-    cb(event, clientInfo, clientConfig, clientEffects, deviceConfig, effects,
+-       patchHandle, source);
++        cb(event, clientInfo, clientConfig, clientEffects,
++           deviceConfig, effects, patchHandle, source);
+@@ -1343,2 +1424,2 @@ void AudioSystem::AudioPolicyServiceClient::onRecordingConfigurationUpdate(
+-void AudioSystem::AudioPolicyServiceClient::binderDied(
+-    const wp<IBinder>& who __unused) {
++void AudioSystem::AudioPolicyServiceClient::binderDied(const wp<IBinder>& who __unused)
++{

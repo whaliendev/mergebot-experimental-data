@@ -1,0 +1,113 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/0b56ce79-30d444e4-5c0a1ed7/src@execution@aggregate_hashtable.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/0b56ce79-30d444e4-5c0a1ed7/src@execution@aggregate_hashtable.no_comments_merged.cpp
+@@ -8 +7,0 @@
+-#include "duckdb/common/types/row_data_collection.hpp"
+@@ -25 +24,3 @@ GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, All
+-GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, Allocator &allocator, vector<LogicalType> group_types): GroupedAggregateHashTable(context, allocator, std::move(group_types), {
++GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, Allocator &allocator,
++                                                     vector<LogicalType> group_types)
++    : GroupedAggregateHashTable(context, allocator, std::move(group_types), {}, vector<AggregateObject>()) {
+@@ -32 +33,7 @@ AggregateHTAppendState::AggregateHTAppendState()
+-GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, Allocator &allocator, vector<LogicalType> group_types_p, vector<LogicalType> payload_types_p, vector<AggregateObject> aggregate_objects_p, HtEntryType entry_type, idx_t initial_capacity): BaseAggregateHashTable(context, allocator, aggregate_objects_p, std::move(payload_types_p)), entry_type(entry_type), capacity(0), entries(0), payload_page_offset(0), is_finalized(false), aggregate_allocator(allocator) {
++GroupedAggregateHashTable::GroupedAggregateHashTable(ClientContext &context, Allocator &allocator,
++                                                     vector<LogicalType> group_types_p,
++                                                     vector<LogicalType> payload_types_p,
++                                                     vector<AggregateObject> aggregate_objects_p,
++                                                     HtEntryType entry_type, idx_t initial_capacity)
++    : BaseAggregateHashTable(context, allocator, aggregate_objects_p, std::move(payload_types_p)),
++      entry_type(entry_type), capacity(0), is_finalized(false), aggregate_allocator(allocator) {
+@@ -74 +81 @@ void GroupedAggregateHashTable::Destroy() {
+-<<<<<<< HEAD
++ RowOperationsState state(aggregate_allocator.GetAllocator());
+@@ -78 +85 @@ void GroupedAggregateHashTable::Destroy() {
+-  RowOperations::DestroyStates(layout, row_locations, iterator.GetCount());
++  RowOperations::DestroyStates(state, layout, row_locations, iterator.GetCount());
+@@ -81,20 +87,0 @@ void GroupedAggregateHashTable::Destroy() {
+-|||||||
+- PayloadApply([&](idx_t page_nr, idx_t page_offset, data_ptr_t ptr) {
+-  data_pointers[count++] = ptr;
+-  if (count == STANDARD_VECTOR_SIZE) {
+-   RowOperations::DestroyStates(layout, state_vector, count);
+-   count = 0;
+-  }
+- });
+- RowOperations::DestroyStates(layout, state_vector, count);
+-=======
+- RowOperationsState state(aggregate_allocator.GetAllocator());
+- PayloadApply([&](idx_t page_nr, idx_t page_offset, data_ptr_t ptr) {
+-  data_pointers[count++] = ptr;
+-  if (count == STANDARD_VECTOR_SIZE) {
+-   RowOperations::DestroyStates(state, layout, state_vector, count);
+-   count = 0;
+-  }
+- });
+- RowOperations::DestroyStates(state, layout, state_vector, count);
+->>>>>>> 30d444e45d4f6ad691baba9a173042892ed4547a
+@@ -242 +229,0 @@ idx_t GroupedAggregateHashTable::AddChunk(AggregateHTAppendState &state, DataChu
+-<<<<<<< HEAD
+@@ -244,2 +230,0 @@ idx_t GroupedAggregateHashTable::AddChunk(AggregateHTAppendState &state, DataChu
+-|||||||
+-=======
+@@ -247 +231,0 @@ idx_t GroupedAggregateHashTable::AddChunk(AggregateHTAppendState &state, DataChu
+->>>>>>> 30d444e45d4f6ad691baba9a173042892ed4547a
+@@ -439,7 +423,3 @@ struct FlushMoveState {
+- DataChunk groups;
+- idx_t hash_col_idx;
+- Vector hashes;
+- AggregateHTAppendState append_state;
+- Vector group_addresses;
+- SelectionVector new_groups_sel;
+- explicitFlushMoveState(TupleDataCollection &collection_p): collection(collection_p), hashes(LogicalType::HASH), group_addresses(LogicalType::POINTER), new_groups_sel(STANDARD_VECTOR_SIZE) {
++ explicit FlushMoveState(TupleDataCollection &collection_p)
++     : collection(collection_p), hashes(LogicalType::HASH), group_addresses(LogicalType::POINTER),
++       new_groups_sel(STANDARD_VECTOR_SIZE) {
+@@ -458,0 +439,6 @@ struct FlushMoveState {
++ DataChunk groups;
++ idx_t hash_col_idx;
++ Vector hashes;
++ AggregateHTAppendState append_state;
++ Vector group_addresses;
++ SelectionVector new_groups_sel;
+@@ -477,0 +464 @@ void GroupedAggregateHashTable::Combine(GroupedAggregateHashTable &other) {
++ RowOperationsState row_state(aggregate_allocator.GetAllocator());
+@@ -480,2 +467,2 @@ void GroupedAggregateHashTable::Combine(GroupedAggregateHashTable &other) {
+-  RowOperations::CombineStates(layout, state.scan_state.chunk_state.row_locations, state.group_addresses,
+-                               state.groups.size());
++  RowOperations::CombineStates(row_state, layout, state.scan_state.chunk_state.row_locations,
++                               state.group_addresses, state.groups.size());
+@@ -515,0 +504 @@ idx_t GroupedAggregateHashTable::Scan(TupleDataParallelScanState &gstate, TupleD
++ RowOperationsState row_state(aggregate_allocator.GetAllocator());
+@@ -517 +506 @@ idx_t GroupedAggregateHashTable::Scan(TupleDataParallelScanState &gstate, TupleD
+- RowOperations::FinalizeStates(layout, lstate.scan_state.chunk_state.row_locations, result, group_cols);
++ RowOperations::FinalizeStates(row_state, layout, lstate.scan_state.chunk_state.row_locations, result, group_cols);
+@@ -520,30 +508,0 @@ idx_t GroupedAggregateHashTable::Scan(TupleDataParallelScanState &gstate, TupleD
+-void GroupedAggregateHashTable::Partition(vector<GroupedAggregateHashTable *> &partition_hts, hash_t mask, idx_t shift) {
+- D_ASSERT(partition_hts.size() > 1);
+- vector<PartitionInfo> partition_info(partition_hts.size());
+- FlushMoveState state(allocator, layout);
+- PayloadApply([&](idx_t page_nr, idx_t page_offset, data_ptr_t ptr) {
+-  auto hash = Load<hash_t>(ptr + hash_offset);
+-  idx_t partition = (hash & mask) >> shift;
+-  D_ASSERT(partition < partition_hts.size());
+-  auto &info = partition_info[partition];
+-  info.hashes_ptr[info.group_count] = hash;
+-  info.addresses_ptr[info.group_count] = ptr;
+-  info.group_count++;
+-  if (info.group_count == STANDARD_VECTOR_SIZE) {
+-   D_ASSERT(partition_hts[partition]);
+-   partition_hts[partition]->FlushMove(state, info.addresses, info.hashes, info.group_count);
+-   info.group_count = 0;
+-  }
+- });
+- idx_t info_idx = 0;
+- idx_t total_count = 0;
+- for (auto &partition_entry : partition_hts) {
+-  auto &info = partition_info[info_idx++];
+-  partition_entry->FlushMove(state, info.addresses, info.hashes, info.group_count);
+-  partition_entry->string_heap->Merge(*string_heap);
+-  partition_entry->Verify();
+-  total_count += partition_entry->Size();
+- }
+- (void)total_count;
+- D_ASSERT(total_count == entries);
+-}

@@ -1,0 +1,154 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@path_utils.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@path_utils.no_comments_merged.cc
+index c8ec46d..9313530 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@path_utils.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/b90c0b34-489049d1-64a6fe75/artd@path_utils.no_comments_merged.cc
+@@ -13 +12,0 @@
+-#include "fmt/format.h"
+@@ -24,0 +24 @@ using ::aidl::com::android::server::art::ProfilePath;
++using ::aidl::com::android::server::art::RuntimeArtifactsPath;
+@@ -31,0 +32,3 @@ using ::android::fs_mgr::ReadFstabFromProcMounts;
++using ::art::service::ValidateDexPath;
++using ::art::service::ValidatePathElement;
++using ::art::service::ValidatePathElementSubstring;
+@@ -40,2 +43,69 @@ std::string_view gListRootDir = "/";
+-using ::art::service::ValidatePathElement;
+-using ::art::service::ValidatePathElementSubstring;
++}
++Result<std::string> GetAndroidDataOrError() {
++  std::string error_msg;
++  std::string result = GetAndroidDataSafe(&error_msg);
++  if (!error_msg.empty()) {
++    return Error() << error_msg;
++  }
++  return result;
++}
++Result<std::string> GetAndroidExpandOrError() {
++  std::string error_msg;
++  std::string result = GetAndroidExpandSafe(&error_msg);
++  if (!error_msg.empty()) {
++    return Error() << error_msg;
++  }
++  return result;
++}
++Result<std::string> GetArtRootOrError() {
++  std::string error_msg;
++  std::string result = GetArtRootSafe(&error_msg);
++  if (!error_msg.empty()) {
++    return Error() << error_msg;
++  }
++  return result;
++}
++std::vector<std::string> ListManagedFiles(const std::string& android_data,
++                                          const std::string& android_expand) {
++  std::vector<std::string> patterns = {
++      android_data + "/misc/profiles/**",
++      android_data + "/dalvik-cache/**",
++  };
++  for (const std::string& data_root : {android_data, android_expand + "/*"}) {
++    patterns.push_back(data_root + "/app/*/*/oat/**");
++    for (const char* user_dir : {"/user", "/user_de"}) {
++      std::string data_dir = data_root + user_dir + "/*/*";
++      std::string secondary_oat_dir = data_dir + "/**/oat";
++      for (const char* maybe_tmp_suffix : {"", ".*.tmp"}) {
++        patterns.push_back(secondary_oat_dir + "/*.prof" + maybe_tmp_suffix);
++        patterns.push_back(secondary_oat_dir + "/*/*.odex" + maybe_tmp_suffix);
++        patterns.push_back(secondary_oat_dir + "/*/*.vdex" + maybe_tmp_suffix);
++        patterns.push_back(secondary_oat_dir + "/*/*.art" + maybe_tmp_suffix);
++      }
++      patterns.push_back(RuntimeImage::GetRuntimeImageDir(data_dir) + "**");
++    }
++  }
++  return tools::Glob(patterns, gListRootDir);
++}
++std::vector<std::string> ListRuntimeArtifactsFiles(
++    const std::string& android_data,
++    const std::string& android_expand,
++    const RuntimeArtifactsPath& runtime_artifacts_path) {
++  std::vector<std::string> patterns;
++  for (const std::string& data_root : {android_data, android_expand + "/*"}) {
++    for (const char* user_dir : {"/user", "/user_de"}) {
++      std::string data_dir =
++          data_root + user_dir + "/*/" + tools::EscapeGlob(runtime_artifacts_path.packageName);
++      patterns.push_back(
++          RuntimeImage::GetRuntimeImagePath(data_dir,
++                                            tools::EscapeGlob(runtime_artifacts_path.dexPath),
++                                            tools::EscapeGlob(runtime_artifacts_path.isa)));
++    }
++  }
++  return tools::Glob(patterns, gListRootDir);
++}
++Result<void> ValidateRuntimeArtifactsPath(const RuntimeArtifactsPath& runtime_artifacts_path) {
++  OR_RETURN(ValidatePathElement(runtime_artifacts_path.packageName, "packageName"));
++  OR_RETURN(ValidatePathElement(runtime_artifacts_path.isa, "isa"));
++  OR_RETURN(ValidateDexPath(runtime_artifacts_path.dexPath));
++  return {};
+@@ -167,69 +236,0 @@ void TestOnlySetListRootDir(std::string_view root_dir) { gListRootDir = root_dir
+-Result<std::string> GetAndroidDataOrError() {
+-  std::string error_msg;
+-  std::string result = GetAndroidDataSafe(&error_msg);
+-  if (!error_msg.empty()) {
+-    return Error() << error_msg;
+-  }
+-  return result;
+-}
+-Result<std::string> GetAndroidExpandOrError() {
+-  std::string error_msg;
+-  std::string result = GetAndroidExpandSafe(&error_msg);
+-  if (!error_msg.empty()) {
+-    return Error() << error_msg;
+-  }
+-  return result;
+-}
+-Result<std::string> GetArtRootOrError() {
+-  std::string error_msg;
+-  std::string result = GetArtRootSafe(&error_msg);
+-  if (!error_msg.empty()) {
+-    return Error() << error_msg;
+-  }
+-  return result;
+-}
+-std::vector<std::string> ListManagedFiles(const std::string& android_data,
+-                                          const std::string& android_expand) {
+-  std::vector<std::string> patterns = {
+-      android_data + "/misc/profiles/**",
+-      android_data + "/dalvik-cache/**",
+-  };
+-  for (const std::string& data_root : {android_data, android_expand + "/*"}) {
+-    patterns.push_back(data_root + "/app/*/*/oat/**");
+-    for (const char* user_dir : {"/user", "/user_de"}) {
+-      std::string data_dir = data_root + user_dir + "/*/*";
+-      std::string secondary_oat_dir = data_dir + "/**/oat";
+-      for (const char* maybe_tmp_suffix : {"", ".*.tmp"}) {
+-        patterns.push_back(secondary_oat_dir + "/*.prof" + maybe_tmp_suffix);
+-        patterns.push_back(secondary_oat_dir + "/*/*.odex" + maybe_tmp_suffix);
+-        patterns.push_back(secondary_oat_dir + "/*/*.vdex" + maybe_tmp_suffix);
+-        patterns.push_back(secondary_oat_dir + "/*/*.art" + maybe_tmp_suffix);
+-      }
+-      patterns.push_back(RuntimeImage::GetRuntimeImageDir(data_dir) + "**");
+-    }
+-  }
+-  return tools::Glob(patterns, gListRootDir);
+-}
+-std::vector<std::string> ListRuntimeArtifactsFiles(
+-    const std::string& android_data,
+-    const std::string& android_expand,
+-    const RuntimeArtifactsPath& runtime_artifacts_path) {
+-  std::vector<std::string> patterns;
+-  for (const std::string& data_root : {android_data, android_expand + "/*"}) {
+-    for (const char* user_dir : {"/user", "/user_de"}) {
+-      std::string data_dir =
+-          data_root + user_dir + "/*/" + tools::EscapeGlob(runtime_artifacts_path.packageName);
+-      patterns.push_back(
+-          RuntimeImage::GetRuntimeImagePath(data_dir,
+-                                            tools::EscapeGlob(runtime_artifacts_path.dexPath),
+-                                            tools::EscapeGlob(runtime_artifacts_path.isa)));
+-    }
+-  }
+-  return tools::Glob(patterns, gListRootDir);
+-}
+-Result<void> ValidateRuntimeArtifactsPath(const RuntimeArtifactsPath& runtime_artifacts_path) {
+-  OR_RETURN(ValidatePathElement(runtime_artifacts_path.packageName, "packageName"));
+-  OR_RETURN(ValidatePathElement(runtime_artifacts_path.isa, "isa"));
+-  OR_RETURN(ValidateDexPath(runtime_artifacts_path.dexPath));
+-  return {};
+-}

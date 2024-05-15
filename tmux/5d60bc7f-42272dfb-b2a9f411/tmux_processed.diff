@@ -1,0 +1,239 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/tmux/5d60bc7f-42272dfb-b2a9f411/tmux.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/tmux/5d60bc7f-42272dfb-b2a9f411/tmux.no_comments_merged.h
+@@ -6,6 +5,0 @@
+-#include <sys/queue.h>
+-#include <bitstring.h>
+-#include <getopt.h>
+-#include <imsg.h>
+-#include <sys/tree.h>
+-#include <stdint.h>
+@@ -31,0 +26,2 @@ extern char **environ;
++#define fatal(msg) log_fatal("%s: %s", __func__, msg);
++#define fatalx(msg) log_fatalx("%s: %s", __func__, msg);
+@@ -492,0 +489 @@ struct mode_key_binding {
++RB_HEAD(mode_key_tree, mode_key_binding);
+@@ -513,2 +510 @@ struct mode_key_table {
+-#define ALL_MOUSE_MODES \
+-  (MODE_MOUSE_STANDARD | MODE_MOUSE_BUTTON | MODE_MOUSE_ANY)
++#define ALL_MOUSE_MODES (MODE_MOUSE_STANDARD|MODE_MOUSE_BUTTON|MODE_MOUSE_ANY)
+@@ -520,0 +517,8 @@ struct utf8_data {
++#if defined(DEBUG) && \
++    ((defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || \
++     (defined(__GNUC__) && __GNUC__ >= 3))
++#define GRID_DEBUG(gd,fmt,...) log_debug2("%s: (sx=%u, sy=%u, hsize=%u) " \
++    fmt, __func__, (gd)->sx, (gd)->sy, (gd)->hsize, ## __VA_ARGS__)
++#else
++#define GRID_DEBUG(...) 
++#endif
+@@ -541,6 +545,3 @@ struct grid_cell {
+-struct grid_cell {
+-  u_char attr;
+-  u_char flags;
+-  u_char fg;
+-  u_char bg;
+-  u_char data;
++struct grid_utf8 {
++ u_char width;
++ u_char data[UTF8_SIZE];
+@@ -548,6 +549,6 @@ struct grid_cell {
+-struct grid_cell {
+-  u_char attr;
+-  u_char flags;
+-  u_char fg;
+-  u_char bg;
+-  u_char data;
++struct grid_line {
++ u_int cellsize;
++ struct grid_cell *celldata;
++ u_int utf8size;
++ struct grid_utf8 *utf8data;
++ int flags;
+@@ -589,0 +591 @@ struct job {
++LIST_HEAD(joblist, job);
+@@ -615,0 +618,4 @@ struct screen_write_ctx {
++#define screen_size_x(s) ((s)->grid->sx)
++#define screen_size_y(s) ((s)->grid->sy)
++#define screen_hsize(s) ((s)->grid->hsize)
++#define screen_hlimit(s) ((s)->grid->hlimit)
+@@ -697,4 +704,2 @@ struct window_pane {
+-  RB_ENTRY(window_pane)
+-  tree_entry;
+-  RB_ENTRY(window_pane)
+-  RB_ENTRY(window_pane)
++ TAILQ_ENTRY(window_pane) entry;
++ RB_ENTRY(window_pane) tree_entry;
+@@ -701,0 +707,2 @@ struct window_pane {
++TAILQ_HEAD(window_panes, window_pane);
++RB_HEAD(window_pane_tree, window_pane);
+@@ -728,0 +736 @@ struct window {
++ARRAY_DECL(windows, struct window *);
+@@ -745 +753,8 @@ struct winlink {
+-enum layout_type { LAYOUT_LEFTRIGHT, LAYOUT_TOPBOTTOM, LAYOUT_WINDOWPANE };
++RB_HEAD(winlinks, winlink);
++TAILQ_HEAD(winlink_stack, winlink);
++enum layout_type {
++ LAYOUT_LEFTRIGHT,
++ LAYOUT_TOPBOTTOM,
++ LAYOUT_WINDOWPANE
++};
++TAILQ_HEAD(layout_cells, layout_cell);
+@@ -760,0 +776 @@ struct paste_buffer {
++ARRAY_DECL(paste_stack, struct paste_buffer *);
+@@ -765,0 +782 @@ struct environ_entry {
++RB_HEAD(environ, environ_entry);
+@@ -769,0 +787 @@ struct session_group {
++TAILQ_HEAD(session_groups, session_group);
+@@ -787,2 +805 @@ struct session {
+-  RB_ENTRY(session) entry;
+-  RB_ENTRY(session) entry;
++ TAILQ_ENTRY(session) gentry;
+@@ -790,0 +808,2 @@ struct session {
++RB_HEAD(sessions, session);
++ARRAY_DECL(sessionslist, struct session *);
+@@ -817 +836 @@ struct tty_term {
+-  LIST_ENTRY(tty_term) entry;
++ char acs[UCHAR_MAX + 1][2];
+@@ -824,0 +844 @@ struct tty_term {
++LIST_HEAD(tty_terms, tty_term);
+@@ -881,0 +902 @@ struct status_out {
++RB_HEAD(status_out_tree, status_out);
+@@ -937,0 +959 @@ struct client {
++ARRAY_DECL(clients, struct client *);
+@@ -947,0 +970,9 @@ struct cmd_ctx {
++#if defined(__GNUC__) && __GNUC__ >= 3
++ void printflike2 (*print)(struct cmd_ctx *, const char *, ...);
++ void printflike2 (*info)(struct cmd_ctx *, const char *, ...);
++ void printflike2 (*error)(struct cmd_ctx *, const char *, ...);
++#else
++ void (*print)(struct cmd_ctx *, const char *, ...);
++ void (*info)(struct cmd_ctx *, const char *, ...);
++ void (*error)(struct cmd_ctx *, const char *, ...);
++#endif
+@@ -956,0 +988 @@ struct cmd_list {
++};
+@@ -984,0 +1017 @@ struct cmd_list {
++RB_HEAD(key_bindings, key_binding);
+@@ -1007,0 +1041,2 @@ struct cmd_list {
++RB_HEAD(format_tree, format_entry);
++ARRAY_DECL(causelist, char *);
+@@ -1042,0 +1078 @@ struct cmd_list {
++RB_PROTOTYPE(format_tree, format_entry, entry, format_cmp);
+@@ -1061,0 +1099 @@ struct cmd_list {
++RB_PROTOTYPE(mode_key_tree, mode_key_binding, entry, mode_key_cmp);
+@@ -1080,0 +1119 @@ struct cmd_list {
++RB_PROTOTYPE(options_tree, options_entry, entry, options_cmp);
+@@ -1107,0 +1147 @@ struct cmd_list {
++RB_PROTOTYPE(environ, environ_entry, entry, environ_cmp);
+@@ -1223,85 +1265 @@ struct cmd_list {
+-  const struct cmd_entry *cmd_table[] = {&cmd_attach_session_entry,
+-                                         &cmd_bind_key_entry,
+-                                         &cmd_break_pane_entry,
+-                                         &cmd_capture_pane_entry,
+-                                         &cmd_choose_buffer_entry,
+-                                         &cmd_choose_client_entry,
+-                                         &cmd_choose_list_entry,
+-                                         &cmd_choose_session_entry,
+-                                         &cmd_choose_tree_entry,
+-                                         &cmd_choose_window_entry,
+-                                         &cmd_clear_history_entry,
+-                                         &cmd_clock_mode_entry,
+-                                         &cmd_command_prompt_entry,
+-                                         &cmd_confirm_before_entry,
+-                                         &cmd_copy_mode_entry,
+-                                         &cmd_delete_buffer_entry,
+-                                         &cmd_detach_client_entry,
+-                                         &cmd_display_message_entry,
+-                                         &cmd_display_panes_entry,
+-                                         &cmd_find_window_entry,
+-                                         &cmd_has_session_entry,
+-                                         &cmd_if_shell_entry,
+-                                         &cmd_join_pane_entry,
+-                                         &cmd_kill_pane_entry,
+-                                         &cmd_kill_server_entry,
+-                                         &cmd_kill_session_entry,
+-                                         &cmd_kill_window_entry,
+-                                         &cmd_last_pane_entry,
+-                                         &cmd_last_window_entry,
+-                                         &cmd_link_window_entry,
+-                                         &cmd_list_buffers_entry,
+-                                         &cmd_list_clients_entry,
+-                                         &cmd_list_commands_entry,
+-                                         &cmd_list_keys_entry,
+-                                         &cmd_list_panes_entry,
+-                                         &cmd_list_sessions_entry,
+-                                         &cmd_list_windows_entry,
+-                                         &cmd_load_buffer_entry,
+-                                         &cmd_lock_client_entry,
+-                                         &cmd_lock_server_entry,
+-                                         &cmd_lock_session_entry,
+-                                         &cmd_move_pane_entry,
+-                                         &cmd_move_window_entry,
+-                                         &cmd_new_session_entry,
+-                                         &cmd_new_window_entry,
+-                                         &cmd_next_layout_entry,
+-                                         &cmd_next_window_entry,
+-                                         &cmd_paste_buffer_entry,
+-                                         &cmd_pipe_pane_entry,
+-                                         &cmd_previous_layout_entry,
+-                                         &cmd_previous_window_entry,
+-                                         &cmd_refresh_client_entry,
+-                                         &cmd_rename_session_entry,
+-                                         &cmd_rename_window_entry,
+-                                         &cmd_resize_pane_entry,
+-                                         &cmd_respawn_pane_entry,
+-                                         &cmd_respawn_window_entry,
+-                                         &cmd_rotate_window_entry,
+-                                         &cmd_run_shell_entry,
+-                                         &cmd_save_buffer_entry,
+-                                         &cmd_select_layout_entry,
+-                                         &cmd_select_pane_entry,
+-                                         &cmd_select_window_entry,
+-                                         &cmd_send_keys_entry,
+-                                         &cmd_send_prefix_entry,
+-                                         &cmd_server_info_entry,
+-                                         &cmd_set_buffer_entry,
+-                                         &cmd_set_environment_entry,
+-                                         &cmd_set_option_entry,
+-                                         &cmd_set_window_option_entry,
+-                                         &cmd_show_buffer_entry,
+-                                         &cmd_show_environment_entry,
+-                                         &cmd_show_messages_entry,
+-                                         &cmd_show_options_entry,
+-                                         &cmd_show_window_options_entry,
+-                                         &cmd_source_file_entry,
+-                                         &cmd_split_window_entry,
+-                                         &cmd_start_server_entry,
+-                                         &cmd_suspend_client_entry,
+-                                         &cmd_swap_pane_entry,
+-                                         &cmd_swap_window_entry,
+-                                         &cmd_switch_client_entry,
+-                                         &cmd_unbind_key_entry,
+-                                         &cmd_unlink_window_entry,
+-                                         NULL};
++extern const struct cmd_entry *cmd_table[];
+@@ -1401,0 +1360 @@ struct cmd_list {
++RB_PROTOTYPE(key_bindings, key_binding, entry, key_bindings_cmp);
+@@ -1461,0 +1421 @@ struct cmd_list {
++RB_PROTOTYPE(status_out_tree, status_out, entry, status_out_cmp);
+@@ -1613,0 +1573 @@ struct cmd_list {
++RB_PROTOTYPE(winlinks, winlink, entry, winlink_cmp);
+@@ -1614,0 +1575 @@ struct cmd_list {
++RB_PROTOTYPE(window_pane_tree, window_pane, tree_entry, window_pane_cmp);
+@@ -1756,0 +1724 @@ struct cmd_list {
++RB_PROTOTYPE(sessions, session, entry, session_cmp);
+@@ -1790,0 +1759,3 @@ struct cmd_list {
++char *osdep_get_name(int, char *);
++char *osdep_get_cwd(int);
++struct event_base *osdep_event_init(void);
+@@ -1808,11 +1778,0 @@ struct cmd_list {
+-  struct grid_utf8 {
+-    u_char width;
+-    u_char data[UTF8_SIZE];
+-  } __packed;
+-  struct grid_line {
+-    u_int cellsize;
+-    struct grid_cell *celldata;
+-    u_int utf8size;
+-    struct grid_utf8 *utf8data;
+-    int flags;
+-  } __packed;

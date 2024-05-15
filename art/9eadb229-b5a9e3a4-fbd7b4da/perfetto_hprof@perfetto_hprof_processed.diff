@@ -1,0 +1,259 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_merged.cc
+@@ -3,2 +2,0 @@
+-#include <android-base/logging.h>
+-#include <base/fast_exit.h>
+@@ -129,16 +126,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+- private:
+-  static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) {
+-    std::string cmdline;
+-    if (!android::base::ReadFileToString("/proc/self/cmdline", &cmdline)) {
+-      return false;
+-    }
+-    const char* argv0 = cmdline.c_str();
+-    for (auto it = cfg.process_cmdline(); it; ++it) {
+-      std::string pattern = (*it).ToStdString();
+-      if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) {
+-        return true;
+-      }
+-    }
+-    return false;
+-  }
+-  bool is_oome_heap_ = false;
+@@ -148 +130 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-  explicitJavaHprofDataSource(bool verify_session_id) : verify_session_id_(verify_session_id) {}
++  explicit JavaHprofDataSource(bool is_oome_heap) : is_oome_heap_(is_oome_heap) {}
+@@ -150 +131,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-<<<<<<< HEAD
+@@ -153,6 +133,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-|||||||
+-    uint64_t normalized_cfg_tracing_session_id =
+-=======
+-    if (verify_session_id_) {
+-      uint64_t normalized_tracing_session_id =
+->>>>>>> b5a9e3a423266ceefce04a1450da3dc156d422dc
+@@ -214 +189,15 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-  bool verify_session_id_ = false;
++  static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) {
++    std::string cmdline;
++    if (!android::base::ReadFileToString("/proc/self/cmdline", &cmdline)) {
++      return false;
++    }
++    const char* argv0 = cmdline.c_str();
++    for (auto it = cfg.process_cmdline(); it; ++it) {
++      std::string pattern = (*it).ToStdString();
++      if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) {
++        return true;
++      }
++    }
++    return false;
++  }
++  bool is_oome_heap_ = false;
+@@ -223 +212 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-void SetupDataSource(const std::string& ds_name, bool verify_session_id) {
++void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {
+@@ -230 +219 @@ void SetupDataSource(const std::string& ds_name, bool verify_session_id) {
+-  JavaHprofDataSource::Register(dsd, verify_session_id);
++  JavaHprofDataSource::Register(dsd, is_oome_heap);
+@@ -272,2 +262,4 @@ class Writer {
+-  Writer(const Writer&) Writer& operator=(const Writer&) = delete Writer(Writer&&) Writer
+-                                                           & operator=(Writer&&) = delete
++  Writer(const Writer&) = delete;
++  Writer& operator=(const Writer&) = delete;
++  Writer(Writer&&) = delete;
++  Writer& operator=(Writer&&) = delete;
+@@ -724,38 +720,2 @@ void ForkAndRun(art::Thread* self,
+-  std::optional<art::gc::ScopedGCCriticalSection> gcs(
+-      std::in_place, self, art::gc::kGcCauseHprof, art::gc::kCollectorTypeHprof);
+-  std::optional<art::ScopedSuspendAll> ssa(std::in_place, __FUNCTION__, true);
+-  pid_t pid = fork();
+-  if (pid == -1) {
+-    PLOG(ERROR) << "fork";
+-    return;
+-  }
+-  if (pid != 0) {
+-    if (resume_parent_policy == ResumeParentPolicy::IMMEDIATELY) {
+-      ssa.reset();
+-      gcs.reset();
+-    }
+-    parent_runnable(pid);
+-    if (resume_parent_policy != ResumeParentPolicy::IMMEDIATELY) {
+-      ssa.reset();
+-      gcs.reset();
+-    }
+-    return;
+-  }
+-  if (sigaction(kJavaHeapprofdSignal, &g_orig_act, nullptr) != 0) {
+-    close(g_signal_pipe_fds[0]);
+-    close(g_signal_pipe_fds[1]);
+-    PLOG(FATAL) << "Failed to sigaction";
+-    return;
+-  }
+-  uint64_t ts = GetCurrentBootClockNs();
+-  child_runnable(parent_pid, ts);
+-  art::FastExit(0);
+-}
+-void ForkAndRun(art::Thread* self,
+-                ResumeParentPolicy resume_parent_policy,
+-                std::function<void(pid_t child)> parent_runnable,
+-                std::function<void(pid_t parent, uint64_t timestamp)> child_runnable) {
+-  pid_t parent_pid = getpid();
+-  LOG(INFO) << "preparing to dump heap for " << parent_pid;
+-  std::optional<art::gc::ScopedGCCriticalSection> gcs(
+-      std::in_place, self, art::gc::kGcCauseHprof, art::gc::kCollectorTypeHprof);
++  std::optional<art::gc::ScopedGCCriticalSection> gcs(std::in_place, self, art::gc::kGcCauseHprof,
++                                                      art::gc::kCollectorTypeHprof);
+@@ -848 +807,0 @@ void DumpPerfetto(art::Thread* self) {
+-<<<<<<< HEAD
+@@ -850,9 +808,0 @@ void DumpPerfetto(art::Thread* self) {
+-|||||||
+-        struct timespec ts = {};
+-        if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {
+-          LOG(FATAL) << "Failed to get boottime.";
+-        }
+-        uint64_t timestamp = ts.tv_sec * 1000000000LL + ts.tv_nsec;
+-=======
+-        SetupDataSource("android.java_hprof", true);
+->>>>>>> b5a9e3a423266ceefce04a1450da3dc156d422dc
+@@ -1000,136 +947,0 @@ extern "C" bool ArtPlugin_Deinitialize() {
+-void DumpPerfettoOutOfMemory() {
+-  art::Thread* self = art::Thread::Current();
+-  if (!self) {
+-    LOG(FATAL_WITHOUT_ABORT) << "no thread in DumpPerfettoOutOfMemory";
+-    return;
+-  }
+-  {
+-    art::MutexLock lk(self, GetStateMutex());
+-    if (g_oome_triggered) {
+-      return;
+-    }
+-    g_oome_triggered = true;
+-  }
+-  ForkAndRun(
+-      self,
+-      ResumeParentPolicy::DEFERRED,
+-      [](pid_t child) {
+-        BusyWaitpid(child, kWatchdogTimeoutSec * 1000);
+-      },
+-      [self](pid_t dumped_pid, uint64_t timestamp) {
+-        ArmWatchdogOrDie();
+-        art::ScopedTrace trace("perfetto_hprof oome");
+-        SetupDataSource("android.java_hprof.oom", false);
+-        perfetto::Tracing::ActivateTriggers({"com.android.telemetry.art-outofmemory"}, 500);
+-        if (!TimedWaitForDataSource(self, 500)) {
+-          LOG(INFO) << "timeout waiting for data source start (no active session?)";
+-          return;
+-        }
+-        WriteHeapPackets(dumped_pid, timestamp);
+-        LOG(INFO) << "finished dumping heap for OOME " << dumped_pid;
+-      });
+-}
+-bool CanProfile() {
+-  std::string build_type = android::base::GetProperty("ro.build.type", "");
+-  return !build_type.empty() && build_type != "user";
+-}
+-extern "C" bool ArtPlugin_Initialize() {
+-  if (art::Runtime::Current() == nullptr) {
+-    return false;
+-  }
+-  art::Thread* self = art::Thread::Current();
+-  {
+-    art::MutexLock lk(self, GetStateMutex());
+-    if (g_state != State::kUninitialized) {
+-      LOG(ERROR) << "perfetto_hprof already initialized. state: " << g_state;
+-      return false;
+-    }
+-    g_state = State::kWaitForListener;
+-  }
+-  if (pipe2(g_signal_pipe_fds, O_CLOEXEC) == -1) {
+-    PLOG(ERROR) << "Failed to pipe";
+-    return false;
+-  }
+-  struct sigaction act = {};
+-  act.sa_flags = SA_SIGINFO | SA_RESTART;
+-  act.sa_sigaction = [](int, siginfo_t* si, void*) {
+-    requested_tracing_session_id = si->si_value.sival_int;
+-    if (write(g_signal_pipe_fds[1], kByte, sizeof(kByte)) == -1) {
+-      PLOG(ERROR) << "Failed to trigger heap dump";
+-    }
+-  };
+-  if (sigaction(kJavaHeapprofdSignal, &act, &g_orig_act) != 0) {
+-    close(g_signal_pipe_fds[0]);
+-    close(g_signal_pipe_fds[1]);
+-    PLOG(ERROR) << "Failed to sigaction";
+-    return false;
+-  }
+-  std::thread th([] {
+-    art::Runtime* runtime = art::Runtime::Current();
+-    if (!runtime) {
+-      LOG(FATAL_WITHOUT_ABORT) << "no runtime in perfetto_hprof_listener";
+-      return;
+-    }
+-    if (!runtime->AttachCurrentThread("perfetto_hprof_listener",
+-                                                    true,
+-                                      runtime->GetSystemThreadGroup(),
+-                                                      false)) {
+-      LOG(ERROR) << "failed to attach thread.";
+-      {
+-        art::MutexLock lk(nullptr, GetStateMutex());
+-        g_state = State::kUninitialized;
+-        GetStateCV().Broadcast(nullptr);
+-      }
+-      return;
+-    }
+-    art::Thread* self = art::Thread::Current();
+-    if (!self) {
+-      LOG(FATAL_WITHOUT_ABORT) << "no thread in perfetto_hprof_listener";
+-      return;
+-    }
+-    {
+-      art::MutexLock lk(self, GetStateMutex());
+-      if (g_state == State::kWaitForListener) {
+-        g_state = State::kWaitForStart;
+-        GetStateCV().Broadcast(self);
+-      }
+-    }
+-    char buf[1];
+-    for (;;) {
+-      int res;
+-      do {
+-        res = read(g_signal_pipe_fds[0], buf, sizeof(buf));
+-      } while (res == -1 && errno == EINTR);
+-      if (res <= 0) {
+-        if (res == -1) {
+-          PLOG(ERROR) << "failed to read";
+-        }
+-        close(g_signal_pipe_fds[0]);
+-        return;
+-      }
+-      perfetto_hprof::DumpPerfetto(self);
+-    }
+-  });
+-  th.detach();
+-  if (CanProfile()) {
+-    art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);
+-  }
+-  return true;
+-}
+-extern "C" bool ArtPlugin_Deinitialize() {
+-  if (CanProfile()) {
+-    art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);
+-  }
+-  if (sigaction(kJavaHeapprofdSignal, &g_orig_act, nullptr) != 0) {
+-    PLOG(ERROR) << "failed to reset signal handler";
+-    return false;
+-  }
+-  close(g_signal_pipe_fds[1]);
+-  art::Thread* self = art::Thread::Current();
+-  art::MutexLock lk(self, GetStateMutex());
+-  while (g_state == State::kWaitForListener) {
+-    GetStateCV().Wait(art::Thread::Current());
+-  }
+-  g_state = State::kUninitialized;
+-  GetStateCV().Broadcast(self);
+-  return true;
+@@ -1136,0 +949,2 @@ extern "C" bool ArtPlugin_Deinitialize() {
++namespace perfetto {
++PERFETTO_DEFINE_DATA_SOURCE_STATIC_MEMBERS(perfetto_hprof::JavaHprofDataSource);
+@@ -1138 +951,0 @@ extern "C" bool ArtPlugin_Deinitialize() {
+-namespace perfetto {}

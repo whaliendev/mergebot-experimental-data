@@ -1,0 +1,109 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/redis/dda8cc18-6e98214f-d8207d09/src@replication.no_comments_mergebot.c
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/redis/dda8cc18-6e98214f-d8207d09/src@replication.no_comments_merged.c
+@@ -144,2 +147,2 @@ void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
+-void replicationFeedSlavesFromMasterStream(list *slaves, char *buf,
+-                                           size_t buflen) {
++#include <ctype.h>
++void replicationFeedSlavesFromMasterStream(list *slaves, char *buf, size_t buflen) {
+@@ -280,3 +290 @@ int masterTryPartialResynchronization(client *c) {
+-              "Unable to partial resync with replica %s for lack of backlog "
+-              "(Replica request was: %lld).",
+-              replicationGetSlaveName(c), psync_offset);
++            "Unable to partial resync with replica %s for lack of backlog (Replica request was: %lld).", replicationGetSlaveName(c), psync_offset);
+@@ -285,3 +293 @@ int masterTryPartialResynchronization(client *c) {
+-                "Warning: replica %s tried to PSYNC with an offset that is "
+-                "greater than the master replication offset.",
+-                replicationGetSlaveName(c));
++                "Warning: replica %s tried to PSYNC with an offset that is greater than the master replication offset.", replicationGetSlaveName(c));
+@@ -307,3 +313,3 @@ int masterTryPartialResynchronization(client *c) {
+-            "Partial resynchronization request from %s accepted. Sending %lld "
+-            "bytes of backlog starting from offset %lld.",
+-            replicationGetSlaveName(c), psync_len, psync_offset);
++        "Partial resynchronization request from %s accepted. Sending %lld bytes of backlog starting from offset %lld.",
++            replicationGetSlaveName(c),
++            psync_len, psync_offset);
+@@ -330,3 +336 @@ int startBgsaveForReplication(int mincapa) {
+-    serverLog(LL_WARNING,
+-              "BGSAVE for replication: replication information not available, "
+-              "can't generate the RDB file right now. Try later.");
++        serverLog(LL_WARNING,"BGSAVE for replication: replication information not available, can't generate the RDB file right now. Try later.");
+@@ -415,3 +419 @@ void syncCommand(client *c) {
+-      serverLog(LL_NOTICE,
+-                "Can't attach the replica to the current BGSAVE. Waiting for "
+-                "next BGSAVE for SYNC");
++            serverLog(LL_NOTICE,"Can't attach the replica to the current BGSAVE. Waiting for next BGSAVE for SYNC");
+@@ -627,4 +627 @@ void rdbPipeReadHandler(struct aeEventLoop *eventLoop, int fd, void *clientData,
+-      serverLog(LL_WARNING,
+-                "Diskless rdb transfer, done reading from pipe, %d replicas "
+-                "still up.",
+-                stillUp);
++            serverLog(LL_WARNING,"Diskless rdb transfer, done reading from pipe, %d replicas still up.", stillUp);
+@@ -691,2 +685 @@ void updateSlavesWaitingBgsave(int bgsaveerr, int type) {
+-                  "Streamed RDB transfer with replica %s succeeded (socket). "
+-                  "Waiting for REPLCONF ACK from slave to enable streaming",
++                    "Streamed RDB transfer with replica %s succeeded (socket). Waiting for REPLCONF ACK from slave to enable streaming",
+@@ -739,4 +730 @@ void shiftReplicationId(void) {
+-  serverLog(LL_WARNING,
+-            "Setting secondary replication ID to %s, valid up to offset: %lld. "
+-            "New replication ID is %s",
+-            server.replid2, server.second_replid_offset, server.replid);
++    serverLog(LL_WARNING,"Setting secondary replication ID to %s, valid up to offset: %lld. New replication ID is %s", server.replid2, server.second_replid_offset, server.replid);
+@@ -796,2 +783 @@ static int useDisklessLoad() {
+-              "Skipping diskless-load because there are modules that don't "
+-              "handle read errors.");
++            "Skipping diskless-load because there are modules that don't handle read errors.");
+@@ -856,4 +843 @@ void readSyncBulkPayload(connection *conn) {
+-      serverLog(LL_WARNING,
+-                "Bad protocol from MASTER, the first byte is not '$' (we "
+-                "received '%s'), are you sure the host and port are right?",
+-                buf);
++            serverLog(LL_WARNING,"Bad protocol from MASTER, the first byte is not '$' (we received '%s'), are you sure the host and port are right?", buf);
+@@ -869,2 +852 @@ void readSyncBulkPayload(connection *conn) {
+-                "MASTER <-> REPLICA sync: receiving streamed RDB from master "
+-                "with EOF %s",
++                "MASTER <-> REPLICA sync: receiving streamed RDB from master with EOF %s",
+@@ -1334,3 +1315 @@ void syncWithMaster(connection *conn) {
+-    serverLog(LL_NOTICE,
+-              "MASTER <-> REPLICA sync: Master accepted a Partial "
+-              "Resynchronization.");
++        serverLog(LL_NOTICE, "MASTER <-> REPLICA sync: Master accepted a Partial Resynchronization.");
+@@ -1358,4 +1337 @@ void syncWithMaster(connection *conn) {
+-      serverLog(LL_WARNING,
+-                "Opening the temp file needed for MASTER <-> REPLICA "
+-                "synchronization: %s",
+-                strerror(errno));
++            serverLog(LL_WARNING,"Opening the temp file needed for MASTER <-> REPLICA synchronization: %s",strerror(errno));
+@@ -1612,4 +1581 @@ void replicationCacheMasterUsingMyself(void) {
+-  serverLog(LL_NOTICE,
+-            "Before turning into a replica, using my master parameters to "
+-            "synthesize a cached master: I may be able to synchronize with the "
+-            "new master with just a partial transfer.");
++    serverLog(LL_NOTICE,"Before turning into a replica, using my master parameters to synthesize a cached master: I may be able to synchronize with the new master with just a partial transfer.");
+@@ -1636,4 +1602 @@ void replicationResurrectCachedMaster(connection *conn) {
+-    serverLog(LL_WARNING,
+-              "Error resurrecting the cached master, impossible to add the "
+-              "readable handler: %s",
+-              strerror(errno));
++        serverLog(LL_WARNING,"Error resurrecting the cached master, impossible to add the readable handler: %s", strerror(errno));
+@@ -1644,4 +1607 @@ void replicationResurrectCachedMaster(connection *conn) {
+-      serverLog(LL_WARNING,
+-                "Error resurrecting the cached master, impossible to add the "
+-                "writable handler: %s",
+-                strerror(errno));
++            serverLog(LL_WARNING,"Error resurrecting the cached master, impossible to add the writable handler: %s", strerror(errno));
+@@ -1714,5 +1675 @@ void waitCommand(client *c) {
+-    addReplyError(c,
+-                  "WAIT cannot be used with replica instances. Please also "
+-                  "note that since Redis 4.0 if a replica is configured to be "
+-                  "writable (which is not the default) writes to replicas are "
+-                  "just local and are not propagated.");
++        addReplyError(c,"WAIT cannot be used with replica instances. Please also note that since Redis 4.0 if a replica is configured to be writable (which is not the default) writes to replicas are just local and are not propagated.");
+@@ -1788,5 +1746,3 @@ void replicationCron(void) {
+-      (time(NULL) - server.repl_transfer_lastio) > server.repl_timeout) {
+-    serverLog(LL_WARNING,
+-              "Timeout receiving bulk data from MASTER... If the problem "
+-              "persists try to set the 'repl-timeout' parameter in redis.conf "
+-              "to a larger value.");
++        (time(NULL)-server.repl_transfer_lastio) > server.repl_timeout)
++    {
++        serverLog(LL_WARNING,"Timeout receiving bulk data from MASTER... If the problem persists try to set the 'repl-timeout' parameter in redis.conf to a larger value.");

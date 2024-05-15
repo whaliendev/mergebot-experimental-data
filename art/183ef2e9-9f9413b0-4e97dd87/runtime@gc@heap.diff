@@ -1,0 +1,956 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@gc@heap.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@gc@heap.no_comments_merged.h
+index fda4273..033ea8a 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@gc@heap.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@gc@heap.no_comments_merged.h
+@@ -54,2 +54 @@ namespace accounting {
+-template <typename T>
+-class AtomicStack;
++template <typename T> class AtomicStack;
+@@ -116,2 +115,3 @@ class Heap {
+-      USE_ART_LOW_4G_ALLOCATOR ? space::LargeObjectSpaceType::kFreeList :
+-                                 space::LargeObjectSpaceType::kMap;
++      USE_ART_LOW_4G_ALLOCATOR ?
++          space::LargeObjectSpaceType::kFreeList
++        : space::LargeObjectSpaceType::kMap;
+@@ -127,3 +127 @@ class Heap {
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  size_t min_foreground_concurrent_start_bytes_public :
++  DECLARE_RUNTIME_DEBUG_FLAG(kStressCollectorTransition);
+@@ -173,8 +171,53 @@ class Heap {
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+-  }
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  template <bool kInstrumented = true, typename PreFenceVisitor>
++  mirror::Object* AllocObject(Thread* self,
++                              ObjPtr<mirror::Class> klass,
++                              size_t num_bytes,
++                              const PreFenceVisitor& pre_fence_visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_,
++               !*pending_task_lock_,
++               !*backtrace_lock_,
++               !process_state_update_lock_,
++               !Roles::uninterruptible_) {
++    return AllocObjectWithAllocator<kInstrumented>(self,
++                                                   klass,
++                                                   num_bytes,
++                                                   GetCurrentAllocator(),
++                                                   pre_fence_visitor);
++  }
++  template <bool kInstrumented = true, typename PreFenceVisitor>
++  mirror::Object* AllocNonMovableObject(Thread* self,
++                                        ObjPtr<mirror::Class> klass,
++                                        size_t num_bytes,
++                                        const PreFenceVisitor& pre_fence_visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_,
++               !*pending_task_lock_,
++               !*backtrace_lock_,
++               !process_state_update_lock_,
++               !Roles::uninterruptible_) {
++    mirror::Object* obj = AllocObjectWithAllocator<kInstrumented>(self,
++                                                                  klass,
++                                                                  num_bytes,
++                                                                  GetCurrentNonMovingAllocator(),
++                                                                  pre_fence_visitor);
++    JHPCheckNonTlabSampleAllocation(self, obj, num_bytes);
++    return obj;
++  }
++  template <bool kInstrumented = true, bool kCheckLargeObject = true, typename PreFenceVisitor>
++  ALWAYS_INLINE mirror::Object* AllocObjectWithAllocator(Thread* self,
++                                                         ObjPtr<mirror::Class> klass,
++                                                         size_t byte_count,
++                                                         AllocatorType allocator,
++                                                         const PreFenceVisitor& pre_fence_visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_,
++               !*pending_task_lock_,
++               !*backtrace_lock_,
++               !process_state_update_lock_,
++               !Roles::uninterruptible_);
++  AllocatorType GetCurrentAllocator() const {
++    return current_allocator_;
++  }
++  AllocatorType GetCurrentNonMovingAllocator() const {
++    return current_non_moving_allocator_;
+@@ -182,3 +224,0 @@ class Heap {
+- public:
+-  AllocatorType GetCurrentAllocator() const { return current_allocator_; }
+-  AllocatorType GetCurrentNonMovingAllocator() const { return current_non_moving_allocator_; }
+@@ -186,12 +226,16 @@ class Heap {
+-    return (old_allocator == kAllocatorTypeNonMoving) ? GetCurrentNonMovingAllocator() :
+-                                                        GetCurrentAllocator();
+-  }
+-  void VisitReflectiveTargets(ReflectiveValueVisitor* visitor) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void CheckPreconditionsForAllocObject(ObjPtr<mirror::Class> c, size_t byte_count) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void RegisterNativeAllocation(JNIEnv* env, size_t bytes) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++    return (old_allocator == kAllocatorTypeNonMoving) ?
++        GetCurrentNonMovingAllocator() : GetCurrentAllocator();
++  }
++  template <typename Visitor>
++  ALWAYS_INLINE void VisitObjects(Visitor&& visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  template <typename Visitor>
++  ALWAYS_INLINE void VisitObjectsPaused(Visitor&& visitor)
++      REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  void VisitReflectiveTargets(ReflectiveValueVisitor* visitor)
++      REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  void CheckPreconditionsForAllocObject(ObjPtr<mirror::Class> c, size_t byte_count)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void RegisterNativeAllocation(JNIEnv* env, size_t bytes)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
+@@ -199,21 +243,18 @@ class Heap {
+-  void NotifyNativeAllocations(JNIEnv* env) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  uint32_t GetNotifyNativeInterval() { return kNotifyNativeInterval; }
+-  void ChangeAllocator(AllocatorType allocator) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ChangeCollector(CollectorType collector_type) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void VerifyObjectBody(ObjPtr<mirror::Object> o) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void VerifyHeap() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  size_t VerifyHeapReferences(bool verify_referents = true) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  bool VerifyMissingCardMarks() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  bool IsValidObjectAddress(const void* obj) constprivate : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  bool IsNonDiscontinuousSpaceHeapAddress(const void* addr) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  void NotifyNativeAllocations(JNIEnv* env)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
++  uint32_t GetNotifyNativeInterval() {
++    return kNotifyNativeInterval;
++  }
++  void ChangeAllocator(AllocatorType allocator)
++      REQUIRES(Locks::mutator_lock_, !Locks::runtime_shutdown_lock_);
++  void ChangeCollector(CollectorType collector_type)
++      REQUIRES(Locks::mutator_lock_, !*gc_complete_lock_);
++  void VerifyObjectBody(ObjPtr<mirror::Object> o) NO_THREAD_SAFETY_ANALYSIS;
++  void VerifyHeap() REQUIRES(!Locks::heap_bitmap_lock_);
++  size_t VerifyHeapReferences(bool verify_referents = true)
++      REQUIRES(Locks::mutator_lock_, !*gc_complete_lock_);
++  bool VerifyMissingCardMarks()
++      REQUIRES(Locks::heap_bitmap_lock_, Locks::mutator_lock_);
++  bool IsValidObjectAddress(const void* obj) const REQUIRES_SHARED(Locks::mutator_lock_);
++  bool IsNonDiscontinuousSpaceHeapAddress(const void* addr) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -223,29 +264,18 @@ class Heap {
+-                          bool sorted = false) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  bool IsMovableObject(ObjPtr<mirror::Object> obj) constprivate
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void IncrementDisableMovingGC(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void DecrementDisableMovingGC(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void IncrementDisableThreadFlip(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void DecrementDisableThreadFlip(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ThreadFlipBegin(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ThreadFlipEnd(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void EnsureObjectUserfaulted(ObjPtr<mirror::Object> obj) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ClearMarkedObjects() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void CollectGarbage(bool clear_soft_references, GcCause cause = kGcCauseExplicit) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ConcurrentGC(Thread* self, GcCause cause, bool force_full, uint32_t requested_gc_num) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++                          bool sorted = false)
++      REQUIRES_SHARED(Locks::heap_bitmap_lock_, Locks::mutator_lock_);
++  bool IsMovableObject(ObjPtr<mirror::Object> obj) const REQUIRES_SHARED(Locks::mutator_lock_);
++  void IncrementDisableMovingGC(Thread* self) REQUIRES(!*gc_complete_lock_);
++  void DecrementDisableMovingGC(Thread* self) REQUIRES(!*gc_complete_lock_);
++  void IncrementDisableThreadFlip(Thread* self) REQUIRES(!*thread_flip_lock_);
++  void DecrementDisableThreadFlip(Thread* self) REQUIRES(!*thread_flip_lock_);
++  void ThreadFlipBegin(Thread* self) REQUIRES(!*thread_flip_lock_);
++  void ThreadFlipEnd(Thread* self) REQUIRES(!*thread_flip_lock_);
++  void EnsureObjectUserfaulted(ObjPtr<mirror::Object> obj) REQUIRES_SHARED(Locks::mutator_lock_);
++  void ClearMarkedObjects()
++      REQUIRES(Locks::heap_bitmap_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void CollectGarbage(bool clear_soft_references, GcCause cause = kGcCauseExplicit)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
++  void ConcurrentGC(Thread* self, GcCause cause, bool force_full, uint32_t requested_gc_num)
++      REQUIRES(!Locks::runtime_shutdown_lock_, !*gc_complete_lock_,
++               !*pending_task_lock_, !process_state_update_lock_);
+@@ -254,8 +284,8 @@ class Heap {
+-                      uint64_t* counts) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ClearGrowthLimit() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ClampGrowthLimit() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  double GetTargetHeapUtilization() const { return target_utilization_; }
++                      uint64_t* counts)
++      REQUIRES(!Locks::heap_bitmap_lock_, !*gc_complete_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void ClearGrowthLimit() REQUIRES(!*gc_complete_lock_);
++  void ClampGrowthLimit() REQUIRES(!Locks::heap_bitmap_lock_);
++  double GetTargetHeapUtilization() const {
++    return target_utilization_;
++  }
+@@ -264,11 +294,14 @@ class Heap {
+-  void SetSpaceAsDefault(space::ContinuousSpace* continuous_space) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void AddSpace(space::Space* space) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void RemoveSpace(space::Space* space) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  double GetPreGcWeightedAllocatedBytes() const { return pre_gc_weighted_allocated_bytes_; }
+-  double GetPostGcWeightedAllocatedBytes() const { return post_gc_weighted_allocated_bytes_; }
++  void SetSpaceAsDefault(space::ContinuousSpace* continuous_space)
++      REQUIRES(!Locks::heap_bitmap_lock_);
++  void AddSpace(space::Space* space)
++      REQUIRES(!Locks::heap_bitmap_lock_)
++      REQUIRES(Locks::mutator_lock_);
++  void RemoveSpace(space::Space* space)
++    REQUIRES(!Locks::heap_bitmap_lock_)
++    REQUIRES(Locks::mutator_lock_);
++  double GetPreGcWeightedAllocatedBytes() const {
++    return pre_gc_weighted_allocated_bytes_;
++  }
++  double GetPostGcWeightedAllocatedBytes() const {
++    return post_gc_weighted_allocated_bytes_;
++  }
+@@ -278,2 +311,6 @@ class Heap {
+-  uint64_t GetProcessCpuStartTime() const { return process_cpu_start_time_ns_; }
+-  uint64_t GetPostGCLastProcessCpuTime() const { return post_gc_last_process_cpu_time_ns_; }
++  uint64_t GetProcessCpuStartTime() const {
++    return process_cpu_start_time_ns_;
++  }
++  uint64_t GetPostGCLastProcessCpuTime() const {
++    return post_gc_last_process_cpu_time_ns_;
++  }
+@@ -282,6 +319,3 @@ class Heap {
+-  collector::GcType WaitForGcToComplete(GcCause cause, Thread* self) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void UpdateProcessState(ProcessState old_process_state, ProcessState new_process_state) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  collector::GcType WaitForGcToComplete(GcCause cause, Thread* self) REQUIRES(!*gc_complete_lock_);
++  void UpdateProcessState(ProcessState old_process_state, ProcessState new_process_state)
++      REQUIRES(!*pending_task_lock_, !*gc_complete_lock_, !process_state_update_lock_);
+@@ -291,7 +325,3 @@ class Heap {
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  REQUIRES(Locks::alloc_tracker_lock_) { return allocation_records_.get(); }
+- private:
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  const std::vector<space::ContinuousSpace*>& GetContinuousSpaces() const
++      REQUIRES_SHARED(Locks::mutator_lock_) {
++    return continuous_spaces_;
+@@ -299,2 +329,2 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  const std::vector<space::DiscontinuousSpace*>& GetDiscontinuousSpaces() const {
++    return discontinuous_spaces_;
+@@ -302,2 +332,2 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  const collector::Iteration* GetCurrentGcIteration() const {
++    return &current_gc_iteration_;
+@@ -305,2 +335,2 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  collector::Iteration* GetCurrentGcIteration() {
++    return &current_gc_iteration_;
+@@ -308,2 +338,4 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  void EnableObjectValidation() {
++    verify_object_mode_ = kVerifyObjectSupport;
++    if (verify_object_mode_ > kVerifyObjectModeDisabled) {
++      VerifyHeap();
+@@ -311,2 +342,0 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+@@ -314,2 +344,2 @@ class Heap {
+-  ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-    return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  void DisableObjectValidation() {
++    verify_object_mode_ = kVerifyObjectModeDisabled;
+@@ -317,2 +347,7 @@ class Heap {
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  bool IsObjectValidationEnabled() const {
++    return verify_object_mode_ > kVerifyObjectModeDisabled;
++  }
++  bool IsLowMemoryMode() const {
++    return low_memory_mode_;
++  }
++  double HeapGrowthMultiplier() const;
+@@ -321,2 +356,6 @@ class Heap {
+-  accounting::CardTable* GetCardTable() const { return card_table_.get(); }
+-  accounting::ReadBarrierTable* GetReadBarrierTable() const { return rb_table_.get(); }
++  accounting::CardTable* GetCardTable() const {
++    return card_table_.get();
++  }
++  accounting::ReadBarrierTable* GetReadBarrierTable() const {
++    return rb_table_.get();
++  }
+@@ -324,4 +363,8 @@ class Heap {
+-  size_t GetBytesAllocated() const { return num_bytes_allocated_.load(std::memory_order_relaxed); }
+-  bool GetUseGenerationalCC() const { return use_generational_cc_; }
+-  size_t GetObjectsAllocated() const private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  size_t GetBytesAllocated() const {
++    return num_bytes_allocated_.load(std::memory_order_relaxed);
++  }
++  bool GetUseGenerationalCC() const {
++    return use_generational_cc_;
++  }
++  size_t GetObjectsAllocated() const
++      REQUIRES(!Locks::heap_bitmap_lock_);
+@@ -336,2 +379,6 @@ class Heap {
+-  space::RegionSpace* GetRegionSpace() const { return region_space_; }
+-  space::BumpPointerSpace* GetBumpPointerSpace() const { return bump_pointer_space_; }
++  space::RegionSpace* GetRegionSpace() const {
++    return region_space_;
++  }
++  space::BumpPointerSpace* GetBumpPointerSpace() const {
++    return bump_pointer_space_;
++  }
+@@ -354,5 +401,3 @@ class Heap {
+-      private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  space::ContinuousSpace* FindContinuousSpaceFromAddress(const mirror::Object* addr) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  space::ContinuousSpace* FindContinuousSpaceFromAddress(const mirror::Object* addr) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -360,18 +405,12 @@ class Heap {
+-                                                              bool fail_ok) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  space::Space* FindSpaceFromObject(ObjPtr<mirror::Object> obj, bool fail_ok) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  space::Space* FindSpaceFromAddress(const void* ptr) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  std::string DumpSpaceNameFromAddress(const void* addr) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void DumpForSigQuit(std::ostream& os) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void DoPendingCollectorTransition() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void Trim(Thread* self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++                                                              bool fail_ok) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  space::Space* FindSpaceFromObject(ObjPtr<mirror::Object> obj, bool fail_ok) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  space::Space* FindSpaceFromAddress(const void* ptr) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  std::string DumpSpaceNameFromAddress(const void* addr) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void DumpForSigQuit(std::ostream& os) REQUIRES(!*gc_complete_lock_);
++  void DoPendingCollectorTransition()
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
++  void Trim(Thread* self) REQUIRES(!*gc_complete_lock_);
+@@ -383,28 +422,20 @@ class Heap {
+-  void RosAllocVerification(TimingLogger* timings, const char* name) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  accounting::HeapBitmap* GetLiveBitmap() REQUIRES(Locks::alloc_tracker_lock_) {
+-    return allocation_records_.get();
+-  }
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  REQUIRES(Locks::alloc_tracker_lock_) { return allocation_records_.get(); }
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  REQUIRES(Locks::alloc_tracker_lock_) { return allocation_records_.get(); }
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  REQUIRES(Locks::alloc_tracker_lock_) { return allocation_records_.get(); }
+- private:
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void FlushAllocStack() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void RevokeAllThreadLocalAllocationStacks(Thread* self) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  void RosAllocVerification(TimingLogger* timings, const char* name)
++      REQUIRES(Locks::mutator_lock_);
++  accounting::HeapBitmap* GetLiveBitmap() REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++    return live_bitmap_.get();
++  }
++  accounting::HeapBitmap* GetMarkBitmap() REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++    return mark_bitmap_.get();
++  }
++  accounting::ObjectStack* GetLiveStack() REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++    return live_stack_.get();
++  }
++  accounting::ObjectStack* GetAllocationStack() REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++    return allocation_stack_.get();
++  }
++  void PreZygoteFork() NO_THREAD_SAFETY_ANALYSIS;
++  void FlushAllocStack()
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void RevokeAllThreadLocalAllocationStacks(Thread* self)
++      REQUIRES(Locks::mutator_lock_, !Locks::runtime_shutdown_lock_, !Locks::thread_list_lock_);
+@@ -414,19 +445,22 @@ class Heap {
+-                      accounting::ObjectStack* stack) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void MarkAllocStackAsLive(accounting::ObjectStack* stack) private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void UnBindBitmaps() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  const std::vector<space::ImageSpace*>& GetBootImageSpaces() const { return boot_image_spaces_; }
+-  bool ObjectIsInBootImageSpace(ObjPtr<mirror::Object> obj) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  bool IsInBootImageOatFile(const void* p) const private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  uint32_t GetBootImagesStartAddress() const { return boot_images_start_address_; }
+-  uint32_t GetBootImagesSize() const { return boot_images_size_; }
++                      accounting::ObjectStack* stack)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void MarkAllocStackAsLive(accounting::ObjectStack* stack)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(Locks::heap_bitmap_lock_);
++  void UnBindBitmaps()
++      REQUIRES(Locks::heap_bitmap_lock_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  const std::vector<space::ImageSpace*>& GetBootImageSpaces() const {
++    return boot_image_spaces_;
++  }
++  bool ObjectIsInBootImageSpace(ObjPtr<mirror::Object> obj) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  bool IsInBootImageOatFile(const void* p) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  uint32_t GetBootImagesStartAddress() const {
++    return boot_images_start_address_;
++  }
++  uint32_t GetBootImagesSize() const {
++    return boot_images_size_;
++  }
+@@ -436,7 +470,14 @@ class Heap {
+-  space::DlMallocSpace* GetDlMallocSpace() const { return dlmalloc_space_; }
+-  space::RosAllocSpace* GetRosAllocSpace() const { return rosalloc_space_; }
+-  space::RosAllocSpace* GetRosAllocSpace(gc::allocator::RosAlloc* rosalloc) const private
+-      : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  space::MallocSpace* GetNonMovingSpace() const { return non_moving_space_; }
+-  space::LargeObjectSpace* GetLargeObjectsSpace() const { return large_object_space_; }
++  space::DlMallocSpace* GetDlMallocSpace() const {
++    return dlmalloc_space_;
++  }
++  space::RosAllocSpace* GetRosAllocSpace() const {
++    return rosalloc_space_;
++  }
++  space::RosAllocSpace* GetRosAllocSpace(gc::allocator::RosAlloc* rosalloc) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  space::MallocSpace* GetNonMovingSpace() const {
++    return non_moving_space_;
++  }
++  space::LargeObjectSpace* GetLargeObjectsSpace() const {
++    return large_object_space_;
++  }
+@@ -452,8 +493,5 @@ class Heap {
+-  void DumpSpaces(std::ostream& stream) constprivate : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  std::string DumpSpaces() constprivate : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void DumpGcPerformanceInfo(std::ostream& os) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
+-  void ResetGcPerformanceInfo() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+- public:
++  void DumpSpaces(std::ostream& stream) const REQUIRES_SHARED(Locks::mutator_lock_);
++  std::string DumpSpaces() const REQUIRES_SHARED(Locks::mutator_lock_);
++  void DumpGcPerformanceInfo(std::ostream& os)
++      REQUIRES(!*gc_complete_lock_);
++  void ResetGcPerformanceInfo() REQUIRES(!*gc_complete_lock_);
+@@ -463,3 +501,9 @@ class Heap {
+-  ThreadPool* GetThreadPool() { return thread_pool_.get(); }
+-  size_t GetParallelGCThreadCount() const { return parallel_gc_threads_; }
+-  size_t GetConcGCThreadCount() const { return conc_gc_threads_; }
++  ThreadPool* GetThreadPool() {
++    return thread_pool_.get();
++  }
++  size_t GetParallelGCThreadCount() const {
++    return parallel_gc_threads_;
++  }
++  size_t GetConcGCThreadCount() const {
++    return conc_gc_threads_;
++  }
+@@ -472,4 +516,12 @@ class Heap {
+-  bool HasBootImageSpace() const { return !boot_image_spaces_.empty(); }
+-  ReferenceProcessor* GetReferenceProcessor() { return reference_processor_.get(); }
+-  TaskProcessor* GetTaskProcessor() { return task_processor_.get(); }
+-  bool HasZygoteSpace() const { return zygote_space_ != nullptr; }
++  bool HasBootImageSpace() const {
++    return !boot_image_spaces_.empty();
++  }
++  ReferenceProcessor* GetReferenceProcessor() {
++    return reference_processor_.get();
++  }
++  TaskProcessor* GetTaskProcessor() {
++    return task_processor_.get();
++  }
++  bool HasZygoteSpace() const {
++    return zygote_space_ != nullptr;
++  }
+@@ -499,2 +551 @@ class Heap {
+-  bool IsMovingGc() const {
+-    return IsMovingGc(CurrentCollectorType()) { return IsMovingGc(CurrentCollectorType()); }
++  bool IsMovingGc() const { return IsMovingGc(CurrentCollectorType()); }
+@@ -509,3 +560,3 @@ class Heap {
+-    bool IsMovingGCDisabled(Thread * self) private :
+-        ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  bool IsMovingGCDisabled(Thread* self) REQUIRES(!*gc_complete_lock_) {
++    MutexLock mu(self, *gc_complete_lock_);
++    return disable_moving_gc_count_ > 0;
+@@ -513,8 +564,6 @@ class Heap {
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    uint32_t GetCurrentGcNum() { return gcs_completed_.load(std::memory_order_acquire); }
+-    bool RequestConcurrentGC(
+-        Thread * self, GcCause cause, bool force_full, uint32_t observed_gc_num) private
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
++  void RequestTrim(Thread* self) REQUIRES(!*pending_task_lock_);
++  uint32_t GetCurrentGcNum() {
++    return gcs_completed_.load(std::memory_order_acquire);
++  }
++  bool RequestConcurrentGC(Thread* self, GcCause cause, bool force_full, uint32_t observed_gc_num)
++      REQUIRES(!*pending_task_lock_);
+@@ -529,7 +578,5 @@ class Heap {
+-    void DumpGcCountRateHistogram(std::ostream & os) constprivate
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void DumpBlockingGcCountRateHistogram(std::ostream & os) constprivate
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    uint64_t GetTotalTimeWaitingForGC() const { return total_wait_time_; }
++  void DumpGcCountRateHistogram(std::ostream& os) const REQUIRES(!*gc_complete_lock_);
++  void DumpBlockingGcCountRateHistogram(std::ostream& os) const REQUIRES(!*gc_complete_lock_);
++  uint64_t GetTotalTimeWaitingForGC() const {
++    return total_wait_time_;
++  }
+@@ -537 +584,3 @@ class Heap {
+-    HeapSampler& GetHeapSampler() { return heap_sampler_; }
++  HeapSampler& GetHeapSampler() {
++    return heap_sampler_;
++  }
+@@ -540 +589,3 @@ class Heap {
+-    void JHPCheckNonTlabSampleAllocation(Thread * self, mirror::Object * ret, size_t alloc_size);
++  void JHPCheckNonTlabSampleAllocation(Thread* self,
++                                       mirror::Object* ret,
++                                       size_t alloc_size);
+@@ -551 +602 @@ class Heap {
+-      return allocation_records_.get();
++    alloc_tracking_enabled_.store(enabled, std::memory_order_relaxed);
+@@ -553,3 +604,2 @@ class Heap {
+-   private:
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  size_t GetAllocTrackerStackDepth() const {
++    return alloc_record_depth_;
+@@ -557,2 +607,2 @@ class Heap {
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
++  void SetAllocTrackerStackDepth(size_t alloc_record_depth) {
++    alloc_record_depth_ = alloc_record_depth;
+@@ -560,30 +610,23 @@ class Heap {
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    REQUIRES(Locks::alloc_tracker_lock_) { return allocation_records_.get(); }
+-   private:
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void VisitAllocationRecords(RootVisitor * visitor) const private
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void SweepAllocationRecords(IsMarkedVisitor * visitor) const private
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void DisallowNewAllocationRecords() const private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void AllowNewAllocationRecords() const private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void BroadcastForNewAllocationRecords() const private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    void DisableGCForShutdown() private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    bool IsGCDisabledForShutdown() constprivate : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
+-    HomogeneousSpaceCompactResult PerformHomogeneousSpaceCompact() private
+-        : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
++  AllocRecordObjectMap* GetAllocationRecords() const REQUIRES(Locks::alloc_tracker_lock_) {
++    return allocation_records_.get();
++  }
++  void SetAllocationRecords(AllocRecordObjectMap* records)
++      REQUIRES(Locks::alloc_tracker_lock_);
++  void VisitAllocationRecords(RootVisitor* visitor) const
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::alloc_tracker_lock_);
++  void SweepAllocationRecords(IsMarkedVisitor* visitor) const
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::alloc_tracker_lock_);
++  void DisallowNewAllocationRecords() const
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::alloc_tracker_lock_);
++  void AllowNewAllocationRecords() const
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::alloc_tracker_lock_);
++  void BroadcastForNewAllocationRecords() const
++      REQUIRES(!Locks::alloc_tracker_lock_);
++  void DisableGCForShutdown() REQUIRES(!*gc_complete_lock_);
++  bool IsGCDisabledForShutdown() const REQUIRES(!*gc_complete_lock_);
++  HomogeneousSpaceCompactResult PerformHomogeneousSpaceCompact()
++      REQUIRES(!*gc_complete_lock_, !process_state_update_lock_);
+@@ -599,2 +642 @@ class Heap {
+-    void PostForkChildAction(Thread * self) private : DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-   public:
++  void PostForkChildAction(Thread* self) REQUIRES(!*gc_complete_lock_);
+@@ -611 +653,2 @@ class Heap {
+-                                         GcCause gc_cause) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++                                       GcCause gc_cause)
++      REQUIRES(Locks::mutator_lock_);
+@@ -614,2 +657,2 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void FinishGC(Thread * self, collector::GcType gc_type) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(!*gc_complete_lock_);
++  void FinishGC(Thread* self, collector::GcType gc_type) REQUIRES(!*gc_complete_lock_);
+@@ -618,2 +661,4 @@ class Heap {
+-    static MemMap MapAnonymousPreferredAddress(
+-        const char* name, uint8_t* request_begin, size_t capacity, std::string* out_error_str);
++  static MemMap MapAnonymousPreferredAddress(const char* name,
++                                             uint8_t* request_begin,
++                                             size_t capacity,
++                                             std::string* out_error_str);
+@@ -623,14 +668,23 @@ class Heap {
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+-    }
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+-    }
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+-    }
+-    ALWAYS_INLINE size_t NativeAllocationGcWatermark() const {
+-      return target_footprint_.load(std::memory_order_relaxed) / 8 + max_free_;
+-    }
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  static ALWAYS_INLINE size_t UnsignedDifference(size_t x, size_t y) {
++    return x > y ? x - y : 0;
++  }
++  static ALWAYS_INLINE size_t UnsignedSum(size_t x, size_t y) {
++    return x + y >= x ? x + y : std::numeric_limits<size_t>::max();
++  }
++  static ALWAYS_INLINE bool AllocatorHasAllocationStack(AllocatorType allocator_type) {
++    return
++        allocator_type != kAllocatorTypeRegionTLAB &&
++        allocator_type != kAllocatorTypeBumpPointer &&
++        allocator_type != kAllocatorTypeTLAB &&
++        allocator_type != kAllocatorTypeRegion;
++  }
++  static bool IsMovingGc(CollectorType collector_type) {
++    return
++        collector_type == kCollectorTypeCC ||
++        collector_type == kCollectorTypeSS ||
++        collector_type == kCollectorTypeCMC ||
++        collector_type == kCollectorTypeCCBackground ||
++        collector_type == kCollectorTypeHomogeneousSpaceCompact;
++  }
++  bool ShouldAllocLargeObject(ObjPtr<mirror::Class> c, size_t byte_count) const
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -639,4 +693,13 @@ class Heap {
+-    void CheckGCForNative(Thread * self) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    accounting::ObjectStack* GetMarkStack() { return mark_stack_.get(); }
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  void CheckGCForNative(Thread* self)
++      REQUIRES(!*pending_task_lock_, !*gc_complete_lock_, !process_state_update_lock_);
++  accounting::ObjectStack* GetMarkStack() {
++    return mark_stack_.get();
++  }
++  template <bool kInstrumented, typename PreFenceVisitor>
++  mirror::Object* AllocLargeObject(Thread* self,
++                                   ObjPtr<mirror::Class>* klass,
++                                   size_t byte_count,
++                                   const PreFenceVisitor& pre_fence_visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_,
++               !*backtrace_lock_, !process_state_update_lock_);
+@@ -651,7 +714,17 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    mirror::Object* AllocateInto(
+-        Thread * self, space::AllocSpace * space, ObjPtr<mirror::Class> c, size_t bytes)
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void SwapSemiSpaces() DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(!Locks::thread_suspend_count_lock_, !*gc_complete_lock_, !*pending_task_lock_)
++      REQUIRES(Roles::uninterruptible_)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  mirror::Object* AllocateInto(Thread* self,
++                               space::AllocSpace* space,
++                               ObjPtr<mirror::Class> c,
++                               size_t bytes)
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  void SwapSemiSpaces() REQUIRES(Locks::mutator_lock_);
++  template <const bool kInstrumented, const bool kGrow>
++  ALWAYS_INLINE mirror::Object* TryToAllocate(Thread* self,
++                                              AllocatorType allocator_type,
++                                              size_t alloc_size,
++                                              size_t* bytes_allocated,
++                                              size_t* usable_size,
++                                              size_t* bytes_tl_bulk_allocated)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -665 +738 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -667,3 +740,4 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    ALWAYS_INLINE bool IsOutOfMemoryOnAllocation(
+-        AllocatorType allocator_type, size_t alloc_size, bool grow);
++      REQUIRES_SHARED(Locks::mutator_lock_);
++  ALWAYS_INLINE bool IsOutOfMemoryOnAllocation(AllocatorType allocator_type,
++                                               size_t alloc_size,
++                                               bool grow);
+@@ -671 +745 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(gc_complete_lock_);
+@@ -673,5 +747,7 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void RequestConcurrentGCAndSaveObject(
+-        Thread * self, bool force_full, uint32_t observed_gc_num, ObjPtr<mirror::Object>* obj)
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(!*pending_task_lock_);
++  void RequestConcurrentGCAndSaveObject(Thread* self,
++                                        bool force_full,
++                                        uint32_t observed_gc_num,
++                                        ObjPtr<mirror::Object>* obj)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*pending_task_lock_);
+@@ -683,2 +759,4 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void PreGcVerification(collector::GarbageCollector * gc) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(!*gc_complete_lock_, !Locks::heap_bitmap_lock_, !Locks::thread_suspend_count_lock_,
++               !*pending_task_lock_, !process_state_update_lock_);
++  void PreGcVerification(collector::GarbageCollector* gc)
++      REQUIRES(!Locks::mutator_lock_, !*gc_complete_lock_);
+@@ -686 +764 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(Locks::mutator_lock_, !*gc_complete_lock_);
+@@ -688 +766 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(Locks::mutator_lock_);
+@@ -690,2 +768,3 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void PostGcVerification(collector::GarbageCollector * gc) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  void PostGcVerification(collector::GarbageCollector* gc)
++      REQUIRES(!Locks::mutator_lock_, !*gc_complete_lock_);
+@@ -693 +772 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(Locks::mutator_lock_, !*gc_complete_lock_);
+@@ -695,2 +774,4 @@ class Heap {
+-    void CreateMainMallocSpace(
+-        MemMap && mem_map, size_t initial_size, size_t growth_limit, size_t capacity);
++  void CreateMainMallocSpace(MemMap&& mem_map,
++                             size_t initial_size,
++                             size_t growth_limit,
++                             size_t capacity);
+@@ -705 +786 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES(!process_state_update_lock_);
+@@ -707 +788 @@ class Heap {
+-    void SwapStacks() DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  void SwapStacks() REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -711 +792,2 @@ class Heap {
+-                      bool clear_alloc_space_cards) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++                    bool clear_alloc_space_cards)
++      REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -713,2 +795,2 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
+@@ -716,7 +798,7 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void PushOnThreadLocalAllocationStackWithInternalGC(
+-        Thread * thread, ObjPtr<mirror::Object> * obj) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void ClearPendingTrim(Thread * self) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void ClearPendingCollectorTransition(Thread * self) DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
++  void PushOnThreadLocalAllocationStackWithInternalGC(Thread* thread, ObjPtr<mirror::Object>* obj)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_, !process_state_update_lock_);
++  void ClearPendingTrim(Thread* self) REQUIRES(!*pending_task_lock_);
++  void ClearPendingCollectorTransition(Thread* self) REQUIRES(!*pending_task_lock_);
+@@ -724,2 +806,4 @@ class Heap {
+-      return collector_type_ == kCollectorTypeCC || collector_type_ == kCollectorTypeCMC ||
+-             collector_type_ == kCollectorTypeCMS || collector_type_ == kCollectorTypeCCBackground;
++    return collector_type_ == kCollectorTypeCC ||
++        collector_type_ == kCollectorTypeCMC ||
++        collector_type_ == kCollectorTypeCMS ||
++        collector_type_ == kCollectorTypeCCBackground;
+@@ -727,2 +811 @@ class Heap {
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  void TrimSpaces(Thread* self) REQUIRES(!*gc_complete_lock_);
+@@ -730 +813,8 @@ class Heap {
+-    void UpdateGcCountRateHistograms() DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  template <typename Visitor>
++  ALWAYS_INLINE void VisitObjectsInternal(Visitor&& visitor)
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  template <typename Visitor>
++  ALWAYS_INLINE void VisitObjectsInternalRegionSpace(Visitor&& visitor)
++      REQUIRES(Locks::mutator_lock_, !Locks::heap_bitmap_lock_, !*gc_complete_lock_);
++  void UpdateGcCountRateHistograms() REQUIRES(gc_complete_lock_);
+@@ -732,2 +822,3 @@ class Heap {
+-        DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++      REQUIRES_SHARED(Locks::mutator_lock_)
++      REQUIRES(!*gc_complete_lock_, !*pending_task_lock_,
++               !*backtrace_lock_, !process_state_update_lock_);
+@@ -740,2 +831,2 @@ class Heap {
+-    DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    void GrowHeapOnJankPerceptibleSwitch() DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  ALWAYS_INLINE void IncrementNumberOfBytesFreedRevoke(size_t freed_bytes_revoke);
++  void GrowHeapOnJankPerceptibleSwitch() REQUIRES(!process_state_update_lock_);
+@@ -743,2 +834 @@ class Heap {
+-    static void VlogHeapGrowth(
+-        size_t max_allowed_footprint, size_t new_footprint, size_t alloc_size);
++  static void VlogHeapGrowth(size_t max_allowed_footprint, size_t new_footprint, size_t alloc_size);
+@@ -746 +836 @@ class Heap {
+-    void SetDefaultConcurrentStartBytes() DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  void SetDefaultConcurrentStartBytes() REQUIRES(!*gc_complete_lock_);
+@@ -748,3 +838,2 @@ class Heap {
+-    std::vector<space::ContinuousSpace*> continuous_spaces_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    std::vector<space::DiscontinuousSpace*> discontinuous_spaces_ DISALLOW_IMPLICIT_CONSTRUCTORS(
+-        Heap);
++  std::vector<space::ContinuousSpace*> continuous_spaces_ GUARDED_BY(Locks::mutator_lock_);
++  std::vector<space::DiscontinuousSpace*> discontinuous_spaces_ GUARDED_BY(Locks::mutator_lock_);
+@@ -767 +856 @@ class Heap {
+-    Mutex* pending_task_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Mutex* pending_task_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+@@ -783,6 +872,6 @@ class Heap {
+-    Mutex* gc_complete_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    std::unique_ptr<ConditionVariable> gc_complete_cond_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    Mutex* thread_flip_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    std::unique_ptr<ConditionVariable> thread_flip_cond_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    size_t disable_thread_flip_count_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    bool thread_flip_running_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Mutex* gc_complete_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
++  std::unique_ptr<ConditionVariable> gc_complete_cond_ GUARDED_BY(gc_complete_lock_);
++  Mutex* thread_flip_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
++  std::unique_ptr<ConditionVariable> thread_flip_cond_ GUARDED_BY(thread_flip_lock_);
++  size_t disable_thread_flip_count_ GUARDED_BY(thread_flip_lock_);
++  bool thread_flip_running_ GUARDED_BY(thread_flip_lock_);
+@@ -791,4 +880,4 @@ class Heap {
+-    volatile CollectorType collector_type_running_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    volatile GcCause last_gc_cause_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    volatile Thread* thread_running_gc_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    volatile collector::GcType last_gc_type_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  volatile CollectorType collector_type_running_ GUARDED_BY(gc_complete_lock_);
++  volatile GcCause last_gc_cause_ GUARDED_BY(gc_complete_lock_);
++  volatile Thread* thread_running_gc_ GUARDED_BY(gc_complete_lock_);
++  volatile collector::GcType last_gc_type_ GUARDED_BY(gc_complete_lock_);
+@@ -800,2 +889,3 @@ class Heap {
+-    Mutex process_state_update_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    size_t min_foreground_target_footprint_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Mutex process_state_update_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
++  size_t min_foreground_target_footprint_ GUARDED_BY(process_state_update_lock_);
++  size_t min_foreground_concurrent_start_bytes_ GUARDED_BY(process_state_update_lock_);
+@@ -845,2 +935,2 @@ class Heap {
+-    std::unique_ptr<accounting::HeapBitmap> live_bitmap_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    std::unique_ptr<accounting::HeapBitmap> mark_bitmap_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  std::unique_ptr<accounting::HeapBitmap> live_bitmap_ GUARDED_BY(Locks::heap_bitmap_lock_);
++  std::unique_ptr<accounting::HeapBitmap> mark_bitmap_ GUARDED_BY(Locks::heap_bitmap_lock_);
+@@ -864 +954 @@ class Heap {
+-    size_t disable_moving_gc_count_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  size_t disable_moving_gc_count_ GUARDED_BY(gc_complete_lock_);
+@@ -882,2 +972,2 @@ class Heap {
+-    CollectorTransitionTask* pending_collector_transition_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    HeapTrimTask* pending_heap_trim_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  CollectorTransitionTask* pending_collector_transition_ GUARDED_BY(pending_task_lock_);
++  HeapTrimTask* pending_heap_trim_ GUARDED_BY(pending_task_lock_);
+@@ -886 +976 @@ class Heap {
+-    bool running_collection_is_blocking_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  bool running_collection_is_blocking_ GUARDED_BY(gc_complete_lock_);
+@@ -889,2 +979 @@ class Heap {
+-    static constexpr uint64_t kGcCountRateHistogramWindowDuration =
+-        MsToNs(10 * 1000);
++  static constexpr uint64_t kGcCountRateHistogramWindowDuration = MsToNs(10 * 1000);
+@@ -896,2 +985,2 @@ class Heap {
+-    Histogram<uint64_t> gc_count_rate_histogram_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    Histogram<uint64_t> blocking_gc_count_rate_histogram_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Histogram<uint64_t> gc_count_rate_histogram_ GUARDED_BY(gc_complete_lock_);
++  Histogram<uint64_t> blocking_gc_count_rate_histogram_ GUARDED_BY(gc_complete_lock_);
+@@ -902 +991 @@ class Heap {
+-    Mutex* backtrace_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Mutex* backtrace_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+@@ -905,2 +994,2 @@ class Heap {
+-    std::unordered_set<uint64_t> seen_backtraces_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-    bool gc_disabled_for_shutdown_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  std::unordered_set<uint64_t> seen_backtraces_ GUARDED_BY(backtrace_lock_);
++  bool gc_disabled_for_shutdown_ GUARDED_BY(gc_complete_lock_);

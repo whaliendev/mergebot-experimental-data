@@ -1,0 +1,442 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/tmux/c190c732-4901d9dd-a9ebb62d/server-client.no_comments_mergebot.c b/home/whalien/codebase/cpp/mergebot/eva/output/tmux/c190c732-4901d9dd-a9ebb62d/server-client.no_comments_merged.c
+index 89f9db5..1ed321d 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/tmux/c190c732-4901d9dd-a9ebb62d/server-client.no_comments_mergebot.c
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/tmux/c190c732-4901d9dd-a9ebb62d/server-client.no_comments_merged.c
+@@ -6 +5,0 @@
+-#include <paths.h>
+@@ -25 +24,3 @@ void server_client_msg_shell(struct client *);
+-void server_client_create(int fd) {
++void
++server_client_create(int fd)
++{
+@@ -33 +34,2 @@ void server_client_create(int fd) {
+-  if (gettimeofday(&c->creation_time, NULL) != 0) fatal("gettimeofday failed");
++ if (gettimeofday(&c->creation_time, NULL) != 0)
++  fatal("gettimeofday failed");
+@@ -72 +74,3 @@ void server_client_create(int fd) {
+-int server_client_open(struct client *c, struct session *s, char **cause) {
++int
++server_client_open(struct client *c, struct session *s, char **cause)
++{
+@@ -75 +79,2 @@ int server_client_open(struct client *c, struct session *s, char **cause) {
+-  if (c->flags & CLIENT_CONTROL) return (0);
++ if (c->flags & CLIENT_CONTROL)
++  return (0);
+@@ -81 +86,2 @@ int server_client_open(struct client *c, struct session *s, char **cause) {
+-  if (tty_open(&c->tty, overrides, cause) != 0) return (-1);
++ if (tty_open(&c->tty, overrides, cause) != 0)
++  return (-1);
+@@ -84 +90,3 @@ int server_client_open(struct client *c, struct session *s, char **cause) {
+-void server_client_lost(struct client *c) {
++void
++server_client_lost(struct client *c)
++{
+@@ -88 +96,2 @@ void server_client_lost(struct client *c) {
+-    if (ARRAY_ITEM(&clients, i) == c) ARRAY_SET(&clients, i, NULL);
++  if (ARRAY_ITEM(&clients, i) == c)
++   ARRAY_SET(&clients, i, NULL);
+@@ -91 +100,2 @@ void server_client_lost(struct client *c) {
+-  if (c->flags & CLIENT_TERMINAL) tty_free(&c->tty);
++ if (c->flags & CLIENT_TERMINAL)
++  tty_free(&c->tty);
+@@ -96 +106,2 @@ void server_client_lost(struct client *c) {
+-  if (c->stderr_data != c->stdout_data) evbuffer_free(c->stderr_data);
++ if (c->stderr_data != c->stdout_data)
++  evbuffer_free (c->stderr_data);
+@@ -103 +114,2 @@ void server_client_lost(struct client *c) {
+-  if (event_initialized(&c->identify_timer)) evtimer_del(&c->identify_timer);
++ if (event_initialized(&c->identify_timer))
++  evtimer_del(&c->identify_timer);
+@@ -105 +117,2 @@ void server_client_lost(struct client *c) {
+-  if (event_initialized(&c->message_timer)) evtimer_del(&c->message_timer);
++ if (event_initialized (&c->message_timer))
++  evtimer_del(&c->message_timer);
+@@ -119 +132,2 @@ void server_client_lost(struct client *c) {
+-  if (event_initialized(&c->event)) event_del(&c->event);
++ if (event_initialized(&c->event))
++  event_del(&c->event);
+@@ -126 +140,2 @@ void server_client_lost(struct client *c) {
+-  if (i == ARRAY_LENGTH(&dead_clients)) ARRAY_ADD(&dead_clients, c);
++ if (i == ARRAY_LENGTH(&dead_clients))
++  ARRAY_ADD(&dead_clients, c);
+@@ -133 +148,3 @@ void server_client_lost(struct client *c) {
+-void server_client_callback(int fd, short events, void *data) {
++void
++server_client_callback(int fd, short events, void *data)
++{
+@@ -135 +152,2 @@ void server_client_callback(int fd, short events, void *data) {
+-  if (c->flags & CLIENT_DEAD) return;
++ if (c->flags & CLIENT_DEAD)
++  return;
+@@ -137 +155,2 @@ void server_client_callback(int fd, short events, void *data) {
+-    if (events & EV_WRITE && msgbuf_write(&c->ibuf.w) < 0) goto client_lost;
++  if (events & EV_WRITE && msgbuf_write(&c->ibuf.w) < 0)
++   goto client_lost;
+@@ -139 +158,2 @@ void server_client_callback(int fd, short events, void *data) {
+-      if (c->ibuf.w.queued == 0) goto client_lost;
++   if (c->ibuf.w.queued == 0)
++    goto client_lost;
+@@ -152 +172,3 @@ client_lost:
+-void server_client_status_timer(void) {
++void
++server_client_status_timer(void)
++{
+@@ -159 +181,2 @@ void server_client_status_timer(void) {
+-  if (gettimeofday(&tv, NULL) != 0) fatal("gettimeofday failed");
++ if (gettimeofday(&tv, NULL) != 0)
++  fatal("gettimeofday failed");
+@@ -162 +185,2 @@ void server_client_status_timer(void) {
+-    if (c == NULL || c->session == NULL) continue;
++  if (c == NULL || c->session == NULL)
++   continue;
+@@ -167 +191,2 @@ void server_client_status_timer(void) {
+-    if (!options_get_number(&s->options, "status")) continue;
++  if (!options_get_number(&s->options, "status"))
++   continue;
+@@ -176 +201,3 @@ void server_client_status_timer(void) {
+-void server_client_check_mouse(struct client *c, struct window_pane *wp) {
++void
++server_client_check_mouse(struct client *c, struct window_pane *wp)
++{
+@@ -206 +233,2 @@ void server_client_check_mouse(struct client *c, struct window_pane *wp) {
+-  if (options_get_number(oo, "mouse-resize-pane")) layout_resize_pane_mouse(c);
++ if (options_get_number(oo, "mouse-resize-pane"))
++  layout_resize_pane_mouse(c);
+@@ -209 +237,3 @@ void server_client_check_mouse(struct client *c, struct window_pane *wp) {
+-int server_client_assume_paste(struct session *s) {
++int
++server_client_assume_paste(struct session *s)
++{
+@@ -215 +245,2 @@ int server_client_assume_paste(struct session *s) {
+-  if (tv.tv_sec == 0 && tv.tv_usec < t * 1000) return (1);
++ if (tv.tv_sec == 0 && tv.tv_usec < t * 1000)
++  return (1);
+@@ -218 +249,3 @@ int server_client_assume_paste(struct session *s) {
+-void server_client_handle_key(struct client *c, int key) {
++void
++server_client_handle_key(struct client *c, int key)
++{
+@@ -225,2 +258,4 @@ void server_client_handle_key(struct client *c, int key) {
+-  if ((c->flags & (CLIENT_DEAD | CLIENT_SUSPENDED)) != 0) return;
+-  if (c->session == NULL) return;
++ if ((c->flags & (CLIENT_DEAD|CLIENT_SUSPENDED)) != 0)
++  return;
++ if (c->session == NULL)
++  return;
+@@ -228 +263,2 @@ void server_client_handle_key(struct client *c, int key) {
+-  if (gettimeofday(&c->activity_time, NULL) != 0) fatal("gettimeofday failed");
++ if (gettimeofday(&c->activity_time, NULL) != 0)
++  fatal("gettimeofday failed");
+@@ -235 +271,2 @@ void server_client_handle_key(struct client *c, int key) {
+-    if (c->flags & CLIENT_READONLY) return;
++  if (c->flags & CLIENT_READONLY)
++   return;
+@@ -238 +275,2 @@ void server_client_handle_key(struct client *c, int key) {
+-    if (wp != NULL && window_pane_visible(wp)) window_set_active_pane(w, wp);
++  if (wp != NULL && window_pane_visible(wp))
++   window_set_active_pane(w, wp);
+@@ -247 +285,2 @@ void server_client_handle_key(struct client *c, int key) {
+-    if (!(c->flags & CLIENT_READONLY)) status_prompt_key(c, key);
++  if (!(c->flags & CLIENT_READONLY))
++   status_prompt_key(c, key);
+@@ -251 +290,2 @@ void server_client_handle_key(struct client *c, int key) {
+-    if (c->flags & CLIENT_READONLY) return;
++  if (c->flags & CLIENT_READONLY)
++   return;
+@@ -262 +302,2 @@ void server_client_handle_key(struct client *c, int key) {
+-  if (ispaste) isprefix = 0;
++ if (ispaste)
++  isprefix = 0;
+@@ -270 +311,2 @@ void server_client_handle_key(struct client *c, int key) {
+-      if (!(c->flags & CLIENT_READONLY)) window_pane_key(wp, s, key);
++   if (!(c->flags & CLIENT_READONLY))
++    window_pane_key(wp, s, key);
+@@ -305 +347,3 @@ void server_client_handle_key(struct client *c, int key) {
+-void server_client_loop(void) {
++void
++server_client_loop(void)
++{
+@@ -312 +356,2 @@ void server_client_loop(void) {
+-    if (c == NULL) continue;
++  if (c == NULL)
++   continue;
+@@ -321 +366,2 @@ void server_client_loop(void) {
+-    if (w == NULL) continue;
++  if (w == NULL)
++   continue;
+@@ -332 +378,3 @@ void server_client_loop(void) {
+-void server_client_check_resize(struct window_pane *wp) {
++void
++server_client_check_resize(struct window_pane *wp)
++{
+@@ -334 +382,2 @@ void server_client_check_resize(struct window_pane *wp) {
+-  if (!(wp->flags & PANE_RESIZE)) return;
++ if (!(wp->flags & PANE_RESIZE))
++  return;
+@@ -338 +387,2 @@ void server_client_check_resize(struct window_pane *wp) {
+-  if (ioctl(wp->fd, TIOCSWINSZ, &ws) == -1) fatal("ioctl failed");
++ if (ioctl(wp->fd, TIOCSWINSZ, &ws) == -1)
++  fatal("ioctl failed");
+@@ -341 +391,3 @@ void server_client_check_resize(struct window_pane *wp) {
+-void server_client_check_focus(struct window_pane *wp) {
++void
++server_client_check_focus(struct window_pane *wp)
++{
+@@ -345 +397,2 @@ void server_client_check_focus(struct window_pane *wp) {
+-  if (!options_get_number(&global_options, "focus-events")) return;
++ if (!options_get_number(&global_options, "focus-events"))
++  return;
+@@ -348,3 +401,6 @@ void server_client_check_focus(struct window_pane *wp) {
+-  if (!(wp->base.mode & MODE_FOCUSON)) return;
+-  if (wp->window->active != wp) goto not_focused;
+-  if (wp->screen != &wp->base) goto not_focused;
++ if (!(wp->base.mode & MODE_FOCUSON))
++  return;
++ if (wp->window->active != wp)
++  goto not_focused;
++ if (wp->screen != &wp->base)
++  goto not_focused;
+@@ -353,4 +409,8 @@ void server_client_check_focus(struct window_pane *wp) {
+-    if (c == NULL || c->session == NULL) continue;
+-    if (!(c->flags & CLIENT_FOCUSED)) continue;
+-    if (c->session->flags & SESSION_UNATTACHED) continue;
+-    if (c->session->curw->window == wp->window) goto focused;
++  if (c == NULL || c->session == NULL)
++   continue;
++  if (!(c->flags & CLIENT_FOCUSED))
++   continue;
++  if (c->session->flags & SESSION_UNATTACHED)
++   continue;
++  if (c->session->curw->window == wp->window)
++   goto focused;
+@@ -368 +428,3 @@ focused:
+-void server_client_reset_state(struct client *c) {
++void
++server_client_reset_state(struct client *c)
++{
+@@ -375,2 +437,4 @@ void server_client_reset_state(struct client *c) {
+-  if (c->flags & CLIENT_SUSPENDED) return;
+-  if (c->flags & CLIENT_CONTROL) return;
++ if (c->flags & CLIENT_SUSPENDED)
++  return;
++ if (c->flags & CLIENT_CONTROL)
++  return;
+@@ -400,2 +464,2 @@ void server_client_reset_state(struct client *c) {
+-  if ((c->tty.flags & TTY_UTF8) && (mode & ALL_MOUSE_MODES) &&
+-      options_get_number(oo, "mouse-utf8"))
++ if ((c->tty.flags & TTY_UTF8) &&
++     (mode & ALL_MOUSE_MODES) && options_get_number(oo, "mouse-utf8"))
+@@ -408,2 +472,3 @@ void server_client_reset_state(struct client *c) {
+-void server_client_repeat_timer(unused int fd, unused short events,
+-                                void *data) {
++void
++server_client_repeat_timer(unused int fd, unused short events, void *data)
++{
+@@ -412 +477,2 @@ void server_client_repeat_timer(unused int fd, unused short events,
+-    if (c->flags & CLIENT_PREFIX) server_status_client(c);
++  if (c->flags & CLIENT_PREFIX)
++   server_status_client(c);
+@@ -416,5 +482,11 @@ void server_client_repeat_timer(unused int fd, unused short events,
+-void server_client_check_exit(struct client *c) {
+-  if (!(c->flags & CLIENT_EXIT)) return;
+-  if (EVBUFFER_LENGTH(c->stdin_data) != 0) return;
+-  if (EVBUFFER_LENGTH(c->stdout_data) != 0) return;
+-  if (EVBUFFER_LENGTH(c->stderr_data) != 0) return;
++void
++server_client_check_exit(struct client *c)
++{
++ if (!(c->flags & CLIENT_EXIT))
++  return;
++ if (EVBUFFER_LENGTH(c->stdin_data) != 0)
++  return;
++ if (EVBUFFER_LENGTH(c->stdout_data) != 0)
++  return;
++ if (EVBUFFER_LENGTH(c->stderr_data) != 0)
++  return;
+@@ -424 +496,3 @@ void server_client_check_exit(struct client *c) {
+-void server_client_check_redraw(struct client *c) {
++void
++server_client_check_redraw(struct client *c)
++{
+@@ -428 +502,2 @@ void server_client_check_redraw(struct client *c) {
+-  if (c->flags & (CLIENT_CONTROL | CLIENT_SUSPENDED)) return;
++ if (c->flags & (CLIENT_CONTROL|CLIENT_SUSPENDED))
++  return;
+@@ -440 +515,2 @@ void server_client_check_redraw(struct client *c) {
+-    if (!redraw) c->flags &= ~CLIENT_STATUS;
++  if (!redraw)
++   c->flags &= ~CLIENT_STATUS;
+@@ -451 +527,2 @@ void server_client_check_redraw(struct client *c) {
+-      if (wp->flags & PANE_REDRAW) screen_redraw_pane(c, wp);
++   if (wp->flags & PANE_REDRAW)
++    screen_redraw_pane(c, wp);
+@@ -454,2 +531,4 @@ void server_client_check_redraw(struct client *c) {
+-  if (c->flags & CLIENT_BORDERS) screen_redraw_screen(c, 0, 1);
+-  if (c->flags & CLIENT_STATUS) screen_redraw_screen(c, 1, 0);
++ if (c->flags & CLIENT_BORDERS)
++  screen_redraw_screen(c, 0, 1);
++ if (c->flags & CLIENT_STATUS)
++  screen_redraw_screen(c, 1, 0);
+@@ -459 +538,3 @@ void server_client_check_redraw(struct client *c) {
+-void server_client_set_title(struct client *c) {
++void
++server_client_set_title(struct client *c)
++{
+@@ -472 +553,3 @@ void server_client_set_title(struct client *c) {
+-int server_client_msg_dispatch(struct client *c) {
++int
++server_client_msg_dispatch(struct client *c)
++{
+@@ -477 +560,2 @@ int server_client_msg_dispatch(struct client *c) {
+-  if ((n = imsg_read(&c->ibuf)) == -1 || n == 0) return (-1);
++ if ((n = imsg_read(&c->ibuf)) == -1 || n == 0)
++  return (-1);
+@@ -479,2 +563,4 @@ int server_client_msg_dispatch(struct client *c) {
+-    if ((n = imsg_get(&c->ibuf, &imsg)) == -1) return (-1);
+-    if (n == 0) return (0);
++  if ((n = imsg_get(&c->ibuf, &imsg)) == -1)
++   return (-1);
++  if (n == 0)
++   return (0);
+@@ -486 +572,2 @@ int server_client_msg_dispatch(struct client *c) {
+-      if (imsg.fd != -1) close(imsg.fd);
++   if (imsg.fd != -1)
++    close(imsg.fd);
+@@ -502,24 +588,0 @@ int server_client_msg_dispatch(struct client *c) {
+-<<<<<<< HEAD
+-        if (datalen != sizeof commanddata) fatalx("bad MSG_COMMAND size");
+-        memcpy(&commanddata, imsg.data, sizeof commanddata);
+-        server_client_msg_command(c, &commanddata);
+-        break;
+-      case MSG_IDENTIFY:
+-        if (datalen != sizeof identifydata) fatalx("bad MSG_IDENTIFY size");
+-        memcpy(&identifydata, imsg.data, sizeof identifydata);
+-#ifdef __CYGWIN__
+-        imsg.fd = open(identifydata.ttyname, O_RDWR | O_NOCTTY);
+-#endif
+-        if (imsg.fd == -1) fatalx("MSG_IDENTIFY missing fd");
+-        server_client_msg_identify(c, &identifydata, imsg.fd);
+-|||||||
+-        if (datalen != sizeof commanddata) fatalx("bad MSG_COMMAND size");
+-        memcpy(&commanddata, imsg.data, sizeof commanddata);
+-        server_client_msg_command(c, &commanddata);
+-        break;
+-      case MSG_IDENTIFY:
+-        if (datalen != sizeof identifydata) fatalx("bad MSG_IDENTIFY size");
+-        if (imsg.fd == -1) fatalx("MSG_IDENTIFY missing fd");
+-        memcpy(&identifydata, imsg.data, sizeof identifydata);
+-        server_client_msg_identify(c, &identifydata, imsg.fd);
+-=======
+@@ -527 +589,0 @@ int server_client_msg_dispatch(struct client *c) {
+->>>>>>> 4901d9ddc8d8c33ecdca363dcb67e66482745fa5
+@@ -530 +592,2 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (datalen != sizeof stdindata) fatalx("bad MSG_STDIN size");
++   if (datalen != sizeof stdindata)
++    fatalx("bad MSG_STDIN size");
+@@ -532 +595,2 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (c->stdin_callback == NULL) break;
++   if (c->stdin_callback == NULL)
++    break;
+@@ -536 +600,2 @@ int server_client_msg_dispatch(struct client *c) {
+-          evbuffer_add(c->stdin_data, stdindata.data, stdindata.size);
++    evbuffer_add(c->stdin_data, stdindata.data,
++        stdindata.size);
+@@ -538 +603,2 @@ int server_client_msg_dispatch(struct client *c) {
+-        c->stdin_callback(c, c->stdin_closed, c->stdin_callback_data);
++   c->stdin_callback(c, c->stdin_closed,
++       c->stdin_callback_data);
+@@ -541,2 +607,4 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (datalen != 0) fatalx("bad MSG_RESIZE size");
+-        if (c->flags & CLIENT_CONTROL) break;
++   if (datalen != 0)
++    fatalx("bad MSG_RESIZE size");
++   if (c->flags & CLIENT_CONTROL)
++    break;
+@@ -549 +617,2 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (datalen != 0) fatalx("bad MSG_EXITING size");
++   if (datalen != 0)
++    fatalx("bad MSG_EXITING size");
+@@ -556,2 +625,4 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (datalen != 0) fatalx("bad MSG_WAKEUP size");
+-        if (!(c->flags & CLIENT_SUSPENDED)) break;
++   if (datalen != 0)
++    fatalx("bad MSG_WAKEUP size");
++   if (!(c->flags & CLIENT_SUSPENDED))
++    break;
+@@ -559,2 +630,4 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (gettimeofday(&c->activity_time, NULL) != 0) fatal("gettimeofday");
+-        if (c->session != NULL) session_update_activity(c->session);
++   if (gettimeofday(&c->activity_time, NULL) != 0)
++    fatal("gettimeofday");
++   if (c->session != NULL)
++    session_update_activity(c->session);
+@@ -566 +639,2 @@ int server_client_msg_dispatch(struct client *c) {
+-        if (datalen != 0) fatalx("bad MSG_SHELL size");
++   if (datalen != 0)
++    fatalx("bad MSG_SHELL size");
+@@ -573 +647,3 @@ int server_client_msg_dispatch(struct client *c) {
+-void server_client_msg_command(struct client *c, struct imsg *imsg) {
++void
++server_client_msg_command(struct client *c, struct imsg *imsg)
++{
+@@ -585 +661,2 @@ void server_client_msg_command(struct client *c, struct imsg *imsg) {
+-  if (len > 0 && buf[len - 1] != '\0') fatalx("bad MSG_COMMAND string");
++ if (len > 0 && buf[len - 1] != '\0')
++  fatalx("bad MSG_COMMAND string");
+@@ -606 +683,2 @@ error:
+-  if (cmdlist != NULL) cmd_list_free(cmdlist);
++ if (cmdlist != NULL)
++  cmd_list_free(cmdlist);
+@@ -609 +687,3 @@ error:
+-void server_client_msg_identify(struct client *c, struct imsg *imsg) {
++void
++server_client_msg_identify(struct client *c, struct imsg *imsg)
++{
+@@ -613 +693,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-  if (c->flags & CLIENT_IDENTIFIED) fatalx("out-of-order identify message");
++ if (c->flags & CLIENT_IDENTIFIED)
++  fatalx("out-of-order identify message");
+@@ -618 +699,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-      if (datalen != sizeof flags) fatalx("bad MSG_IDENTIFY_FLAGS size");
++  if (datalen != sizeof flags)
++   fatalx("bad MSG_IDENTIFY_FLAGS size");
+@@ -633 +715,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-      if (datalen != 0) fatalx("bad MSG_IDENTIFY_CWD size");
++  if (datalen != 0)
++   fatalx("bad MSG_IDENTIFY_CWD size");
+@@ -637 +720,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-      if (datalen != 0) fatalx("bad MSG_IDENTIFY_STDIN size");
++  if (datalen != 0)
++   fatalx("bad MSG_IDENTIFY_STDIN size");
+@@ -643 +727,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-      if (strchr(data, '=') != NULL) environ_put(&c->environ, data);
++  if (strchr(data, '=') != NULL)
++   environ_put(&c->environ, data);
+@@ -648 +733,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-  if (imsg->hdr.type != MSG_IDENTIFY_DONE) return;
++ if (imsg->hdr.type != MSG_IDENTIFY_DONE)
++  return;
+@@ -667 +753,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-  if (c->fd == -1) return;
++ if (c->fd == -1)
++  return;
+@@ -674,2 +761,4 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-  if (c->flags & CLIENT_UTF8) c->tty.flags |= TTY_UTF8;
+-  if (c->flags & CLIENT_256COLOURS) c->tty.term_flags |= TERM_256COLOURS;
++ if (c->flags & CLIENT_UTF8)
++  c->tty.flags |= TTY_UTF8;
++ if (c->flags & CLIENT_256COLOURS)
++  c->tty.term_flags |= TERM_256COLOURS;
+@@ -677 +766,2 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-  if (!(c->flags & CLIENT_CONTROL)) c->flags |= CLIENT_TERMINAL;
++ if (!(c->flags & CLIENT_CONTROL))
++  c->flags |= CLIENT_TERMINAL;
+@@ -679 +769,3 @@ void server_client_msg_identify(struct client *c, struct imsg *imsg) {
+-void server_client_msg_shell(struct client *c) {
++void
++server_client_msg_shell(struct client *c)
++{
+@@ -682 +774,2 @@ void server_client_msg_shell(struct client *c) {
+-  if (*shell == '\0' || areshell(shell)) shell = _PATH_BSHELL;
++ if (*shell == '\0' || areshell(shell))
++  shell = _PATH_BSHELL;

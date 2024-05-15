@@ -1,0 +1,341 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/4df90e51-468b8318-7110dc0c/services@surfaceflinger@SurfaceFlinger.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/4df90e51-468b8318-7110dc0c/services@surfaceflinger@SurfaceFlinger.no_comments_merged.h
+@@ -16 +15,0 @@
+-#include <gui/ISurfaceComposerClient.h>
+@@ -136,6 +135,3 @@ public:
+-    ANDROID_API;
+-    ANDROID_API;
+-    ANDROID_API;
+-    ANDROID_API;
+-    ANDROID_API;
+-    ANDROID_API;
++    SurfaceFlinger(surfaceflinger::Factory&, SkipInitializationTag) ANDROID_API;
++    explicit SurfaceFlinger(surfaceflinger::Factory&) ANDROID_API;
++    static status_t setSchedFifo(bool enabled) ANDROID_API;
+@@ -188 +184 @@ protected:
+-    REQUIRES(mStateLock);
++    virtual void processDisplayAdded(const wp<IBinder>& displayToken, const DisplayDeviceState&)
+@@ -192 +188,4 @@ protected:
+-    REQUIRES(mStateLock) { return static_cast<bool>(findDisplay(p)); }
++    template <typename Predicate>
++    bool hasDisplay(Predicate p) const REQUIRES(mStateLock) {
++        return static_cast<bool>(findDisplay(p));
++    }
+@@ -276,0 +276 @@ private:
++    template <typename F, std::enable_if_t<!std::is_member_function_pointer_v<F>>* = nullptr>
+@@ -280,0 +281 @@ private:
++    template <typename F, std::enable_if_t<std::is_member_function_pointer_v<F>>* = nullptr>
+@@ -307 +308 @@ private:
+-    EXCLUDES(mStateLock);
++    bool callingThreadHasUnscopedSurfaceFlingerAccess(bool usePermissionCache = true)
+@@ -334,0 +336 @@ private:
++    status_t getDisplayState(const sp<IBinder>& displayToken, ui::DisplayState*)
+@@ -335,0 +338,3 @@ private:
++    status_t getStaticDisplayInfo(const sp<IBinder>& displayToken, ui::StaticDisplayInfo*)
++            EXCLUDES(mStateLock);
++    status_t getDynamicDisplayInfo(const sp<IBinder>& displayToken, ui::DynamicDisplayInfo*)
+@@ -337,4 +341,0 @@ private:
+-    EXCLUDES(mStateLock) override;
+-    EXCLUDES(mStateLock) override;
+-    EXCLUDES(mStateLock) override;
+-    EXCLUDES(mStateLock) override;
+@@ -429,6 +430,5 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void toggleKernelIdleTimer() REQUIRES(mStateLock);
++    std::pair<std::optional<KernelIdleTimerController>, std::chrono::milliseconds>
++            getKernelIdleTimerProperties(DisplayId) REQUIRES(mStateLock);
++    void updateKernelIdleTimer(std::chrono::milliseconds timeoutMs, KernelIdleTimerController,
++                               PhysicalDisplayId) REQUIRES(mStateLock);
+@@ -437,4 +437,2 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void onInitializeDisplays() REQUIRES(mStateLock);
++    void setDesiredActiveMode(const ActiveModeInfo& info) REQUIRES(mStateLock);
+@@ -442,12 +440,10 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void updateInternalStateWithChangedMode() REQUIRES(mStateLock);
++    void setActiveModeInHwcIfNeeded() REQUIRES(mStateLock);
++    void clearDesiredActiveModeState(const sp<DisplayDevice>&) REQUIRES(mStateLock);
++    void desiredActiveModeChangeDone(const sp<DisplayDevice>&) REQUIRES(mStateLock);
++    void setPowerModeInternal(const sp<DisplayDevice>& display, hal::PowerMode mode)
++            REQUIRES(mStateLock);
++    bool hasVisibleHdrLayer(const sp<DisplayDevice>& display) REQUIRES(mStateLock);
++    status_t setDesiredDisplayModeSpecsInternal(
++            const sp<DisplayDevice>& display,
++            const std::optional<scheduler::RefreshRateConfigs::Policy>& policy, bool overridePolicy)
+@@ -455,7 +451,3 @@ private:
+-    EXCLUDES(mStateLock);
+-    EXCLUDES(mStateLock);
+-    EXCLUDES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void commitTransactions() EXCLUDES(mStateLock);
++    void commitTransactionsLocked(uint32_t transactionFlags) REQUIRES(mStateLock);
++    void doCommitTransactions() REQUIRES(mStateLock);
+@@ -465,2 +457 @@ private:
+-    REQUIRES(kMainThreadContext);
+-    REQUIRES(kMainThreadContext);
++    void persistDisplayBrightness(bool needsComposite) REQUIRES(kMainThreadContext);
+@@ -469,2 +460 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void commitInputWindowCommands() REQUIRES(mStateLock);
+@@ -472,4 +462,2 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void initScheduler(const sp<DisplayDevice>& display) REQUIRES(mStateLock);
++    void updatePhaseConfiguration(const Fps&) REQUIRES(mStateLock);
+@@ -476,0 +465,8 @@ private:
++    bool applyTransactionState(const FrameTimelineInfo& info, Vector<ComposerState>& state,
++                               const Vector<DisplayState>& displays, uint32_t flags,
++                               const InputWindowCommands& inputWindowCommands,
++                               const int64_t desiredPresentTime, bool isAutoTimestamp,
++                               const client_cache_t& uncacheBuffer, const int64_t postTime,
++                               uint32_t permissions, bool hasListenerCallbacks,
++                               const std::vector<ListenerCallbacks>& listenerCallbacks,
++                               int originPid, int originUid, uint64_t transactionId)
+@@ -478,2 +474 @@ private:
+-    REQUIRES(kMainThreadContext);
+-    REQUIRES(mStateLock);
++    bool flushTransactionQueues(VsyncId) REQUIRES(kMainThreadContext);
+@@ -481,4 +476,7 @@ private:
+-    REQUIRES(mStateLock, mQueueLock);
+-    REQUIRES(mStateLock, mQueueLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    int flushPendingTransactionQueues(
++            std::vector<TransactionState>& transactions,
++            std::unordered_map<sp<IBinder>, uint64_t, SpHash<IBinder>>& bufferLayersReadyToPresent,
++            bool tryApplyUnsignaled) REQUIRES(mStateLock) REQUIRES(kMainThreadContext);
++    uint32_t setClientStateLocked(const FrameTimelineInfo&, ComposerState&,
++                                  int64_t desiredPresentTime, bool isAutoTimestamp,
++                                  int64_t postTime, uint32_t permissions) REQUIRES(mStateLock);
+@@ -496,0 +495,6 @@ private:
++    TransactionReadiness transactionIsReadyToBeApplied(
++            TransactionState&, const FrameTimelineInfo&, bool isAutoTimestamp,
++            TimePoint desiredPresentTime, uid_t originUid, const Vector<ComposerState>&,
++            const std::unordered_map<sp<IBinder>, uint64_t, SpHash<IBinder>>&
++                    bufferLayersReadyToPresent,
++            size_t totalTXapplied, bool tryApplyUnsignaled) const REQUIRES(mStateLock)
+@@ -500,0 +505 @@ private:
++    bool applyTransactions(std::vector<TransactionState>& transactions, VsyncId)
+@@ -502,3 +507,2 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    uint32_t setDisplayStateLocked(const DisplayState& s) REQUIRES(mStateLock);
++    uint32_t addInputWindowCommands(const InputWindowCommands& inputWindowCommands)
+@@ -507 +510,0 @@ private:
+-    REQUIRES(mStateLock);
+@@ -535,2 +538,4 @@ private:
+-    EXCLUDES(mStateLock);
+-    EXCLUDES(mStateLock);
++    ftl::SharedFuture<FenceResult> renderScreenImpl(
++            const RenderArea&, TraverseLayersFunction,
++            const std::shared_ptr<renderengine::ExternalTexture>&, bool canCaptureBlackoutContent,
++            bool regionSampling, bool grayscale, ScreenCaptureResults&) EXCLUDES(mStateLock);
+@@ -576 +581,2 @@ private:
+-    REQUIRES(mStateLock) {
++    template <typename Predicate>
++    sp<DisplayDevice> findDisplay(Predicate p) const REQUIRES(mStateLock) {
+@@ -581,2 +587 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    std::vector<PhysicalDisplayId> getPhysicalDisplayIdsLocked() const REQUIRES(mStateLock);
+@@ -588,13 +593,15 @@ private:
+-    REQUIRES(kMainThreadContext);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void postComposition() REQUIRES(kMainThreadContext);
++    std::pair<DisplayModes, DisplayModePtr> loadDisplayModes(PhysicalDisplayId) const
++            REQUIRES(mStateLock);
++    sp<DisplayDevice> setupNewDisplayDeviceInternal(
++            const wp<IBinder>& displayToken,
++            std::shared_ptr<compositionengine::Display> compositionDisplay,
++            const DisplayDeviceState& state,
++            const sp<compositionengine::DisplaySurface>& displaySurface,
++            const sp<IGraphicBufferProducer>& producer) REQUIRES(mStateLock);
++    void processDisplayChangesLocked() REQUIRES(mStateLock);
++    void processDisplayRemoved(const wp<IBinder>& displayToken) REQUIRES(mStateLock);
++    void processDisplayChanged(const wp<IBinder>& displayToken,
++                               const DisplayDeviceState& currentState,
++                               const DisplayDeviceState& drawingState) REQUIRES(mStateLock);
++    void processDisplayHotplugEventsLocked() REQUIRES(mStateLock);
+@@ -602,2 +609 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    nsecs_t getVsyncPeriodFromHWC() const REQUIRES(mStateLock);
+@@ -608,0 +615 @@ private:
++    const FenceTimePtr& getPreviousPresentFence(TimePoint frameTime, Period)
+@@ -612,4 +618,0 @@ private:
+-    struct FenceWithFenceTime {
+-        sp<Fence> fence = Fence::NO_FENCE;
+-        FenceTimePtr fenceTime = FenceTime::NO_FENCE;
+-    };
+@@ -637,2 +640 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    VirtualDisplayId acquireVirtualDisplay(ui::Size, ui::PixelFormat) REQUIRES(mStateLock);
+@@ -640,2 +642 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void onActiveDisplayChangedLocked(const sp<DisplayDevice>& activeDisplay) REQUIRES(mStateLock);
+@@ -643,3 +644,2 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void dumpAllLocked(const DumpArgs& args, std::string& result) const REQUIRES(mStateLock);
++    void dumpHwcLayersMinidumpLocked(std::string& result) const REQUIRES(mStateLock);
+@@ -648,2 +648 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void dumpStatsLocked(const DumpArgs& args, std::string& result) const REQUIRES(mStateLock);
+@@ -653,10 +652,5 @@ private:
+-    REQUIRES(kMainThreadContext);
+-    REQUIRES(kMainThreadContext);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void logFrameStats(TimePoint now) REQUIRES(kMainThreadContext);
++    void dumpVSync(std::string& result) const REQUIRES(mStateLock);
++    void dumpCompositionDisplays(std::string& result) const REQUIRES(mStateLock);
++    void dumpDisplays(std::string& result) const REQUIRES(mStateLock);
++    void dumpDisplayIdentificationData(std::string& result) const REQUIRES(mStateLock);
+@@ -664,2 +658 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void dumpWideColorInfo(std::string& result) const REQUIRES(mStateLock);
+@@ -670,0 +664 @@ private:
++    LayersProto dumpProtoFromMainThread(uint32_t traceFlags = LayerTracing::TRACE_ALL)
+@@ -672,5 +666,2 @@ private:
+-    EXCLUDES(mStateLock);
+-    EXCLUDES(mStateLock);
+-    EXCLUDES(mStateLock);
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void dumpOffscreenLayers(std::string& result) EXCLUDES(mStateLock);
++    void dumpPlannerInfo(const DumpArgs& args, std::string& result) const REQUIRES(mStateLock);
+@@ -685,2 +676 @@ private:
+-    EXCLUDES(mQueueLock);
+-    EXCLUDES(mQueueLock);
++    void queueTransaction(TransactionState& state);
+@@ -690,2 +680 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    std::vector<ui::ColorMode> getDisplayColorModes(const DisplayDevice&) REQUIRES(mStateLock);
+@@ -695 +684 @@ private:
+-    REQUIRES(mStateLock);
++    void updateInternalDisplayVsyncLocked(const sp<DisplayDevice>& activeDisplay)
+@@ -698 +687 @@ private:
+-    REQUIRES(mStateLock);
++    ui::Rotation getPhysicalDisplayOrientation(DisplayId, bool isPrimary) const
+@@ -734,2 +722,0 @@ private:
+-    std::array<FenceWithFenceTime, 5>
+-            mPreviousPresentFences;
+@@ -740,4 +727,2 @@ private:
+-    std::vector<HotplugEvent> mPendingHotplugEventsvoid SurfaceFlinger::composite(nsecs_t frameTime,
+-                                                                                  int64_t vsyncId)
+-            bool commitMirrorDisplays(VsyncId);
+-    void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++    std::vector<HotplugEvent> mPendingHotplugEvents GUARDED_BY(mStateLock);
++    ftl::SmallMap<wp<IBinder>, const sp<DisplayDevice>, 5> mDisplays GUARDED_BY(mStateLock);
+@@ -745 +730 @@ private:
+-            void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++            GUARDED_BY(mStateLock);
+@@ -779,2 +763,0 @@ private:
+-    void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+-            void SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
+@@ -801,2 +784,9 @@ private:
+-    scheduler::PresentLatencyTracker mPresentLatencyTracker TimePoint mExpectedPresentTime TimePoint
+-            mScheduledPresentTime hal::Vsync mHWCVsyncPendingState = hal::Vsync::DISABLE;
++    scheduler::PresentLatencyTracker mPresentLatencyTracker GUARDED_BY(kMainThreadContext);
++    struct FenceWithFenceTime {
++        sp<Fence> fence = Fence::NO_FENCE;
++        FenceTimePtr fenceTime = FenceTime::NO_FENCE;
++    };
++    std::array<FenceWithFenceTime, 2> mPreviousPresentFences;
++    TimePoint mScheduledPresentTime GUARDED_BY(kMainThreadContext);
++    TimePoint mExpectedPresentTime GUARDED_BY(kMainThreadContext);
++    hal::Vsync mHWCVsyncPendingState = hal::Vsync::DISABLE;
+@@ -815,2 +805 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void enableRefreshRateOverlay(bool enable) REQUIRES(mStateLock);
+@@ -820,2 +809,2 @@ private:
+-    std::unordered_map<DisplayId, sp<HdrLayerInfoReporter>> mHdrLayerInfoListeners void
+-    SurfaceFlinger::composite(nsecs_t frameTime, int64_t vsyncId)
++    std::unordered_map<DisplayId, sp<HdrLayerInfoReporter>> mHdrLayerInfoListeners
++            GUARDED_BY(mStateLock);
+@@ -830,2 +819 @@ private:
+-    std::vector<LayerCreatedState> mCreatedLayersvoid SurfaceFlinger::composite(nsecs_t frameTime,
+-                                                                                int64_t vsyncId)
++    std::vector<LayerCreatedState> mCreatedLayers GUARDED_BY(mCreatedLayersLock);
+@@ -833,2 +821,12 @@ private:
+-    REQUIRES(mStateLock);
+-    REQUIRES(mStateLock);
++    void handleLayerCreatedLocked(const LayerCreatedState&, VsyncId) REQUIRES(mStateLock);
++    mutable std::mutex mMirrorDisplayLock;
++    struct MirrorDisplayState {
++        MirrorDisplayState(ui::LayerStack layerStack, sp<IBinder>& rootHandle,
++                           const sp<Client>& client)
++              : layerStack(layerStack), rootHandle(rootHandle), client(client) {}
++        ui::LayerStack layerStack;
++        sp<IBinder> rootHandle;
++        const sp<Client> client;
++    };
++    std::vector<MirrorDisplayState> mMirrorDisplays GUARDED_BY(mMirrorDisplayLock);
++    bool commitMirrorDisplays(VsyncId);
+@@ -840,2 +838 @@ private:
+-    wp<IBinder> mActiveDisplayTokenvoid SurfaceFlinger::composite(nsecs_t frameTime,
+-                                                                  int64_t vsyncId)
++    wp<IBinder> mActiveDisplayToken GUARDED_BY(mStateLock);
+@@ -855,10 +851,0 @@ private:
+-    mutable std::mutex mMirrorDisplayLock;
+-    struct MirrorDisplayState {
+-        MirrorDisplayState(ui::LayerStack layerStack, sp<IBinder>& rootHandle,
+-                           const sp<Client>& client)
+-              : layerStack(layerStack), rootHandle(rootHandle), client(client) {}
+-        ui::LayerStack layerStack;
+-        sp<IBinder> rootHandle;
+-        const sp<Client> client;
+-    };
+-    std::vector<MirrorDisplayState> mMirrorDisplays
+@@ -974,0 +962 @@ private:
++private:

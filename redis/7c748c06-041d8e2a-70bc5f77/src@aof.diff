@@ -1,0 +1,185 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/redis/7c748c06-041d8e2a-70bc5f77/src@aof.no_comments_mergebot.c b/home/whalien/codebase/cpp/mergebot/eva/output/redis/7c748c06-041d8e2a-70bc5f77/src@aof.no_comments_merged.c
+index 357de07..45528ab 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/redis/7c748c06-041d8e2a-70bc5f77/src@aof.no_comments_mergebot.c
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/redis/7c748c06-041d8e2a-70bc5f77/src@aof.no_comments_merged.c
+@@ -2,0 +3 @@
++#include "rio.h"
+@@ -10 +11,4 @@
+-#include "rio.h"
++void aofUpdateCurrentSize(void);
++void aof_background_fsync(int fd) {
++    bioCreateBackgroundJob(REDIS_BIO_AOF_FSYNC,(void*)(long)fd,NULL,NULL);
++}
+@@ -20 +24,2 @@ void stopAppendOnly(void) {
+-    if (kill(server.bgrewritechildpid, SIGKILL) != -1) wait3(&statloc, 0, NULL);
++        if (kill(server.bgrewritechildpid,SIGKILL) != -1)
++            wait3(&statloc,0,NULL);
+@@ -29,2 +34 @@ int startAppendOnly(void) {
+-  server.appendfd =
+-      open(server.appendfilename, O_WRONLY | O_APPEND | O_CREAT, 0644);
++    server.appendfd = open(server.appendfilename,O_WRONLY|O_APPEND|O_CREAT,0644);
+@@ -32,4 +36 @@ int startAppendOnly(void) {
+-    redisLog(REDIS_WARNING,
+-             "Used tried to switch on AOF via CONFIG, but I can't open the AOF "
+-             "file: %s",
+-             strerror(errno));
++        redisLog(REDIS_WARNING,"Used tried to switch on AOF via CONFIG, but I can't open the AOF file: %s",strerror(errno));
+@@ -41,5 +42 @@ int startAppendOnly(void) {
+-    redisLog(REDIS_WARNING,
+-             "Used tried to switch on AOF via CONFIG, I can't trigger a "
+-             "background AOF rewrite operation. Check the above logs for more "
+-             "info about the error.",
+-             strerror(errno));
++        redisLog(REDIS_WARNING,"Used tried to switch on AOF via CONFIG, I can't trigger a background AOF rewrite operation. Check the above logs for more info about the error.",strerror(errno));
+@@ -64,4 +61 @@ void flushAppendOnlyFile(int force) {
+-      redisLog(REDIS_NOTICE,
+-               "Asynchronous AOF fsync is taking too long (disk is busy?). "
+-               "Writing the AOF buffer without waiting for fsync to complete, "
+-               "this may slow down Redis.");
++            redisLog(REDIS_NOTICE,"Asynchronous AOF fsync is taking too long (disk is busy?). Writing the AOF buffer without waiting for fsync to complete, this may slow down Redis.");
+@@ -74,3 +68 @@ void flushAppendOnlyFile(int force) {
+-      redisLog(REDIS_WARNING,
+-               "Exiting on error writing to the append-only file: %s",
+-               strerror(errno));
++            redisLog(REDIS_WARNING,"Exiting on error writing to the append-only file: %s",strerror(errno));
+@@ -78,4 +70 @@ void flushAppendOnlyFile(int force) {
+-      redisLog(
+-          REDIS_WARNING,
+-          "Exiting on short write while writing to the append-only file: %s",
+-          strerror(errno));
++            redisLog(REDIS_WARNING,"Exiting on short write while writing to the append-only file: %s",strerror(errno));
+@@ -135 +124,2 @@ sds catAppendOnlyExpireAtCommand(sds buf, robj *key, robj *seconds) {
+-  argv[2] = createObject(REDIS_STRING, sdscatprintf(sdsempty(), "%ld", when));
++    argv[2] = createObject(REDIS_STRING,
++        sdscatprintf(sdsempty(),"%ld",when));
+@@ -141,2 +131 @@ sds catAppendOnlyExpireAtCommand(sds buf, robj *key, robj *seconds) {
+-void feedAppendOnlyFile(struct redisCommand *cmd, int dictid, robj **argv,
+-                        int argc) {
++void feedAppendOnlyFile(struct redisCommand *cmd, int dictid, robj **argv, int argc) {
+@@ -205,3 +194 @@ int loadAppendOnlyFile(char *filename) {
+-    redisLog(REDIS_WARNING,
+-             "Fatal error: can't open the append log file for reading: %s",
+-             strerror(errno));
++        redisLog(REDIS_WARNING,"Fatal error: can't open the append log file for reading: %s",strerror(errno));
+@@ -245,3 +232 @@ int loadAppendOnlyFile(char *filename) {
+-      redisLog(REDIS_WARNING,
+-               "Unknown command '%s' reading the append only file",
+-               argv[0]->ptr);
++            redisLog(REDIS_WARNING,"Unknown command '%s' reading the append only file", argv[0]->ptr);
+@@ -255 +240,2 @@ int loadAppendOnlyFile(char *filename) {
+-    for (j = 0; j < fakeClient->argc; j++) decrRefCount(fakeClient->argv[j]);
++        for (j = 0; j < fakeClient->argc; j++)
++            decrRefCount(fakeClient->argv[j]);
+@@ -268,2 +254 @@ readerr:
+-    redisLog(REDIS_WARNING,
+-             "Unexpected end of file reading the append only file");
++        redisLog(REDIS_WARNING,"Unexpected end of file reading the append only file");
+@@ -271,3 +256 @@ readerr:
+-    redisLog(REDIS_WARNING,
+-             "Unrecoverable error reading the append only file: %s",
+-             strerror(errno));
++        redisLog(REDIS_WARNING,"Unrecoverable error reading the append only file: %s", strerror(errno));
+@@ -277,3 +260 @@ fmterr:
+-  redisLog(REDIS_WARNING,
+-           "Bad file format reading the append only file: make a backup of "
+-           "your AOF file, then use ./redis-check-aof --fix <filename>");
++    redisLog(REDIS_WARNING,"Bad file format reading the append only file: make a backup of your AOF file, then use ./redis-check-aof --fix <filename>");
+@@ -302,2 +283 @@ int rewriteAppendOnlyFile(char *filename) {
+-    redisLog(REDIS_WARNING, "Failed rewriting the append only file: %s",
+-             strerror(errno));
++        redisLog(REDIS_WARNING, "Failed rewriting the append only file: %s", strerror(errno));
+@@ -344 +324,2 @@ int rewriteAppendOnlyFile(char *filename) {
+-              if (rioWriteBulkString(&aof, (char *)vstr, vlen) == 0) goto werr;
++                            if (rioWriteBulkString(&aof,(char*)vstr,vlen) == 0)
++                                goto werr;
+@@ -346 +327,2 @@ int rewriteAppendOnlyFile(char *filename) {
+-              if (rioWriteBulkLongLong(&aof, vlong) == 0) goto werr;
++                            if (rioWriteBulkLongLong(&aof,vlong) == 0)
++                                goto werr;
+@@ -407 +389,2 @@ int rewriteAppendOnlyFile(char *filename) {
+-              if (rioWriteBulkString(&aof, (char *)vstr, vlen) == 0) goto werr;
++                            if (rioWriteBulkString(&aof,(char*)vstr,vlen) == 0)
++                                goto werr;
+@@ -409 +392,2 @@ int rewriteAppendOnlyFile(char *filename) {
+-              if (rioWriteBulkLongLong(&aof, vll) == 0) goto werr;
++                            if (rioWriteBulkLongLong(&aof,vll) == 0)
++                                goto werr;
+@@ -438,2 +422,4 @@ int rewriteAppendOnlyFile(char *filename) {
+-            if (rioWriteBulkString(&aof, (char *)field, flen) == 0) goto werr;
+-            if (rioWriteBulkString(&aof, (char *)val, vlen) == 0) goto werr;
++                        if (rioWriteBulkString(&aof,(char*)field,flen) == 0)
++                            goto werr;
++                        if (rioWriteBulkString(&aof,(char*)val,vlen) == 0)
++                            goto werr;
+@@ -471,3 +457 @@ int rewriteAppendOnlyFile(char *filename) {
+-    redisLog(REDIS_WARNING,
+-             "Error moving temp append only file on the final destination: %s",
+-             strerror(errno));
++        redisLog(REDIS_WARNING,"Error moving temp append only file on the final destination: %s", strerror(errno));
+@@ -482,2 +466 @@ werr:
+-  redisLog(REDIS_WARNING, "Write error writing append only file on disk: %s",
+-           strerror(errno));
++    redisLog(REDIS_WARNING,"Write error writing append only file on disk: %s", strerror(errno));
+@@ -511,2 +494 @@ int rewriteAppendOnlyFileBackground(void) {
+-             "Background append only file rewriting started by pid %d",
+-             childpid);
++            "Background append only file rewriting started by pid %d",childpid);
+@@ -522,2 +504 @@ void bgrewriteaofCommand(redisClient *c) {
+-    addReplyError(c,
+-                  "Background append only file rewriting already in progress");
++        addReplyError(c,"Background append only file rewriting already in progress");
+@@ -553 +534,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-    redisLog(REDIS_NOTICE, "Background AOF rewrite terminated with success");
++        redisLog(REDIS_NOTICE,
++            "Background AOF rewrite terminated with success");
+@@ -559,2 +541 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-               "Unable to open the temporary AOF produced by the child: %s",
+-               strerror(errno));
++                "Unable to open the temporary AOF produced by the child: %s", strerror(errno));
+@@ -566,4 +547,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-        redisLog(
+-            REDIS_WARNING,
+-            "Error trying to flush the parent diff to the rewritten AOF: %s",
+-            strerror(errno));
++                redisLog(REDIS_WARNING,
++                    "Error trying to flush the parent diff to the rewritten AOF: %s", strerror(errno));
+@@ -572,3 +551 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-                 "Short write trying to flush the parent diff to the rewritten "
+-                 "AOF: %s",
+-                 strerror(errno));
++                    "Short write trying to flush the parent diff to the rewritten AOF: %s", strerror(errno));
+@@ -579,4 +556,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-    redisLog(
+-        REDIS_NOTICE,
+-        "Parent diff successfully flushed to the rewritten AOF (%lu bytes)",
+-        nwritten);
++        redisLog(REDIS_NOTICE,
++            "Parent diff successfully flushed to the rewritten AOF (%lu bytes)", nwritten);
+@@ -589,2 +564,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-      redisLog(REDIS_WARNING, "Error trying to rename the temporary AOF: %s",
+-               strerror(errno));
++            redisLog(REDIS_WARNING,
++                "Error trying to rename the temporary AOF: %s", strerror(errno));
+@@ -611,5 +586,3 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-    if (oldfd != -1)
+-      bioCreateBackgroundJob(REDIS_BIO_CLOSE_FILE, (void *)(long)oldfd, NULL,
+-                             NULL);
+-    redisLog(REDIS_VERBOSE, "Background AOF rewrite signal handler took %lldus",
+-             ustime() - now);
++        if (oldfd != -1) bioCreateBackgroundJob(REDIS_BIO_CLOSE_FILE,(void*)(long)oldfd,NULL,NULL);
++        redisLog(REDIS_VERBOSE,
++            "Background AOF rewrite signal handler took %lldus", ustime()-now);
+@@ -617 +590,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-    redisLog(REDIS_WARNING, "Background AOF rewrite terminated with error");
++        redisLog(REDIS_WARNING,
++            "Background AOF rewrite terminated with error");
+@@ -619,2 +593,2 @@ void backgroundRewriteDoneHandler(int exitcode, int bysignal) {
+-    redisLog(REDIS_WARNING, "Background AOF rewrite terminated by signal %d",
+-             bysignal);
++        redisLog(REDIS_WARNING,
++            "Background AOF rewrite terminated by signal %d", bysignal);
+@@ -628,4 +601,0 @@ cleanup:
+-void aofUpdateCurrentSize(void);
+-void aof_background_fsync(int fd) {
+-  bioCreateBackgroundJob(REDIS_BIO_AOF_FSYNC, (void *)(long)fd, NULL, NULL);
+-}

@@ -1,0 +1,69 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/grpc/5817f628-bca2a30e-018580fb/src@objective-c@GRPCClient@GRPCInterceptor.no_comments_mergebot.h b/home/whalien/codebase/cpp/mergebot/eva/output/grpc/5817f628-bca2a30e-018580fb/src@objective-c@GRPCClient@GRPCInterceptor.no_comments_merged.h
+index af45c49..590704c 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/grpc/5817f628-bca2a30e-018580fb/src@objective-c@GRPCClient@GRPCInterceptor.no_comments_mergebot.h
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/grpc/5817f628-bca2a30e-018580fb/src@objective-c@GRPCClient@GRPCInterceptor.no_comments_merged.h
+@@ -5,5 +5,12 @@ NS_ASSUME_NONNULL_BEGIN
+-class GRPCInterceptor;
+-class GRPCRequestOptions;
+-class GRPCCallOptions;
+-protocol GRPCResponseHandler;
+-end
++@class GRPCInterceptor;
++@class GRPCRequestOptions;
++@class GRPCCallOptions;
++@protocol GRPCResponseHandler;
++@protocol GRPCInterceptorInterface<NSObject, GRPCDispatchable>
++- (void)startWithRequestOptions:(GRPCRequestOptions *)requestOptions
++                    callOptions:(GRPCCallOptions *)callOptions;
++- (void)writeData:(id)data;
++- (void)finish;
++- (void)cancel;
++- (void)receiveNextMessages:(NSUInteger)numberOfMessages;
++@end
+@@ -11,3 +18,3 @@ end
+-end
+-@interface GRPCInterceptorManager
+-    : NSObject <GRPCInterceptorInterface, GRPCResponseHandler>
++- (GRPCInterceptor *)createInterceptorWithManager:(GRPCInterceptorManager *)interceptorManager;
++@end
++@interface GRPCInterceptorManager : NSObject<GRPCInterceptorInterface, GRPCResponseHandler>
+@@ -15,3 +22,19 @@ end
+-end
+-@interface GRPCInterceptor
+-    : NSObject <GRPCInterceptorInterface, GRPCResponseHandler>
+++ (instancetype) new NS_UNAVAILABLE;
++- (nullable instancetype)initWithFactories:(nullable NSArray<id<GRPCInterceptorFactory>> *)factories
++                       previousInterceptor:(nullable id<GRPCResponseHandler>)previousInterceptor
++                               transportID:(GRPCTransportID)transportID;
++- (void)shutDown;
++- (void)startNextInterceptorWithRequest:(GRPCRequestOptions *)requestOptions
++                            callOptions:(GRPCCallOptions *)callOptions;
++- (void)writeNextInterceptorWithData:(id)data;
++- (void)finishNextInterceptor;
++- (void)cancelNextInterceptor;
++- (void)receiveNextInterceptorMessages:(NSUInteger)numberOfMessages;
++- (void)forwardPreviousInterceptorWithInitialMetadata:(nullable NSDictionary *)initialMetadata;
++- (void)forwardPreviousInterceptorWithData:(nullable id)data;
++- (void)forwardPreviousInterceptorCloseWithTrailingMetadata:
++            (nullable NSDictionary *)trailingMetadata
++                                                      error:(nullable NSError *)error;
++- (void)forwardPreviousInterceptorDidWriteData;
++@end
++@interface GRPCInterceptor : NSObject<GRPCInterceptorInterface, GRPCResponseHandler>
+@@ -19 +42,15 @@ end
+-end
+++ (instancetype) new NS_UNAVAILABLE;
++- (nullable instancetype)initWithInterceptorManager:(GRPCInterceptorManager *)interceptorManager
++                                      dispatchQueue:(dispatch_queue_t)dispatchQueue;
++- (void)startWithRequestOptions:(GRPCRequestOptions *)requestOptions
++                    callOptions:(GRPCCallOptions *)callOptions;
++- (void)writeData:(id)data;
++- (void)finish;
++- (void)cancel;
++- (void)receiveNextMessages:(NSUInteger)numberOfMessages;
++- (void)didReceiveInitialMetadata:(nullable NSDictionary *)initialMetadata;
++- (void)didReceiveData:(id)data;
++- (void)didCloseWithTrailingMetadata:(nullable NSDictionary *)trailingMetadata
++                               error:(nullable NSError *)error;
++- (void)didWriteData;
++@end

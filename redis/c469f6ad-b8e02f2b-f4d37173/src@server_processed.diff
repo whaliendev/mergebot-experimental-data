@@ -1,0 +1,557 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/redis/c469f6ad-b8e02f2b-f4d37173/src@server.no_comments_mergebot.c
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/redis/c469f6ad-b8e02f2b-f4d37173/src@server.no_comments_merged.c
+@@ -23,0 +24 @@
++#include <sys/resource.h>
+@@ -238,13 +367,49 @@ struct redisCommand redisCommandTable[] = {
+-     "no-script ok-loading ok-stale fast no-monitor no-slowlog @connection", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"ping", pingCommand, -1, "ok-stale fast @connection", 0, NULL, 0, 0, 0, 0,
+-     0, 0},
+-    {"echo", echoCommand, 2, "read-only fast @connection", 0, NULL, 0, 0, 0, 0,
+-     0, 0},
+-    {"save", saveCommand, 1, "admin no-script", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"bgsave", bgsaveCommand, -1, "admin no-script", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"bgrewriteaof", bgrewriteaofCommand, 1, "admin no-script", 0, NULL, 0, 0,
+-     0, 0, 0, 0},
+-    {"shutdown", shutdownCommand, -1, "admin no-script ok-loading ok-stale", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"lastsave", lastsaveCommand, 1, "read-only random fast @admin @dangerous",
++     "no-script ok-loading ok-stale fast no-monitor no-slowlog @connection",
++     0,NULL,0,0,0,0,0,0},
++    {"ping",pingCommand,-1,
++     "ok-stale fast @connection",
++     0,NULL,0,0,0,0,0,0},
++    {"echo",echoCommand,2,
++     "read-only fast @connection",
++     0,NULL,0,0,0,0,0,0},
++    {"save",saveCommand,1,
++     "admin no-script",
++     0,NULL,0,0,0,0,0,0},
++    {"bgsave",bgsaveCommand,-1,
++     "admin no-script",
++     0,NULL,0,0,0,0,0,0},
++    {"bgrewriteaof",bgrewriteaofCommand,1,
++     "admin no-script",
++     0,NULL,0,0,0,0,0,0},
++    {"shutdown",shutdownCommand,-1,
++     "admin no-script ok-loading ok-stale",
++     0,NULL,0,0,0,0,0,0},
++    {"lastsave",lastsaveCommand,1,
++     "read-only random fast @admin @dangerous",
++     0,NULL,0,0,0,0,0,0},
++    {"type",typeCommand,2,
++     "read-only fast @keyspace",
++     0,NULL,1,1,1,0,0,0},
++    {"multi",multiCommand,1,
++     "no-script fast @transaction",
++     0,NULL,0,0,0,0,0,0},
++    {"exec",execCommand,1,
++     "no-script no-monitor no-slowlog @transaction",
++     0,NULL,0,0,0,0,0,0},
++    {"discard",discardCommand,1,
++     "no-script fast @transaction",
++     0,NULL,0,0,0,0,0,0},
++    {"sync",syncCommand,1,
++     "admin no-script",
++     0,NULL,0,0,0,0,0,0},
++    {"psync",syncCommand,3,
++     "admin no-script",
++     0,NULL,0,0,0,0,0,0},
++    {"replconf",replconfCommand,-1,
++     "admin no-script ok-loading ok-stale",
++     0,NULL,0,0,0,0,0,0},
++    {"flushdb",flushdbCommand,-1,
++     "write @keyspace @dangerous",
++     0,NULL,0,0,0,0,0,0},
++    {"flushall",flushallCommand,-1,
++     "write @keyspace @dangerous",
+@@ -252,16 +416,0 @@ struct redisCommand redisCommandTable[] = {
+-    {"type", typeCommand, 2, "read-only fast @keyspace", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"multi", multiCommand, 1, "no-script fast @transaction", 0, NULL, 0, 0, 0,
+-     0, 0, 0},
+-    {"exec", execCommand, 1, "no-script no-monitor no-slowlog @transaction", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"discard", discardCommand, 1, "no-script fast @transaction", 0, NULL, 0, 0,
+-     0, 0, 0, 0},
+-    {"sync", syncCommand, 1, "admin no-script", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"psync", syncCommand, 3, "admin no-script", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"replconf", replconfCommand, -1, "admin no-script ok-loading ok-stale", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"flushdb", flushdbCommand, -1, "write @keyspace @dangerous", 0, NULL, 0, 0,
+-     0, 0, 0, 0},
+-    {"flushall", flushallCommand, -1, "write @keyspace @dangerous", 0, NULL, 0,
+-     0, 0, 0, 0, 0},
+@@ -332,29 +511,37 @@ struct redisCommand redisCommandTable[] = {
+-     "no-script fast no-monitor no-slowlog @connection", 0, NULL, 0, 0, 0, 0, 0,
+-     0},
+-    {"eval", evalCommand, -3, "no-script @scripting", 0, evalGetKeys, 0, 0, 0,
+-     0, 0, 0},
+-    {"evalsha", evalShaCommand, -3, "no-script @scripting", 0, evalGetKeys, 0,
+-     0, 0, 0, 0, 0},
+-    {"slowlog", slowlogCommand, -2, "admin random", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"script", scriptCommand, -2, "no-script @scripting", 0, NULL, 0, 0, 0, 0,
+-     0, 0},
+-    {"time", timeCommand, 1, "read-only random fast", 0, NULL, 0, 0, 0, 0, 0,
+-     0},
+-    {"bitop", bitopCommand, -4, "write use-memory @bitmap", 0, NULL, 2, -1, 1,
+-     0, 0, 0},
+-    {"bitcount", bitcountCommand, -2, "read-only @bitmap", 0, NULL, 1, 1, 1, 0,
+-     0, 0},
+-    {"bitpos", bitposCommand, -3, "read-only @bitmap", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"wait", waitCommand, 3, "no-script @keyspace", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"command", commandCommand, -1, "ok-loading ok-stale random @connection", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"geoadd", geoaddCommand, -5, "write use-memory @geo", 0, NULL, 1, 1, 1, 0,
+-     0, 0},
+-    {"georadius", georadiusCommand, -6, "write @geo", 0, georadiusGetKeys, 1, 1,
+-     1, 0, 0, 0},
+-    {"georadius_ro", georadiusroCommand, -6, "read-only @geo", 0,
+-     georadiusGetKeys, 1, 1, 1, 0, 0, 0},
+-    {"georadiusbymember", georadiusbymemberCommand, -5, "write @geo", 0,
+-     georadiusGetKeys, 1, 1, 1, 0, 0, 0},
+-    {"georadiusbymember_ro", georadiusbymemberroCommand, -5, "read-only @geo",
++     "no-script fast no-monitor no-slowlog @connection",
++     0,NULL,0,0,0,0,0,0},
++    {"eval",evalCommand,-3,
++     "no-script @scripting",
++     0,evalGetKeys,0,0,0,0,0,0},
++    {"evalsha",evalShaCommand,-3,
++     "no-script @scripting",
++     0,evalGetKeys,0,0,0,0,0,0},
++    {"slowlog",slowlogCommand,-2,
++     "admin random",
++     0,NULL,0,0,0,0,0,0},
++    {"script",scriptCommand,-2,
++     "no-script @scripting",
++     0,NULL,0,0,0,0,0,0},
++    {"time",timeCommand,1,
++     "read-only random fast",
++     0,NULL,0,0,0,0,0,0},
++    {"bitop",bitopCommand,-4,
++     "write use-memory @bitmap",
++     0,NULL,2,-1,1,0,0,0},
++    {"bitcount",bitcountCommand,-2,
++     "read-only @bitmap",
++     0,NULL,1,1,1,0,0,0},
++    {"bitpos",bitposCommand,-3,
++     "read-only @bitmap",
++     0,NULL,1,1,1,0,0,0},
++    {"wait",waitCommand,3,
++     "no-script @keyspace",
++     0,NULL,0,0,0,0,0,0},
++    {"command",commandCommand,-1,
++     "ok-loading ok-stale random @connection",
++     0,NULL,0,0,0,0,0,0},
++    {"geoadd",geoaddCommand,-5,
++     "write use-memory @geo",
++     0,NULL,1,1,1,0,0,0},
++    {"georadius",georadiusCommand,-6,
++     "write @geo",
+@@ -362,50 +549,91 @@ struct redisCommand redisCommandTable[] = {
+-    {"geohash", geohashCommand, -2, "read-only @geo", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"geopos", geoposCommand, -2, "read-only @geo", 0, NULL, 1, 1, 1, 0, 0, 0},
+-    {"geodist", geodistCommand, -4, "read-only @geo", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"pfselftest", pfselftestCommand, 1, "admin @hyperloglog", 0, NULL, 0, 0, 0,
+-     0, 0, 0},
+-    {"pfadd", pfaddCommand, -2, "write use-memory fast @hyperloglog", 0, NULL,
+-     1, 1, 1, 0, 0, 0},
+-    {"pfcount", pfcountCommand, -2, "read-only @hyperloglog", 0, NULL, 1, -1, 1,
+-     0, 0, 0},
+-    {"pfmerge", pfmergeCommand, -2, "write use-memory @hyperloglog", 0, NULL, 1,
+-     -1, 1, 0, 0, 0},
+-    {"pfdebug", pfdebugCommand, -3, "admin write", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"xadd", xaddCommand, -5, "write use-memory fast random @stream", 0, NULL,
+-     1, 1, 1, 0, 0, 0},
+-    {"xrange", xrangeCommand, -4, "read-only @stream", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"xrevrange", xrevrangeCommand, -4, "read-only @stream", 0, NULL, 1, 1, 1,
+-     0, 0, 0},
+-    {"xlen", xlenCommand, 2, "read-only fast @stream", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"xread", xreadCommand, -4, "read-only no-script @stream @blocking", 0,
+-     xreadGetKeys, 1, 1, 1, 0, 0, 0},
+-    {"xreadgroup", xreadCommand, -7, "write no-script @stream @blocking", 0,
+-     xreadGetKeys, 1, 1, 1, 0, 0, 0},
+-    {"xgroup", xgroupCommand, -2, "write use-memory @stream", 0, NULL, 2, 2, 1,
+-     0, 0, 0},
+-    {"xsetid", xsetidCommand, 3, "write use-memory fast @stream", 0, NULL, 1, 1,
+-     1, 0, 0, 0},
+-    {"xack", xackCommand, -4, "write fast random @stream", 0, NULL, 1, 1, 1, 0,
+-     0, 0},
+-    {"xpending", xpendingCommand, -3, "read-only random @stream", 0, NULL, 1, 1,
+-     1, 0, 0, 0},
+-    {"xclaim", xclaimCommand, -6, "write random fast @stream", 0, NULL, 1, 1, 1,
+-     0, 0, 0},
+-    {"xinfo", xinfoCommand, -2, "read-only random @stream", 0, NULL, 2, 2, 1, 0,
+-     0, 0},
+-    {"xdel", xdelCommand, -3, "write fast @stream", 0, NULL, 1, 1, 1, 0, 0, 0},
+-    {"xtrim", xtrimCommand, -2, "write random @stream", 0, NULL, 1, 1, 1, 0, 0,
+-     0},
+-    {"post", securityWarningCommand, -1, "ok-loading ok-stale read-only", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"host:", securityWarningCommand, -1, "ok-loading ok-stale read-only", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"latency", latencyCommand, -2, "admin no-script ok-loading ok-stale", 0,
+-     NULL, 0, 0, 0, 0, 0, 0},
+-    {"lolwut", lolwutCommand, -1, "read-only fast", 0, NULL, 0, 0, 0, 0, 0, 0},
+-    {"acl", aclCommand, -2, "admin no-script ok-loading ok-stale", 0, NULL, 0,
+-     0, 0, 0, 0, 0}};
++    {"georadius_ro",georadiusroCommand,-6,
++     "read-only @geo",
++     0,georadiusGetKeys,1,1,1,0,0,0},
++    {"georadiusbymember",georadiusbymemberCommand,-5,
++     "write @geo",
++     0,georadiusGetKeys,1,1,1,0,0,0},
++    {"georadiusbymember_ro",georadiusbymemberroCommand,-5,
++     "read-only @geo",
++     0,georadiusGetKeys,1,1,1,0,0,0},
++    {"geohash",geohashCommand,-2,
++     "read-only @geo",
++     0,NULL,1,1,1,0,0,0},
++    {"geopos",geoposCommand,-2,
++     "read-only @geo",
++     0,NULL,1,1,1,0,0,0},
++    {"geodist",geodistCommand,-4,
++     "read-only @geo",
++     0,NULL,1,1,1,0,0,0},
++    {"pfselftest",pfselftestCommand,1,
++     "admin @hyperloglog",
++      0,NULL,0,0,0,0,0,0},
++    {"pfadd",pfaddCommand,-2,
++     "write use-memory fast @hyperloglog",
++     0,NULL,1,1,1,0,0,0},
++    {"pfcount",pfcountCommand,-2,
++     "read-only @hyperloglog",
++     0,NULL,1,-1,1,0,0,0},
++    {"pfmerge",pfmergeCommand,-2,
++     "write use-memory @hyperloglog",
++     0,NULL,1,-1,1,0,0,0},
++    {"pfdebug",pfdebugCommand,-3,
++     "admin write",
++     0,NULL,0,0,0,0,0,0},
++    {"xadd",xaddCommand,-5,
++     "write use-memory fast random @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xrange",xrangeCommand,-4,
++     "read-only @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xrevrange",xrevrangeCommand,-4,
++     "read-only @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xlen",xlenCommand,2,
++     "read-only fast @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xread",xreadCommand,-4,
++     "read-only no-script @stream @blocking",
++     0,xreadGetKeys,1,1,1,0,0,0},
++    {"xreadgroup",xreadCommand,-7,
++     "write no-script @stream @blocking",
++     0,xreadGetKeys,1,1,1,0,0,0},
++    {"xgroup",xgroupCommand,-2,
++     "write use-memory @stream",
++     0,NULL,2,2,1,0,0,0},
++    {"xsetid",xsetidCommand,3,
++     "write use-memory fast @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xack",xackCommand,-4,
++     "write fast random @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xpending",xpendingCommand,-3,
++     "read-only random @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xclaim",xclaimCommand,-6,
++     "write random fast @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xinfo",xinfoCommand,-2,
++     "read-only random @stream",
++     0,NULL,2,2,1,0,0,0},
++    {"xdel",xdelCommand,-3,
++     "write fast @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"xtrim",xtrimCommand,-2,
++     "write random @stream",
++     0,NULL,1,1,1,0,0,0},
++    {"post",securityWarningCommand,-1,
++     "ok-loading ok-stale read-only",
++     0,NULL,0,0,0,0,0,0},
++    {"host:",securityWarningCommand,-1,
++     "ok-loading ok-stale read-only",
++     0,NULL,0,0,0,0,0,0},
++    {"latency",latencyCommand,-2,
++     "admin no-script ok-loading ok-stale",
++     0,NULL,0,0,0,0,0,0},
++    {"lolwut",lolwutCommand,-1,
++     "read-only fast",
++     0,NULL,0,0,0,0,0,0},
++    {"acl",aclCommand,-2,
++     "admin no-script ok-loading ok-stale",
++     0,NULL,0,0,0,0,0,0}
++};
+@@ -872,0 +1124,4 @@ void checkChildrenDone(void) {
++        if (exitcode == SERVER_CHILD_NOERROR_RETVAL) {
++            bysignal = SIGUSR1;
++            exitcode = 1;
++        }
+@@ -874,5 +1129,6 @@ void checkChildrenDone(void) {
+-      serverLog(LL_WARNING,
+-                "wait3() returned an error: %s. "
+-                "rdb_child_pid = %d, aof_child_pid = %d",
+-                strerror(errno), (int)server.rdb_child_pid,
+-                (int)server.aof_child_pid);
++            serverLog(LL_WARNING,"wait3() returned an error: %s. "
++                "rdb_child_pid = %d, aof_child_pid = %d, module_child_pid = %d",
++                strerror(errno),
++                (int) server.rdb_child_pid,
++                (int) server.aof_child_pid,
++                (int) server.module_child_pid);
+@@ -884,0 +1141,3 @@ void checkChildrenDone(void) {
++        } else if (pid == server.module_child_pid) {
++            ModuleForkDoneHandler(exitcode,bysignal);
++            if (!bysignal && exitcode == 0) receiveChildInfo();
+@@ -943,3 +1201 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+-    serverLog(LL_WARNING,
+-              "SIGTERM received but errors trying to shut down the server, "
+-              "check the logs for more information");
++        serverLog(LL_WARNING,"SIGTERM received but errors trying to shut down the server, check the logs for more information");
+@@ -974,2 +1231,2 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+-  if (hasActiveChildProcess() || ldbPendingChildren()) {
+-<<<<<<< HEAD
++    if (hasActiveChildProcess() || ldbPendingChildren())
++    {
+@@ -977,67 +1233,0 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+-|||||||
+-    int statloc;
+-    pid_t pid;
+-    if ((pid = wait3(&statloc, WNOHANG, NULL)) != 0) {
+-      int exitcode = WEXITSTATUS(statloc);
+-      int bysignal = 0;
+-      if (WIFSIGNALED(statloc)) bysignal = WTERMSIG(statloc);
+-      if (pid == -1) {
+-        serverLog(LL_WARNING,
+-                  "wait3() returned an error: %s. "
+-                  "rdb_child_pid = %d, aof_child_pid = %d",
+-                  strerror(errno), (int)server.rdb_child_pid,
+-                  (int)server.aof_child_pid);
+-      } else if (pid == server.rdb_child_pid) {
+-        backgroundSaveDoneHandler(exitcode, bysignal);
+-        if (!bysignal && exitcode == 0) receiveChildInfo();
+-      } else if (pid == server.aof_child_pid) {
+-        backgroundRewriteDoneHandler(exitcode, bysignal);
+-        if (!bysignal && exitcode == 0) receiveChildInfo();
+-      } else {
+-        if (!ldbRemoveChild(pid)) {
+-          serverLog(LL_WARNING,
+-                    "Warning, detected child with unmatched pid: %ld",
+-                    (long)pid);
+-        }
+-      }
+-      updateDictResizePolicy();
+-      closeChildInfoPipe();
+-    }
+-=======
+-    int statloc;
+-    pid_t pid;
+-    if ((pid = wait3(&statloc, WNOHANG, NULL)) != 0) {
+-      int exitcode = WEXITSTATUS(statloc);
+-      int bysignal = 0;
+-      if (WIFSIGNALED(statloc)) bysignal = WTERMSIG(statloc);
+-      if (exitcode == SERVER_CHILD_NOERROR_RETVAL) {
+-        bysignal = SIGUSR1;
+-        exitcode = 1;
+-      }
+-      if (pid == -1) {
+-        serverLog(
+-            LL_WARNING,
+-            "wait3() returned an error: %s. "
+-            "rdb_child_pid = %d, aof_child_pid = %d, module_child_pid = %d",
+-            strerror(errno), (int)server.rdb_child_pid,
+-            (int)server.aof_child_pid, (int)server.module_child_pid);
+-      } else if (pid == server.rdb_child_pid) {
+-        backgroundSaveDoneHandler(exitcode, bysignal);
+-        if (!bysignal && exitcode == 0) receiveChildInfo();
+-      } else if (pid == server.aof_child_pid) {
+-        backgroundRewriteDoneHandler(exitcode, bysignal);
+-        if (!bysignal && exitcode == 0) receiveChildInfo();
+-      } else if (pid == server.module_child_pid) {
+-        ModuleForkDoneHandler(exitcode, bysignal);
+-        if (!bysignal && exitcode == 0) receiveChildInfo();
+-      } else {
+-        if (!ldbRemoveChild(pid)) {
+-          serverLog(LL_WARNING,
+-                    "Warning, detected child with unmatched pid: %ld",
+-                    (long)pid);
+-        }
+-      }
+-      updateDictResizePolicy();
+-      closeChildInfoPipe();
+-    }
+->>>>>>> b8e02f2b4005febbdaa11ff978c4f98b664464c9
+@@ -1139,42 +1337,28 @@ void createSharedObjects(void) {
+-  shared.emptyscan =
+-      createObject(OBJ_STRING, sdsnew("*2\r\n$1\r\n0\r\n*0\r\n"));
+-  shared.wrongtypeerr =
+-      createObject(OBJ_STRING, sdsnew("-WRONGTYPE Operation against a key "
+-                                      "holding the wrong kind of value\r\n"));
+-  shared.nokeyerr = createObject(OBJ_STRING, sdsnew("-ERR no such key\r\n"));
+-  shared.syntaxerr = createObject(OBJ_STRING, sdsnew("-ERR syntax error\r\n"));
+-  shared.sameobjecterr = createObject(
+-      OBJ_STRING,
+-      sdsnew("-ERR source and destination objects are the same\r\n"));
+-  shared.outofrangeerr =
+-      createObject(OBJ_STRING, sdsnew("-ERR index out of range\r\n"));
+-  shared.noscripterr = createObject(
+-      OBJ_STRING, sdsnew("-NOSCRIPT No matching script. Please use EVAL.\r\n"));
+-  shared.loadingerr = createObject(
+-      OBJ_STRING,
+-      sdsnew("-LOADING Redis is loading the dataset in memory\r\n"));
+-  shared.slowscripterr = createObject(
+-      OBJ_STRING, sdsnew("-BUSY Redis is busy running a script. You can only "
+-                         "call SCRIPT KILL or SHUTDOWN NOSAVE.\r\n"));
+-  shared.masterdownerr = createObject(
+-      OBJ_STRING, sdsnew("-MASTERDOWN Link with MASTER is down and "
+-                         "replica-serve-stale-data is set to 'no'.\r\n"));
+-  shared.bgsaveerr = createObject(
+-      OBJ_STRING,
+-      sdsnew("-MISCONF Redis is configured to save RDB snapshots, but it is "
+-             "currently not able to persist on disk. Commands that may modify "
+-             "the data set are disabled, because this instance is configured "
+-             "to report errors during writes if RDB snapshotting fails "
+-             "(stop-writes-on-bgsave-error option). Please check the Redis "
+-             "logs for details about the RDB error.\r\n"));
+-  shared.roslaveerr = createObject(
+-      OBJ_STRING,
+-      sdsnew("-READONLY You can't write against a read only replica.\r\n"));
+-  shared.noautherr =
+-      createObject(OBJ_STRING, sdsnew("-NOAUTH Authentication required.\r\n"));
+-  shared.oomerr = createObject(
+-      OBJ_STRING,
+-      sdsnew("-OOM command not allowed when used memory > 'maxmemory'.\r\n"));
+-  shared.execaborterr = createObject(
+-      OBJ_STRING,
+-      sdsnew(
++    shared.emptyscan = createObject(OBJ_STRING,sdsnew("*2\r\n$1\r\n0\r\n*0\r\n"));
++    shared.wrongtypeerr = createObject(OBJ_STRING,sdsnew(
++        "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n"));
++    shared.nokeyerr = createObject(OBJ_STRING,sdsnew(
++        "-ERR no such key\r\n"));
++    shared.syntaxerr = createObject(OBJ_STRING,sdsnew(
++        "-ERR syntax error\r\n"));
++    shared.sameobjecterr = createObject(OBJ_STRING,sdsnew(
++        "-ERR source and destination objects are the same\r\n"));
++    shared.outofrangeerr = createObject(OBJ_STRING,sdsnew(
++        "-ERR index out of range\r\n"));
++    shared.noscripterr = createObject(OBJ_STRING,sdsnew(
++        "-NOSCRIPT No matching script. Please use EVAL.\r\n"));
++    shared.loadingerr = createObject(OBJ_STRING,sdsnew(
++        "-LOADING Redis is loading the dataset in memory\r\n"));
++    shared.slowscripterr = createObject(OBJ_STRING,sdsnew(
++        "-BUSY Redis is busy running a script. You can only call SCRIPT KILL or SHUTDOWN NOSAVE.\r\n"));
++    shared.masterdownerr = createObject(OBJ_STRING,sdsnew(
++        "-MASTERDOWN Link with MASTER is down and replica-serve-stale-data is set to 'no'.\r\n"));
++    shared.bgsaveerr = createObject(OBJ_STRING,sdsnew(
++        "-MISCONF Redis is configured to save RDB snapshots, but it is currently not able to persist on disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.\r\n"));
++    shared.roslaveerr = createObject(OBJ_STRING,sdsnew(
++        "-READONLY You can't write against a read only replica.\r\n"));
++    shared.noautherr = createObject(OBJ_STRING,sdsnew(
++        "-NOAUTH Authentication required.\r\n"));
++    shared.oomerr = createObject(OBJ_STRING,sdsnew(
++        "-OOM command not allowed when used memory > 'maxmemory'.\r\n"));
++    shared.execaborterr = createObject(OBJ_STRING,sdsnew(
+@@ -1473,3 +1656 @@ void adjustOpenFilesLimit(void) {
+-    serverLog(LL_WARNING,
+-              "Unable to obtain the current NOFILE limit (%s), assuming 1024 "
+-              "and setting the max clients configuration accordingly.",
++        serverLog(LL_WARNING,"Unable to obtain the current NOFILE limit (%s), assuming 1024 and setting the max clients configuration accordingly.",
+@@ -1537,5 +1716 @@ void checkTcpBacklogSettings(void) {
+-      serverLog(
+-          LL_WARNING,
+-          "WARNING: The TCP backlog setting of %d cannot be enforced because "
+-          "/proc/sys/net/core/somaxconn is set to the lower value of %d.",
+-          server.tcp_backlog, somaxconn);
++            serverLog(LL_WARNING,"WARNING: The TCP backlog setting of %d cannot be enforced because /proc/sys/net/core/somaxconn is set to the lower value of %d.", server.tcp_backlog, somaxconn);
+@@ -1773,3 +1953 @@ void initServer(void) {
+-    serverLog(LL_WARNING,
+-              "Warning: 32 bit instance detected but no memory limit set. "
+-              "Setting 3 GB maxmemory limit with 'noeviction' policy now.");
++        serverLog(LL_WARNING,"Warning: 32 bit instance detected but no memory limit set. Setting 3 GB maxmemory limit with 'noeviction' policy now.");
+@@ -2123,3 +2328 @@ int processCommand(client *c) {
+-    addReplyError(c,
+-                  "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in "
+-                  "this context");
++        addReplyError(c,"only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
+@@ -2308,3 +2525,3 @@ void commandCommand(client *c) {
+-        "INFO [command-name ...] -- Return details about multiple Redis "
+-        "commands.",
+-        NULL};
++"INFO [command-name ...] -- Return details about multiple Redis commands.",
++NULL
++        };
+@@ -2437,10 +2657,8 @@ sds genRedisInfoString(char *section) {
+-        (int64_t)getpid(), server.runid,
+-<<<<<<< HEAD
+-        server.port ? server.port : server.tls_port, (intmax_t)uptime,
+-        (intmax_t)(uptime / (3600 * 24)),
+-|||||||
+-        server.port, (intmax_t)uptime, (intmax_t)(uptime / (3600 * 24)),
+-=======
+-        server.port, (int64_t)uptime, (int64_t)(uptime / (3600 * 24)),
+->>>>>>> b8e02f2b4005febbdaa11ff978c4f98b664464c9
+-        server.hz, server.config_hz, server.lruclock,
++            (int64_t) getpid(),
++            server.runid,
++            server.port ? server.port : server.tls_port,
++            (int64_t)uptime,
++            (int64_t)(uptime/(3600*24)),
++            server.hz,
++            server.config_hz,
++            server.lruclock,
+@@ -2876,6 +3146 @@ void linuxMemoryWarnings(void) {
+-    serverLog(
+-        LL_WARNING,
+-        "WARNING overcommit_memory is set to 0! Background save may fail under "
+-        "low memory condition. To fix this issue add 'vm.overcommit_memory = "
+-        "1' to /etc/sysctl.conf and then reboot or run the command 'sysctl "
+-        "vm.overcommit_memory=1' for this to take effect.");
++        serverLog(LL_WARNING,"WARNING overcommit_memory is set to 0! Background save may fail under low memory condition. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.");
+@@ -2884,7 +3149 @@ void linuxMemoryWarnings(void) {
+-    serverLog(LL_WARNING,
+-              "WARNING you have Transparent Huge Pages (THP) support enabled "
+-              "in your kernel. This will create latency and memory usage "
+-              "issues with Redis. To fix this issue run the command 'echo "
+-              "never > /sys/kernel/mm/transparent_hugepage/enabled' as root, "
+-              "and add it to your /etc/rc.local in order to retain the setting "
+-              "after a reboot. Redis must be restarted after THP is disabled.");
++        serverLog(LL_WARNING,"WARNING you have Transparent Huge Pages (THP) support enabled in your kernel. This will create latency and memory usage issues with Redis. To fix this issue run the command 'echo never > /sys/kernel/mm/transparent_hugepage/enabled' as root, and add it to your /etc/rc.local in order to retain the setting after a reboot. Redis must be restarted after THP is disabled.");
+@@ -3207,3 +3474,3 @@ int main(int argc, char **argv) {
+-  char hashseed[16];
+-  getRandomHexChars(hashseed, sizeof(hashseed));
+-  dictSetHashFunctionSeed((uint8_t *)hashseed);
++    uint8_t hashseed[16];
++    getRandomBytes(hashseed,sizeof(hashseed));
++    dictSetHashFunctionSeed(hashseed);
+@@ -3213,0 +3481 @@ int main(int argc, char **argv) {
++    tlsInit();
+@@ -3284,4 +3554 @@ int main(int argc, char **argv) {
+-    serverLog(LL_WARNING,
+-              "Warning: no config file specified, using the default config. In "
+-              "order to specify a config file use %s /path/to/%s.conf",
+-              argv[0], server.sentinel_mode ? "sentinel" : "redis");
++        serverLog(LL_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/%s.conf", argv[0], server.sentinel_mode ? "sentinel" : "redis");
+@@ -3305,0 +3573 @@ int main(int argc, char **argv) {
++        InitServerLast();
+@@ -3315 +3583 @@ int main(int argc, char **argv) {
+-    if (server.ipfd_count > 0)
++        if (server.ipfd_count > 0 || server.tlsfd_count > 0)
+@@ -3321,0 +3588 @@ int main(int argc, char **argv) {
++        InitServerLast();
+@@ -3325,5 +3592 @@ int main(int argc, char **argv) {
+-    serverLog(LL_WARNING,
+-              "WARNING: You specified a maxmemory value that is less than 1MB "
+-              "(current value is %llu bytes). Are you sure this is what you "
+-              "really want?",
+-              server.maxmemory);
++        serverLog(LL_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);

@@ -1,0 +1,53 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/81c23a62-e40a8e99-c84d6d7d/services@inputflinger@dispatcher@InputDispatcher.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/81c23a62-e40a8e99-c84d6d7d/services@inputflinger@dispatcher@InputDispatcher.no_comments_merged.cpp
+index 9f68bf2..8c2ef3f 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/81c23a62-e40a8e99-c84d6d7d/services@inputflinger@dispatcher@InputDispatcher.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_native/81c23a62-e40a8e99-c84d6d7d/services@inputflinger@dispatcher@InputDispatcher.no_comments_merged.cpp
+@@ -11 +10,0 @@
+-#include <gui/SurfaceComposerClient.h>
+@@ -43,2 +41,0 @@ using android::gui::WindowInfoHandle;
+-using android::os::BlockUntrustedTouchesMode;
+-using android::os::IInputConstants;
+@@ -61,2 +58 @@ const std::chrono::duration STALE_EVENT_TIMEOUT = std::chrono::seconds(10) * HwT
+-constexpr nsecs_t SLOW_EVENT_PROCESSING_WARNING_TIMEOUT = 2000 *
+-        1000000LL;
++constexpr nsecs_t SLOW_EVENT_PROCESSING_WARNING_TIMEOUT = 2000 * 1000000LL;
+@@ -1274 +1270,12 @@ bool InputDispatcher::dispatchKeyLocked(nsecs_t currentTime, std::shared_ptr<Key
+-    } else if (entry->interceptKeyResult == KeyEntry::InterceptKeyResult::SKIP)
++    } else if (entry->interceptKeyResult == KeyEntry::InterceptKeyResult::SKIP) {
++        if (*dropReason == DropReason::NOT_DROPPED) {
++            *dropReason = DropReason::POLICY;
++        }
++    }
++    if (*dropReason != DropReason::NOT_DROPPED) {
++        setInjectionResult(*entry,
++                           *dropReason == DropReason::POLICY ? InputEventInjectionResult::SUCCEEDED
++                                                             : InputEventInjectionResult::FAILED);
++        mReporter->reportDroppedKey(entry->id);
++        return true;
++    }
+@@ -1278,0 +1286,8 @@ bool InputDispatcher::dispatchKeyLocked(nsecs_t currentTime, std::shared_ptr<Key
++    if (injectionResult == InputEventInjectionResult::PENDING) {
++        return false;
++    }
++    setInjectionResult(*entry, injectionResult);
++    if (injectionResult != InputEventInjectionResult::SUCCEEDED) {
++        return true;
++    }
++    LOG_ALWAYS_FATAL_IF(focusedWindow == nullptr);
+@@ -1279,0 +1295,6 @@ bool InputDispatcher::dispatchKeyLocked(nsecs_t currentTime, std::shared_ptr<Key
++    addWindowTargetLocked(focusedWindow,
++                          InputTarget::Flags::FOREGROUND | InputTarget::Flags::DISPATCH_AS_IS,
++                                         {}, getDownTime(*entry), inputTargets);
++    addGlobalMonitoringTargetsLocked(inputTargets, getTargetDisplayId(*entry));
++    dispatchEventLocked(currentTime, entry, inputTargets);
++    return true;
+@@ -2203 +2224,2 @@ bool InputDispatcher::isWindowObscuredAtPointLocked(const sp<WindowInfoHandle>&
+-        if (canBeObscuredBy(windowHandle, otherHandle) && otherInfo->frameContainsPoint(x, y)) {
++        if (canBeObscuredBy(windowHandle, otherHandle) &&
++            otherInfo->frameContainsPoint(x, y)) {
+@@ -2218 +2240,2 @@ bool InputDispatcher::isWindowObscuredLocked(const sp<WindowInfoHandle>& windowH
+-        if (canBeObscuredBy(windowHandle, otherHandle) && otherInfo->overlaps(windowInfo)) {
++        if (canBeObscuredBy(windowHandle, otherHandle) &&
++            otherInfo->overlaps(windowInfo)) {
+@@ -5268,0 +5292 @@ sp<WindowInfoHandle> InputDispatcher::findWallpaperWindowBelow(
++}

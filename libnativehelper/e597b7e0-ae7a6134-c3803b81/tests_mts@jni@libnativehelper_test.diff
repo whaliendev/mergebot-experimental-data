@@ -1,0 +1,48 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/libnativehelper/e597b7e0-ae7a6134-c3803b81/tests_mts@jni@libnativehelper_test.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/libnativehelper/e597b7e0-ae7a6134-c3803b81/tests_mts@jni@libnativehelper_test.no_comments_merged.cpp
+index 8b00692..2bb4839 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/libnativehelper/e597b7e0-ae7a6134-c3803b81/tests_mts@jni@libnativehelper_test.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/libnativehelper/e597b7e0-ae7a6134-c3803b81/tests_mts@jni@libnativehelper_test.no_comments_merged.cpp
+@@ -8,2 +7,0 @@
+-#include <libnativehelper_test.h>
+-#include <nativetesthelper_jni/utils.h>
+@@ -15 +13,3 @@ void LibnativehelperTest::SetUp() {
+-void LibnativehelperTest::TearDown() { mEnv = nullptr; }
++void LibnativehelperTest::TearDown() {
++    mEnv = nullptr;
++}
+@@ -28,5 +27,0 @@ TEST_F(LibnativehelperTest, GetUtfOrReturn) {
+-class MyString : public std::string {
+-   public:
+-    explicitMyString(const char* c_str) : std::string(c_str) {}
+-    ~MyString() { clear(); }
+-};
+@@ -73,0 +69,29 @@ TEST_F(LibnativehelperTest, CreateUtfOrReturn) {
++class MyString : public std::string {
++   public:
++    explicit MyString(const char* c_str) : std::string(c_str) {}
++    ~MyString() { clear(); }
++};
++TEST_F(LibnativehelperTest, CreateUtfOrReturnExprEvaluatesToTemporary) {
++    std::unique_ptr<ScopedLocalRef<jstring>> result;
++    jint ret = [&](JNIEnv* env) -> jint {
++        ScopedLocalRef<jstring> j_str = CREATE_UTF_OR_RETURN(env, MyString("foo"));
++        result.reset(new ScopedLocalRef<jstring>(std::move(j_str)));
++        return 1;
++    }(mEnv);
++    ScopedUtfChars str(mEnv, result->get());
++    EXPECT_EQ(str.c_str(), std::string_view("foo"));
++    EXPECT_FALSE(mEnv->ExceptionCheck());
++    EXPECT_EQ(ret, 1);
++}
++TEST_F(LibnativehelperTest, CreateUtfOrReturnExprEvaluatesToValueBackedByTemporary) {
++    std::unique_ptr<ScopedLocalRef<jstring>> result;
++    jint ret = [&](JNIEnv* env) -> jint {
++        ScopedLocalRef<jstring> j_str = CREATE_UTF_OR_RETURN(env, MyString("foo").c_str());
++        result.reset(new ScopedLocalRef<jstring>(std::move(j_str)));
++        return 1;
++    }(mEnv);
++    ScopedUtfChars str(mEnv, result->get());
++    EXPECT_EQ(str.c_str(), std::string_view("foo"));
++    EXPECT_FALSE(mEnv->ExceptionCheck());
++    EXPECT_EQ(ret, 1);
++}

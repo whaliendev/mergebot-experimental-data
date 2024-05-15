@@ -1,0 +1,162 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/media@libmediaplayerservice@tests@DrmSessionManager_test.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/media@libmediaplayerservice@tests@DrmSessionManager_test.no_comments_merged.cpp
+index c799363..f56c07b 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/media@libmediaplayerservice@tests@DrmSessionManager_test.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/2475cf40-77b8c802-35b28e5f/media@libmediaplayerservice@tests@DrmSessionManager_test.no_comments_merged.cpp
+@@ -5,2 +4,0 @@
+-#include <media/IResourceManagerService.h>
+-#include <media/IResourceManagerClient.h>
+@@ -9,2 +6,0 @@
+-#include <mediadrm/DrmHal.h>
+-#include <mediadrm/DrmSessionClientInterface.h>
+@@ -18,0 +15,5 @@ namespace android {
++using Status = ::ndk::ScopedAStatus;
++using ::aidl::android::media::BnResourceManagerClient;
++using ::aidl::android::media::BnResourceManagerService;
++using ::aidl::android::media::MediaResourceParcel;
++using ::aidl::android::media::IResourceManagerClient;
+@@ -40 +41,4 @@ struct FakeDrm : public BnResourceManagerClient {
+-    FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager): mSessionId(toAndroidVector(sessionId)), mReclaimed(false), mDrmSessionManager(manager) {}
++    FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager)
++        : mSessionId(toAndroidVector(sessionId)),
++          mReclaimed(false),
++          mDrmSessionManager(manager) {}
+@@ -56,13 +59,0 @@ struct FakeDrm : public BnResourceManagerClient {
+-    virtual bool reclaimResource() {
+-        mReclaimed = true;
+-        mDrmSessionManager->removeSession(mSessionId);
+-        return true;
+-    }
+-    virtual String8 getName() {
+-        String8 name("FakeDrm[");
+-        for (size_t i = 0; i < mSessionId.size(); ++i) {
+-            name.appendFormat("%02x", mSessionId[i]);
+-        }
+-        name.append("]");
+-        return name;
+-    }
+@@ -84 +75 @@ struct FakeSystemCallback :
+-    virtual bool requestCpusetBoost(bool , const sp<IInterface> & ) override {
++    virtual bool requestCpusetBoost(bool ) override {
+@@ -88 +79 @@ protected:
+-    ~FakeSystemCallback(){}
++    virtual ~FakeSystemCallback() {}
+@@ -99,14 +90,10 @@ public:
+-    DrmSessionManagerTest(): mService(new ResourceManagerService(new FakeProcessInfo(), mService(::ndk::SharedRefBase::make<ResourceManagerService>
+-            (new FakeProcessInfo(), new FakeSystemCallback())), mTestDrm1(new FakeDrm(kTestSessionId1, mDrmSessionManager(new DrmSessionManager(mService)), mTestDrm1(::ndk::SharedRefBase::make<FakeDrm>(
+-                  kTestSessionId1, mDrmSessionManager)), mTestDrm2(::ndk::SharedRefBase::make<FakeDrm>(
+-                  kTestSessionId2, mTestDrm3(new FakeDrm(kTestSessionId3, mTestDrm2(new FakeDrm(kTestSessionId2, mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>(
+-                  kTestSessionId3, mDrmSessionManager(new DrmSessionManager(new FakeProcessInfo())), mTestDrm1(new FakeDrm()), mTestDrm2(new FakeDrm()) {
+-<<<<<<< HEAD
+-||||||| 35b28e5f80
+-        GetSessionId(kTestSessionId1, ARRAY_SIZE(kTestSessionId1), &mSessionId1);
+-        GetSessionId(kTestSessionId2, ARRAY_SIZE(kTestSessionId2), &mSessionId2);
+-        GetSessionId(kTestSessionId3, ARRAY_SIZE(kTestSessionId3), &mSessionId3);
+-=======
+-        DrmSessionManager *ptr = new DrmSessionManager(mService);
+-        EXPECT_NE(ptr, nullptr);
+->>>>>>> 77b8c802dbf3d63e19ff44e7bb2fe47b37e8d6b2
++    DrmSessionManagerTest()
++        : mService(::ndk::SharedRefBase::make<ResourceManagerService>
++            (new FakeProcessInfo(), new FakeSystemCallback())),
++          mDrmSessionManager(new DrmSessionManager(mService)),
++          mTestDrm1(::ndk::SharedRefBase::make<FakeDrm>(
++                  kTestSessionId1, mDrmSessionManager)),
++          mTestDrm2(::ndk::SharedRefBase::make<FakeDrm>(
++                  kTestSessionId2, mDrmSessionManager)),
++          mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>(
++                  kTestSessionId3, mDrmSessionManager)) {
+@@ -120 +107 @@ protected:
+-    sp<IResourceManagerService> mService;
++    std::shared_ptr<ResourceManagerService> mService;
+@@ -124 +111 @@ protected:
+-    sp<FakeDrm> mTestDrm3;
++    std::shared_ptr<FakeDrm> mTestDrm3;
+@@ -126,14 +113,68 @@ protected:
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
++TEST_F(DrmSessionManagerTest, addSession) {
++    addSession();
++    EXPECT_EQ(3u, mDrmSessionManager->getSessionCount());
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm1->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm2->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm3->mSessionId));
++}
++TEST_F(DrmSessionManagerTest, useSession) {
++    addSession();
++    mDrmSessionManager->useSession(mTestDrm1->mSessionId);
++    mDrmSessionManager->useSession(mTestDrm3->mSessionId);
++    EXPECT_EQ(3u, mDrmSessionManager->getSessionCount());
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm1->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm2->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm3->mSessionId));
++}
++TEST_F(DrmSessionManagerTest, removeSession) {
++    addSession();
++    mDrmSessionManager->removeSession(mTestDrm2->mSessionId);
++    EXPECT_EQ(2u, mDrmSessionManager->getSessionCount());
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm1->mSessionId));
++    EXPECT_FALSE(mDrmSessionManager->containsSession(mTestDrm2->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm3->mSessionId));
++}
++TEST_F(DrmSessionManagerTest, reclaimSession) {
++    EXPECT_FALSE(mDrmSessionManager->reclaimSession(kTestPid1));
++    addSession();
++    EXPECT_FALSE(mDrmSessionManager->reclaimSession(50));
++    EXPECT_TRUE(mDrmSessionManager->reclaimSession(10));
++    EXPECT_TRUE(mTestDrm1->isReclaimed());
++    const std::vector<uint8_t> sid{1, 3, 5};
++    std::shared_ptr<FakeDrm> drm =
++            ::ndk::SharedRefBase::make<FakeDrm>(sid, mDrmSessionManager);
++    mDrmSessionManager->addSession(15, drm, drm->mSessionId);
++    mDrmSessionManager->useSession(mTestDrm3->mSessionId);
++    EXPECT_TRUE(mDrmSessionManager->reclaimSession(18));
++    EXPECT_TRUE(mTestDrm2->isReclaimed());
++    EXPECT_EQ(2u, mDrmSessionManager->getSessionCount());
++    EXPECT_FALSE(mDrmSessionManager->containsSession(mTestDrm1->mSessionId));
++    EXPECT_FALSE(mDrmSessionManager->containsSession(mTestDrm2->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm3->mSessionId));
++    EXPECT_TRUE(mDrmSessionManager->containsSession(drm->mSessionId));
++}
++TEST_F(DrmSessionManagerTest, reclaimAfterUse) {
++    EXPECT_FALSE(mDrmSessionManager->reclaimSession(kTestPid1));
++    EXPECT_FALSE(mDrmSessionManager->reclaimSession(kTestPid2));
++    mDrmSessionManager->addSession(kTestPid2, mTestDrm1, mTestDrm1->mSessionId);
++    mDrmSessionManager->addSession(kTestPid2, mTestDrm2, mTestDrm2->mSessionId);
++    mDrmSessionManager->addSession(kTestPid2, mTestDrm3, mTestDrm3->mSessionId);
++    mDrmSessionManager->useSession(mTestDrm1->mSessionId);
++    mDrmSessionManager->useSession(mTestDrm1->mSessionId);
++    mDrmSessionManager->useSession(mTestDrm2->mSessionId);
++    int lowPriorityPid = kTestPid2 + 1;
++    EXPECT_FALSE(mDrmSessionManager->reclaimSession(lowPriorityPid));
++    int highPriorityPid = kTestPid2 - 1;
++    EXPECT_TRUE(mDrmSessionManager->reclaimSession(highPriorityPid));
++    EXPECT_FALSE(mTestDrm1->isReclaimed());
++    EXPECT_FALSE(mTestDrm2->isReclaimed());
++    EXPECT_TRUE(mTestDrm3->isReclaimed());
++    mDrmSessionManager->removeSession(mTestDrm3->mSessionId);
++    EXPECT_TRUE(mDrmSessionManager->reclaimSession(highPriorityPid));
++    EXPECT_FALSE(mTestDrm1->isReclaimed());
++    EXPECT_TRUE(mTestDrm2->isReclaimed());
++    EXPECT_TRUE(mTestDrm3->isReclaimed());
++    EXPECT_EQ(1u, mDrmSessionManager->getSessionCount());
++    EXPECT_TRUE(mDrmSessionManager->containsSession(mTestDrm1->mSessionId));
++    EXPECT_FALSE(mDrmSessionManager->containsSession(mTestDrm2->mSessionId));
++    EXPECT_FALSE(mDrmSessionManager->containsSession(mTestDrm3->mSessionId));
+@@ -141,5 +181,0 @@ DrmHal::DrmSessionClient::~DrmSessionClient() {
+-using Status = ::ndk::ScopedAStatus;
+-using ::aidl::android::media::BnResourceManagerClient;
+-using ::aidl::android::media::BnResourceManagerService;
+-using ::aidl::android::media::MediaResourceParcel;
+-using ::aidl::android::media::IResourceManagerClient;

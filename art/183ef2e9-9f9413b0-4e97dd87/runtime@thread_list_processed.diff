@@ -1,0 +1,95 @@
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@thread_list.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/183ef2e9-9f9413b0-4e97dd87/runtime@thread_list.no_comments_merged.cc
+@@ -10 +9,0 @@
+-#include "backtrace/BacktraceMap.h"
+@@ -140,23 +138,0 @@ void ThreadList::DumpUnattachedThreads(std::ostream& os, bool dump_native_stack)
+-void ThreadList::DumpUnattachedThreads(std::ostream& os, bool dump_native_stack) {
+-  DIR* d = opendir("/proc/self/task");
+-  if (!d) {
+-    return;
+-  }
+-  Thread* self = Thread::Current();
+-  dirent* e;
+-  while ((e = readdir(d)) != nullptr) {
+-    char* end;
+-    pid_t tid = strtol(e->d_name, &end, 10);
+-    if (!*end) {
+-      Thread* thread;
+-      {
+-        MutexLock mu(self, *Locks::thread_list_lock_);
+-        thread = FindThreadByTid(tid);
+-      }
+-      if (thread == nullptr) {
+-        DumpUnattachedThread(os, tid, dump_native_stack);
+-      }
+-    }
+-  }
+-  closedir(d);
+-}
+@@ -165,3 +140,0 @@ class DumpCheckpoint final : public Closure {
+-private:
+-  Mutex lock_;
+-  std::multimap<std::pair<Thread::DumpOrder, uint32_t>, std::ostringstream> os_ GUARDED_BY(lock_);
+@@ -169,2 +142,6 @@ public:
+-  DumpCheckpoint(bool dump_native_stack): lock_("Dump checkpoint lock", kGenericBottomLock), os_(),
+-        barrier_(0, false), unwinder_(std::vector<std::string> {
++  DumpCheckpoint(bool dump_native_stack)
++      : lock_("Dump checkpoint lock", kGenericBottomLock),
++        os_(),
++        barrier_(0, false),
++        unwinder_(std::vector<std::string>{}, std::vector<std::string> {"oat", "odex"}),
++        dump_native_stack_(dump_native_stack) {
+@@ -203,0 +181,2 @@ private:
++  Mutex lock_;
++  std::multimap<std::pair<Thread::DumpOrder, uint32_t>, std::ostringstream> os_ GUARDED_BY(lock_);
+@@ -239,0 +219,14 @@ void ThreadList::AssertThreadsAreSuspended(Thread* self, Thread* ignore1, Thread
++#if HAVE_TIMED_RWLOCK
++NO_RETURN static void UnsafeLogFatalForThreadSuspendAllTimeout() {
++  ++gAborting;
++  Runtime* runtime = Runtime::Current();
++  std::ostringstream ss;
++  ss << "Thread suspend timeout\n";
++  Locks::mutator_lock_->Dump(ss);
++  ss << "\n";
++  runtime->GetThreadList()->Dump(ss);
++  --gAborting;
++  LOG(FATAL) << ss.str();
++  exit(0);
++}
++#endif
+@@ -418,15 +410,0 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
+-<<<<<<< HEAD
+-|||||||
+-  Locks::mutator_lock_->ExclusiveUnlock(self);
+-  collector->RegisterPause(NanoTime() - suspend_start_time);
+-  if (pause_listener != nullptr) {
+-    pause_listener->EndPause();
+-  }
+-=======
+-  auto fake_mutator_lock_acquire = []() ACQUIRE(*Locks::mutator_lock_) NO_THREAD_SAFETY_ANALYSIS {};
+-  auto fake_mutator_lock_release = []() RELEASE(*Locks::mutator_lock_) NO_THREAD_SAFETY_ANALYSIS {};
+-  if (!gUseUserfaultfd) {
+-    Locks::mutator_lock_->ExclusiveUnlock(self);
+-    fake_mutator_lock_acquire();
+-  }
+->>>>>>> 9f9413b04b404f1eb0cdd283ccc9685b854aa906
+@@ -462,17 +439,0 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
+-<<<<<<< HEAD
+-|||||||
+-    ReaderMutexLock mu(self, *Locks::mutator_lock_);
+-=======
+-    if (gUseUserfaultfd) {
+-      Locks::mutator_lock_->AssertExclusiveHeld(self);
+-      for (Thread* thread : other_threads) {
+-        thread->EnsureFlipFunctionStarted(self);
+-        DCHECK(!thread->ReadFlag(ThreadFlag::kPendingFlipFunction));
+-      }
+-      self->EnsureFlipFunctionStarted(self);
+-      DCHECK(!self->ReadFlag(ThreadFlag::kPendingFlipFunction));
+-      Locks::mutator_lock_->ExclusiveUnlock(self);
+-    } else {
+-      fake_mutator_lock_release();
+-      ReaderMutexLock mu(self, *Locks::mutator_lock_);
+->>>>>>> 9f9413b04b404f1eb0cdd283ccc9685b854aa906
+@@ -486 +446,0 @@ size_t ThreadList::FlipThreadRoots(Closure* thread_flip_visitor,
+-  }

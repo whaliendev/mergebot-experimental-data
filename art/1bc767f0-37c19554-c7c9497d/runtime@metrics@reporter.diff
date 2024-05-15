@@ -1,0 +1,74 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@reporter.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@reporter.no_comments_merged.cc
+index 562620d..450c1a2 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@reporter.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@reporter.no_comments_merged.cc
+@@ -15,2 +15,2 @@ namespace metrics {
+-std::unique_ptr<MetricsReporter> MetricsReporter::Create(const ReportingConfig& config,
+-                                                         Runtime* runtime) {
++std::unique_ptr<MetricsReporter> MetricsReporter::Create(
++    const ReportingConfig& config, Runtime* runtime) {
+@@ -19 +19,5 @@ std::unique_ptr<MetricsReporter> MetricsReporter::Create(const ReportingConfig&
+-MetricsReporter::MetricsReporter(const ReportingConfig& config, Runtime* runtime) : config_ {}
++MetricsReporter::MetricsReporter(const ReportingConfig& config, Runtime* runtime)
++    : config_{config},
++      runtime_{runtime},
++      startup_reported_{false},
++      report_interval_index_{0} {}
+@@ -54,2 +58,4 @@ void MetricsReporter::NotifyAppInfoUpdated(AppInfo* app_info) {
+-  app_info->GetPrimaryApkOptimizationStatus(&compiler_filter, &compilation_reason);
+-  SetCompilationInfo(CompilationReasonFromName(compilation_reason),
++  app_info->GetPrimaryApkOptimizationStatus(
++      &compiler_filter, &compilation_reason);
++  SetCompilationInfo(
++      CompilationReasonFromName(compilation_reason),
+@@ -150 +155,0 @@ void MetricsReporter::ReportMetrics() {
+-<<<<<<< HEAD
+@@ -152,7 +156,0 @@ void MetricsReporter::ReportMetrics() {
+-|||||||
+-  for (auto& backend : backends_) {
+-    metrics->ReportAllMetrics(backend.get());
+-  }
+-=======
+-  metrics->ReportAllMetricsAndResetValueMetrics(ToRawPointers(backends_));
+->>>>>>> 37c19554816823543e0d80d0b3ba4318ab8ec3ab
+@@ -168 +166,2 @@ bool MetricsReporter::ShouldReportAtStartup() const {
+-  return IsMetricsReportingEnabled(session_data_) && config_.period_spec.has_value() &&
++  return IsMetricsReportingEnabled(session_data_) &&
++      config_.period_spec.has_value() &&
+@@ -183 +182,2 @@ uint32_t MetricsReporter::GetNextPeriodSeconds() {
+-  uint32_t index = std::min(report_interval_index_,
++  uint32_t index = std::min(
++      report_interval_index_,
+@@ -192,3 +192,3 @@ ReportingConfig ReportingConfig::FromFlags(bool is_system_server) {
+-  std::optional<std::string> spec_str =
+-      is_system_server ? gFlags.MetricsReportingSpecSystemServer.GetValueOptional() :
+-                         gFlags.MetricsReportingSpec.GetValueOptional();
++  std::optional<std::string> spec_str = is_system_server
++      ? gFlags.MetricsReportingSpecSystemServer.GetValueOptional()
++      : gFlags.MetricsReportingSpec.GetValueOptional();
+@@ -204,4 +204,6 @@ ReportingConfig ReportingConfig::FromFlags(bool is_system_server) {
+-  uint32_t reporting_num_mods =
+-      is_system_server ? gFlags.MetricsReportingNumModsServer() : gFlags.MetricsReportingNumMods();
+-  uint32_t reporting_mods =
+-      is_system_server ? gFlags.MetricsReportingModsServer() : gFlags.MetricsReportingMods();
++  uint32_t reporting_num_mods = is_system_server
++      ? gFlags.MetricsReportingNumModsServer()
++      : gFlags.MetricsReportingNumMods();
++  uint32_t reporting_mods = is_system_server
++      ? gFlags.MetricsReportingModsServer()
++      : gFlags.MetricsReportingMods();
+@@ -210 +212,2 @@ ReportingConfig ReportingConfig::FromFlags(bool is_system_server) {
+-               << " num modes=" << reporting_num_mods << ". The reporting is disabled";
++        << " num modes=" << reporting_num_mods
++        << ". The reporting is disabled";
+@@ -224,2 +227,2 @@ ReportingConfig ReportingConfig::FromFlags(bool is_system_server) {
+-std::optional<ReportingPeriodSpec> ReportingPeriodSpec::Parse(const std::string& spec_str,
+-                                                              std::string* error_msg) {
++std::optional<ReportingPeriodSpec> ReportingPeriodSpec::Parse(
++    const std::string& spec_str, std::string* error_msg) {
+@@ -239 +242,2 @@ std::optional<ReportingPeriodSpec> ReportingPeriodSpec::Parse(const std::string&
+-  if (spec->continuous_reporting && end_interval_idx == start_interval_idx) {
++  if (spec->continuous_reporting &&
++      end_interval_idx == start_interval_idx) {
+@@ -254,0 +259 @@ std::optional<ReportingPeriodSpec> ReportingPeriodSpec::Parse(const std::string&
++#pragma clang diagnostic pop

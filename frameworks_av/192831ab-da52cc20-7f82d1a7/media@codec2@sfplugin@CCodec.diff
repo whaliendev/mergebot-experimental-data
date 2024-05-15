@@ -1,0 +1,595 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_merged.cpp
+index b452f6a..2a18c04 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_merged.cpp
+@@ -9 +8,0 @@
+-#include <android/IGraphicBufferSource.h>
+@@ -17 +15,0 @@
+-#include <media/omx/1.0/WGraphicBufferSource.h>
+@@ -26 +23,0 @@
+-#include "CCodec.h"
+@@ -29 +25,0 @@
+-#include "Omx2IGraphicBufferSource.h"
+@@ -38,0 +35 @@ using namespace std::chrono_literals;
++using ::android::hardware::graphics::bufferqueue::V1_0::utils::H2BGraphicBufferProducer;
+@@ -40,2 +36,0 @@ using android::base::StringPrintf;
+-using ::android::hardware::graphics::bufferqueue::V1_0::utils::
+-    H2BGraphicBufferProducer;
+@@ -59 +54 @@ class CCodecWatchdog : public AHandler {
+-  ~CCodecWatchdog()
++    ~CCodecWatchdog() = default;
+@@ -107,5 +102,5 @@ class C2InputSurfaceWrapper : public InputSurfaceWrapper {
+-      const std::shared_ptr<Codec2Client::InputSurface> &surface)
+-      : mSurface(surface){}
+-        () = delete;
+-  status_t connect(
+-      const std::shared_ptr<Codec2Client::Component> &comp) override {
++            const std::shared_ptr<Codec2Client::InputSurface> &surface) :
++        mSurface(surface) {
++    }
++    ~C2InputSurfaceWrapper() override = default;
++    status_t connect(const std::shared_ptr<Codec2Client::Component> &comp) override {
+@@ -145,2 +140,5 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-  GraphicBufferSourceWrapper(const sp<HGraphicBufferSource> &source,
+-                             uint32_t width, uint32_t height, uint64_t usage)
++    GraphicBufferSourceWrapper(
++            const sp<HGraphicBufferSource> &source,
++            uint32_t width,
++            uint32_t height,
++            uint64_t usage)
+@@ -151,3 +149,2 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-  () = delete;
+-  status_t connect(
+-      const std::shared_ptr<Codec2Client::Component> &comp) override {
++    ~GraphicBufferSourceWrapper() override = default;
++    status_t connect(const std::shared_ptr<Codec2Client::Component> &comp) override {
+@@ -158 +155,2 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-    (void)mNode->setParameter((OMX_INDEXTYPE)OMX_IndexParamConsumerUsageBits,
++        (void)mNode->setParameter(
++                (OMX_INDEXTYPE)OMX_IndexParamConsumerUsageBits,
+@@ -161,2 +159 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-        mOmxNode,
+-        static_cast<hardware::graphics::common::V1_0::Dataspace>(mDataSpace));
++                mOmxNode, static_cast<hardware::graphics::common::V1_0::Dataspace>(mDataSpace));
+@@ -171,3 +168 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-      ALOGD(
+-          "GBSWrapper::disconnect: node is not configured with "
+-          "OMXBufferSource.");
++            ALOGD("GBSWrapper::disconnect: node is not configured with OMXBufferSource.");
+@@ -183,2 +178 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-      return static_cast<status_t>(
+-          status.withDefault(OmxStatus::UNKNOWN_ERROR));
++            return static_cast<status_t>(status.withDefault(OmxStatus::UNKNOWN_ERROR));
+@@ -222,2 +216 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-        float gap =
+-            (config.mMinAdjustedFps > 0)
++                float gap = (config.mMinAdjustedFps > 0)
+@@ -232,3 +225,2 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-    if ((config.mMaxFps > 0 ||
+-         (config.mFixedAdjustedFps > 0 && config.mMaxFps == -1)) &&
+-        config.mMaxFps != mConfig.mMaxFps) {
++        if ((config.mMaxFps > 0 || (config.mFixedAdjustedFps > 0 && config.mMaxFps == -1))
++                && config.mMaxFps != mConfig.mMaxFps) {
+@@ -252,6 +244,4 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-    if (config.mCaptureFps != mConfig.mCaptureFps ||
+-        config.mCodedFps != mConfig.mCodedFps) {
+-      status_t res = GetStatus(
+-          mSource->setTimeLapseConfig(config.mCodedFps, config.mCaptureFps));
+-      status << " timeLapse " << config.mCaptureFps << "fps as "
+-             << config.mCodedFps << "fps";
++        if (config.mCaptureFps != mConfig.mCaptureFps || config.mCodedFps != mConfig.mCodedFps) {
++            status_t res =
++                GetStatus(mSource->setTimeLapseConfig(config.mCodedFps, config.mCaptureFps));
++            status << " timeLapse " << config.mCaptureFps << "fps as " << config.mCodedFps << "fps";
+@@ -265,2 +255,2 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-    if (config.mStartAtUs != mConfig.mStartAtUs ||
+-        (config.mStopped != mConfig.mStopped && !config.mStopped)) {
++        if (config.mStartAtUs != mConfig.mStartAtUs
++                || (config.mStopped != mConfig.mStopped && !config.mStopped)) {
+@@ -277,4 +267,3 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-      status_t res = GetStatus(
+-          mSource->setSuspend(config.mSuspended, config.mSuspendAtUs));
+-      status << " " << (config.mSuspended ? "suspend" : "resume") << " at "
+-             << config.mSuspendAtUs << "us";
++            status_t res = GetStatus(mSource->setSuspend(config.mSuspended, config.mSuspendAtUs));
++            status << " " << (config.mSuspended ? "suspend" : "resume")
++                    << " at " << config.mSuspendAtUs << "us";
+@@ -297,2 +286,2 @@ class GraphicBufferSourceWrapper : public InputSurfaceWrapper {
+-            [&res, &delayUs = config.mInputDelayUs](auto status,
+-                                                    auto stopTimeOffsetUs) {
++                        [&res, &delayUs = config.mInputDelayUs](
++                                auto status, auto stopTimeOffsetUs) {
+@@ -338,3 +327,3 @@ class Codec2ClientInterfaceWrapper : public C2ComponentStore {
+-  virtual ~Codec2ClientInterfaceWrapper()
+-      virtual c2_status_t
+-      config_sm(const std::vector<C2Param *> &params,
++    virtual ~Codec2ClientInterfaceWrapper() = default;
++    virtual c2_status_t config_sm(
++            const std::vector<C2Param *> &params,
+@@ -343,2 +332,3 @@ class Codec2ClientInterfaceWrapper : public C2ComponentStore {
+-  }
+-  virtual c2_status_t copyBuffer(std::shared_ptr<C2GraphicBuffer>,
++    };
++    virtual c2_status_t copyBuffer(
++            std::shared_ptr<C2GraphicBuffer>,
+@@ -362,2 +352 @@ class Codec2ClientInterfaceWrapper : public C2ComponentStore {
+-    return mClient->query(stackParams, heapParamIndices, C2_MAY_BLOCK,
+-                          heapParams);
++        return mClient->query(stackParams, heapParamIndices, C2_MAY_BLOCK, heapParams);
+@@ -373 +362,3 @@ class Codec2ClientInterfaceWrapper : public C2ComponentStore {
+-  virtual C2String getName() const { return mClient->getName(); }
++    virtual C2String getName() const {
++        return mClient->getName();
++    }
+@@ -377,2 +368 @@ class Codec2ClientInterfaceWrapper : public C2ComponentStore {
+-  virtual std::vector<std::shared_ptr<const C2Component::Traits>>
+-  listComponents() {
++    virtual std::vector<std::shared_ptr<const C2Component::Traits>> listComponents() {
+@@ -397,2 +387,2 @@ struct CCodec::ClientListener : public Codec2Client::Listener {
+-      const std::vector<std::shared_ptr<C2SettingResult>> &settingResult)
+-      override {
++            const std::vector<std::shared_ptr<C2SettingResult>>& settingResult
++            ) override {
+@@ -402 +392,2 @@ struct CCodec::ClientListener : public Codec2Client::Listener {
+-  virtual void onError(const std::weak_ptr<Codec2Client::Component> &component,
++    virtual void onError(
++            const std::weak_ptr<Codec2Client::Component>& component,
+@@ -423 +414,2 @@ struct CCodec::ClientListener : public Codec2Client::Listener {
+-  virtual void onFrameRendered(uint64_t bufferQueueId, int32_t slotId,
++    virtual void onFrameRendered(uint64_t bufferQueueId,
++                                 int32_t slotId,
+@@ -429,2 +421,2 @@ struct CCodec::ClientListener : public Codec2Client::Listener {
+-  virtual void onInputBufferDone(uint64_t frameIndex,
+-                                 size_t arrayIndex) override {
++    virtual void onInputBufferDone(
++            uint64_t frameIndex, size_t arrayIndex) override {
+@@ -441 +433,2 @@ class CCodecCallbackImpl : public CCodecCallback {
+-  explicit CCodecCallbackImpl(CCodec *codec) : mCodec(codec){}() = delete;
++    explicit CCodecCallbackImpl(CCodec *codec) : mCodec(codec) {}
++    ~CCodecCallbackImpl() override = default;
+@@ -445,2 +438 @@ class CCodecCallbackImpl : public CCodecCallback {
+-  void onOutputFramesRendered(int64_t mediaTimeUs,
+-                              nsecs_t renderTimeNs) override {
++    void onOutputFramesRendered(int64_t mediaTimeUs, nsecs_t renderTimeNs) override {
+@@ -457,4 +449,5 @@ CCodec::CCodec()
+-    : mChannel(
+-          new CCodecBufferChannel(std::make_shared<CCodecCallbackImpl>(this))),
+-      mConfig(new CCodecConfig) {}
+-CCodec::~CCodec() {}
++    : mChannel(new CCodecBufferChannel(std::make_shared<CCodecCallbackImpl>(this))),
++      mConfig(new CCodecConfig) {
++}
++CCodec::~CCodec() {
++}
+@@ -500,2 +493 @@ void CCodec::allocate(const sp<MediaCodecInfo> &codecInfo) {
+-    ALOGI("setting up '%s' as default (vendor) store",
+-          client->getServiceName().c_str());
++        ALOGI("setting up '%s' as default (vendor) store", client->getServiceName().c_str());
+@@ -506,2 +498,4 @@ void CCodec::allocate(const sp<MediaCodecInfo> &codecInfo) {
+-      Codec2Client::CreateComponentByName(componentName.c_str(),
+-                                          mClientListener, &client);
++            Codec2Client::CreateComponentByName(
++            componentName.c_str(),
++            mClientListener,
++            &client);
+@@ -585,3 +579,3 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if (encoder &&
+-        msg->findInt32("android._input-metadata-buffer-type", &storeMeta) &&
+-        storeMeta != kMetadataBufferTypeInvalid) {
++        if (encoder
++                && msg->findInt32("android._input-metadata-buffer-type", &storeMeta)
++                && storeMeta != kMetadataBufferTypeInvalid) {
+@@ -603,2 +597 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    config->mBuffersBoundToCodec =
+-        ((flags & CONFIGURE_FLAG_USE_BLOCK_MODEL) == 0);
++        config->mBuffersBoundToCodec = ((flags & CONFIGURE_FLAG_USE_BLOCK_MODEL) == 0);
+@@ -611,2 +604 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        ALOGD(
+-            "sample rate is missing, which is required for audio components.");
++                ALOGD("sample rate is missing, which is required for audio components.");
+@@ -616,3 +608 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        ALOGD(
+-            "channel count is missing, which is required for audio "
+-            "components.");
++                ALOGD("channel count is missing, which is required for audio components.");
+@@ -621,4 +611,4 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      if ((config->mDomain & Config::IS_ENCODER) &&
+-          !mime.equalsIgnoreCase(MEDIA_MIMETYPE_AUDIO_FLAC) &&
+-          !msg->findInt32(KEY_BIT_RATE, &i32) &&
+-          !msg->findFloat(KEY_BIT_RATE, &flt)) {
++            if ((config->mDomain & Config::IS_ENCODER)
++                    && !mime.equalsIgnoreCase(MEDIA_MIMETYPE_AUDIO_FLAC)
++                    && !msg->findInt32(KEY_BIT_RATE, &i32)
++                    && !msg->findFloat(KEY_BIT_RATE, &flt)) {
+@@ -631,2 +621 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        ALOGD(
+-            "width is missing, which is required for image/video components.");
++                ALOGD("width is missing, which is required for image/video components.");
+@@ -636,2 +625 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        ALOGD(
+-            "height is missing, which is required for image/video components.");
++                ALOGD("height is missing, which is required for image/video components.");
+@@ -640,2 +628 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      if ((config->mDomain & Config::IS_ENCODER) &&
+-          (config->mDomain & Config::IS_VIDEO)) {
++            if ((config->mDomain & Config::IS_ENCODER) && (config->mDomain & Config::IS_VIDEO)) {
+@@ -643,2 +630 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (msg->findInt32(KEY_BITRATE_MODE, &mode) &&
+-            mode == BITRATE_MODE_CQ) {
++                if (msg->findInt32(KEY_BITRATE_MODE, &mode) && mode == BITRATE_MODE_CQ) {
+@@ -646,3 +632 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-            ALOGD(
+-                "quality is missing, which is required for video encoders in "
+-                "CQ.");
++                        ALOGD("quality is missing, which is required for video encoders in CQ.");
+@@ -652,2 +636,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-          if (!msg->findInt32(KEY_BIT_RATE, &i32) &&
+-              !msg->findFloat(KEY_BIT_RATE, &flt)) {
++                    if (!msg->findInt32(KEY_BIT_RATE, &i32)
++                            && !msg->findFloat(KEY_BIT_RATE, &flt)) {
+@@ -658,5 +642,3 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (!msg->findInt32(KEY_I_FRAME_INTERVAL, &i32) &&
+-            !msg->findFloat(KEY_I_FRAME_INTERVAL, &flt)) {
+-          ALOGD(
+-              "I frame interval is missing, which is required for video "
+-              "encoders.");
++                if (!msg->findInt32(KEY_I_FRAME_INTERVAL, &i32)
++                        && !msg->findFloat(KEY_I_FRAME_INTERVAL, &flt)) {
++                    ALOGD("I frame interval is missing, which is required for video encoders.");
+@@ -665,2 +647,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (!msg->findInt32(KEY_FRAME_RATE, &i32) &&
+-            !msg->findFloat(KEY_FRAME_RATE, &flt)) {
++                if (!msg->findInt32(KEY_FRAME_RATE, &i32)
++                        && !msg->findFloat(KEY_FRAME_RATE, &flt)) {
+@@ -672,2 +654,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if ((config->mDomain & (Config::IS_VIDEO | Config::IS_IMAGE)) &&
+-        (config->mDomain & Config::IS_ENCODER)) {
++        if ((config->mDomain & (Config::IS_VIDEO | Config::IS_IMAGE))
++                && (config->mDomain & Config::IS_ENCODER)) {
+@@ -678,2 +660 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (msg->findInt64(KEY_REPEAT_PREVIOUS_FRAME_AFTER, &value) &&
+-            value > 0) {
++                if (msg->findInt64(KEY_REPEAT_PREVIOUS_FRAME_AFTER, &value) && value > 0) {
+@@ -682,2 +663,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (!msg->findFloat(KEY_MAX_FPS_TO_ENCODER,
+-                            &config->mISConfig->mMaxFps)) {
++                if (!msg->findFloat(
++                        KEY_MAX_FPS_TO_ENCODER, &config->mISConfig->mMaxFps)) {
+@@ -716,2 +697 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        if (msg->findInt32(KEY_CREATE_INPUT_SURFACE_SUSPENDED, &value) &&
+-            value) {
++                if (msg->findInt32(KEY_CREATE_INPUT_SURFACE_SUSPENDED, &value) && value) {
+@@ -727,2 +707 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-          format = (surface == nullptr) ? COLOR_FormatYUV420Planar
+-                                        : COLOR_FormatSurface;
++                    format = (surface == nullptr) ? COLOR_FormatYUV420Planar : COLOR_FormatSurface;
+@@ -736,2 +715 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if (msg->findInt32("x-*", &subscribeToAllVendorParams) &&
+-        subscribeToAllVendorParams) {
++        if (msg->findInt32("x-*", &subscribeToAllVendorParams) && subscribeToAllVendorParams) {
+@@ -739,2 +717 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        ALOGD("[%s] Failed to subscribe to all vendor params",
+-              comp->getName().c_str());
++                ALOGD("[%s] Failed to subscribe to all vendor params", comp->getName().c_str());
+@@ -748,2 +725 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      sdkParams->removeEntryAt(
+-          sdkParams->findEntryByName(PARAMETER_KEY_VIDEO_BITRATE));
++            sdkParams->removeEntryAt(sdkParams->findEntryByName(PARAMETER_KEY_VIDEO_BITRATE));
+@@ -757,3 +733,4 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if ((config->mDomain & Config::IS_ENCODER) &&
+-        (config->mDomain & Config::IS_VIDEO) &&
+-        sdkParams->findInt32(KEY_MAX_B_FRAMES, &maxBframes) && maxBframes > 0) {
++        if ((config->mDomain & Config::IS_ENCODER)
++                && (config->mDomain & Config::IS_VIDEO)
++                && sdkParams->findInt32(KEY_MAX_B_FRAMES, &maxBframes)
++                && maxBframes > 0) {
+@@ -761,2 +738 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-          C2StreamGopTuning::output::AllocUnique(2 ,
+-                                                 0u );
++                C2StreamGopTuning::output::AllocUnique(2 , 0u );
+@@ -764,2 +740,4 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      gop->m.values[1] = {C2Config::picture_type_t(P_FRAME | B_FRAME),
+-                          uint32_t(maxBframes)};
++            gop->m.values[1] = {
++                C2Config::picture_type_t(P_FRAME | B_FRAME),
++                uint32_t(maxBframes)
++            };
+@@ -777,3 +755,7 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    std::initializer_list<C2Param::Index> indices{};
+-    c2_status_t c2err = comp->query({&usage, &maxInputSize, &prepend}, indices,
+-                                    C2_DONT_BLOCK, &params);
++        std::initializer_list<C2Param::Index> indices {
++        };
++        c2_status_t c2err = comp->query(
++                { &usage, &maxInputSize, &prepend },
++                indices,
++                C2_DONT_BLOCK,
++                &params);
+@@ -800,2 +782 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-        msg->findInt32(KEY_MAX_INPUT_SIZE, &clientInputSize) &&
+-        clientInputSize > 0;
++            msg->findInt32(KEY_MAX_INPUT_SIZE, &clientInputSize) && clientInputSize > 0;
+@@ -811,2 +792 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      for (size_t ix = 0;
+-           msg->findBuffer(StringPrintf("csd-%zu", ix).c_str(), &csd); ++ix) {
++            for (size_t ix = 0; msg->findBuffer(StringPrintf("csd-%zu", ix).c_str(), &csd); ++ix) {
+@@ -818,2 +798 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if ((config->mDomain & Config::IS_DECODER) ||
+-        (config->mDomain & Config::IS_AUDIO)) {
++        if ((config->mDomain & Config::IS_DECODER) || (config->mDomain & Config::IS_AUDIO)) {
+@@ -822,2 +801 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-          ALOGD(
+-              "client requested max input size %d, which is smaller than "
++                    ALOGD("client requested max input size %d, which is smaller than "
+@@ -825,4 +803,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-              "recommendation.",
+-              clientInputSize, maxInputSize.value);
+-          ALOGW(
+-              "This behavior is subject to change. It is recommended that "
++                          "recommendation.", clientInputSize, maxInputSize.value);
++                    ALOGW("This behavior is subject to change. It is recommended that "
+@@ -842,5 +818,5 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if ((config->mDomain & Config::IS_VIDEO) &&
+-        (config->mDomain & Config::IS_ENCODER) &&
+-        msg->findInt32(KEY_PREPEND_HEADERS_TO_SYNC_FRAMES, &clientPrepend) &&
+-        clientPrepend &&
+-        (!prepend || prepend.value != PREPEND_HEADER_TO_ALL_SYNC)) {
++        if ((config->mDomain & Config::IS_VIDEO)
++                && (config->mDomain & Config::IS_ENCODER)
++                && msg->findInt32(KEY_PREPEND_HEADERS_TO_SYNC_FRAMES, &clientPrepend)
++                && clientPrepend
++                && (!prepend || prepend.value != PREPEND_HEADER_TO_ALL_SYNC)) {
+@@ -852,2 +828,2 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-      if (msg->findBuffer(KEY_HDR_STATIC_INFO, &hdrInfo) &&
+-          !config->mOutputFormat->findBuffer(KEY_HDR_STATIC_INFO, &hdrInfo)) {
++            if (msg->findBuffer(KEY_HDR_STATIC_INFO, &hdrInfo)
++                    && !config->mOutputFormat->findBuffer(KEY_HDR_STATIC_INFO, &hdrInfo)) {
+@@ -865,2 +841 @@ void CCodec::configure(const sp<AMessage> &msg) {
+-    if ((config->mDomain & Config::IS_DECODER) &&
+-        (config->mDomain & Config::IS_AUDIO)) {
++        if ((config->mDomain & Config::IS_DECODER) && (config->mDomain & Config::IS_AUDIO)) {
+@@ -921,4 +896,4 @@ sp<PersistentSurface> CCodec::CreateOmxInputSurface() {
+-  typedef android::hardware::graphics::bufferqueue::V1_0::IGraphicBufferProducer
+-      HGraphicBufferProducer;
+-  typedef android::hardware::media::omx::V1_0::IGraphicBufferSource
+-      HGraphicBufferSource;
++    typedef android::hardware::graphics::bufferqueue::V1_0::
++            IGraphicBufferProducer HGraphicBufferProducer;
++    typedef android::hardware::media::omx::V1_0::
++            IGraphicBufferSource HGraphicBufferSource;
+@@ -930 +905,2 @@ sp<PersistentSurface> CCodec::CreateOmxInputSurface() {
+-      [&s, &gbp, &gbs](OmxStatus status,
++            [&s, &gbp, &gbs](
++                    OmxStatus status,
+@@ -969,2 +945,2 @@ void CCodec::createInputSurface() {
+-    err = setupInputSurface(
+-        std::make_shared<C2InputSurfaceWrapper>(inputSurface));
++        err = setupInputSurface(std::make_shared<C2InputSurfaceWrapper>(
++                inputSurface));
+@@ -990 +966,3 @@ void CCodec::createInputSurface() {
+-  mCallback->onInputSurfaceCreated(inputFormat, outputFormat,
++    mCallback->onInputSurfaceCreated(
++            inputFormat,
++            outputFormat,
+@@ -993,2 +971 @@ void CCodec::createInputSurface() {
+-status_t CCodec::setupInputSurface(
+-    const std::shared_ptr<InputSurfaceWrapper> &surface) {
++status_t CCodec::setupInputSurface(const std::shared_ptr<InputSurfaceWrapper> &surface) {
+@@ -999 +976,2 @@ status_t CCodec::setupInputSurface(
+-  ALOGD("input format %s to %s", inputFormatChanged ? "changed" : "unchanged",
++    ALOGD("input format %s to %s",
++            inputFormatChanged ? "changed" : "unchanged",
+@@ -1001,2 +979 @@ status_t CCodec::setupInputSurface(
+-  static_assert(sizeof(int32_t) == sizeof(android_dataspace),
+-                "dataspace size mismatch");
++    static_assert(sizeof(int32_t) == sizeof(android_dataspace), "dataspace size mismatch");
+@@ -1004,2 +981 @@ status_t CCodec::setupInputSurface(
+-  (void)config->mInputFormat->findInt32("android._dataspace",
+-                                        (int32_t *)&dataSpace);
++    (void)config->mInputFormat->findInt32("android._dataspace", (int32_t*)&dataSpace);
+@@ -1053,2 +1029 @@ void CCodec::setInputSurface(const sp<PersistentSurface> &surface) {
+-    status_t err =
+-        setupInputSurface(std::make_shared<GraphicBufferSourceWrapper>(
++        status_t err = setupInputSurface(std::make_shared<GraphicBufferSourceWrapper>(
+@@ -1119 +1093,0 @@ void CCodec::start() {
+-<<<<<<< HEAD
+@@ -1122,6 +1095,0 @@ void CCodec::start() {
+-||||||| 7f82d1a74e
+-  err2 = mChannel->start(inputFormat, outputFormat);
+-=======
+-  (void)mSentConfigAfterResume.test_and_set();
+-  err2 = mChannel->start(inputFormat, outputFormat);
+->>>>>>> da52cc201ecf857b2f2ff1fb5596cc730d7bf47c
+@@ -1156,2 +1124,4 @@ void CCodec::initiateStop() {
+-    if (state->get() == ALLOCATED || state->get() == RELEASED ||
+-        state->get() == STOPPING || state->get() == RELEASING) {
++        if (state->get() == ALLOCATED
++                || state->get() == RELEASED
++                || state->get() == STOPPING
++                || state->get() == RELEASING) {
+@@ -1226,2 +1196,3 @@ void CCodec::initiateRelease(bool sendCallback ) {
+-    if (state->get() == STARTING || state->get() == RUNNING ||
+-        state->get() == STOPPING) {
++        if (state->get() == STARTING
++                || state->get() == RUNNING
++                || state->get() == STOPPING) {
+@@ -1341 +1311,0 @@ void CCodec::signalResume() {
+-<<<<<<< HEAD
+@@ -1353,10 +1322,0 @@ void CCodec::signalResume() {
+-||||||| 7f82d1a74e
+-  (void)mChannel->start(nullptr, nullptr);
+-=======
+-  mSentConfigAfterResume.clear();
+-  {
+-    Mutexed<Config>::Locked config(mConfig);
+-    config->queryConfiguration(comp);
+-  }
+-  (void)mChannel->start(nullptr, nullptr);
+->>>>>>> da52cc201ecf857b2f2ff1fb5596cc730d7bf47c
+@@ -1396,7 +1356,5 @@ void CCodec::signalSetParameters(const sp<AMessage> &msg) {
+-  if ((config->mDomain & (Config::IS_VIDEO | Config::IS_IMAGE)) &&
+-      (config->mDomain & Config::IS_ENCODER) && config->mInputSurface &&
+-      config->mISConfig) {
+-    (void)params->findInt64(PARAMETER_KEY_OFFSET_TIME,
+-                            &config->mISConfig->mTimeOffsetUs);
+-    if (params->findInt64("skip-frames-before",
+-                          &config->mISConfig->mStartAtUs)) {
++    if ((config->mDomain & (Config::IS_VIDEO | Config::IS_IMAGE))
++            && (config->mDomain & Config::IS_ENCODER)
++            && config->mInputSurface && config->mISConfig) {
++        (void)params->findInt64(PARAMETER_KEY_OFFSET_TIME, &config->mISConfig->mTimeOffsetUs);
++        if (params->findInt64("skip-frames-before", &config->mISConfig->mStartAtUs)) {
+@@ -1404,2 +1362 @@ void CCodec::signalSetParameters(const sp<AMessage> &msg) {
+-    } else if (params->findInt64("stop-time-us",
+-                                 &config->mISConfig->mStopAtUs)) {
++        } else if (params->findInt64("stop-time-us", &config->mISConfig->mStopAtUs)) {
+@@ -1412,2 +1369 @@ void CCodec::signalSetParameters(const sp<AMessage> &msg) {
+-      (void)params->findInt64(PARAMETER_KEY_SUSPEND_TIME,
+-                              &config->mISConfig->mSuspendAtUs);
++            (void)params->findInt64(PARAMETER_KEY_SUSPEND_TIME, &config->mISConfig->mSuspendAtUs);
+@@ -1417,2 +1373,2 @@ void CCodec::signalSetParameters(const sp<AMessage> &msg) {
+-      config->mInputFormat->setInt64("android._stop-time-offset-us",
+-                                     config->mISConfig->mInputDelayUs);
++            config->mInputFormat->setInt64(
++                    "android._stop-time-offset-us", config->mISConfig->mInputDelayUs);
+@@ -1422,5 +1378,5 @@ void CCodec::signalSetParameters(const sp<AMessage> &msg) {
+-  (void)config->getConfigUpdateFromSdkParams(comp, params, Config::IS_PARAM,
+-                                             C2_MAY_BLOCK, &configUpdate);
+-  if (config->mInputSurface == nullptr &&
+-      (property_get_bool("debug.stagefright.ccodec_delayed_params", false) ||
+-       comp->getName().find("c2.android.") == 0)) {
++    (void)config->getConfigUpdateFromSdkParams(
++            comp, params, Config::IS_PARAM, C2_MAY_BLOCK, &configUpdate);
++    if (config->mInputSurface == nullptr
++            && (property_get_bool("debug.stagefright.ccodec_delayed_params", false)
++                    || comp->getName().find("c2.android.") == 0)) {
+@@ -1512,2 +1468 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-      sp<PersistentSurface> surface(
+-          static_cast<PersistentSurface *>(obj.get()));
++            sp<PersistentSurface> surface(static_cast<PersistentSurface *>(obj.get()));
+@@ -1521,2 +1476 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-        Mutexed<std::list<std::unique_ptr<C2Work>>>::Locked queue(
+-            mWorkDoneQueue);
++                Mutexed<std::list<std::unique_ptr<C2Work>>>::Locked queue(mWorkDoneQueue);
+@@ -1533 +1486,0 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-<<<<<<< HEAD
+@@ -1537,7 +1489,0 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-||||||| 7f82d1a74e
+-      Mutexed<Config>::Locked config(mConfig);
+-      bool changed = false;
+-=======
+-      Mutexed<Config>::Locked config(mConfig);
+-      bool changed = !mSentConfigAfterResume.test_and_set();
+->>>>>>> da52cc201ecf857b2f2ff1fb5596cc730d7bf47c
+@@ -1546,2 +1492,3 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-      if (!work->worklets.empty() && (work->worklets.front()->output.flags &
+-                                      C2FrameData::FLAG_DISCARD_FRAME) == 0) {
++            if (!work->worklets.empty()
++                    && (work->worklets.front()->output.flags
++                            & C2FrameData::FLAG_DISCARD_FRAME) == 0) {
+@@ -1549,2 +1496,2 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-        for (const std::unique_ptr<C2Param> &param :
+-             work->worklets.front()->output.configUpdate) {
++                for (const std::unique_ptr<C2Param> &param
++                        : work->worklets.front()->output.configUpdate) {
+@@ -1554,2 +1501 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-        for (const std::shared_ptr<C2Buffer> &buf :
+-             work->worklets.front()->output.buffers) {
++                for (const std::shared_ptr<C2Buffer> &buf : work->worklets.front()->output.buffers) {
+@@ -1557,2 +1503 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-            updates.emplace_back(
+-                C2Param::CopyAsStream(*info, true , stream));
++                        updates.emplace_back(C2Param::CopyAsStream(*info, true , stream));
+@@ -1561,2 +1506 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-            updates.emplace_back(
+-                new C2StreamCropRectInfo::output(stream, block.crop()));
++                        updates.emplace_back(new C2StreamCropRectInfo::output(stream, block.crop()));
+@@ -1580,3 +1524,3 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-            C2StreamSurfaceScalingInfo::output::PARAM_TYPE};
+-        for (const std::shared_ptr<C2Buffer> &buf :
+-             work->worklets.front()->output.buffers) {
++                    C2StreamSurfaceScalingInfo::output::PARAM_TYPE
++                };
++                for (const std::shared_ptr<C2Buffer> &buf : work->worklets.front()->output.buffers) {
+@@ -1599,2 +1543 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-        config->mInputSurface->onInputBufferDone(
+-            work->input.ordinal.frameIndex);
++                config->mInputSurface->onInputBufferDone(work->input.ordinal.frameIndex);
+@@ -1617 +1560,2 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
+-void CCodec::setDeadline(const TimePoint &now,
++void CCodec::setDeadline(
++        const TimePoint &now,
+@@ -1620,2 +1564 @@ void CCodec::setDeadline(const TimePoint &now,
+-  int32_t mult = std::max(
+-      1, property_get_int32("debug.stagefright.ccodec_timeout_mult", 1));
++    int32_t mult = std::max(1, property_get_int32("debug.stagefright.ccodec_timeout_mult", 1));
+@@ -1659,2 +1602 @@ PersistentSurface *CCodec::CreateInputSurface() {
+-  using ::android::hardware::media::omx::V1_0::implementation::
+-      TWGraphicBufferSource;
++    using ::android::hardware::media::omx::V1_0::implementation::TWGraphicBufferSource;
+@@ -1672,2 +1614,2 @@ PersistentSurface *CCodec::CreateInputSurface() {
+-      return new PersistentSurface(gbs->getIGraphicBufferProducer(),
+-                                   new TWGraphicBufferSource(gbs));
++            return new PersistentSurface(
++                    gbs->getIGraphicBufferProducer(), new TWGraphicBufferSource(gbs));
+@@ -1683 +1625,2 @@ PersistentSurface *CCodec::CreateInputSurface() {
+-static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
++static status_t GetCommonAllocatorIds(
++        const std::vector<std::string> &names,
+@@ -1687,2 +1630 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-  C2PlatformAllocatorStore::id_t preferredLinearId =
+-      GetPreferredLinearAllocatorId(poolMask);
++    C2PlatformAllocatorStore::id_t preferredLinearId = GetPreferredLinearAllocatorId(poolMask);
+@@ -1690,2 +1632 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-      (type == C2Allocator::LINEAR) ? preferredLinearId
+-                                    : C2PlatformAllocatorStore::GRALLOC;
++        (type == C2Allocator::LINEAR) ? preferredLinearId : C2PlatformAllocatorStore::GRALLOC;
+@@ -1699,2 +1640,2 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-  c2_status_t err = intf->query({}, {C2PortAllocatorsTuning::input::PARAM_TYPE},
+-                                C2_MAY_BLOCK, &params);
++    c2_status_t err = intf->query(
++            {}, {C2PortAllocatorsTuning::input::PARAM_TYPE}, C2_MAY_BLOCK, &params);
+@@ -1705,2 +1646 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-      ids->insert(allocators->m.values,
+-                  allocators->m.values + allocators->flexCount());
++            ids->insert(allocators->m.values, allocators->m.values + allocators->flexCount());
+@@ -1714,2 +1654,2 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-    err = intf->query({}, {C2PortAllocatorsTuning::input::PARAM_TYPE},
+-                      C2_MAY_BLOCK, &params);
++        err = intf->query(
++                {}, {C2PortAllocatorsTuning::input::PARAM_TYPE}, C2_MAY_BLOCK, &params);
+@@ -1757,2 +1697,2 @@ static status_t GetCommonAllocatorIds(const std::vector<std::string> &names,
+-static status_t CalculateMinMaxUsage(const std::vector<std::string> &names,
+-                                     uint64_t *minUsage, uint64_t *maxUsage) {
++static status_t CalculateMinMaxUsage(
++        const std::vector<std::string> &names, uint64_t *minUsage, uint64_t *maxUsage) {
+@@ -1792,3 +1732,2 @@ static status_t CalculateMinMaxUsage(const std::vector<std::string> &names,
+-status_t CCodec::CanFetchLinearBlock(const std::vector<std::string> &names,
+-                                     const C2MemoryUsage &usage,
+-                                     bool *isCompatible) {
++status_t CCodec::CanFetchLinearBlock(
++        const std::vector<std::string> &names, const C2MemoryUsage &usage, bool *isCompatible) {
+@@ -1826,2 +1765 @@ std::shared_ptr<C2LinearBlock> CCodec::FetchLinearBlock(
+-    size_t capacity, const C2MemoryUsage &usage,
+-    const std::vector<std::string> &names) {
++        size_t capacity, const C2MemoryUsage &usage, const std::vector<std::string> &names) {
+@@ -1846,2 +1784 @@ std::shared_ptr<C2LinearBlock> CCodec::FetchLinearBlock(
+-    c2_status_t err =
+-        pool->fetchLinearBlock(capacity, C2MemoryUsage{minUsage}, &block);
++        c2_status_t err = pool->fetchLinearBlock(capacity, C2MemoryUsage{minUsage}, &block);
+@@ -1856,2 +1793,2 @@ std::shared_ptr<C2LinearBlock> CCodec::FetchLinearBlock(
+-status_t CCodec::CanFetchGraphicBlock(const std::vector<std::string> &names,
+-                                      bool *isCompatible) {
++status_t CCodec::CanFetchGraphicBlock(
++        const std::vector<std::string> &names, bool *isCompatible) {
+@@ -1871 +1808,4 @@ std::shared_ptr<C2GraphicBlock> CCodec::FetchGraphicBlock(
+-    int32_t width, int32_t height, int32_t format, uint64_t usage,
++        int32_t width,
++        int32_t height,
++        int32_t format,
++        uint64_t usage,
+@@ -1898,2 +1838,2 @@ std::shared_ptr<C2GraphicBlock> CCodec::FetchGraphicBlock(
+-    err = pool->fetchGraphicBlock(width, height, halPixelFormat,
+-                                  C2MemoryUsage{minUsage}, &block);
++        err = pool->fetchGraphicBlock(
++                width, height, halPixelFormat, C2MemoryUsage{minUsage}, &block);

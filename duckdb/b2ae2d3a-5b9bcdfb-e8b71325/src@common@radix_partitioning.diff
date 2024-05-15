@@ -1,0 +1,43 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@common@radix_partitioning.no_comments_mergebot.cpp b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@common@radix_partitioning.no_comments_merged.cpp
+index 8da6ff5..fbd9b86 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@common@radix_partitioning.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@common@radix_partitioning.no_comments_merged.cpp
+@@ -2,4 +1,0 @@
+-#include "duckdb/common/row_operations/row_operations.hpp"
+-#include "duckdb/common/types/partitioned_column_data.hpp"
+-#include "duckdb/common/types/row_data_collection.hpp"
+-#include "duckdb/common/types/row_layout.hpp"
+@@ -59,0 +56,9 @@ idx_t RadixPartitioning::Select(Vector &hashes, const SelectionVector *sel, idx_
++struct ComputePartitionIndicesFunctor {
++ template <idx_t radix_bits>
++ static void Operation(Vector &hashes, Vector &partition_indices, idx_t count) {
++  UnaryExecutor::Execute<hash_t, hash_t>(hashes, partition_indices, count, [&](hash_t hash) {
++   using CONSTANTS = RadixPartitioningConstants<radix_bits>;
++   return CONSTANTS::ApplyMask(hash);
++  });
++ }
++};
+@@ -85,5 +89,0 @@ void RadixPartitionedColumnData::InitializeAppendStateInternal(PartitionedColumn
+-<<<<<<< HEAD
+-  state.partition_append_states.emplace_back(make_unique<ColumnDataAppendState>());
+-|||||||
+-  state.partition_append_states.emplace_back(make_unique<ColumnDataAppendState>());
+-=======
+@@ -91 +90,0 @@ void RadixPartitionedColumnData::InitializeAppendStateInternal(PartitionedColumn
+->>>>>>> 5b9bcdfbd9ba800dc7cd42ceb7a3ec9c9968e387
+@@ -96,9 +94,0 @@ void RadixPartitionedColumnData::InitializeAppendStateInternal(PartitionedColumn
+-struct ComputePartitionIndicesFunctor {
+- template <idx_t radix_bits>
+- static void Operation(Vector &hashes, Vector &partition_indices, idx_t count) {
+-  UnaryExecutor::Execute<hash_t, hash_t>(hashes, partition_indices, count, [&](hash_t hash) {
+-   using CONSTANTS = RadixPartitioningConstants<radix_bits>;
+-   return CONSTANTS::ApplyMask(hash);
+-  });
+- }
+-};
+@@ -128 +118 @@ RadixPartitionedTupleData::RadixPartitionedTupleData(const RadixPartitionedTuple
+-~RadixPartitionedTupleData() {
++RadixPartitionedTupleData::~RadixPartitionedTupleData() {
+@@ -140 +130 @@ void RadixPartitionedTupleData::InitializeAppendStateInternal(PartitionedTupleDa
+-  state.partition_pin_states.emplace_back(make_unique<TupleDataPinState>());
++  state.partition_pin_states.emplace_back(make_uniq<TupleDataPinState>());

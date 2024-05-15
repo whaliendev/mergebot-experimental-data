@@ -1,0 +1,47 @@
+diff --git a/home/whalien/codebase/cpp/mergebot/eva/output/grpc/57c0ac01-a0f09cb5-ce842ecc/src@core@lib@surface@call.no_comments_mergebot.cc b/home/whalien/codebase/cpp/mergebot/eva/output/grpc/57c0ac01-a0f09cb5-ce842ecc/src@core@lib@surface@call.no_comments_merged.cc
+index 73cb533..01a2aad 100644
+--- a/home/whalien/codebase/cpp/mergebot/eva/output/grpc/57c0ac01-a0f09cb5-ce842ecc/src@core@lib@surface@call.no_comments_mergebot.cc
++++ b/home/whalien/codebase/cpp/mergebot/eva/output/grpc/57c0ac01-a0f09cb5-ce842ecc/src@core@lib@surface@call.no_comments_merged.cc
+@@ -43 +43 @@ struct batch_control {
+-  batch_control()
++  batch_control() = default;
+@@ -157,0 +158,10 @@ grpc_core::TraceFlag grpc_compression_trace(false, "compression");
++#define CALL_STACK_FROM_CALL(call) \
++  (grpc_call_stack*)((char*)(call) + \
++                     GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(grpc_call)))
++#define CALL_FROM_CALL_STACK(call_stack) \
++  (grpc_call*)(((char*)(call_stack)) - \
++               GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(grpc_call)))
++#define CALL_ELEM_FROM_CALL(call,idx) \
++  grpc_call_stack_element(CALL_STACK_FROM_CALL(call), idx)
++#define CALL_FROM_TOP_ELEM(top_elem) \
++  CALL_FROM_CALL_STACK(grpc_call_stack_from_top_element(top_elem))
+@@ -358,3 +368,7 @@ void grpc_call_set_completion_queue(grpc_call* call,
+-void grpc_call_internal_ref(grpc_call* c REF_ARG) void grpc_call_internal_unref(
+-    grpc_call* c REF_ARG) static void release_call(void* call,
+-                                                   grpc_error* ) {
++void grpc_call_internal_ref(grpc_call* c REF_ARG) {
++  GRPC_CALL_STACK_REF(CALL_STACK_FROM_CALL(c), REF_REASON);
++}
++void grpc_call_internal_unref(grpc_call* c REF_ARG) {
++  GRPC_CALL_STACK_UNREF(CALL_STACK_FROM_CALL(c), REF_REASON);
++}
++static void release_call(void* call, grpc_error* ) {
+@@ -979,6 +992,0 @@ static void post_batch_completion(batch_control* bctl) {
+-<<<<<<< HEAD
+-    grpc_core::ExecCtx::Run(DEBUG_LOCATION,
+-                            (grpc_closure*)bctl->completion_data.notify_tag.tag,
+-|||||||
+-    GRPC_CLOSURE_SCHED((grpc_closure*)bctl->completion_data.notify_tag.tag,
+-=======
+@@ -986 +993,0 @@ static void post_batch_completion(batch_control* bctl) {
+->>>>>>> a0f09cb540097369a495470da4c10fe62a6e9bd5
+@@ -1285,6 +1291,0 @@ static grpc_call_error call_start_batch(grpc_call* call, const grpc_op* ops,
+-<<<<<<< HEAD
+-      grpc_core::ExecCtx::Run(DEBUG_LOCATION, (grpc_closure*)notify_tag,
+-                              GRPC_ERROR_NONE);
+-|||||||
+-      GRPC_CLOSURE_SCHED((grpc_closure*)notify_tag, GRPC_ERROR_NONE);
+-=======
+@@ -1292 +1292,0 @@ static grpc_call_error call_start_batch(grpc_call* call, const grpc_op* ops,
+->>>>>>> a0f09cb540097369a495470da4c10fe62a6e9bd5
