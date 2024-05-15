@@ -15,12 +15,6 @@ The following data table is aggregated from `statistics.json` in the repo:
 
 We define Precision and Recall as follows:
 
-$$
-Precision = \frac{total\_mergebot\_lines - total\_diff\_lines}{total\_mergebot\_lines}
-$$
-
-$$
-Recall = \frac{total\_mergebot\_lines - total\_diff\_lines}{total\_merged\_lines}
-$$
+![precision and recall equations](./equation.svg)
 
 Based on above data table from 10 C/C++ projects, the average precision is 75.49% and the average recall is 79.75%.
