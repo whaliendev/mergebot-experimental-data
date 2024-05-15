@@ -14,6 +14,7 @@ The following data table is aggregated from `statistics.json` in the repo:
 | art               |    63.15% | 77.62% |            23900 |              52765 |                64854 |
 
 We define Precision and Recall as follows:
+
 $$
 Precision = \frac{total\_mergebot\_lines - total\_diff\_lines}{total\_mergebot\_lines}
 $$
