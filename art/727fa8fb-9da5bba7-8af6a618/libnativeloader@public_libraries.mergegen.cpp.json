@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "  if (is_product_treblelized()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "b_contents": "  ReadExtensionLibraries(\"/product/etc\", &sonames);",
+        "base_contents": "  if (is_product_vndk_version_defined()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "res_region": "  if (is_product_treblelized()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "lookback": "// contains the extended public libraries that are loaded from the system namespace.\nstatic std::string InitProductPublicLibraries() {\n  std::vector<std::string> sonames;",
+        "lookahead": "  std::string libs = android::base::Join(sonames, ':');\n  ALOGD(\"InitProductPublicLibraries: %s\", libs.c_str());",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 203,
+        "end_line": 213,
+        "merge_gen_region": "if (is_product_treblelized()) { ReadExtensionLibraries(\"/product/etc\", &sonames); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "  if (!is_product_treblelized()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "b_contents": "",
+        "base_contents": "  if (!is_product_vndk_version_defined()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "res_region": "  if (!is_product_treblelized()) {\n    ReadExtensionLibraries(\"/product/etc\", &sonames);\n  }",
+        "lookback": "  std::vector<std::string> sonames;\n  ReadExtensionLibraries(\"/system/etc\", &sonames);\n  ReadExtensionLibraries(\"/system_ext/etc\", &sonames);",
+        "lookahead": "  std::string libs = android::base::Join(sonames, ':');\n  ALOGD(\"InitExtendedPublicLibraries: %s\", libs.c_str());",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 228,
+        "end_line": 237,
+        "merge_gen_region": "if (!is_product_treblelized()) { ReadExtensionLibraries(\"/product/etc\", &sonames); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "  if (!is_product_treblelized()) {\n    ALOGD(\"InitLlndkLibrariesProduct: Product is not treblelized\");\n    return \"\";\n  }",
+        "b_contents": "",
+        "base_contents": "  if (!is_product_vndk_version_defined()) {\n    ALOGD(\"InitLlndkLibrariesProduct: No product VNDK version defined\");\n    return \"\";\n  }",
+        "res_region": "  if (!is_product_treblelized()) {\n    ALOGD(\"InitLlndkLibrariesProduct: Product is not treblelized\");\n    return \"\";\n  }",
+        "lookback": "}\n\nstatic std::string InitLlndkLibrariesProduct() {",
+        "lookahead": "  std::string config_file;\n  if (IsProductVndkEnabled()) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 278,
+        "end_line": 289,
+        "merge_gen_region": "if (!is_product_treblelized()) { ALOGD(\"InitLlndkLibrariesProduct: Product is not treblelized\"); return \"\"; }",
+        "resolved": true
+    },
+    {
+        "a_contents": "bool is_product_treblelized() {\n#if defined(ART_TARGET_ANDROID)\n  // Product is not treblelized iff launching version is prior to R and\n  // ro.product.vndk.version is not defined\n  static bool product_treblelized =\n      !(android::base::GetIntProperty(\"ro.product.first_api_level\", 0) < __ANDROID_API_R__ &&\n        !android::sysprop::VndkProperties::product_vndk_version().has_value());\n  return product_treblelized;\n#else\n  return false;\n#endif\n}\n",
+        "b_contents": "",
+        "base_contents": "bool is_product_vndk_version_defined() {\n#if defined(ART_TARGET_ANDROID)\n  return android::sysprop::VndkProperties::product_vndk_version().has_value();\n#else\n  return false;\n#endif\n}\n",
+        "res_region": "bool is_product_treblelized() {\n#if defined(ART_TARGET_ANDROID)\n  // Product is not treblelized iff launching version is prior to R and\n  // ro.product.vndk.version is not defined\n  static bool product_treblelized =\n      !(android::base::GetIntProperty(\"ro.product.first_api_level\", 0) < __ANDROID_API_R__ &&\n        !android::sysprop::VndkProperties::product_vndk_version().has_value());\n  return product_treblelized;\n#else\n  return false;\n#endif\n}\n",
+        "lookback": "  return public_libraries;\n}\n",
+        "lookahead": "std::string get_vndk_version(bool is_product_vndk) {\n#if defined(ART_TARGET_ANDROID)",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 450,
+        "end_line": 474,
+        "merge_gen_region": "bool is_product_treblelized() { #if defined(ART_TARGET_ANDROID) // Product is not treblelized iff launching version is prior to R and // ro.product.vndk.version is not defined static bool product_treblelized = !(android::base::GetIntProperty(\"ro.product.first_api_level\", 0) < __ANDROID_API_R__ && !android::sysprop::VndkProperties::product_vndk_version().has_value()); return product_treblelized; #else return false; #endif }",
+        "resolved": true
+    }
+]

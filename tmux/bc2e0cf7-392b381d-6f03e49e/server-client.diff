@@ -1,0 +1,1384 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/bc2e0cf7-392b381d-6f03e49e/server-client.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/bc2e0cf7-392b381d-6f03e49e/server-client.no_comments_merged.c
+index 566d084..9f64f0e 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/bc2e0cf7-392b381d-6f03e49e/server-client.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/bc2e0cf7-392b381d-6f03e49e/server-client.no_comments_merged.c
+@@ -7,2 +6,0 @@
+-#include <imsg.h>
+-#include <paths.h>
+@@ -32,7 +30,14 @@ static void server_client_dispatch_shell(struct client *);
+-static void server_client_dispatch_write_ready(struct client *, struct imsg *);
+-static void server_client_dispatch_read_data(struct client *, struct imsg *);
+-static void server_client_dispatch_read_done(struct client *, struct imsg *);
+-static int server_client_window_cmp(struct client_window *cw1,
+-                                    struct client_window *cw2) {
+-  if (cw1->window < cw2->window) return (-1);
+-  if (cw1->window > cw2->window) return (1);
++static void server_client_dispatch_write_ready(struct client *,
++      struct imsg *);
++static void server_client_dispatch_read_data(struct client *,
++      struct imsg *);
++static void server_client_dispatch_read_done(struct client *,
++      struct imsg *);
++static int
++server_client_window_cmp(struct client_window *cw1,
++    struct client_window *cw2)
++{
++ if (cw1->window < cw2->window)
++  return (-1);
++ if (cw1->window > cw2->window)
++  return (1);
+@@ -41 +46,4 @@ static int server_client_window_cmp(struct client_window *cw1,
+-u_int server_client_how_many(void) {
++RB_GENERATE(client_windows, client_window, entry, server_client_window_cmp);
++u_int
++server_client_how_many(void)
++{
+@@ -46 +54,2 @@ u_int server_client_how_many(void) {
+-    if (c->session != NULL && (~c->flags & CLIENT_DETACHING)) n++;
++  if (c->session != NULL && (~c->flags & CLIENT_DETACHING))
++   n++;
+@@ -50,2 +59,3 @@ u_int server_client_how_many(void) {
+-static void server_client_overlay_timer(__unused int fd, __unused short events,
+-                                        void *data) {
++static void
++server_client_overlay_timer(__unused int fd, __unused short events, void *data)
++{
+@@ -54 +64,2 @@ static void server_client_overlay_timer(__unused int fd, __unused short events,
+-void server_client_set_overlay(struct client *c, u_int delay,
++void
++server_client_set_overlay(struct client *c, u_int delay,
+@@ -56,2 +67,3 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-                               overlay_draw_cb drawcb, overlay_key_cb keycb,
+-                               overlay_free_cb freecb, void *data) {
++    overlay_draw_cb drawcb, overlay_key_cb keycb, overlay_free_cb freecb,
++    void *data)
++{
+@@ -59 +71,2 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-  if (c->overlay_draw != NULL) server_client_clear_overlay(c);
++ if (c->overlay_draw != NULL)
++  server_client_clear_overlay(c);
+@@ -62 +75,2 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-  if (event_initialized(&c->overlay_timer)) evtimer_del(&c->overlay_timer);
++ if (event_initialized(&c->overlay_timer))
++  evtimer_del(&c->overlay_timer);
+@@ -64 +78,2 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-  if (delay != 0) evtimer_add(&c->overlay_timer, &tv);
++ if (delay != 0)
++  evtimer_add(&c->overlay_timer, &tv);
+@@ -72 +87,2 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-  if (c->overlay_mode == NULL) c->tty.flags |= TTY_NOCURSOR;
++ if (c->overlay_mode == NULL)
++  c->tty.flags |= TTY_NOCURSOR;
+@@ -75,4 +91,9 @@ void server_client_set_overlay(struct client *c, u_int delay,
+-void server_client_clear_overlay(struct client *c) {
+-  if (c->overlay_draw == NULL) return;
+-  if (event_initialized(&c->overlay_timer)) evtimer_del(&c->overlay_timer);
+-  if (c->overlay_free != NULL) c->overlay_free(c);
++void
++server_client_clear_overlay(struct client *c)
++{
++ if (c->overlay_draw == NULL)
++  return;
++ if (event_initialized(&c->overlay_timer))
++  evtimer_del(&c->overlay_timer);
++ if (c->overlay_free != NULL)
++  c->overlay_free(c);
+@@ -88 +109,3 @@ void server_client_clear_overlay(struct client *c) {
+-int server_client_check_nested(struct client *c) {
++int
++server_client_check_nested(struct client *c)
++{
+@@ -92 +115,2 @@ int server_client_check_nested(struct client *c) {
+-  if (envent == NULL || *envent->value == '\0') return (0);
++ if (envent == NULL || *envent->value == '\0')
++  return (0);
+@@ -94 +118,2 @@ int server_client_check_nested(struct client *c) {
+-    if (strcmp(wp->tty, c->ttyname) == 0) return (1);
++  if (strcmp(wp->tty, c->ttyname) == 0)
++   return (1);
+@@ -98,2 +123,5 @@ int server_client_check_nested(struct client *c) {
+-void server_client_set_key_table(struct client *c, const char *name) {
+-  if (name == NULL) name = server_client_get_key_table(c);
++void
++server_client_set_key_table(struct client *c, const char *name)
++{
++ if (name == NULL)
++  name = server_client_get_key_table(c);
+@@ -104 +132,3 @@ void server_client_set_key_table(struct client *c, const char *name) {
+-const char *server_client_get_key_table(struct client *c) {
++const char *
++server_client_get_key_table(struct client *c)
++{
+@@ -107 +137,2 @@ const char *server_client_get_key_table(struct client *c) {
+-  if (s == NULL) return ("root");
++ if (s == NULL)
++  return ("root");
+@@ -109 +140,2 @@ const char *server_client_get_key_table(struct client *c) {
+-  if (*name == '\0') return ("root");
++ if (*name == '\0')
++  return ("root");
+@@ -112,2 +144,3 @@ const char *server_client_get_key_table(struct client *c) {
+-static int server_client_is_default_key_table(struct client *c,
+-                                              struct key_table *table) {
++static int
++server_client_is_default_key_table(struct client *c, struct key_table *table)
++{
+@@ -116 +149,3 @@ static int server_client_is_default_key_table(struct client *c,
+-struct client *server_client_create(int fd) {
++struct client *
++server_client_create(int fd)
++{
+@@ -122 +157,2 @@ struct client *server_client_create(int fd) {
+-  if (gettimeofday(&c->creation_time, NULL) != 0) fatal("gettimeofday failed");
++ if (gettimeofday(&c->creation_time, NULL) != 0)
++  fatal("gettimeofday failed");
+@@ -142 +178,3 @@ struct client *server_client_create(int fd) {
+-int server_client_open(struct client *c, char **cause) {
++int
++server_client_open(struct client *c, char **cause)
++{
+@@ -144 +182,2 @@ int server_client_open(struct client *c, char **cause) {
+-  if (c->flags & CLIENT_CONTROL) return (0);
++ if (c->flags & CLIENT_CONTROL)
++  return (0);
+@@ -146 +185,2 @@ int server_client_open(struct client *c, char **cause) {
+-      ((isatty(STDIN_FILENO) && (ttynam = ttyname(STDIN_FILENO)) != NULL &&
++     ((isatty(STDIN_FILENO) &&
++     (ttynam = ttyname(STDIN_FILENO)) != NULL &&
+@@ -148 +188,2 @@ int server_client_open(struct client *c, char **cause) {
+-       (isatty(STDOUT_FILENO) && (ttynam = ttyname(STDOUT_FILENO)) != NULL &&
++     (isatty(STDOUT_FILENO) &&
++     (ttynam = ttyname(STDOUT_FILENO)) != NULL &&
+@@ -150 +191,2 @@ int server_client_open(struct client *c, char **cause) {
+-       (isatty(STDERR_FILENO) && (ttynam = ttyname(STDERR_FILENO)) != NULL &&
++     (isatty(STDERR_FILENO) &&
++     (ttynam = ttyname(STDERR_FILENO)) != NULL &&
+@@ -159 +201,2 @@ int server_client_open(struct client *c, char **cause) {
+-  if (tty_open(&c->tty, cause) != 0) return (-1);
++ if (tty_open(&c->tty, cause) != 0)
++  return (-1);
+@@ -162 +205,3 @@ int server_client_open(struct client *c, char **cause) {
+-void server_client_lost(struct client *c) {
++void
++server_client_lost(struct client *c)
++{
+@@ -179,2 +224,4 @@ void server_client_lost(struct client *c) {
+-  if (c->flags & CLIENT_CONTROL) control_stop(c);
+-  if (c->flags & CLIENT_TERMINAL) tty_free(&c->tty);
++ if (c->flags & CLIENT_CONTROL)
++  control_stop(c);
++ if (c->flags & CLIENT_TERMINAL)
++  tty_free(&c->tty);
+@@ -191 +238,2 @@ void server_client_lost(struct client *c) {
+-  if (event_initialized(&c->message_timer)) evtimer_del(&c->message_timer);
++ if (event_initialized(&c->message_timer))
++  evtimer_del(&c->message_timer);
+@@ -199 +247,2 @@ void server_client_lost(struct client *c) {
+-  if (c->out_fd != -1) close(c->out_fd);
++ if (c->out_fd != -1)
++  close(c->out_fd);
+@@ -210 +259,3 @@ void server_client_lost(struct client *c) {
+-void server_client_unref(struct client *c) {
++void
++server_client_unref(struct client *c)
++{
+@@ -216,2 +267,3 @@ void server_client_unref(struct client *c) {
+-static void server_client_free(__unused int fd, __unused short events,
+-                               void *arg) {
++static void
++server_client_free(__unused int fd, __unused short events, void *arg)
++{
+@@ -226 +278,3 @@ static void server_client_free(__unused int fd, __unused short events,
+-void server_client_suspend(struct client *c) {
++void
++server_client_suspend(struct client *c)
++{
+@@ -228 +282,2 @@ void server_client_suspend(struct client *c) {
+-  if (s == NULL || (c->flags & CLIENT_DETACHING)) return;
++ if (s == NULL || (c->flags & CLIENT_DETACHING))
++  return;
+@@ -233 +288,3 @@ void server_client_suspend(struct client *c) {
+-void server_client_detach(struct client *c, enum msgtype msgtype) {
++void
++server_client_detach(struct client *c, enum msgtype msgtype)
++{
+@@ -235 +292,2 @@ void server_client_detach(struct client *c, enum msgtype msgtype) {
+-  if (s == NULL || (c->flags & CLIENT_DETACHING)) return;
++ if (s == NULL || (c->flags & CLIENT_DETACHING))
++  return;
+@@ -240 +298,3 @@ void server_client_detach(struct client *c, enum msgtype msgtype) {
+-void server_client_exec(struct client *c, const char *cmd) {
++void
++server_client_exec(struct client *c, const char *cmd)
++{
+@@ -245 +305,2 @@ void server_client_exec(struct client *c, const char *cmd) {
+-  if (*cmd == '\0') return;
++ if (*cmd == '\0')
++  return;
+@@ -251 +312,2 @@ void server_client_exec(struct client *c, const char *cmd) {
+-  if (!checkshell(shell)) shell = _PATH_BSHELL;
++ if (!checkshell(shell))
++  shell = _PATH_BSHELL;
+@@ -259,2 +321,3 @@ void server_client_exec(struct client *c, const char *cmd) {
+-static key_code server_client_check_mouse(struct client *c,
+-                                          struct key_event *event) {
++static key_code
++server_client_check_mouse(struct client *c, struct key_event *event)
++{
+@@ -270,2 +333 @@ static key_code server_client_check_mouse(struct client *c,
+-  enum {
+-    NOTYPE,
++ enum { NOTYPE,
+@@ -279,4 +341,2 @@ static key_code server_client_check_mouse(struct client *c,
+-    TRIPLE
+-  } type = NOTYPE;
+-  enum {
+-    NOWHERE,
++        TRIPLE } type = NOTYPE;
++ enum { NOWHERE,
+@@ -288,4 +348,3 @@ static key_code server_client_check_mouse(struct client *c,
+-    BORDER
+-  } where = NOWHERE;
+-  log_debug("%s mouse %02x at %u,%u (last %u,%u) (%d)", c->name, m->b, m->x,
+-            m->y, m->lx, m->ly, c->tty.mouse_drag_flag);
++        BORDER } where = NOWHERE;
++ log_debug("%s mouse %02x at %u,%u (last %u,%u) (%d)", c->name, m->b,
++     m->x, m->y, m->lx, m->ly, c->tty.mouse_drag_flag);
+@@ -297 +356,2 @@ static key_code server_client_check_mouse(struct client *c,
+-  } else if ((m->sgr_type != ' ' && MOUSE_DRAG(m->sgr_b) &&
++ } else if ((m->sgr_type != ' ' &&
++     MOUSE_DRAG(m->sgr_b) &&
+@@ -299,2 +359,4 @@ static key_code server_client_check_mouse(struct client *c,
+-             (m->sgr_type == ' ' && MOUSE_DRAG(m->b) &&
+-              MOUSE_BUTTONS(m->b) == 3 && MOUSE_BUTTONS(m->lb) == 3)) {
++     (m->sgr_type == ' ' &&
++     MOUSE_DRAG(m->b) &&
++     MOUSE_BUTTONS(m->b) == 3 &&
++     MOUSE_BUTTONS(m->lb) == 3)) {
+@@ -308 +370,2 @@ static key_code server_client_check_mouse(struct client *c,
+-      if (x == m->lx && y == m->ly) return (KEYC_UNKNOWN);
++   if (x == m->lx && y == m->ly)
++    return (KEYC_UNKNOWN);
+@@ -358 +421,2 @@ have_event:
+-  if (type == NOTYPE) return (KEYC_UNKNOWN);
++ if (type == NOTYPE)
++  return (KEYC_UNKNOWN);
+@@ -364 +428,2 @@ have_event:
+-  if (m->statusat != -1 && y >= (u_int)m->statusat &&
++ if (m->statusat != -1 &&
++     y >= (u_int)m->statusat &&
+@@ -380,2 +445,4 @@ have_event:
+-          wl = winlink_find_by_index(&s->windows, sr->argument);
+-          if (wl == NULL) return (KEYC_UNKNOWN);
++    wl = winlink_find_by_index(&s->windows,
++        sr->argument);
++    if (wl == NULL)
++     return (KEYC_UNKNOWN);
+@@ -397,3 +464,4 @@ have_event:
+-    log_debug("mouse window @%u at %u,%u (%ux%u)", s->curw->window->id, m->ox,
+-              m->oy, sx, sy);
+-    if (px > sx || py > sy) return (KEYC_UNKNOWN);
++  log_debug("mouse window @%u at %u,%u (%ux%u)",
++      s->curw->window->id, m->ox, m->oy, sx, sy);
++  if (px > sx || py > sy)
++   return (KEYC_UNKNOWN);
+@@ -404 +472,2 @@ have_event:
+-        if ((wp->xoff + wp->sx == px && wp->yoff <= 1 + py &&
++    if ((wp->xoff + wp->sx == px &&
++        wp->yoff <= 1 + py &&
+@@ -406 +475,2 @@ have_event:
+-            (wp->yoff + wp->sy == py && wp->xoff <= 1 + px &&
++        (wp->yoff + wp->sy == py &&
++        wp->xoff <= 1 + px &&
+@@ -410 +480,2 @@ have_event:
+-      if (wp != NULL) where = BORDER;
++   if (wp != NULL)
++    where = BORDER;
+@@ -428 +499,2 @@ have_event:
+-    if (c->tty.mouse_drag_release != NULL) c->tty.mouse_drag_release(c, m);
++  if (c->tty.mouse_drag_release != NULL)
++   c->tty.mouse_drag_release(c, m);
+@@ -433,6 +505,12 @@ have_event:
+-        if (where == PANE) key = KEYC_MOUSEDRAGEND1_PANE;
+-        if (where == STATUS) key = KEYC_MOUSEDRAGEND1_STATUS;
+-        if (where == STATUS_LEFT) key = KEYC_MOUSEDRAGEND1_STATUS_LEFT;
+-        if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAGEND1_STATUS_RIGHT;
+-        if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAGEND1_STATUS_DEFAULT;
+-        if (where == BORDER) key = KEYC_MOUSEDRAGEND1_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDRAGEND1_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDRAGEND1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDRAGEND1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDRAGEND1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDRAGEND1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDRAGEND1_BORDER;
+@@ -441,6 +519,12 @@ have_event:
+-        if (where == PANE) key = KEYC_MOUSEDRAGEND2_PANE;
+-        if (where == STATUS) key = KEYC_MOUSEDRAGEND2_STATUS;
+-        if (where == STATUS_LEFT) key = KEYC_MOUSEDRAGEND2_STATUS_LEFT;
+-        if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAGEND2_STATUS_RIGHT;
+-        if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAGEND2_STATUS_DEFAULT;
+-        if (where == BORDER) key = KEYC_MOUSEDRAGEND2_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDRAGEND2_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDRAGEND2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDRAGEND2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDRAGEND2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDRAGEND2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDRAGEND2_BORDER;
+@@ -449,6 +533,12 @@ have_event:
+-        if (where == PANE) key = KEYC_MOUSEDRAGEND3_PANE;
+-        if (where == STATUS) key = KEYC_MOUSEDRAGEND3_STATUS;
+-        if (where == STATUS_LEFT) key = KEYC_MOUSEDRAGEND3_STATUS_LEFT;
+-        if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAGEND3_STATUS_RIGHT;
+-        if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAGEND3_STATUS_DEFAULT;
+-        if (where == BORDER) key = KEYC_MOUSEDRAGEND3_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDRAGEND3_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDRAGEND3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDRAGEND3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDRAGEND3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDRAGEND3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDRAGEND3_BORDER;
+@@ -468,6 +558,12 @@ have_event:
+-      if (where == PANE) key = KEYC_MOUSEMOVE_PANE;
+-      if (where == STATUS) key = KEYC_MOUSEMOVE_STATUS;
+-      if (where == STATUS_LEFT) key = KEYC_MOUSEMOVE_STATUS_LEFT;
+-      if (where == STATUS_RIGHT) key = KEYC_MOUSEMOVE_STATUS_RIGHT;
+-      if (where == STATUS_DEFAULT) key = KEYC_MOUSEMOVE_STATUS_DEFAULT;
+-      if (where == BORDER) key = KEYC_MOUSEMOVE_BORDER;
++  if (where == PANE)
++   key = KEYC_MOUSEMOVE_PANE;
++  if (where == STATUS)
++   key = KEYC_MOUSEMOVE_STATUS;
++  if (where == STATUS_LEFT)
++   key = KEYC_MOUSEMOVE_STATUS_LEFT;
++  if (where == STATUS_RIGHT)
++   key = KEYC_MOUSEMOVE_STATUS_RIGHT;
++  if (where == STATUS_DEFAULT)
++   key = KEYC_MOUSEMOVE_STATUS_DEFAULT;
++  if (where == BORDER)
++   key = KEYC_MOUSEMOVE_BORDER;
+@@ -481,6 +577,12 @@ have_event:
+-            if (where == PANE) key = KEYC_MOUSEDRAG1_PANE;
+-            if (where == STATUS) key = KEYC_MOUSEDRAG1_STATUS;
+-            if (where == STATUS_LEFT) key = KEYC_MOUSEDRAG1_STATUS_LEFT;
+-            if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAG1_STATUS_RIGHT;
+-            if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAG1_STATUS_DEFAULT;
+-            if (where == BORDER) key = KEYC_MOUSEDRAG1_BORDER;
++    if (where == PANE)
++     key = KEYC_MOUSEDRAG1_PANE;
++    if (where == STATUS)
++     key = KEYC_MOUSEDRAG1_STATUS;
++    if (where == STATUS_LEFT)
++     key = KEYC_MOUSEDRAG1_STATUS_LEFT;
++    if (where == STATUS_RIGHT)
++     key = KEYC_MOUSEDRAG1_STATUS_RIGHT;
++    if (where == STATUS_DEFAULT)
++     key = KEYC_MOUSEDRAG1_STATUS_DEFAULT;
++    if (where == BORDER)
++     key = KEYC_MOUSEDRAG1_BORDER;
+@@ -489,6 +591,12 @@ have_event:
+-            if (where == PANE) key = KEYC_MOUSEDRAG2_PANE;
+-            if (where == STATUS) key = KEYC_MOUSEDRAG2_STATUS;
+-            if (where == STATUS_LEFT) key = KEYC_MOUSEDRAG2_STATUS_LEFT;
+-            if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAG2_STATUS_RIGHT;
+-            if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAG2_STATUS_DEFAULT;
+-            if (where == BORDER) key = KEYC_MOUSEDRAG2_BORDER;
++    if (where == PANE)
++     key = KEYC_MOUSEDRAG2_PANE;
++    if (where == STATUS)
++     key = KEYC_MOUSEDRAG2_STATUS;
++    if (where == STATUS_LEFT)
++     key = KEYC_MOUSEDRAG2_STATUS_LEFT;
++    if (where == STATUS_RIGHT)
++     key = KEYC_MOUSEDRAG2_STATUS_RIGHT;
++    if (where == STATUS_DEFAULT)
++     key = KEYC_MOUSEDRAG2_STATUS_DEFAULT;
++    if (where == BORDER)
++     key = KEYC_MOUSEDRAG2_BORDER;
+@@ -497,6 +605,12 @@ have_event:
+-            if (where == PANE) key = KEYC_MOUSEDRAG3_PANE;
+-            if (where == STATUS) key = KEYC_MOUSEDRAG3_STATUS;
+-            if (where == STATUS_LEFT) key = KEYC_MOUSEDRAG3_STATUS_LEFT;
+-            if (where == STATUS_RIGHT) key = KEYC_MOUSEDRAG3_STATUS_RIGHT;
+-            if (where == STATUS_DEFAULT) key = KEYC_MOUSEDRAG3_STATUS_DEFAULT;
+-            if (where == BORDER) key = KEYC_MOUSEDRAG3_BORDER;
++    if (where == PANE)
++     key = KEYC_MOUSEDRAG3_PANE;
++    if (where == STATUS)
++     key = KEYC_MOUSEDRAG3_STATUS;
++    if (where == STATUS_LEFT)
++     key = KEYC_MOUSEDRAG3_STATUS_LEFT;
++    if (where == STATUS_RIGHT)
++     key = KEYC_MOUSEDRAG3_STATUS_RIGHT;
++    if (where == STATUS_DEFAULT)
++     key = KEYC_MOUSEDRAG3_STATUS_DEFAULT;
++    if (where == BORDER)
++     key = KEYC_MOUSEDRAG3_BORDER;
+@@ -510,6 +624,12 @@ have_event:
+-        if (where == PANE) key = KEYC_WHEELUP_PANE;
+-        if (where == STATUS) key = KEYC_WHEELUP_STATUS;
+-        if (where == STATUS_LEFT) key = KEYC_WHEELUP_STATUS_LEFT;
+-        if (where == STATUS_RIGHT) key = KEYC_WHEELUP_STATUS_RIGHT;
+-        if (where == STATUS_DEFAULT) key = KEYC_WHEELUP_STATUS_DEFAULT;
+-        if (where == BORDER) key = KEYC_WHEELUP_BORDER;
++   if (where == PANE)
++    key = KEYC_WHEELUP_PANE;
++   if (where == STATUS)
++    key = KEYC_WHEELUP_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_WHEELUP_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_WHEELUP_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_WHEELUP_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_WHEELUP_BORDER;
+@@ -517,6 +637,12 @@ have_event:
+-        if (where == PANE) key = KEYC_WHEELDOWN_PANE;
+-        if (where == STATUS) key = KEYC_WHEELDOWN_STATUS;
+-        if (where == STATUS_LEFT) key = KEYC_WHEELDOWN_STATUS_LEFT;
+-        if (where == STATUS_RIGHT) key = KEYC_WHEELDOWN_STATUS_RIGHT;
+-        if (where == STATUS_DEFAULT) key = KEYC_WHEELDOWN_STATUS_DEFAULT;
+-        if (where == BORDER) key = KEYC_WHEELDOWN_BORDER;
++   if (where == PANE)
++    key = KEYC_WHEELDOWN_PANE;
++   if (where == STATUS)
++    key = KEYC_WHEELDOWN_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_WHEELDOWN_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_WHEELDOWN_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_WHEELDOWN_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_WHEELDOWN_BORDER;
+@@ -528,6 +654,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEUP1_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEUP1_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEUP1_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEUP1_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEUP1_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEUP1_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEUP1_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEUP1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEUP1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEUP1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEUP1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEUP1_BORDER;
+@@ -536,6 +668,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEUP2_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEUP2_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEUP2_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEUP2_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEUP2_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEUP2_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEUP2_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEUP2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEUP2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEUP2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEUP2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEUP2_BORDER;
+@@ -544,6 +682,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEUP3_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEUP3_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEUP3_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEUP3_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEUP3_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEUP3_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEUP3_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEUP3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEUP3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEUP3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEUP3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEUP3_BORDER;
+@@ -556,6 +700,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEDOWN1_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEDOWN1_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEDOWN1_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEDOWN1_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEDOWN1_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEDOWN1_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDOWN1_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDOWN1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDOWN1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDOWN1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDOWN1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDOWN1_BORDER;
+@@ -564,6 +714,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEDOWN2_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEDOWN2_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEDOWN2_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEDOWN2_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEDOWN2_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEDOWN2_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDOWN2_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDOWN2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDOWN2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDOWN2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDOWN2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDOWN2_BORDER;
+@@ -572,6 +728,12 @@ have_event:
+-          if (where == PANE) key = KEYC_MOUSEDOWN3_PANE;
+-          if (where == STATUS) key = KEYC_MOUSEDOWN3_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_MOUSEDOWN3_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_MOUSEDOWN3_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_MOUSEDOWN3_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_MOUSEDOWN3_BORDER;
++   if (where == PANE)
++    key = KEYC_MOUSEDOWN3_PANE;
++   if (where == STATUS)
++    key = KEYC_MOUSEDOWN3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_MOUSEDOWN3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_MOUSEDOWN3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_MOUSEDOWN3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_MOUSEDOWN3_BORDER;
+@@ -584,6 +746,12 @@ have_event:
+-          if (where == PANE) key = KEYC_SECONDCLICK1_PANE;
+-          if (where == STATUS) key = KEYC_SECONDCLICK1_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_SECONDCLICK1_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_SECONDCLICK1_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_SECONDCLICK1_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_SECONDCLICK1_BORDER;
++   if (where == PANE)
++    key = KEYC_SECONDCLICK1_PANE;
++   if (where == STATUS)
++    key = KEYC_SECONDCLICK1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_SECONDCLICK1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_SECONDCLICK1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_SECONDCLICK1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_SECONDCLICK1_BORDER;
+@@ -592,6 +760,12 @@ have_event:
+-          if (where == PANE) key = KEYC_SECONDCLICK2_PANE;
+-          if (where == STATUS) key = KEYC_SECONDCLICK2_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_SECONDCLICK2_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_SECONDCLICK2_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_SECONDCLICK2_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_SECONDCLICK2_BORDER;
++   if (where == PANE)
++    key = KEYC_SECONDCLICK2_PANE;
++   if (where == STATUS)
++    key = KEYC_SECONDCLICK2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_SECONDCLICK2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_SECONDCLICK2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_SECONDCLICK2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_SECONDCLICK2_BORDER;
+@@ -600,6 +774,12 @@ have_event:
+-          if (where == PANE) key = KEYC_SECONDCLICK3_PANE;
+-          if (where == STATUS) key = KEYC_SECONDCLICK3_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_SECONDCLICK3_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_SECONDCLICK3_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_SECONDCLICK3_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_SECONDCLICK3_BORDER;
++   if (where == PANE)
++    key = KEYC_SECONDCLICK3_PANE;
++   if (where == STATUS)
++    key = KEYC_SECONDCLICK3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_SECONDCLICK3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_SECONDCLICK3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_SECONDCLICK3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_SECONDCLICK3_BORDER;
+@@ -612,6 +792,12 @@ have_event:
+-          if (where == PANE) key = KEYC_DOUBLECLICK1_PANE;
+-          if (where == STATUS) key = KEYC_DOUBLECLICK1_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_DOUBLECLICK1_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_DOUBLECLICK1_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_DOUBLECLICK1_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_DOUBLECLICK1_BORDER;
++   if (where == PANE)
++    key = KEYC_DOUBLECLICK1_PANE;
++   if (where == STATUS)
++    key = KEYC_DOUBLECLICK1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_DOUBLECLICK1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_DOUBLECLICK1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_DOUBLECLICK1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_DOUBLECLICK1_BORDER;
+@@ -620,6 +806,12 @@ have_event:
+-          if (where == PANE) key = KEYC_DOUBLECLICK2_PANE;
+-          if (where == STATUS) key = KEYC_DOUBLECLICK2_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_DOUBLECLICK2_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_DOUBLECLICK2_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_DOUBLECLICK2_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_DOUBLECLICK2_BORDER;
++   if (where == PANE)
++    key = KEYC_DOUBLECLICK2_PANE;
++   if (where == STATUS)
++    key = KEYC_DOUBLECLICK2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_DOUBLECLICK2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_DOUBLECLICK2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_DOUBLECLICK2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_DOUBLECLICK2_BORDER;
+@@ -628,6 +820,12 @@ have_event:
+-          if (where == PANE) key = KEYC_DOUBLECLICK3_PANE;
+-          if (where == STATUS) key = KEYC_DOUBLECLICK3_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_DOUBLECLICK3_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_DOUBLECLICK3_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_DOUBLECLICK3_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_DOUBLECLICK3_BORDER;
++   if (where == PANE)
++    key = KEYC_DOUBLECLICK3_PANE;
++   if (where == STATUS)
++    key = KEYC_DOUBLECLICK3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_DOUBLECLICK3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_DOUBLECLICK3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_DOUBLECLICK3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_DOUBLECLICK3_BORDER;
+@@ -640,6 +838,12 @@ have_event:
+-          if (where == PANE) key = KEYC_TRIPLECLICK1_PANE;
+-          if (where == STATUS) key = KEYC_TRIPLECLICK1_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_TRIPLECLICK1_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_TRIPLECLICK1_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_TRIPLECLICK1_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_TRIPLECLICK1_BORDER;
++   if (where == PANE)
++    key = KEYC_TRIPLECLICK1_PANE;
++   if (where == STATUS)
++    key = KEYC_TRIPLECLICK1_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_TRIPLECLICK1_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_TRIPLECLICK1_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_TRIPLECLICK1_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_TRIPLECLICK1_BORDER;
+@@ -648,6 +852,12 @@ have_event:
+-          if (where == PANE) key = KEYC_TRIPLECLICK2_PANE;
+-          if (where == STATUS) key = KEYC_TRIPLECLICK2_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_TRIPLECLICK2_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_TRIPLECLICK2_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_TRIPLECLICK2_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_TRIPLECLICK2_BORDER;
++   if (where == PANE)
++    key = KEYC_TRIPLECLICK2_PANE;
++   if (where == STATUS)
++    key = KEYC_TRIPLECLICK2_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_TRIPLECLICK2_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_TRIPLECLICK2_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_TRIPLECLICK2_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_TRIPLECLICK2_BORDER;
+@@ -656,6 +866,12 @@ have_event:
+-          if (where == PANE) key = KEYC_TRIPLECLICK3_PANE;
+-          if (where == STATUS) key = KEYC_TRIPLECLICK3_STATUS;
+-          if (where == STATUS_LEFT) key = KEYC_TRIPLECLICK3_STATUS_LEFT;
+-          if (where == STATUS_RIGHT) key = KEYC_TRIPLECLICK3_STATUS_RIGHT;
+-          if (where == STATUS_DEFAULT) key = KEYC_TRIPLECLICK3_STATUS_DEFAULT;
+-          if (where == BORDER) key = KEYC_TRIPLECLICK3_BORDER;
++   if (where == PANE)
++    key = KEYC_TRIPLECLICK3_PANE;
++   if (where == STATUS)
++    key = KEYC_TRIPLECLICK3_STATUS;
++   if (where == STATUS_LEFT)
++    key = KEYC_TRIPLECLICK3_STATUS_LEFT;
++   if (where == STATUS_RIGHT)
++    key = KEYC_TRIPLECLICK3_STATUS_RIGHT;
++   if (where == STATUS_DEFAULT)
++    key = KEYC_TRIPLECLICK3_STATUS_DEFAULT;
++   if (where == BORDER)
++    key = KEYC_TRIPLECLICK3_BORDER;
+@@ -666 +882,2 @@ have_event:
+-  if (key == KEYC_UNKNOWN) return (KEYC_UNKNOWN);
++ if (key == KEYC_UNKNOWN)
++  return (KEYC_UNKNOWN);
+@@ -668,3 +885,6 @@ out:
+-  if (b & MOUSE_MASK_META) key |= KEYC_META;
+-  if (b & MOUSE_MASK_CTRL) key |= KEYC_CTRL;
+-  if (b & MOUSE_MASK_SHIFT) key |= KEYC_SHIFT;
++ if (b & MOUSE_MASK_META)
++  key |= KEYC_META;
++ if (b & MOUSE_MASK_CTRL)
++  key |= KEYC_CTRL;
++ if (b & MOUSE_MASK_SHIFT)
++  key |= KEYC_SHIFT;
+@@ -675 +895,3 @@ out:
+-static int server_client_assume_paste(struct session *s) {
++static int
++server_client_assume_paste(struct session *s)
++{
+@@ -684 +906,2 @@ static int server_client_assume_paste(struct session *s) {
+-    if (s->flags & SESSION_PASTING) return (1);
++  if (s->flags & SESSION_PASTING)
++   return (1);
+@@ -692 +915,3 @@ static int server_client_assume_paste(struct session *s) {
+-static void server_client_update_latest(struct client *c) {
++static void
++server_client_update_latest(struct client *c)
++{
+@@ -694 +919,2 @@ static void server_client_update_latest(struct client *c) {
+-  if (c->session == NULL) return;
++ if (c->session == NULL)
++  return;
+@@ -696 +922,2 @@ static void server_client_update_latest(struct client *c) {
+-  if (w->latest == c) return;
++ if (w->latest == c)
++  return;
+@@ -701,2 +928,3 @@ static void server_client_update_latest(struct client *c) {
+-static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-                                                  void *data) {
++static enum cmd_retval
++server_client_key_callback(struct cmdq_item *item, void *data)
++{
+@@ -717 +945,2 @@ static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-  if (s == NULL || (c->flags & CLIENT_UNATTACHEDFLAGS)) goto out;
++ if (s == NULL || (c->flags & CLIENT_UNATTACHEDFLAGS))
++  goto out;
+@@ -719 +948,2 @@ static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-  if (gettimeofday(&c->activity_time, NULL) != 0) fatal("gettimeofday failed");
++ if (gettimeofday(&c->activity_time, NULL) != 0)
++  fatal("gettimeofday failed");
+@@ -723 +953,2 @@ static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-    if (c->flags & CLIENT_READONLY) goto out;
++  if (c->flags & CLIENT_READONLY)
++   goto out;
+@@ -725 +956,2 @@ static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-    if (key == KEYC_UNKNOWN) goto out;
++  if (key == KEYC_UNKNOWN)
++   goto out;
+@@ -739,3 +971,6 @@ static enum cmd_retval server_client_key_callback(struct cmdq_item *item,
+-  if (!KEYC_IS_MOUSE(key) && server_client_assume_paste(s)) goto forward_key;
+-  if (server_client_is_default_key_table(c, c->keytable) && wp != NULL &&
+-      (wme = TAILQ_FIRST(&wp->modes)) != NULL && wme->mode->key_table != NULL)
++ if (!KEYC_IS_MOUSE(key) && server_client_assume_paste(s))
++  goto forward_key;
++ if (server_client_is_default_key_table(c, c->keytable) &&
++     wp != NULL &&
++     (wme = TAILQ_FIRST(&wp->modes)) != NULL &&
++     wme->mode->key_table != NULL)
+@@ -761 +996,2 @@ try_again:
+-  if (c->flags & CLIENT_REPEAT) log_debug("currently repeating");
++ if (c->flags & CLIENT_REPEAT)
++  log_debug("currently repeating");
+@@ -764,2 +1000,4 @@ try_again:
+-    if ((c->flags & CLIENT_REPEAT) && (~bd->flags & KEY_BINDING_REPEAT)) {
+-      log_debug("found in key table %s (not repeating)", table->name);
++  if ((c->flags & CLIENT_REPEAT) &&
++      (~bd->flags & KEY_BINDING_REPEAT)) {
++   log_debug("found in key table %s (not repeating)",
++       table->name);
+@@ -800 +1038,2 @@ try_again:
+-    if (c->flags & CLIENT_REPEAT) first = table;
++  if (c->flags & CLIENT_REPEAT)
++   first = table;
+@@ -811,2 +1050,4 @@ forward_key:
+-  if (c->flags & CLIENT_READONLY) goto out;
+-  if (wp != NULL) window_pane_key(wp, c, s, wl, key, m);
++ if (c->flags & CLIENT_READONLY)
++  goto out;
++ if (wp != NULL)
++  window_pane_key(wp, c, s, wl, key, m);
+@@ -814 +1055,2 @@ out:
+-  if (s != NULL && key != KEYC_FOCUS_OUT) server_client_update_latest(c);
++ if (s != NULL && key != KEYC_FOCUS_OUT)
++  server_client_update_latest(c);
+@@ -818 +1060,3 @@ out:
+-int server_client_handle_key(struct client *c, struct key_event *event) {
++int
++server_client_handle_key(struct client *c, struct key_event *event)
++{
+@@ -821 +1065,2 @@ int server_client_handle_key(struct client *c, struct key_event *event) {
+-  if (s == NULL || (c->flags & CLIENT_UNATTACHEDFLAGS)) return (0);
++ if (s == NULL || (c->flags & CLIENT_UNATTACHEDFLAGS))
++  return (0);
+@@ -835 +1080,2 @@ int server_client_handle_key(struct client *c, struct key_event *event) {
+-      if (status_prompt_key(c, event->key) == 0) return (0);
++   if (status_prompt_key(c, event->key) == 0)
++    return (0);
+@@ -842 +1088,3 @@ int server_client_handle_key(struct client *c, struct key_event *event) {
+-void server_client_loop(void) {
++void
++server_client_loop(void)
++{
+@@ -860 +1108,2 @@ void server_client_loop(void) {
+-        if (focus) server_client_check_pane_focus(wp);
++    if (focus)
++     server_client_check_pane_focus(wp);
+@@ -869 +1118,3 @@ void server_client_loop(void) {
+-static void server_client_check_window_resize(struct window *w) {
++static void
++server_client_check_window_resize(struct window *w)
++{
+@@ -871 +1122,2 @@ static void server_client_check_window_resize(struct window *w) {
+-  if (~w->flags & WINDOW_RESIZE) return;
++ if (~w->flags & WINDOW_RESIZE)
++  return;
+@@ -873 +1125,2 @@ static void server_client_check_window_resize(struct window *w) {
+-    if (wl->session->attached != 0 && wl->session->curw == wl) break;
++  if (wl->session->attached != 0 && wl->session->curw == wl)
++   break;
+@@ -875 +1128,2 @@ static void server_client_check_window_resize(struct window *w) {
+-  if (wl == NULL) return;
++ if (wl == NULL)
++  return;
+@@ -879 +1133,3 @@ static void server_client_check_window_resize(struct window *w) {
+-static int server_client_resize_force(struct window_pane *wp) {
++static int
++server_client_resize_force(struct window_pane *wp)
++{
+@@ -885 +1141,4 @@ static int server_client_resize_force(struct window_pane *wp) {
+-  if (wp->sx != wp->osx || wp->sy != wp->osy || wp->sx <= 1 || wp->sy <= 1)
++ if (wp->sx != wp->osx ||
++     wp->sy != wp->osy ||
++     wp->sx <= 1 ||
++     wp->sy <= 1)
+@@ -893 +1152,3 @@ static int server_client_resize_force(struct window_pane *wp) {
+-static void server_client_resize_pane(struct window_pane *wp) {
++static void
++server_client_resize_pane(struct window_pane *wp)
++{
+@@ -900 +1161,3 @@ static void server_client_resize_pane(struct window_pane *wp) {
+-static void server_client_start_resize_timer(struct window_pane *wp) {
++static void
++server_client_start_resize_timer(struct window_pane *wp)
++{
+@@ -905,2 +1168,3 @@ static void server_client_start_resize_timer(struct window_pane *wp) {
+-static void server_client_resize_event(__unused int fd, __unused short events,
+-                                       void *data) {
++static void
++server_client_resize_event(__unused int fd, __unused short events, void *data)
++{
+@@ -909 +1173,2 @@ static void server_client_resize_event(__unused int fd, __unused short events,
+-  if (~wp->flags & PANE_RESIZE) return;
++ if (~wp->flags & PANE_RESIZE)
++  return;
+@@ -921,2 +1186,5 @@ static void server_client_resize_event(__unused int fd, __unused short events,
+-static void server_client_check_pane_resize(struct window_pane *wp) {
+-  if (~wp->flags & PANE_RESIZE) return;
++static void
++server_client_check_pane_resize(struct window_pane *wp)
++{
++ if (~wp->flags & PANE_RESIZE)
++  return;
+@@ -932 +1200,3 @@ static void server_client_check_pane_resize(struct window_pane *wp) {
+-static void server_client_check_pane_buffer(struct window_pane *wp) {
++static void
++server_client_check_pane_buffer(struct window_pane *wp)
++{
+@@ -943 +1213,2 @@ static void server_client_check_pane_buffer(struct window_pane *wp) {
+-    if (c->session == NULL) continue;
++  if (c->session == NULL)
++   continue;
+@@ -954,6 +1225,7 @@ static void server_client_check_pane_buffer(struct window_pane *wp) {
+-    if (!flag) off = 0;
+-    log_debug(
+-        "%s: %s has %zu bytes used, %zu bytes acknowledged "
+-        "for %%%u",
+-        __func__, c->name, wpo->used, wpo->acknowledged, wp->id);
+-    if (wpo->acknowledged < minimum) minimum = wpo->acknowledged;
++  if (!flag)
++   off = 0;
++  log_debug("%s: %s has %zu bytes used, %zu bytes acknowledged "
++      "for %%%u", __func__, c->name, wpo->used, wpo->acknowledged,
++      wp->id);
++  if (wpo->acknowledged < minimum)
++   minimum = wpo->acknowledged;
+@@ -961 +1233,2 @@ static void server_client_check_pane_buffer(struct window_pane *wp) {
+-  if (attached_clients == 0) off = 0;
++ if (attached_clients == 0)
++  off = 0;
+@@ -963,3 +1236,4 @@ static void server_client_check_pane_buffer(struct window_pane *wp) {
+-  if (minimum == 0) goto out;
+-  log_debug("%s: %%%u has %zu minimum (of %zu) bytes acknowledged", __func__,
+-            wp->id, minimum, EVBUFFER_LENGTH(evb));
++ if (minimum == 0)
++  goto out;
++ log_debug("%s: %%%u has %zu minimum (of %zu) bytes acknowledged",
++     __func__, wp->id, minimum, EVBUFFER_LENGTH(evb));
+@@ -976 +1250,2 @@ static void server_client_check_pane_buffer(struct window_pane *wp) {
+-      if (c->session == NULL || (~c->flags & CLIENT_CONTROL)) continue;
++   if (c->session == NULL || (~c->flags & CLIENT_CONTROL))
++    continue;
+@@ -992 +1267,3 @@ out:
+-static void server_client_check_pane_focus(struct window_pane *wp) {
++static void
++server_client_check_pane_focus(struct window_pane *wp)
++{
+@@ -997,2 +1274,4 @@ static void server_client_check_pane_focus(struct window_pane *wp) {
+-  if (wp->window->active != wp) goto not_focused;
+-  if (wp->screen != &wp->base) goto not_focused;
++ if (wp->window->active != wp)
++  goto not_focused;
++ if (wp->screen != &wp->base)
++  goto not_focused;
+@@ -1000,3 +1279,6 @@ static void server_client_check_pane_focus(struct window_pane *wp) {
+-    if (c->session == NULL || !(c->flags & CLIENT_FOCUSED)) continue;
+-    if (c->session->attached == 0) continue;
+-    if (c->session->curw->window == wp->window) goto focused;
++  if (c->session == NULL || !(c->flags & CLIENT_FOCUSED))
++   continue;
++  if (c->session->attached == 0)
++   continue;
++  if (c->session->curw->window == wp->window)
++   goto focused;
+@@ -1006 +1288,2 @@ not_focused:
+-    if (wp->base.mode & MODE_FOCUSON) bufferevent_write(wp->event, "\033[O", 3);
++  if (wp->base.mode & MODE_FOCUSON)
++   bufferevent_write(wp->event, "\033[O", 3);
+@@ -1013 +1296,2 @@ focused:
+-    if (wp->base.mode & MODE_FOCUSON) bufferevent_write(wp->event, "\033[I", 3);
++  if (wp->base.mode & MODE_FOCUSON)
++   bufferevent_write(wp->event, "\033[I", 3);
+@@ -1019 +1303,3 @@ focused:
+-static void server_client_reset_state(struct client *c) {
++static void
++server_client_reset_state(struct client *c)
++{
+@@ -1027 +1313,2 @@ static void server_client_reset_state(struct client *c) {
+-  if (c->flags & (CLIENT_CONTROL | CLIENT_SUSPENDED)) return;
++ if (c->flags & (CLIENT_CONTROL|CLIENT_SUSPENDED))
++  return;
+@@ -1031 +1318,2 @@ static void server_client_reset_state(struct client *c) {
+-    if (c->overlay_mode != NULL) s = c->overlay_mode(c, &cx, &cy);
++  if (c->overlay_mode != NULL)
++   s = c->overlay_mode(c, &cx, &cy);
+@@ -1034 +1322,2 @@ static void server_client_reset_state(struct client *c) {
+-  if (s != NULL) mode = s->mode;
++ if (s != NULL)
++  mode = s->mode;
+@@ -1048 +1337,2 @@ static void server_client_reset_state(struct client *c) {
+-      if (status_at_line(c) == 0) cy += status_line_size(c);
++   if (status_at_line(c) == 0)
++    cy += status_line_size(c);
+@@ -1050 +1340,2 @@ static void server_client_reset_state(struct client *c) {
+-    if (!cursor) mode &= ~MODE_CURSOR;
++  if (!cursor)
++   mode &= ~MODE_CURSOR;
+@@ -1058 +1349,2 @@ static void server_client_reset_state(struct client *c) {
+-        if (loop->screen->mode & MODE_MOUSE_ALL) mode |= MODE_MOUSE_ALL;
++    if (loop->screen->mode & MODE_MOUSE_ALL)
++     mode |= MODE_MOUSE_ALL;
+@@ -1061 +1353,2 @@ static void server_client_reset_state(struct client *c) {
+-    if (~mode & MODE_MOUSE_ALL) mode |= MODE_MOUSE_BUTTON;
++  if (~mode & MODE_MOUSE_ALL)
++   mode |= MODE_MOUSE_BUTTON;
+@@ -1070,2 +1363,3 @@ static void server_client_reset_state(struct client *c) {
+-static void server_client_repeat_timer(__unused int fd, __unused short events,
+-                                       void *data) {
++static void
++server_client_repeat_timer(__unused int fd, __unused short events, void *data)
++{
+@@ -1079,2 +1373,3 @@ static void server_client_repeat_timer(__unused int fd, __unused short events,
+-static void server_client_click_timer(__unused int fd, __unused short events,
+-                                      void *data) {
++static void
++server_client_click_timer(__unused int fd, __unused short events, void *data)
++{
+@@ -1088 +1383,2 @@ static void server_client_click_timer(__unused int fd, __unused short events,
+-    if (!server_client_handle_key(c, event)) free(event);
++  if (!server_client_handle_key(c, event))
++   free(event);
+@@ -1092 +1388,3 @@ static void server_client_click_timer(__unused int fd, __unused short events,
+-static void server_client_check_exit(struct client *c) {
++static void
++server_client_check_exit(struct client *c)
++{
+@@ -1094,2 +1392,4 @@ static void server_client_check_exit(struct client *c) {
+-  if (~c->flags & CLIENT_EXIT) return;
+-  if (c->flags & CLIENT_EXITED) return;
++ if (~c->flags & CLIENT_EXIT)
++  return;
++ if (c->flags & CLIENT_EXITED)
++  return;
+@@ -1097 +1397,2 @@ static void server_client_check_exit(struct client *c) {
+-    if (EVBUFFER_LENGTH(cf->buffer) != 0) return;
++  if (EVBUFFER_LENGTH(cf->buffer) != 0)
++   return;
+@@ -1099 +1400,2 @@ static void server_client_check_exit(struct client *c) {
+-  if (c->flags & CLIENT_ATTACHED) notify_client("client-detached", c);
++ if (c->flags & CLIENT_ATTACHED)
++  notify_client("client-detached", c);
+@@ -1103,2 +1405,4 @@ static void server_client_check_exit(struct client *c) {
+-static void server_client_redraw_timer(__unused int fd, __unused short events,
+-                                       __unused void *data) {
++static void
++server_client_redraw_timer(__unused int fd, __unused short events,
++    __unused void *data)
++{
+@@ -1107 +1411,3 @@ static void server_client_redraw_timer(__unused int fd, __unused short events,
+-static void server_client_check_redraw(struct client *c) {
++static void
++server_client_check_redraw(struct client *c)
++{
+@@ -1118 +1424,2 @@ static void server_client_check_redraw(struct client *c) {
+-  if (c->flags & (CLIENT_CONTROL | CLIENT_SUSPENDED)) return;
++ if (c->flags & (CLIENT_CONTROL|CLIENT_SUSPENDED))
++  return;
+@@ -1137 +1444,2 @@ static void server_client_check_redraw(struct client *c) {
+-    if (needed) new_flags |= CLIENT_REDRAWPANES;
++  if (needed)
++   new_flags |= CLIENT_REDRAWPANES;
+@@ -1150 +1458,2 @@ static void server_client_check_redraw(struct client *c) {
+-          log_debug("%s: pane %%%u needs redraw", c->name, wp->id);
++     log_debug("%s: pane %%%u needs redraw",
++         c->name, wp->id);
+@@ -1159 +1468,2 @@ static void server_client_check_redraw(struct client *c) {
+-      if (c->redraw_panes != 0) c->flags |= CLIENT_REDRAWPANES;
++   if (c->redraw_panes != 0)
++    c->flags |= CLIENT_REDRAWPANES;
+@@ -1175 +1485,2 @@ static void server_client_check_redraw(struct client *c) {
+-      if (!redraw) continue;
++   if (!redraw)
++    continue;
+@@ -1196 +1507,3 @@ static void server_client_check_redraw(struct client *c) {
+-static void server_client_set_title(struct client *c) {
++static void
++server_client_set_title(struct client *c)
++{
+@@ -1213 +1526,3 @@ static void server_client_set_title(struct client *c) {
+-static void server_client_dispatch(struct imsg *imsg, void *arg) {
++static void
++server_client_dispatch(struct imsg *imsg, void *arg)
++{
+@@ -1217 +1532,2 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-  if (c->flags & CLIENT_DEAD) return;
++ if (c->flags & CLIENT_DEAD)
++  return;
+@@ -1240,2 +1556,4 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (datalen != 0) fatalx("bad MSG_RESIZE size");
+-      if (c->flags & CLIENT_CONTROL) break;
++  if (datalen != 0)
++   fatalx("bad MSG_RESIZE size");
++  if (c->flags & CLIENT_CONTROL)
++   break;
+@@ -1247 +1565,2 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (c->session != NULL) notify_client("client-resized", c);
++  if (c->session != NULL)
++   notify_client("client-resized", c);
+@@ -1250 +1569,2 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (datalen != 0) fatalx("bad MSG_EXITING size");
++  if (datalen != 0)
++   fatalx("bad MSG_EXITING size");
+@@ -1257,2 +1577,4 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (datalen != 0) fatalx("bad MSG_WAKEUP size");
+-      if (!(c->flags & CLIENT_SUSPENDED)) break;
++  if (datalen != 0)
++   fatalx("bad MSG_WAKEUP size");
++  if (!(c->flags & CLIENT_SUSPENDED))
++   break;
+@@ -1268 +1590,2 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (s != NULL) session_update_activity(s, &c->activity_time);
++  if (s != NULL)
++   session_update_activity(s, &c->activity_time);
+@@ -1271 +1594,2 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-      if (datalen != 0) fatalx("bad MSG_SHELL size");
++  if (datalen != 0)
++   fatalx("bad MSG_SHELL size");
+@@ -1285,2 +1609,3 @@ static void server_client_dispatch(struct imsg *imsg, void *arg) {
+-static enum cmd_retval server_client_command_done(struct cmdq_item *item,
+-                                                  __unused void *data) {
++static enum cmd_retval
++server_client_command_done(struct cmdq_item *item, __unused void *data)
++{
+@@ -1294,2 +1619,3 @@ static enum cmd_retval server_client_command_done(struct cmdq_item *item,
+-static void server_client_dispatch_command(struct client *c,
+-                                           struct imsg *imsg) {
++static void
++server_client_dispatch_command(struct client *c, struct imsg *imsg)
++{
+@@ -1302 +1628,2 @@ static void server_client_dispatch_command(struct client *c,
+-  if (c->flags & CLIENT_EXIT) return;
++ if (c->flags & CLIENT_EXIT)
++  return;
+@@ -1308 +1635,2 @@ static void server_client_dispatch_command(struct client *c,
+-  if (len > 0 && buf[len - 1] != '\0') fatalx("bad MSG_COMMAND string");
++ if (len > 0 && buf[len - 1] != '\0')
++  fatalx("bad MSG_COMMAND string");
+@@ -1341,2 +1669,3 @@ error:
+-static void server_client_dispatch_identify(struct client *c,
+-                                            struct imsg *imsg) {
++static void
++server_client_dispatch_identify(struct client *c, struct imsg *imsg)
++{
+@@ -1347 +1676,2 @@ static void server_client_dispatch_identify(struct client *c,
+-  if (c->flags & CLIENT_IDENTIFIED) fatalx("out-of-order identify message");
++ if (c->flags & CLIENT_IDENTIFIED)
++  fatalx("out-of-order identify message");
+@@ -1352 +1682,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (datalen != sizeof feat) fatalx("bad MSG_IDENTIFY_FEATURES size");
++  if (datalen != sizeof feat)
++   fatalx("bad MSG_IDENTIFY_FEATURES size");
+@@ -1355 +1686,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      log_debug("client %p IDENTIFY_FEATURES %s", c, tty_get_features(feat));
++  log_debug("client %p IDENTIFY_FEATURES %s", c,
++      tty_get_features(feat));
+@@ -1358 +1690,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (datalen != sizeof flags) fatalx("bad MSG_IDENTIFY_FLAGS size");
++  if (datalen != sizeof flags)
++   fatalx("bad MSG_IDENTIFY_FLAGS size");
+@@ -1390 +1723,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (datalen != 0) fatalx("bad MSG_IDENTIFY_STDIN size");
++  if (datalen != 0)
++   fatalx("bad MSG_IDENTIFY_STDIN size");
+@@ -1395 +1729,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (datalen != 0) fatalx("bad MSG_IDENTIFY_STDOUT size");
++  if (datalen != 0)
++   fatalx("bad MSG_IDENTIFY_STDOUT size");
+@@ -1402 +1737,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (strchr(data, '=') != NULL) environ_put(c->environ, data, 0);
++  if (strchr(data, '=') != NULL)
++   environ_put(c->environ, data, 0);
+@@ -1406 +1742,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (datalen != sizeof c->pid) fatalx("bad MSG_IDENTIFY_CLIENTPID size");
++  if (datalen != sizeof c->pid)
++   fatalx("bad MSG_IDENTIFY_CLIENTPID size");
+@@ -1413 +1750,2 @@ static void server_client_dispatch_identify(struct client *c,
+-  if (imsg->hdr.type != MSG_IDENTIFY_DONE) return;
++ if (imsg->hdr.type != MSG_IDENTIFY_DONE)
++  return;
+@@ -1421 +1758,0 @@ static void server_client_dispatch_identify(struct client *c,
+-<<<<<<< HEAD
+@@ -1425,8 +1761,0 @@ static void server_client_dispatch_identify(struct client *c,
+-  if (c->flags & CLIENT_CONTROL) {
+-    close(c->fd);
+-    c->fd = -1;
+-|||||||
+-  if (c->flags & CLIENT_CONTROL) {
+-    close(c->fd);
+-    c->fd = -1;
+-=======
+@@ -1434 +1762,0 @@ static void server_client_dispatch_identify(struct client *c,
+->>>>>>> 392b381d1cec6d63c4baaa709243f760ff6c3403
+@@ -1447,2 +1775,4 @@ static void server_client_dispatch_identify(struct client *c,
+-    if ((~c->flags & CLIENT_EXIT) && !cfg_finished &&
+-        c == TAILQ_FIRST(&clients) && TAILQ_NEXT(c, entry) == NULL)
++ if ((~c->flags & CLIENT_EXIT) &&
++     !cfg_finished &&
++     c == TAILQ_FIRST(&clients) &&
++     TAILQ_NEXT(c, entry) == NULL)
+@@ -1451 +1781,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  static void server_client_dispatch_shell(struct client * c) {
++static void
++server_client_dispatch_shell(struct client *c)
++{
+@@ -1454 +1786,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (!checkshell(shell)) shell = _PATH_BSHELL;
++ if (!checkshell(shell))
++  shell = _PATH_BSHELL;
+@@ -1458,2 +1791,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  static void server_client_dispatch_write_ready(struct client * c,
+-                                                 struct imsg * imsg) {
++static void
++server_client_dispatch_write_ready(struct client *c, struct imsg *imsg)
++{
+@@ -1463 +1797,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (msglen != sizeof *msg) fatalx("bad MSG_WRITE_READY size");
++ if (msglen != sizeof *msg)
++  fatalx("bad MSG_WRITE_READY size");
+@@ -1465 +1800,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL) return;
++ if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL)
++  return;
+@@ -1472,2 +1808,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  static void server_client_dispatch_read_data(struct client * c,
+-                                               struct imsg * imsg) {
++static void
++server_client_dispatch_read_data(struct client *c, struct imsg *imsg)
++{
+@@ -1479 +1816,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (msglen < sizeof *msg) fatalx("bad MSG_READ_DATA size");
++ if (msglen < sizeof *msg)
++  fatalx("bad MSG_READ_DATA size");
+@@ -1481 +1819,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL) return;
++ if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL)
++  return;
+@@ -1491,2 +1830,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  static void server_client_dispatch_read_done(struct client * c,
+-                                               struct imsg * imsg) {
++static void
++server_client_dispatch_read_done(struct client *c, struct imsg *imsg)
++{
+@@ -1496 +1836,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (msglen != sizeof *msg) fatalx("bad MSG_READ_DONE size");
++ if (msglen != sizeof *msg)
++  fatalx("bad MSG_READ_DONE size");
+@@ -1498 +1839,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL) return;
++ if ((cf = RB_FIND(client_files, &c->files, &find)) == NULL)
++  return;
+@@ -1503 +1845,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  const char *server_client_get_cwd(struct client * c, struct session * s) {
++const char *
++server_client_get_cwd(struct client *c, struct session *s)
++{
+@@ -1505,3 +1849,6 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (!cfg_finished && cfg_client != NULL) return (cfg_client->cwd);
+-    if (c != NULL && c->session == NULL && c->cwd != NULL) return (c->cwd);
+-    if (s != NULL && s->cwd != NULL) return (s->cwd);
++ if (!cfg_finished && cfg_client != NULL)
++  return (cfg_client->cwd);
++ if (c != NULL && c->session == NULL && c->cwd != NULL)
++  return (c->cwd);
++ if (s != NULL && s->cwd != NULL)
++  return (s->cwd);
+@@ -1510 +1857,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if ((home = find_home()) != NULL) return (home);
++ if ((home = find_home()) != NULL)
++  return (home);
+@@ -1513 +1861,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  void server_client_set_flags(struct client * c, const char *flags) {
++void
++server_client_set_flags(struct client *c, const char *flags)
++{
+@@ -1520 +1870,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (not ) next++;
++  if (not)
++   next++;
+@@ -1523 +1874,2 @@ static void server_client_dispatch_identify(struct client *c,
+-        if (strcmp(next, "no-output") == 0) flag = CLIENT_CONTROL_NOOUTPUT;
++   if (strcmp(next, "no-output") == 0)
++    flag = CLIENT_CONTROL_NOOUTPUT;
+@@ -1531 +1883,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (flag == 0) continue;
++  if (flag == 0)
++   continue;
+@@ -1537 +1890,2 @@ static void server_client_dispatch_identify(struct client *c,
+-      if (flag == CLIENT_CONTROL_NOOUTPUT) control_free_offsets(c);
++  if (flag == CLIENT_CONTROL_NOOUTPUT)
++   control_free_offsets(c);
+@@ -1541 +1895,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  const char *server_client_get_flags(struct client * c) {
++const char *
++server_client_get_flags(struct client *c)
++{
+@@ -1544,9 +1900,18 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (c->flags & CLIENT_ATTACHED) strlcat(s, "attached,", sizeof s);
+-    if (c->flags & CLIENT_CONTROL) strlcat(s, "control-mode,", sizeof s);
+-    if (c->flags & CLIENT_IGNORESIZE) strlcat(s, "ignore-size,", sizeof s);
+-    if (c->flags & CLIENT_CONTROL_NOOUTPUT) strlcat(s, "no-output,", sizeof s);
+-    if (c->flags & CLIENT_READONLY) strlcat(s, "read-only,", sizeof s);
+-    if (c->flags & CLIENT_ACTIVEPANE) strlcat(s, "active-pane,", sizeof s);
+-    if (c->flags & CLIENT_SUSPENDED) strlcat(s, "suspended,", sizeof s);
+-    if (c->flags & CLIENT_UTF8) strlcat(s, "UTF-8,", sizeof s);
+-    if (*s != '\0') s[strlen(s) - 1] = '\0';
++ if (c->flags & CLIENT_ATTACHED)
++  strlcat(s, "attached,", sizeof s);
++ if (c->flags & CLIENT_CONTROL)
++  strlcat(s, "control-mode,", sizeof s);
++ if (c->flags & CLIENT_IGNORESIZE)
++  strlcat(s, "ignore-size,", sizeof s);
++ if (c->flags & CLIENT_CONTROL_NOOUTPUT)
++  strlcat(s, "no-output,", sizeof s);
++ if (c->flags & CLIENT_READONLY)
++  strlcat(s, "read-only,", sizeof s);
++ if (c->flags & CLIENT_ACTIVEPANE)
++  strlcat(s, "active-pane,", sizeof s);
++ if (c->flags & CLIENT_SUSPENDED)
++  strlcat(s, "suspended,", sizeof s);
++ if (c->flags & CLIENT_UTF8)
++  strlcat(s, "UTF-8,", sizeof s);
++ if (*s != '\0')
++  s[strlen(s) - 1] = '\0';
+@@ -1555,2 +1920,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  static struct client_window *server_client_get_client_window(
+-      struct client * c, u_int id) {
++static struct client_window *
++server_client_get_client_window(struct client *c, u_int id)
++{
+@@ -1560 +1926,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  struct window_pane *server_client_get_pane(struct client * c) {
++struct window_pane *
++server_client_get_pane(struct client *c)
++{
+@@ -1563,2 +1931,4 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (s == NULL) return (NULL);
+-    if (~c->flags & CLIENT_ACTIVEPANE) return (s->curw->window->active);
++ if (s == NULL)
++  return (NULL);
++ if (~c->flags & CLIENT_ACTIVEPANE)
++  return (s->curw->window->active);
+@@ -1566 +1936,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (cw == NULL) return (s->curw->window->active);
++ if (cw == NULL)
++  return (s->curw->window->active);
+@@ -1569 +1940,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  void server_client_set_pane(struct client * c, struct window_pane * wp) {
++void
++server_client_set_pane(struct client *c, struct window_pane *wp)
++{
+@@ -1572 +1945,2 @@ static void server_client_dispatch_identify(struct client *c,
+-    if (s == NULL) return;
++ if (s == NULL)
++  return;
+@@ -1582 +1956,3 @@ static void server_client_dispatch_identify(struct client *c,
+-  void server_client_remove_pane(struct window_pane * wp) {
++void
++server_client_remove_pane(struct window_pane *wp)
++{

@@ -1,0 +1,82 @@
+--- a/./output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_conflict.cpp
++++ b/./output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_merged.cpp
+@@ -107 +107 @@ void FirstStageMount::InitRequiredDevices() {
+-            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;
++            if (uevent->path == dm_path) return COLDBOOT_STOP;
+@@ -115 +114,0 @@ void FirstStageMount::InitRequiredDevices() {
+-<<<<<<< HEAD
+@@ -119,9 +117,0 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-||||||| 1fa025193
+-void FirstStageMount::InitRequiredDevices(std::set<std::string>* devices_partition_names) {
+-    if (devices_partition_names->empty()) {
+-        return;
+-=======
+-coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-    if (!strncmp(uevent->subsystem, "platform", 8)) {
+-        return COLDBOOT_CREATE;
+->>>>>>> d7846a2c
+@@ -129 +118,0 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-<<<<<<< HEAD
+@@ -133,10 +121,0 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-||||||| 1fa025193
+-        if (strncmp(uevent->subsystem, "block", 5)) {
+-            return COLDBOOT_CONTINUE;
+-        }
+-=======
+-    if (strncmp(uevent->subsystem, "block", 5)) {
+-        return COLDBOOT_CONTINUE;
+-    }
+->>>>>>> d7846a2c
+-<<<<<<< HEAD
+@@ -152,22 +130,0 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-||||||| 1fa025193
+-        if (uevent->partition_name) {
+-            auto iter = devices_partition_names->find(uevent->partition_name);
+-            if (iter != devices_partition_names->end()) {
+-                LOG(VERBOSE) << __FUNCTION__ << "(): found partition: " << *iter;
+-                devices_partition_names->erase(iter);
+-                if (devices_partition_names->empty()) {
+-                    return COLDBOOT_STOP;
+-                } else {
+-                    return COLDBOOT_CREATE;
+-                }
+-=======
+-    if (uevent->partition_name) {
+-        auto iter = required_devices_partition_names_.find(uevent->partition_name);
+-        if (iter != required_devices_partition_names_.end()) {
+-            LOG(VERBOSE) << __FUNCTION__ << "(): found partition: " << *iter;
+-            required_devices_partition_names_.erase(iter);
+-            if (required_devices_partition_names_.empty()) {
+-                return COLDBOOT_STOP;
+-            } else {
+-                return COLDBOOT_CREATE;
+->>>>>>> d7846a2c
+@@ -183 +139,0 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -185,5 +140,0 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-||||||| 1fa025193
+-        if (uevent->device_name && device_name == uevent->device_name) {
+-=======
+-        if (uevent->device_name && uevent->device_name == device_name) {
+->>>>>>> d7846a2c
+@@ -279 +229,0 @@ bool FirstStageMountVBootV2::GetRequiredDevices() {
+-<<<<<<< HEAD
+@@ -295,18 +244,0 @@ coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {
+-||||||| 1fa025193
+-=======
+-coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {
+-    coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent);
+-    if (parent_callback_ret != COLDBOOT_CONTINUE && uevent->partition_name) {
+-        char** links = get_block_device_symlinks(uevent);
+-        if (links && links[0]) {
+-            auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]);
+-            if (!inserted) {
+-                LOG(ERROR) << "Partition '" << uevent->partition_name
+-                           << "' already existed in the by-name symlink map with a value of '"
+-                           << it->second << "', new value '" << links[0] << "' will be ignored.";
+-            }
+-        }
+-    }
+-    return parent_callback_ret;
+-}
+->>>>>>> d7846a2c

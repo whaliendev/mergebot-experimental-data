@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "#include <android-base/stringprintf.h>\n#include <android-base/test_utils.h>",
+        "b_contents": "#include <android-base/test_utils.h>",
+        "base_contents": "",
+        "res_region": "#include <android-base/stringprintf.h>\n#include <android-base/test_utils.h>",
+        "lookback": "#include <fcntl.h>\n#include <sys/stat.h>\n",
+        "lookahead": "#include <gtest/gtest.h>\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 22,
+        "end_line": 28,
+        "merge_gen_region": "#include <android-base/stringprintf.h> #include <android-base/test_utils.h>",
+        "resolved": true
+    },
+    {
+        "a_contents": "TEST(util, write_file_binary) {\n    std::string contents(\"abcd\");\n    contents.push_back('\\0');\n    contents.push_back('\\0');\n    contents.append(\"dcba\");\n    ASSERT_EQ(10u, contents.size());\n\n    TemporaryFile tf;\n    ASSERT_TRUE(tf.fd != -1);\n    EXPECT_TRUE(write_file(tf.path, contents)) << strerror(errno);\n\n    std::string read_back_contents;\n    EXPECT_TRUE(read_file(tf.path, &read_back_contents)) << strerror(errno);\n    EXPECT_EQ(contents, read_back_contents);\n    EXPECT_EQ(10u, read_back_contents.size());\n}\n\nTEST(util, write_file_not_exist) {\n    std::string s(\"hello\");\n    std::string s2(\"hello\");\n    TemporaryDir test_dir;\n    std::string path = android::base::StringPrintf(\"%s/does-not-exist\", test_dir.path);\n    EXPECT_TRUE(write_file(path, s));\n    EXPECT_TRUE(read_file(path, &s2));\n    EXPECT_EQ(s, s2);\n    struct stat sb;\n    int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);\n    EXPECT_NE(-1, fd);\n    EXPECT_EQ(0, fstat(fd, &sb));\n    EXPECT_EQ((const unsigned int)(S_IRUSR | S_IWUSR), sb.st_mode & 0777);\n    EXPECT_EQ(0, unlink(path.c_str()));\n}\n\nTEST(util, write_file_exist) {\n    std::string s2(\"\");\n    TemporaryFile tf;\n    ASSERT_TRUE(tf.fd != -1);\n    EXPECT_TRUE(write_file(tf.path, \"1hello1\")) << strerror(errno);\n    EXPECT_TRUE(read_file(tf.path, &s2));\n    EXPECT_STREQ(\"1hello1\", s2.c_str());\n    EXPECT_TRUE(write_file(tf.path, \"2ll2\"));\n    EXPECT_TRUE(read_file(tf.path, &s2));\n    EXPECT_STREQ(\"2ll2\", s2.c_str());\n}\n",
+        "b_contents": "TEST(util, write_file_binary) {\n    std::string contents(\"abcd\");\n    contents.push_back('\\0');\n    contents.push_back('\\0');\n    contents.append(\"dcba\");\n    ASSERT_EQ(10u, contents.size());\n\n    TemporaryFile tf;\n    ASSERT_TRUE(tf.fd != -1);\n    EXPECT_TRUE(write_file(tf.path, contents)) << strerror(errno);\n\n    std::string read_back_contents;\n    EXPECT_TRUE(read_file(tf.path, &read_back_contents)) << strerror(errno);\n    EXPECT_EQ(contents, read_back_contents);\n    EXPECT_EQ(10u, read_back_contents.size());\n}\n",
+        "base_contents": "",
+        "res_region": "TEST(util, write_file_binary) {\n    std::string contents(\"abcd\");\n    contents.push_back('\\0');\n    contents.push_back('\\0');\n    contents.append(\"dcba\");\n    ASSERT_EQ(10u, contents.size());\n\n    TemporaryFile tf;\n    ASSERT_TRUE(tf.fd != -1);\n    EXPECT_TRUE(write_file(tf.path, contents)) << strerror(errno);\n\n    std::string read_back_contents;\n    EXPECT_TRUE(read_file(tf.path, &read_back_contents)) << strerror(errno);\n    EXPECT_EQ(contents, read_back_contents);\n    EXPECT_EQ(10u, read_back_contents.size());\n}\n\nTEST(util, write_file_not_exist) {\n    std::string s(\"hello\");\n    std::string s2(\"hello\");\n    TemporaryDir test_dir;\n    std::string path = android::base::StringPrintf(\"%s/does-not-exist\", test_dir.path);\n    EXPECT_TRUE(write_file(path, s));\n    EXPECT_TRUE(read_file(path, &s2));\n    EXPECT_EQ(s, s2);\n    struct stat sb;\n    int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);\n    EXPECT_NE(-1, fd);\n    EXPECT_EQ(0, fstat(fd, &sb));\n    EXPECT_EQ((const unsigned int)(S_IRUSR | S_IWUSR), sb.st_mode & 0777);\n    EXPECT_EQ(0, unlink(path.c_str()));\n}\n\nTEST(util, write_file_exist) {\n    std::string s2(\"\");\n    TemporaryFile tf;\n    ASSERT_TRUE(tf.fd != -1);\n    EXPECT_TRUE(write_file(tf.path, \"1hello1\")) << strerror(errno);\n    EXPECT_TRUE(read_file(tf.path, &s2));\n    EXPECT_STREQ(\"1hello1\", s2.c_str());\n    EXPECT_TRUE(write_file(tf.path, \"2ll2\"));\n    EXPECT_TRUE(read_file(tf.path, &s2));\n    EXPECT_STREQ(\"2ll2\", s2.c_str());\n}\n",
+        "lookback": "  EXPECT_STREQ(\"Linux\", s.c_str());\n}\n",
+        "lookahead": "TEST(util, decode_uid) {\n  EXPECT_EQ(0U, decode_uid(\"root\"));",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 77,
+        "end_line": 142,
+        "merge_gen_region": "TEST(util, write_file_binary) { std::string contents(\"abcd\"); contents.push_back('\\0'); contents.push_back('\\0'); contents.append(\"dcba\"); ASSERT_EQ(10u, contents.size()); TemporaryFile tf; ASSERT_TRUE(tf.fd != -1); EXPECT_TRUE(write_file(tf.path, contents)) << strerror(errno); std::string read_back_contents; EXPECT_TRUE(read_file(tf.path, &read_back_contents)) << strerror(errno); EXPECT_EQ(contents, read_back_contents); EXPECT_EQ(10u, read_back_contents.size()); } TEST(util, write_file_not_exist) { std::string s(\"hello\"); std::string s2(\"hello\"); TemporaryDir test_dir; std::string path = android::base::StringPrintf(\"%s/does-not-exist\", test_dir.path); EXPECT_TRUE(write_file(path, s)); EXPECT_TRUE(read_file(path, &s2)); EXPECT_EQ(s, s2); struct stat sb; int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC); EXPECT_NE(-1, fd); EXPECT_EQ(0, fstat(fd, &sb)); EXPECT_EQ((const unsigned int)(S_IRUSR | S_IWUSR), sb.st_mode & 0777); EXPECT_EQ(0, unlink(path.c_str())); } TEST(util, write_file_exist) { std::string s2(\"\"); TemporaryFile tf; ASSERT_TRUE(tf.fd != -1); EXPECT_TRUE(write_file(tf.path, \"1hello1\")) << strerror(errno); EXPECT_EQ(0, fstat(fd, &sb));",
+        "resolved": false
+    }
+]

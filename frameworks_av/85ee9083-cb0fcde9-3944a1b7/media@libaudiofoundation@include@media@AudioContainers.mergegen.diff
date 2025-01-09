@@ -1,0 +1,71 @@
+diff --git a/./output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@include@media@AudioContainers.no_comments_mergegen.h b/./output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@include@media@AudioContainers.no_comments_merged.h
+index 5d20238..11eb08e 100644
+--- a/./output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@include@media@AudioContainers.no_comments_mergegen.h
++++ b/./output/frameworks_av/85ee9083-cb0fcde9-3944a1b7/media@libaudiofoundation@include@media@AudioContainers.no_comments_merged.h
+@@ -2 +2,3 @@
+-#include <algorithm> #include <functional> #include <iterator>
++#include <algorithm>
++#include <functional>
++#include <iterator>
+@@ -13 +15,14 @@ using FormatVector = std::vector<audio_format_t>;
+-const DeviceTypeSet& getAudioDeviceOutAllSet(); const DeviceTypeSet& getAudioDeviceOutAllA2dpSet(); const DeviceTypeSet& getAudioDeviceOutAllScoSet(); const DeviceTypeSet& getAudioDeviceOutAllUsbSet(); const DeviceTypeSet& getAudioDeviceInAllSet(); const DeviceTypeSet& getAudioDeviceInAllUsbSet(); template<typename T> static std::vector<T> Intersection(const std::set<T>& a, const std::set<T>& b) { std::vector<T> intersection; std::set_intersection(a.begin(), a.end(), b.begin(), b.end(), std::back_inserter(intersection)); return intersection; }
++const DeviceTypeSet& getAudioDeviceOutAllSet();
++const DeviceTypeSet& getAudioDeviceOutAllA2dpSet();
++const DeviceTypeSet& getAudioDeviceOutAllScoSet();
++const DeviceTypeSet& getAudioDeviceOutAllUsbSet();
++const DeviceTypeSet& getAudioDeviceInAllSet();
++const DeviceTypeSet& getAudioDeviceInAllUsbSet();
++template<typename T>
++static std::vector<T> Intersection(const std::set<T>& a, const std::set<T>& b) {
++    std::vector<T> intersection;
++    std::set_intersection(a.begin(), a.end(),
++                          b.begin(), b.end(),
++                          std::back_inserter(intersection));
++    return intersection;
++}
+@@ -32 +47,44 @@ static inline ChannelMaskSet asOutMask(const ChannelMaskSet& channelMasks) {
+-static inline bool isSingleDeviceType(const DeviceTypeSet& deviceTypes, audio_devices_t deviceType) { return deviceTypes.size() == 1 && *(deviceTypes.begin()) == deviceType; } typedef bool (*DeviceTypeUnaryPredicate)(audio_devices_t); static inline bool isSingleDeviceType(const DeviceTypeSet& deviceTypes, DeviceTypeUnaryPredicate p) { return deviceTypes.size() == 1 && p(*(deviceTypes.begin())); } static inline bool areAllOfSameDeviceType(const DeviceTypeSet& deviceTypes, std::function<bool(audio_devices_t)> p) { return std::all_of(deviceTypes.begin(), deviceTypes.end(), p); } static inline void resetDeviceTypes(DeviceTypeSet& deviceTypes, audio_devices_t typeToAdd) { deviceTypes.clear(); deviceTypes.insert(typeToAdd); }
++static inline bool isSingleDeviceType(const DeviceTypeSet& deviceTypes,
++                                      audio_devices_t deviceType) {
++    return deviceTypes.size() == 1 && *(deviceTypes.begin()) == deviceType;
++}
++typedef bool (*DeviceTypeUnaryPredicate)(audio_devices_t);
++static inline bool isSingleDeviceType(const DeviceTypeSet& deviceTypes,
++                                      DeviceTypeUnaryPredicate p) {
++    return deviceTypes.size() == 1 && p(*(deviceTypes.begin()));
++}
++static inline bool areAllOfSameDeviceType(const DeviceTypeSet& deviceTypes,
++                                          std::function<bool(audio_devices_t)> p) {
++    return std::all_of(deviceTypes.begin(), deviceTypes.end(), p);
++}
++static inline void resetDeviceTypes(DeviceTypeSet& deviceTypes, audio_devices_t typeToAdd) {
++    deviceTypes.clear();
++    deviceTypes.insert(typeToAdd);
++}
++static inline audio_devices_t deviceTypesToBitMask(const DeviceTypeSet& deviceTypes) {
++    audio_devices_t types = AUDIO_DEVICE_NONE;
++    for (auto deviceType : deviceTypes) {
++        types |= deviceType;
++    }
++    return types;
++}
++static inline DeviceTypeSet deviceTypesFromBitMask(audio_devices_t types) {
++    DeviceTypeSet deviceTypes;
++    if ((types & AUDIO_DEVICE_BIT_IN) == 0) {
++        for (auto deviceType : AUDIO_DEVICE_OUT_ALL_ARRAY) {
++            if ((types & deviceType) == deviceType) {
++                deviceTypes.insert(deviceType);
++            }
++        }
++    } else {
++        for (auto deviceType : AUDIO_DEVICE_IN_ALL_ARRAY) {
++            if ((types & deviceType) == deviceType) {
++                deviceTypes.insert(deviceType);
++            }
++        }
++    }
++    return deviceTypes;
++}
++bool deviceTypesToString(const DeviceTypeSet& deviceTypes, std::string &str);
++std::string dumpDeviceTypes(const DeviceTypeSet& deviceTypes);
++std::string toString(const DeviceTypeSet& deviceTypes);

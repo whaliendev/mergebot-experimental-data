@@ -1,0 +1,210 @@
+[
+    {
+        "a_contents": "#include <snapuserd/dm_user_block_server.h>",
+        "b_contents": "#include <snapuserd/snapuserd_client.h>",
+        "base_contents": "",
+        "res_region": "#include <snapuserd/dm_user_block_server.h>",
+        "lookback": "#include <libdm/dm.h>\n#include <libdm/loop_control.h>\n#include <libsnapshot/cow_writer.h>",
+        "lookahead": "#include <storage_literals/storage_literals.h>\n#include \"handler_manager.h\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 38,
+        "end_line": 43,
+        "merge_gen_region": "#include <snapuserd/dm_user_block_server.h>",
+        "resolved": true
+    },
+    {
+        "a_contents": "#include \"handler_manager.h\"\n#include \"merge_worker.h\"\n#include \"read_worker.h\"",
+        "b_contents": "",
+        "base_contents": "\n#include \"handler_manager.h\"",
+        "res_region": "#include \"handler_manager.h\"\n#include \"merge_worker.h\"\n#include \"read_worker.h\"",
+        "lookback": "#include <libsnapshot/cow_writer.h>\n#include <snapuserd/dm_user_block_server.h>\n#include <storage_literals/storage_literals.h>",
+        "lookahead": "#include \"snapuserd_core.h\"\n#include \"testing/dm_user_harness.h\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 45,
+        "end_line": 54,
+        "merge_gen_region": "#include \"handler_manager.h\" #include \"merge_worker.h\" #include \"read_worker.h\"",
+        "resolved": true
+    },
+    {
+        "a_contents": "class SnapuserdTestBase : public ::testing::Test {",
+        "b_contents": "static constexpr char kSnapuserdSocketTest[] = \"snapuserdTest\";\n\nclass Tempdevice {\n  public:\n    Tempdevice(const std::string& name, const DmTable& table)\n        : dm_(DeviceMapper::Instance()), name_(name), valid_(false) {\n        valid_ = dm_.CreateDevice(name, table, &path_, std::chrono::seconds(5));\n    }\n    Tempdevice(Tempdevice&& other) noexcept\n        : dm_(other.dm_), name_(other.name_), path_(other.path_), valid_(other.valid_) {\n        other.valid_ = false;\n    }\n    ~Tempdevice() {\n        if (valid_) {\n            dm_.DeleteDevice(name_);\n        }\n    }\n    bool Destroy() {\n        if (!valid_) {\n            return false;\n        }\n        valid_ = false;\n        return dm_.DeleteDevice(name_);\n    }\n    const std::string& path() const { return path_; }\n    const std::string& name() const { return name_; }\n    bool valid() const { return valid_; }\n\n    Tempdevice(const Tempdevice&) = delete;\n    Tempdevice& operator=(const Tempdevice&) = delete;\n\n    Tempdevice& operator=(Tempdevice&& other) noexcept {\n        name_ = other.name_;\n        valid_ = other.valid_;\n        other.valid_ = false;\n        return *this;\n    }\n\n  private:\n    DeviceMapper& dm_;\n    std::string name_;\n    std::string path_;\n    bool valid_;\n};\n\nclass SnapuserdTest : public ::testing::Test {\n  public:\n    bool SetupDefault();\n    bool SetupOrderedOps();\n    bool SetupOrderedOpsInverted();\n    bool SetupCopyOverlap_1();\n    bool SetupCopyOverlap_2();\n    bool Merge();\n    void ValidateMerge();\n    void ReadSnapshotDeviceAndValidate();\n    void Shutdown();\n    void MergeInterrupt();\n    void MergeInterruptFixed(int duration);\n    void MergeInterruptRandomly(int max_duration);\n    void StartMerge();\n    void CheckMergeCompletion();\n\n    static const uint64_t kSectorSize = 512;\n",
+        "base_contents": "class Tempdevice {\n  public:\n    Tempdevice(const std::string& name, const DmTable& table)\n        : dm_(DeviceMapper::Instance()), name_(name), valid_(false) {\n        valid_ = dm_.CreateDevice(name, table, &path_, std::chrono::seconds(5));\n    }\n    Tempdevice(Tempdevice&& other) noexcept\n        : dm_(other.dm_), name_(other.name_), path_(other.path_), valid_(other.valid_) {\n        other.valid_ = false;\n    }\n    ~Tempdevice() {\n        if (valid_) {\n            dm_.DeleteDeviceIfExists(name_);\n        }\n    }\n    bool Destroy() {\n        if (!valid_) {\n            return true;\n        }\n        valid_ = false;\n        return dm_.DeleteDeviceIfExists(name_);\n    }\n    const std::string& path() const { return path_; }\n    const std::string& name() const { return name_; }\n    bool valid() const { return valid_; }\n\n    Tempdevice(const Tempdevice&) = delete;\n    Tempdevice& operator=(const Tempdevice&) = delete;\n\n    Tempdevice& operator=(Tempdevice&& other) noexcept {\n        name_ = other.name_;\n        valid_ = other.valid_;\n        other.valid_ = false;\n        return *this;\n    }\n\n  private:\n    DeviceMapper& dm_;\n    std::string name_;\n    std::string path_;\n    bool valid_;\n};\n\nclass SnapuserdTest : public ::testing::Test {\n  public:\n    bool SetupDefault();\n    bool SetupOrderedOps();\n    bool SetupOrderedOpsInverted();\n    bool SetupCopyOverlap_1();\n    bool SetupCopyOverlap_2();\n    bool Merge();\n    void ValidateMerge();\n    void ReadSnapshotDeviceAndValidate();\n    void Shutdown();\n    void MergeInterrupt();\n    void MergeInterruptFixed(int duration);\n    void MergeInterruptRandomly(int max_duration);\n    void StartMerge();\n    void CheckMergeCompletion();\n\n    static const uint64_t kSectorSize = 512;\n",
+        "res_region": "class SnapuserdTestBase : public ::testing::Test {",
+        "lookback": "using testing::AssertionResult;\nusing testing::AssertionSuccess;\n",
+        "lookahead": "  protected:\n    void SetUp() override;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 76,
+        "end_line": 206,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "    std::unique_ptr<ICowWriter> CreateCowDeviceInternal();",
+        "b_contents": "    void InitDaemon();\n    void CreateDmUserDevice();\n    void StartSnapuserdDaemon();\n\n    unique_ptr<LoopDevice> base_loop_;\n    unique_ptr<Tempdevice> dmuser_dev_;",
+        "base_contents": "    void InitDaemon();\n    void CreateDmUserDevice();\n\n    unique_ptr<LoopDevice> base_loop_;\n    unique_ptr<Tempdevice> dmuser_dev_;",
+        "res_region": "    std::unique_ptr<ICowWriter> CreateCowDeviceInternal();",
+        "lookback": "    void CreateBaseDevice();\n    void CreateCowDevice();\n    void SetDeviceControlName();",
+        "lookahead": "\n    std::unique_ptr<ITestHarness> harness_;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 213,
+        "end_line": 228,
+        "merge_gen_region": "std::unique_ptr<ICowWriter> CreateCowDeviceInternal();",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "    std::unique_ptr<SnapuserdClient> client_;",
+        "base_contents": "",
+        "res_region": "",
+        "lookback": "    unique_fd base_fd_;\n\n    std::unique_ptr<TemporaryFile> cow_system_;",
+        "lookahead": "    std::unique_ptr<uint8_t[]> orig_buffer_;\n};",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 240,
+        "end_line": 245,
+        "merge_gen_region": "std::unique_ptr<SnapuserdClient> client_;",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "    std::unique_ptr<uint8_t[]> merged_buffer_;\n    bool setup_ok_ = false;\n    bool merge_ok_ = false;\n    size_t size_ = 100_MiB;\n    int cow_num_sectors_;\n    int total_base_size_;",
+        "base_contents": "    std::unique_ptr<uint8_t[]> merged_buffer_;\n    SnapshotHandlerManager handlers_;\n    bool setup_ok_ = false;\n    bool merge_ok_ = false;\n    size_t size_ = 100_MiB;\n    int cow_num_sectors_;\n    int total_base_size_;",
+        "res_region": "",
+        "lookback": "    std::unique_ptr<TemporaryFile> cow_system_;\n\n    std::unique_ptr<uint8_t[]> orig_buffer_;",
+        "lookahead": "};\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 247,
+        "end_line": 263,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "void SnapuserdTestBase::TearDown() {}",
+        "b_contents": "void SnapuserdTest::Shutdown() {\n    ASSERT_TRUE(dmuser_dev_->Destroy());\n\n    auto misc_device = \"/dev/dm-user/\" + system_device_ctrl_name_;\n    ASSERT_TRUE(client_->WaitForDeviceDelete(system_device_ctrl_name_));\n    ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted(misc_device, 10s));\n    ASSERT_TRUE(client_->DetachSnapuserd());\n}\n\nbool SnapuserdTest::SetupDefault() {\n    SetupImpl();\n    return setup_ok_;\n}\n\nbool SnapuserdTest::SetupOrderedOps() {\n    CreateBaseDevice();\n    CreateCowDeviceOrderedOps();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupOrderedOpsInverted() {\n    CreateBaseDevice();\n    CreateCowDeviceOrderedOpsInverted();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupCopyOverlap_1() {\n    CreateBaseDevice();\n    CreateCowDeviceWithCopyOverlap_1();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupCopyOverlap_2() {\n    CreateBaseDevice();\n    CreateCowDeviceWithCopyOverlap_2();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupDaemon() {\n    SetDeviceControlName();\n\n    StartSnapuserdDaemon();\n\n    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();\n\n    setup_ok_ = true;\n\n    return setup_ok_;\n}\n\nvoid SnapuserdTest::StartSnapuserdDaemon() {\n    pid_t pid = fork();\n    ASSERT_GE(pid, 0);\n    if (pid == 0) {\n        std::string arg0 = \"/system/bin/snapuserd\";\n        std::string arg1 = \"-socket=\"s + kSnapuserdSocketTest;\n        char* const argv[] = {arg0.data(), arg1.data(), nullptr};\n        ASSERT_GE(execv(arg0.c_str(), argv), 0);\n    } else {\n        client_ = SnapuserdClient::Connect(kSnapuserdSocketTest, 10s);\n        ASSERT_NE(client_, nullptr);\n    }\n}\n\nvoid SnapuserdTest::CreateBaseDevice() {\n    unique_fd rnd_fd;",
+        "base_contents": "void SnapuserdTest::Shutdown() {\n    ASSERT_TRUE(dmuser_dev_->Destroy());\n\n    auto misc_device = \"/dev/dm-user/\" + system_device_ctrl_name_;\n    ASSERT_TRUE(handlers_.DeleteHandler(system_device_ctrl_name_));\n    ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted(misc_device, 10s));\n    handlers_.TerminateMergeThreads();\n}\n\nbool SnapuserdTest::SetupDefault() {\n    SetupImpl();\n    return setup_ok_;\n}\n\nbool SnapuserdTest::SetupOrderedOps() {\n    CreateBaseDevice();\n    CreateCowDeviceOrderedOps();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupOrderedOpsInverted() {\n    CreateBaseDevice();\n    CreateCowDeviceOrderedOpsInverted();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupCopyOverlap_1() {\n    CreateBaseDevice();\n    CreateCowDeviceWithCopyOverlap_1();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupCopyOverlap_2() {\n    CreateBaseDevice();\n    CreateCowDeviceWithCopyOverlap_2();\n    return SetupDaemon();\n}\n\nbool SnapuserdTest::SetupDaemon() {\n    SetDeviceControlName();\n\n    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();\n\n    setup_ok_ = true;\n\n    return setup_ok_;\n}\n\nvoid SnapuserdTest::CreateBaseDevice() {\n    unique_fd rnd_fd;",
+        "res_region": "void SnapuserdTestBase::TearDown() {}",
+        "lookback": "#endif\n}\n",
+        "lookahead": "\nvoid SnapuserdTestBase::CreateBaseDevice() {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 274,
+        "end_line": 398,
+        "merge_gen_region": "void SnapuserdTestBase::TearDownBase::TearDown();",
+        "resolved": false
+    },
+    {
+        "a_contents": "    bool use_iouring = true;\n    if (FLAGS_force_config == \"iouring_disabled\") {\n        use_iouring = false;\n    }\n\n    auto factory = harness_->GetBlockServerFactory();\n    auto opener = factory->CreateOpener(system_device_ctrl_name_);\n    auto handler =\n            handlers_->AddHandler(system_device_ctrl_name_, cow_system_->path, base_dev_->GetPath(),\n                                  base_dev_->GetPath(), opener, 1, use_iouring, false);\n    ASSERT_NE(handler, nullptr);\n    ASSERT_NE(handler->snapuserd(), nullptr);\n#ifdef __ANDROID__\n    ASSERT_NE(handler->snapuserd()->GetNumSectors(), 0);\n#endif",
+        "b_contents": "    uint64_t num_sectors = client_->InitDmUserCow(system_device_ctrl_name_, cow_system_->path,\n                                                  base_loop_->device(), base_loop_->device());\n    ASSERT_NE(num_sectors, 0);",
+        "base_contents": "    bool use_iouring = true;\n    if (FLAGS_force_config == \"iouring_disabled\") {\n        use_iouring = false;\n    }\n\n    auto handler =\n            handlers_.AddHandler(system_device_ctrl_name_, cow_system_->path, base_loop_->device(),\n                                 base_loop_->device(), 1, use_iouring, false);\n    ASSERT_NE(handler, nullptr);\n    ASSERT_NE(handler->snapuserd(), nullptr);\n    ASSERT_NE(handler->snapuserd()->GetNumSectors(), 0);",
+        "res_region": "    bool use_iouring = true;\n    if (FLAGS_force_config == \"iouring_disabled\") {\n        use_iouring = false;\n    }\n\n    auto factory = harness_->GetBlockServerFactory();\n    auto opener = factory->CreateOpener(system_device_ctrl_name_);\n    auto handler =\n            handlers_->AddHandler(system_device_ctrl_name_, cow_system_->path, base_dev_->GetPath(),\n                                  base_dev_->GetPath(), opener, 1, use_iouring, false);\n    ASSERT_NE(handler, nullptr);\n    ASSERT_NE(handler->snapuserd(), nullptr);\n#ifdef __ANDROID__\n    ASSERT_NE(handler->snapuserd()->GetNumSectors(), 0);\n#endif",
+        "lookback": "}\n\nvoid SnapuserdTest::InitCowDevice() {",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 860,
+        "end_line": 892,
+        "merge_gen_region": "uint64_t num_sectors = handlers_->AddHandler(system_device_ctrl_name_, cow_system_->path, base_dev_->GetPath(), base_dev_->GetPath(), opener, 1, use_iouring, false); ASSERT_NE(num_sectors, 0); #endif",
+        "resolved": false
+    },
+    {
+        "a_contents": "    ASSERT_TRUE(handlers_->StartHandler(system_device_ctrl_name_));",
+        "b_contents": "    bool ok = client_->AttachDmUser(system_device_ctrl_name_);\n    ASSERT_TRUE(ok);",
+        "base_contents": "    ASSERT_TRUE(handlers_.StartHandler(system_device_ctrl_name_));",
+        "res_region": "    ASSERT_TRUE(handlers_->StartHandler(system_device_ctrl_name_));",
+        "lookback": "}\n\nvoid SnapuserdTest::InitDaemon() {",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 907,
+        "end_line": 914,
+        "merge_gen_region": "bool ok = client_->AttachDmUser(system_device_ctrl_name_); ASSERT_TRUE(ok);",
+        "resolved": false
+    },
+    {
+        "a_contents": "        double percentage = handlers_->GetMergePercentage();",
+        "b_contents": "        double percentage = client_->GetMergePercent();",
+        "base_contents": "        double percentage = handlers_.GetMergePercentage();",
+        "res_region": "        double percentage = handlers_->GetMergePercentage();",
+        "lookback": "\nvoid SnapuserdTest::CheckMergeCompletion() {\n    while (true) {",
+        "lookahead": "        if ((int)percentage == 100) {\n            break;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 919,
+        "end_line": 925,
+        "merge_gen_region": "double percentage = client_->GetMergePercent();",
+        "resolved": false
+    },
+    {
+        "a_contents": "    ASSERT_NO_FATAL_FAILURE(CreateUserDevice());\n    ASSERT_NO_FATAL_FAILURE(InitCowDevice());\n    ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "b_contents": "    StartSnapuserdDaemon();\n\n    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();\n\n    setup_ok_ = true;",
+        "base_contents": "    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();\n\n    setup_ok_ = true;",
+        "res_region": "    ASSERT_NO_FATAL_FAILURE(CreateUserDevice());\n    ASSERT_NO_FATAL_FAILURE(InitCowDevice());\n    ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "lookback": "\n    SetDeviceControlName();\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 940,
+        "end_line": 958,
+        "merge_gen_region": "ASSERT_NO_FATAL_FAILURE(CreateUserDevice()); ASSERT_NO_FATAL_FAILURE(InitCowDevice()); ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "resolved": true
+    },
+    {
+        "a_contents": "bool SnapuserdTest::StartMerge() {\n    return handlers_->InitiateMerge(system_device_ctrl_name_);",
+        "b_contents": "void SnapuserdTest::StartMerge() {\n    bool ok = client_->InitiateMerge(system_device_ctrl_name_);\n    ASSERT_TRUE(ok);",
+        "base_contents": "void SnapuserdTest::StartMerge() {\n    ASSERT_TRUE(handlers_.InitiateMerge(system_device_ctrl_name_));",
+        "res_region": "bool SnapuserdTest::StartMerge() {\n    return handlers_->InitiateMerge(system_device_ctrl_name_);",
+        "lookback": "    return true;\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 969,
+        "end_line": 979,
+        "merge_gen_region": "bool ok = client_->InitiateMerge(system_device_ctrl_name_);",
+        "resolved": false
+    },
+    {
+        "a_contents": "    ASSERT_NO_FATAL_FAILURE(CreateUserDevice());\n    ASSERT_NO_FATAL_FAILURE(InitCowDevice());\n    ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "b_contents": "    StartSnapuserdDaemon();\n    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();",
+        "base_contents": "    CreateDmUserDevice();\n    InitCowDevice();\n    InitDaemon();",
+        "res_region": "    ASSERT_NO_FATAL_FAILURE(CreateUserDevice());\n    ASSERT_NO_FATAL_FAILURE(InitCowDevice());\n    ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "lookback": "    ASSERT_NO_FATAL_FAILURE(Shutdown());\n    std::this_thread::sleep_for(500ms);\n    SetDeviceControlName();",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 993,
+        "end_line": 1006,
+        "merge_gen_region": "ASSERT_NO_FATAL_FAILURE(CreateUserDevice()); ASSERT_NO_FATAL_FAILURE(InitCowDevice()); ASSERT_NO_FATAL_FAILURE(InitDaemon());",
+        "resolved": true
+    }
+]

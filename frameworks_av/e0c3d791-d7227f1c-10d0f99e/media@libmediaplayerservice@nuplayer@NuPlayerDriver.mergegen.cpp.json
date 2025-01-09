@@ -1,0 +1,114 @@
+[
+    {
+        "a_contents": "    Mutex::Autolock autoLock(mMetricsLock);\n    if (mMetricsItem != NULL) {\n        delete mMetricsItem;\n        mMetricsItem = NULL;",
+        "b_contents": "    Mutex::Autolock autoLock(mMetricsLock);\n    if (mAnalyticsItem != NULL) {\n        delete mAnalyticsItem;\n        mAnalyticsItem = NULL;",
+        "base_contents": "    if (mAnalyticsItem != NULL) {\n        delete mAnalyticsItem;\n        mAnalyticsItem = NULL;",
+        "res_region": "    Mutex::Autolock autoLock(mMetricsLock);\n    if (mMetricsItem != NULL) {\n        delete mMetricsItem;\n        mMetricsItem = NULL;",
+        "lookback": "    updateMetrics(\"destructor\");\n    logMetrics(\"destructor\");\n",
+        "lookahead": "    }\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 118,
+        "end_line": 132,
+        "merge_gen_region": "if (mMetricsItem != NULL) { delete mMetricsItem; mMetricsItem = NULL;",
+        "resolved": false
+    },
+    {
+        "a_contents": "\n    Mutex::Autolock autoLock(mMetricsLock);\n    if (mMetricsItem) {\n        mMetricsItem->setUid(mClientUid);",
+        "b_contents": "\n    Mutex::Autolock autoLock(mMetricsLock);\n    if (mAnalyticsItem) {\n        mAnalyticsItem->setUid(mClientUid);",
+        "base_contents": "    if (mAnalyticsItem) {\n        mAnalyticsItem->setUid(mClientUid);",
+        "res_region": "\n    Mutex::Autolock autoLock(mMetricsLock);\n    if (mMetricsItem) {\n        mMetricsItem->setUid(mClientUid);",
+        "lookback": "status_t NuPlayerDriver::setUID(uid_t uid) {\n    mPlayer->setUID(uid);\n    mClientUid = uid;",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 143,
+        "end_line": 156,
+        "merge_gen_region": "Mutex::Autolock autoLock(mMetricsLock); if (mMetricsItem) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // avoid nested locks by gathering our data outside of the metrics lock.\n\n    // final track statistics for this record",
+        "b_contents": "    // gather the final track statistics for this record",
+        "base_contents": "    // gather the final stats for this record",
+        "res_region": "    // avoid nested locks by gathering our data outside of the metrics lock.\n\n    // final track statistics for this record",
+        "lookback": "    }\n    ALOGV(\"updateMetrics(%p) from %s at state %d\", this, where, mState);\n",
+        "lookahead": "    Vector<sp<AMessage>> trackStats;\n    mPlayer->getStats(&trackStats);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 568,
+        "end_line": 576,
+        "merge_gen_region": "// avoid nested locks by gathering our data outside of the metrics lock. // final track statistics for this record Vector<sp<AMessage>> trackStats;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // getDuration() uses mLock\n    int duration_ms = -1;\n    getDuration(&duration_ms);\n\n    mPlayer->updateInternalTimers();\n\n    int64_t playingTimeUs;\n    int64_t rebufferingTimeUs;\n    int32_t rebufferingEvents;\n    bool rebufferingAtExit;\n    {\n        Mutex::Autolock autoLock(mLock);\n\n        playingTimeUs = mPlayingTimeUs;\n        rebufferingTimeUs = mRebufferingTimeUs;\n        rebufferingEvents = mRebufferingEvents;\n        rebufferingAtExit = mRebufferingAtExit;\n    }\n\n    // finish the rest of the gathering under our mutex to avoid metrics races.\n    // some of the fields we read are updated under mLock.\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    if (mMetricsItem == NULL) {\n        return;\n    }\n\n    mMetricsItem->setInt64(kPlayerDuration, duration_ms);\n    mMetricsItem->setInt64(kPlayerPlaying, (playingTimeUs+500)/1000 );\n\n    if (rebufferingEvents != 0) {\n        mMetricsItem->setInt64(kPlayerRebuffering, (rebufferingTimeUs+500)/1000 );\n        mMetricsItem->setInt32(kPlayerRebufferingCount, rebufferingEvents);\n        mMetricsItem->setInt32(kPlayerRebufferingAtExit, rebufferingAtExit);\n    }\n\n    mMetricsItem->setCString(kPlayerDataSourceType, mPlayer->getDataSourceType());\n",
+        "b_contents": "    // getDuration() uses mLock\n    int duration_ms = -1;\n    getDuration(&duration_ms);\n    mAnalyticsItem->setInt64(kPlayerDuration, duration_ms);\n\n    mPlayer->updateInternalTimers();\n\n    int64_t playingTimeUs;\n    int64_t rebufferingTimeUs;\n    int32_t rebufferingEvents;\n    bool rebufferingAtExit;\n    {\n        Mutex::Autolock autoLock(mLock);\n\n        playingTimeUs = mPlayingTimeUs;\n        rebufferingTimeUs = mRebufferingTimeUs;\n        rebufferingEvents = mRebufferingEvents;\n        rebufferingAtExit = mRebufferingAtExit;\n    }\n\n    // finish the rest of the gathering holding mLock;\n    // some of the fields we read are updated under mLock.\n    // we also avoid any races within mAnalyticsItem machinery\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    mAnalyticsItem->setInt64(kPlayerPlaying, (playingTimeUs+500)/1000 );\n\n    if (mRebufferingEvents != 0) {\n        mAnalyticsItem->setInt64(kPlayerRebuffering, (rebufferingTimeUs+500)/1000 );\n        mAnalyticsItem->setInt32(kPlayerRebufferingCount, rebufferingEvents);\n        mAnalyticsItem->setInt32(kPlayerRebufferingAtExit, rebufferingAtExit);\n\n     }\n\n    mAnalyticsItem->setCString(kPlayerDataSourceType, mPlayer->getDataSourceType());\n",
+        "base_contents": "",
+        "res_region": "    // getDuration() uses mLock\n    int duration_ms = -1;\n    getDuration(&duration_ms);\n\n    mPlayer->updateInternalTimers();\n\n    int64_t playingTimeUs;\n    int64_t rebufferingTimeUs;\n    int32_t rebufferingEvents;\n    bool rebufferingAtExit;\n    {\n        Mutex::Autolock autoLock(mLock);\n\n        playingTimeUs = mPlayingTimeUs;\n        rebufferingTimeUs = mRebufferingTimeUs;\n        rebufferingEvents = mRebufferingEvents;\n        rebufferingAtExit = mRebufferingAtExit;\n    }\n\n    // finish the rest of the gathering under our mutex to avoid metrics races.\n    // some of the fields we read are updated under mLock.\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    if (mMetricsItem == NULL) {\n        return;\n    }\n\n    mMetricsItem->setInt64(kPlayerDuration, duration_ms);\n    mMetricsItem->setInt64(kPlayerPlaying, (playingTimeUs+500)/1000 );\n\n    if (rebufferingEvents != 0) {\n        mMetricsItem->setInt64(kPlayerRebuffering, (rebufferingTimeUs+500)/1000 );\n        mMetricsItem->setInt32(kPlayerRebufferingCount, rebufferingEvents);\n        mMetricsItem->setInt32(kPlayerRebufferingAtExit, rebufferingAtExit);\n    }\n\n    mMetricsItem->setCString(kPlayerDataSourceType, mPlayer->getDataSourceType());\n",
+        "lookback": "    Vector<sp<AMessage>> trackStats;\n    mPlayer->getStats(&trackStats);\n",
+        "lookahead": "    if (trackStats.size() > 0) {\n        for (size_t i = 0; i < trackStats.size(); ++i) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 580,
+        "end_line": 657,
+        "merge_gen_region": "// getDuration() uses mLock int duration_ms = -1; getDuration(&duration_ms); mPlayer->updateInternalTimers(); int64_t playingTimeUs; int64_t rebufferingTimeUs; int32_t rebufferingEvents; bool rebufferingAtExit; { Mutex::Autolock autoLock(mLock); playingTimeUs = mPlayingTimeUs; rebufferingTimeUs = mRebufferingTimeUs; rebufferingEvents = mRebufferingEvents; rebufferingAtExit = mRebufferingAtExit; } // finish the rest of the gathering under our mutex to avoid metrics races. // some of the fields we read are updated under mLock. Mutex::Autolock autoLock(mMetricsLock); if (mMetricsItem == NULL) { return; } mMetricsItem->setInt64(kPlayerDuration, duration_ms); mMetricsItem->setInt64(kPlayerPlaying, (playingTimeUs+500)/1000 ); if (rebufferingEvents != 0) { mMetricsItem->setInt64(kPlayerRebuffering, (rebufferingTimeUs+500)/1000 ); mMetricsItem->setInt32(kPlayerRebufferingCount, rebufferingEvents); mMetricsItem->setInt32(kPlayerRebufferingAtExit, rebufferingAtExit); } mMetricsItem->setCString(kPlayerDataSourceType, mPlayer->getDataSourceType());",
+        "resolved": true
+    },
+    {
+        "a_contents": "    // ensure mMetricsItem stability while we write it out\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    if (mMetricsItem == NULL || mMetricsItem->isEnabled() == false) {",
+        "b_contents": "    // make sure that the stats are stable while we're writing them.\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    if (mAnalyticsItem == NULL || mAnalyticsItem->isEnabled() == false) {",
+        "base_contents": "    if (mAnalyticsItem == NULL || mAnalyticsItem->isEnabled() == false) {",
+        "res_region": "    // ensure mMetricsItem stability while we write it out\n    Mutex::Autolock autoLock(mMetricsLock);\n\n    if (mMetricsItem == NULL || mMetricsItem->isEnabled() == false) {",
+        "lookback": "    }\n    ALOGV(\"logMetrics(%p) from %s at state %d\", this, where, mState);\n",
+        "lookahead": "        return;\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 711,
+        "end_line": 723,
+        "merge_gen_region": "// ensure mMetricsItem stability while we write it out Mutex::Autolock autoLock(mMetricsLock); if (mMetricsItem == NULL || mMetricsItem->isEnabled() == false) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n        // ensure mMetricsItem stability while writing to parcel\n        Mutex::Autolock autoLock(mMetricsLock);\n        if (mMetricsItem != NULL) {\n            mMetricsItem->writeToParcel(reply);\n        }",
+        "b_contents": "\n        // ensure mAnalyticsItem stability while writing to parcel\n        Mutex::Autolock autoLock(mMetricsLock);\n        if (mAnalyticsItem != NULL) {\n            mAnalyticsItem->writeToParcel(reply);\n        }",
+        "base_contents": "        mAnalyticsItem->writeToParcel(reply);",
+        "res_region": "\n        // ensure mMetricsItem stability while writing to parcel\n        Mutex::Autolock autoLock(mMetricsLock);\n        if (mMetricsItem != NULL) {\n            mMetricsItem->writeToParcel(reply);\n        }",
+        "lookback": "        // mtrX -- a play on 'metrics' (not matrix)\n        // gather current info all together, parcel it, and send it back\n        updateMetrics(\"api\");",
+        "lookahead": "        return OK;\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 885,
+        "end_line": 901,
+        "merge_gen_region": "// ensure mMetricsItem stability while writing to parcel Mutex::Autolock autoLock(mMetricsLock); if (mMetricsItem != NULL) { mMetricsItem->writeToParcel(reply); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "            if (msg == MEDIA_ERROR) {\n                Mutex::Autolock autoLock(mMetricsLock);\n                if (mMetricsItem != NULL) {\n                    mMetricsItem->setInt32(kPlayerError, ext1);\n                    if (ext2 != 0) {\n                        mMetricsItem->setInt32(kPlayerErrorCode, ext2);\n                    }\n                    mMetricsItem->setCString(kPlayerErrorState, stateString(mState).c_str());",
+        "b_contents": "            if (msg == MEDIA_ERROR) {\n                Mutex::Autolock autoLock(mMetricsLock);\n                if (mAnalyticsItem != NULL) {\n                    mAnalyticsItem->setInt32(kPlayerError, ext1);\n                    if (ext2 != 0) {\n                        mAnalyticsItem->setInt32(kPlayerErrorCode, ext2);\n                    }\n                    mAnalyticsItem->setCString(kPlayerErrorState, stateString(mState).c_str());",
+        "base_contents": "            if (msg == MEDIA_ERROR && mAnalyticsItem != NULL) {\n                mAnalyticsItem->setInt32(kPlayerError, ext1);\n                if (ext2 != 0) {\n                    mAnalyticsItem->setInt32(kPlayerErrorCode, ext2);",
+        "res_region": "            if (msg == MEDIA_ERROR) {\n                Mutex::Autolock autoLock(mMetricsLock);\n                if (mMetricsItem != NULL) {\n                    mMetricsItem->setInt32(kPlayerError, ext1);\n                    if (ext2 != 0) {\n                        mMetricsItem->setInt32(kPlayerErrorCode, ext2);\n                    }\n                    mMetricsItem->setCString(kPlayerErrorState, stateString(mState).c_str());",
+        "lookback": "            // when we have an error, add it to the analytics for this playback.\n            // ext1 is our primary 'error type' value. Only add ext2 when non-zero.\n            // [test against msg is due to fall through from previous switch value]",
+        "lookahead": "                }\n            }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1125,
+        "end_line": 1148,
+        "merge_gen_region": "// [test against msg is due to fall through from previous switch value] if (msg == MEDIA_ERROR) { Mutex::Autolock autoLock(mMetricsLock); if (mMetricsItem != NULL) { mMetricsItem->setInt32(kPlayerError, ext1); if (ext2 != 0) { mMetricsItem->setInt32(kPlayerErrorCode, ext2); } mMetricsItem->setCString(kPlayerErrorState, stateString(mState).c_str());",
+        "resolved": false
+    }
+]

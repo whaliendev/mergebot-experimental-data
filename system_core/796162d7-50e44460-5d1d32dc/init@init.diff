@@ -1,0 +1,244 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/init@init.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/init@init.no_comments_merged.cpp
+index 9294048..b8df972 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/init@init.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/init@init.no_comments_merged.cpp
+@@ -4 +3,0 @@
+-#include <paths.h>
+@@ -8 +6,0 @@
+-#include <sys/epoll.h>
+@@ -10 +7,0 @@
+-#include <sys/sysmacros.h>
+@@ -25 +21,0 @@
+-#include <private/android_filesystem_config.h>
+@@ -35,2 +30,0 @@
+-#include "init_first_stage.h"
+-#include "log.h"
+@@ -44,2 +37,0 @@
+-#include "ueventd.h"
+-#include "watchdogd.h"
+@@ -89,4 +81,2 @@ Parser CreateParser(ActionManager& action_manager, ServiceList& service_list) {
+-  parser.AddSectionParser(
+-      "service", std::make_unique<ServiceParser>(&service_list, subcontexts));
+-  parser.AddSectionParser(
+-      "on", std::make_unique<ActionParser>(&action_manager, subcontexts));
++    parser.AddSectionParser("service", std::make_unique<ServiceParser>(&service_list, subcontexts));
++    parser.AddSectionParser("on", std::make_unique<ActionParser>(&action_manager, subcontexts));
+@@ -98,2 +88 @@ Parser CreateServiceOnlyParser(ServiceList& service_list) {
+-  parser.AddSectionParser(
+-      "service", std::make_unique<ServiceParser>(&service_list, subcontexts));
++    parser.AddSectionParser("service", std::make_unique<ServiceParser>(&service_list, subcontexts));
+@@ -102,2 +91 @@ Parser CreateServiceOnlyParser(ServiceList& service_list) {
+-static void LoadBootScripts(ActionManager& action_manager,
+-                            ServiceList& service_list) {
++static void LoadBootScripts(ActionManager& action_manager, ServiceList& service_list) {
+@@ -127 +115,2 @@ static void LoadBootScripts(ActionManager& action_manager,
+-bool start_waiting_for_property(const char* name, const char* value) {
++bool start_waiting_for_property(const char *name, const char *value)
++{
+@@ -136,2 +125,2 @@ bool start_waiting_for_property(const char* name, const char* value) {
+-    LOG(INFO) << "start_waiting_for_property(\"" << name << "\", \"" << value
+-              << "\"): already set";
++        LOG(INFO) << "start_waiting_for_property(\""
++                  << name << "\", \"" << value << "\"): already set";
+@@ -151,2 +140 @@ void property_changed(const std::string& name, const std::string& value) {
+-  if (property_triggers_enabled)
+-    ActionManager::GetInstance().QueuePropertyChange(name, value);
++    if (property_triggers_enabled) ActionManager::GetInstance().QueuePropertyChange(name, value);
+@@ -155,2 +143,2 @@ void property_changed(const std::string& name, const std::string& value) {
+-      LOG(INFO) << "Wait for property '" << wait_prop_name << "="
+-                << wait_prop_value << "' took " << *waiting_for_prop;
++            LOG(INFO) << "Wait for property '" << wait_prop_name << "=" << wait_prop_value
++                      << "' took " << *waiting_for_prop;
+@@ -169,2 +157 @@ static std::optional<boot_clock::time_point> HandleProcessActions() {
+-        if (!next_process_action_time ||
+-            timeout_time < *next_process_action_time) {
++                if (!next_process_action_time || timeout_time < *next_process_action_time) {
+@@ -179,2 +166 @@ static std::optional<boot_clock::time_point> HandleProcessActions() {
+-        LOG(ERROR) << "Could not restart process '" << s->name()
+-                   << "': " << result.error();
++                LOG(ERROR) << "Could not restart process '" << s->name() << "': " << result.error();
+@@ -183,2 +169 @@ static std::optional<boot_clock::time_point> HandleProcessActions() {
+-      if (!next_process_action_time ||
+-          restart_time < *next_process_action_time) {
++            if (!next_process_action_time || restart_time < *next_process_action_time) {
+@@ -210,2 +195 @@ struct ControlMessageFunction {
+-static const std::map<std::string, ControlMessageFunction>&
+-get_control_message_map() {
++static const std::map<std::string, ControlMessageFunction>& get_control_message_map() {
+@@ -226,2 +210 @@ get_control_message_map() {
+-void HandleControlMessage(const std::string& msg, const std::string& name,
+-                          pid_t pid) {
++void HandleControlMessage(const std::string& msg, const std::string& name, pid_t pid) {
+@@ -242,2 +225,2 @@ void HandleControlMessage(const std::string& msg, const std::string& name,
+-  LOG(INFO) << "Received control message '" << msg << "' for '" << name
+-            << "' from pid: " << pid << " (" << process_cmdline << ")";
++    LOG(INFO) << "Received control message '" << msg << "' for '" << name << "' from pid: " << pid
++              << " (" << process_cmdline << ")";
+@@ -254,4 +237,2 @@ void HandleControlMessage(const std::string& msg, const std::string& name,
+-      LOG(ERROR) << "Invalid function target from static map key '" << msg
+-                 << "': "
+-                 << static_cast<std::underlying_type<ControlTarget>::type>(
+-                        function.target);
++            LOG(ERROR) << "Invalid function target from static map key '" << msg << "': "
++                       << static_cast<std::underlying_type<ControlTarget>::type>(function.target);
+@@ -265,2 +246 @@ void HandleControlMessage(const std::string& msg, const std::string& name,
+-    LOG(ERROR) << "Could not ctl." << msg << " for '" << name
+-               << "': " << result.error();
++        LOG(ERROR) << "Could not ctl." << msg << " for '" << name << "': " << result.error();
+@@ -269,2 +249 @@ void HandleControlMessage(const std::string& msg, const std::string& name,
+-static Result<Success> wait_for_coldboot_done_action(
+-    const BuiltinArguments& args) {
++static Result<Success> wait_for_coldboot_done_action(const BuiltinArguments& args) {
+@@ -276,2 +255 @@ static Result<Success> wait_for_coldboot_done_action(
+-  property_set("ro.boottime.init.cold_boot_wait",
+-               std::to_string(t.duration().count()));
++    property_set("ro.boottime.init.cold_boot_wait", std::to_string(t.duration().count()));
+@@ -294,2 +272 @@ static Result<Success> SetupCgroupsAction(const BuiltinArguments&) {
+-static void import_kernel_nv(const std::string& key, const std::string& value,
+-                             bool for_emulator) {
++static void import_kernel_nv(const std::string& key, const std::string& value, bool for_emulator) {
+@@ -311,2 +288,2 @@ static void export_oem_lock_status() {
+-  import_kernel_cmdline(false, [](const std::string& key,
+-                                  const std::string& value, bool in_qemu) {
++    import_kernel_cmdline(
++            false, [](const std::string& key, const std::string& value, bool in_qemu) {
+@@ -325,30 +302,6 @@ static void export_kernel_boot_props() {
+-      {
+-          "ro.boot.serialno",
+-          "ro.serialno",
+-          UNSET,
+-      },
+-      {
+-          "ro.boot.mode",
+-          "ro.bootmode",
+-          "unknown",
+-      },
+-      {
+-          "ro.boot.baseband",
+-          "ro.baseband",
+-          "unknown",
+-      },
+-      {
+-          "ro.boot.bootloader",
+-          "ro.bootloader",
+-          "unknown",
+-      },
+-      {
+-          "ro.boot.hardware",
+-          "ro.hardware",
+-          "unknown",
+-      },
+-      {
+-          "ro.boot.revision",
+-          "ro.revision",
+-          "0",
+-      },
++        { "ro.boot.serialno", "ro.serialno", UNSET, },
++        { "ro.boot.mode", "ro.bootmode", "unknown", },
++        { "ro.boot.baseband", "ro.baseband", "unknown", },
++        { "ro.boot.bootloader", "ro.bootloader", "unknown", },
++        { "ro.boot.hardware", "ro.hardware", "unknown", },
++        { "ro.boot.revision", "ro.revision", "0", },
+@@ -358 +311,2 @@ static void export_kernel_boot_props() {
+-    if (value != UNSET) property_set(prop.dst_prop, value);
++        if (value != UNSET)
++            property_set(prop.dst_prop, value);
+@@ -365,2 +319 @@ static void process_kernel_dt() {
+-  std::unique_ptr<DIR, int (*)(DIR*)> dir(opendir(get_android_dt_dir().c_str()),
+-                                          closedir);
++    std::unique_ptr<DIR, int (*)(DIR*)> dir(opendir(get_android_dt_dir().c_str()), closedir);
+@@ -371,2 +324 @@ static void process_kernel_dt() {
+-    if (dp->d_type != DT_REG || !strcmp(dp->d_name, "compatible") ||
+-        !strcmp(dp->d_name, "name")) {
++        if (dp->d_type != DT_REG || !strcmp(dp->d_name, "compatible") || !strcmp(dp->d_name, "name")) {
+@@ -385,2 +337 @@ static void process_kernel_cmdline() {
+-static Result<Success> property_enable_triggers_action(
+-    const BuiltinArguments& args) {
++static Result<Success> property_enable_triggers_action(const BuiltinArguments& args) {
+@@ -390,4 +341,2 @@ static Result<Success> property_enable_triggers_action(
+-static Result<Success> queue_property_triggers_action(
+-    const BuiltinArguments& args) {
+-  ActionManager::GetInstance().QueueBuiltinAction(
+-      property_enable_triggers_action, "enable_property_trigger");
++static Result<Success> queue_property_triggers_action(const BuiltinArguments& args) {
++    ActionManager::GetInstance().QueueBuiltinAction(property_enable_triggers_action, "enable_property_trigger");
+@@ -406,2 +355 @@ static void set_usb_controller() {
+-  std::unique_ptr<DIR, decltype(&closedir)> dir(opendir("/sys/class/udc"),
+-                                                closedir);
++    std::unique_ptr<DIR, decltype(&closedir)>dir(opendir("/sys/class/udc"), closedir);
+@@ -425,2 +373 @@ static void HandleSignalFd() {
+-  ssize_t bytes_read =
+-      TEMP_FAILURE_RETRY(read(signal_fd, &siginfo, sizeof(siginfo)));
++    ssize_t bytes_read = TEMP_FAILURE_RETRY(read(signal_fd, &siginfo, sizeof(siginfo)));
+@@ -439,2 +386 @@ static void HandleSignalFd() {
+-      PLOG(ERROR) << "signal_fd: received unexpected signal "
+-                  << siginfo.ssi_signo;
++            PLOG(ERROR) << "signal_fd: received unexpected signal " << siginfo.ssi_signo;
+@@ -445,3 +391 @@ static void UnblockSignals() {
+-  const struct sigaction act {
+-    .sa_handler = SIG_DFL
+-  };
++    const struct sigaction act { .sa_handler = SIG_DFL };
+@@ -458,3 +402 @@ static void InstallSignalFdHandler(Epoll* epoll) {
+-  const struct sigaction act {
+-    .sa_handler = SIG_DFL, .sa_flags = SA_NOCLDSTOP
+-  };
++    const struct sigaction act { .sa_handler = SIG_DFL, .sa_flags = SA_NOCLDSTOP };
+@@ -479,2 +421 @@ static void InstallSignalFdHandler(Epoll* epoll) {
+-  if (auto result = epoll->RegisterHandler(signal_fd, HandleSignalFd);
+-      !result) {
++    if (auto result = epoll->RegisterHandler(signal_fd, HandleSignalFd); !result) {
+@@ -487,2 +428 @@ void HandleKeychord(const std::vector<int>& keycodes) {
+-    LOG(WARNING) << "Not starting service for keychord "
+-                 << android::base::Join(keycodes, ' ')
++        LOG(WARNING) << "Not starting service for keychord " << android::base::Join(keycodes, ' ')
+@@ -500,3 +440,2 @@ void HandleKeychord(const std::vector<int>& keycodes) {
+-        LOG(ERROR) << "Could not start service '" << svc->name()
+-                   << "' from keychord " << android::base::Join(keycodes, ' ')
+-                   << ": " << result.error();
++                LOG(ERROR) << "Could not start service '" << svc->name() << "' from keychord "
++                           << android::base::Join(keycodes, ' ') << ": " << result.error();
+@@ -507,2 +446 @@ void HandleKeychord(const std::vector<int>& keycodes) {
+-    LOG(ERROR) << "Service for keychord " << android::base::Join(keycodes, ' ')
+-               << " not found";
++        LOG(ERROR) << "Service for keychord " << android::base::Join(keycodes, ' ') << " not found";
+@@ -519,4 +457,3 @@ static void GlobalSeccomp() {
+-  import_kernel_cmdline(false, [](const std::string& key,
+-                                  const std::string& value, bool in_qemu) {
+-    if (key == "androidboot.seccomp" && value == "global" &&
+-        !set_global_seccomp_filter()) {
++    import_kernel_cmdline(false, [](const std::string& key, const std::string& value,
++                                    bool in_qemu) {
++        if (key == "androidboot.seccomp" && value == "global" && !set_global_seccomp_filter()) {
+@@ -532,2 +469 @@ static void UmountDebugRamdisk() {
+-static void RecordStageBoottimes(
+-    const boot_clock::time_point& second_stage_start_time) {
++static void RecordStageBoottimes(const boot_clock::time_point& second_stage_start_time) {
+@@ -538,2 +474 @@ static void RecordStageBoottimes(
+-    android::base::ParseInt(first_stage_start_time_str,
+-                            &first_stage_start_time_ns);
++        android::base::ParseInt(first_stage_start_time_str, &first_stage_start_time_ns);
+@@ -543,2 +478 @@ static void RecordStageBoottimes(
+-  if (auto selinux_start_time_str = getenv(kEnvSelinuxStartedAt);
+-      selinux_start_time_str) {
++    if (auto selinux_start_time_str = getenv(kEnvSelinuxStartedAt); selinux_start_time_str) {
+@@ -550,2 +484 @@ static void RecordStageBoottimes(
+-  property_set(
+-      "ro.boottime.init.first_stage",
++    property_set("ro.boottime.init.first_stage",
+@@ -553,2 +486 @@ static void RecordStageBoottimes(
+-  property_set(
+-      "ro.boottime.init.selinux",
++    property_set("ro.boottime.init.selinux",
+@@ -566,2 +498 @@ int SecondStageMain(int argc, char** argv) {
+-    LOG(ERROR) << "Unable to write -1000 to /proc/1/oom_score_adj: "
+-               << result.error();
++        LOG(ERROR) << "Unable to write -1000 to /proc/1/oom_score_adj: " << result.error();
+@@ -617,2 +548 @@ int SecondStageMain(int argc, char** argv) {
+-  am.QueueBuiltinAction(wait_for_coldboot_done_action,
+-                        "wait_for_coldboot_done");
++    am.QueueBuiltinAction(wait_for_coldboot_done_action, "wait_for_coldboot_done");
+@@ -643,2 +573 @@ int SecondStageMain(int argc, char** argv) {
+-  am.QueueBuiltinAction(queue_property_triggers_action,
+-                        "queue_property_triggers");
++    am.QueueBuiltinAction(queue_property_triggers_action, "queue_property_triggers");

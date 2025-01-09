@@ -1,0 +1,25 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/d730e941-41d44065-8a06b7a8/services@mediametrics@include@mediametricsservice@TimedAction.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/d730e941-41d44065-8a06b7a8/services@mediametrics@include@mediametricsservice@TimedAction.no_comments_merged.h
+@@ -10 +10 @@ class TimedAction {
+-    static constexpr auto kWakeupInterval = std::chrono::minutes(15);
++    static constexpr auto kWakeupInterval = std::chrono::minutes(3);
+@@ -12,3 +12,9 @@ class TimedAction {
+-    TimedAction() : mThread {}
+-    ~TimedAction() { quit(); }
+-    void postIn(const T& time, std::function<void()> f) { postAt(TimerClock::now() + time, f); }
++    TimedAction() : mThread{[this](){threadLoop();}} {}
++    ~TimedAction() {
++        quit();
++    }
++    template <typename T>
++    void postIn(const T& time, std::function<void()> f) {
++        postAt(TimerClock::now() + time, f);
++    }
++    template <typename T>
+@@ -44 +50 @@ class TimedAction {
+-    {
++    void threadLoop() NO_THREAD_SAFETY_ANALYSIS {
+@@ -64,2 +70 @@ class TimedAction {
+-    std::multimap<std::chrono::time_point<TimerClock>, std::function<void()>> mMap
+-            GUARDED_BY(mLock);
++    std::condition_variable mCondition GUARDED_BY(mLock);

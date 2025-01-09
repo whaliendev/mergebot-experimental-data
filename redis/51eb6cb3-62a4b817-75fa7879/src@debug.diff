@@ -1,0 +1,424 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_merged.c
+index 8460302..3b0c595 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_merged.c
+@@ -26 +26,2 @@ void xorDigest(unsigned char *digest, void *ptr, size_t len) {
+-  for (j = 0; j < 20; j++) digest[j] ^= hash[j];
++    for (j = 0; j < 20; j++)
++        digest[j] ^= hash[j];
+@@ -163 +164,2 @@ void computeDatasetDigest(unsigned char *final) {
+-            streamIteratorGetField(&si, &field, &value, &field_len, &value_len);
++                        streamIteratorGetField(&si,&field,&value,
++                                                   &field_len,&value_len);
+@@ -189,6 +190,0 @@ void debugCommand(client *c) {
+-<<<<<<< HEAD
+-  if (c->argc == 1) {
+-    addReplyError(
+-        c, "You must specify a subcommand for DEBUG. Try DEBUG HELP for info.");
+-    return;
+-  }
+@@ -198,11 +194,6 @@ void debugCommand(client *c) {
+-        "crash-and-recovery <milliseconds> -- Hard crash and restart after "
+-        "<milliseconds> delay.",
+-        "digest -- Outputs an hex signature representing the current DB "
+-        "content.",
+-        "htstats <dbid> -- Return hash table statistics of the specified Redis "
+-        "database.",
+-        "loadaof -- Flush the AOF buffers on disk and reload the AOF in "
+-        "memory.",
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.",
++            "change-repl-id -- Change the replication IDs of the instance. Dangerous, should be used only for testing the replication subsystem.",
++            "crash-and-recovery <milliseconds> -- Hard crash and restart after <milliseconds> delay.",
++            "digest -- Outputs an hex signature representing the current DB content.",
++            "htstats <dbid> -- Return hash table statistics of the specified Redis database.",
++            "loadaof -- Flush the AOF buffers on disk and reload the AOF in memory.",
++            "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua replication defaulting to replicating single commands, without the script having to enable effects replication.",
+@@ -211,3 +202 @@ void debugCommand(client *c) {
+-        "populate <count> [prefix] [size] -- Create <count> string keys named "
+-        "key:<num>. If a prefix is specified is used instead of the 'key' "
+-        "prefix.",
++            "populate <count> [prefix] [size] -- Create <count> string keys named key:<num>. If a prefix is specified is used instead of the 'key' prefix.",
+@@ -216,2 +205 @@ void debugCommand(client *c) {
+-        "sdslen <key> -- Show low level SDS string info representing key and "
+-        "value.",
++            "sdslen <key> -- Show low level SDS string info representing key and value.",
+@@ -219,3 +207 @@ void debugCommand(client *c) {
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.",
++            "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in background when they are not accessed (otherwise the Redis behavior). Setting it to 1 reenables back the default.",
+@@ -225,3 +211,3 @@ void debugCommand(client *c) {
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.",
+-        NULL};
++            "error <string> -- Return a Redis protocol error with <string> as message. Useful for clients unit tests to simulate Redis errors.",
++            NULL
++        };
+@@ -229,163 +214,0 @@ void debugCommand(client *c) {
+-|||||||
+-  if (c->argc == 1) {
+-    addReplyError(
+-        c, "You must specify a subcommand for DEBUG. Try DEBUG HELP for info.");
+-    return;
+-  }
+-  if (!strcasecmp(c->argv[1]->ptr, "help")) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "DEBUG <subcommand> arg arg ... arg. Subcommands:");
+-    blen++;
+-    addReplyStatus(c, "segfault -- Crash the server with sigsegv.");
+-    blen++;
+-    addReplyStatus(c, "panic -- Crash the server simulating a panic.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "restart  -- Graceful restart: save config, db, restart.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "crash-and-recovery <milliseconds> -- Hard crash and "
+-                   "restart after <milliseconds> delay.");
+-    blen++;
+-    addReplyStatus(c, "assert   -- Crash by assertion failed.");
+-    blen++;
+-    addReplyStatus(
+-        c, "reload   -- Save the RDB on disk and reload it back in memory.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "loadaof  -- Flush the AOF buffers on disk and reload the "
+-                   "AOF in memory.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "object <key> -- Show low level info about key and associated value.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "sdslen <key> -- Show low level SDS string info "
+-                   "representing key and value.");
+-    blen++;
+-    addReplyStatus(
+-        c, "ziplist <key> -- Show low level info about the ziplist encoding.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "populate <count> [prefix] [size] -- Create <count> string "
+-                   "keys named key:<num>. If a prefix is specified is used "
+-                   "instead of the 'key' prefix.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "digest   -- Outputs an hex signature representing the "
+-                   "current DB content.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "sleep <seconds> -- Stop the server for <seconds>. Decimals allowed.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "structsize -- Return the size of different Redis core C structures.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "htstats <dbid> -- Return hash table statistics of the "
+-                   "specified Redis database.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+-=======
+-  if (!strcasecmp(c->argv[1]->ptr, "help")) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "DEBUG <subcommand> arg arg ... arg. Subcommands:");
+-    blen++;
+-    addReplyStatus(c, "segfault -- Crash the server with sigsegv.");
+-    blen++;
+-    addReplyStatus(c, "panic -- Crash the server simulating a panic.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "restart  -- Graceful restart: save config, db, restart.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "crash-and-recovery <milliseconds> -- Hard crash and "
+-                   "restart after <milliseconds> delay.");
+-    blen++;
+-    addReplyStatus(c, "assert   -- Crash by assertion failed.");
+-    blen++;
+-    addReplyStatus(
+-        c, "reload   -- Save the RDB on disk and reload it back in memory.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "loadaof  -- Flush the AOF buffers on disk and reload the "
+-                   "AOF in memory.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "object <key> -- Show low level info about key and associated value.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "sdslen <key> -- Show low level SDS string info "
+-                   "representing key and value.");
+-    blen++;
+-    addReplyStatus(
+-        c, "ziplist <key> -- Show low level info about the ziplist encoding.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "populate <count> [prefix] [size] -- Create <count> string "
+-                   "keys named key:<num>. If a prefix is specified is used "
+-                   "instead of the 'key' prefix.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "digest   -- Outputs an hex signature representing the "
+-                   "current DB content.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "sleep <seconds> -- Stop the server for <seconds>. Decimals allowed.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "structsize -- Return the size of different Redis core C structures.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "htstats <dbid> -- Return hash table statistics of the "
+-                   "specified Redis database.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "change-repl-id -- Change the replication IDs of the "
+-                   "instance. Dangerous, should be used only for testing the "
+-                   "replication subsystem.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+->>>>>>> 62a4b817c6e83eedf96a451f45dd943099258fd0
+@@ -397 +220,2 @@ void debugCommand(client *c) {
+-             !strcasecmp(c->argv[1]->ptr, "crash-and-recover")) {
++               !strcasecmp(c->argv[1]->ptr,"crash-and-recover"))
++    {
+@@ -400,2 +224,2 @@ void debugCommand(client *c) {
+-      if (getLongLongFromObjectOrReply(c, c->argv[2], &delay, NULL) != C_OK)
+-        return;
++            if (getLongLongFromObjectOrReply(c, c->argv[2], &delay, NULL)
++                != C_OK) return;
+@@ -404,4 +228,3 @@ void debugCommand(client *c) {
+-    int flags =
+-        !strcasecmp(c->argv[1]->ptr, "restart")
+-            ? (RESTART_SERVER_GRACEFULLY | RESTART_SERVER_CONFIG_REWRITE)
+-            : RESTART_SERVER_NONE;
++        int flags = !strcasecmp(c->argv[1]->ptr,"restart") ?
++            (RESTART_SERVER_GRACEFULLY|RESTART_SERVER_CONFIG_REWRITE) :
++             RESTART_SERVER_NONE;
+@@ -482,3 +305,3 @@ void debugCommand(client *c) {
+-                         (void *)val, val->refcount, strenc,
+-                         rdbSavedObjectLen(val), val->lru,
+-                         estimateObjectIdleTime(val) / 1000, extra);
++            (void*)val, val->refcount,
++            strenc, rdbSavedObjectLen(val),
++            val->lru, estimateObjectIdleTime(val)/1000, extra);
+@@ -498,2 +321 @@ void debugCommand(client *c) {
+-      addReplyStatusFormat(
+-          c,
++            addReplyStatusFormat(c,
+@@ -502,2 +324,4 @@ void debugCommand(client *c) {
+-          (long long)sdslen(key), (long long)sdsavail(key),
+-          (long long)sdsZmallocSize(key), (long long)sdslen(val->ptr),
++                (long long) sdslen(key),
++                (long long) sdsavail(key),
++                (long long) sdsZmallocSize(key),
++                (long long) sdslen(val->ptr),
+@@ -509,3 +333,2 @@ void debugCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nokeyerr)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nokeyerr))
++                == NULL) return;
+@@ -518,2 +341,2 @@ void debugCommand(client *c) {
+-  } else if (!strcasecmp(c->argv[1]->ptr, "populate") && c->argc >= 3 &&
+-             c->argc <= 5) {
++    } else if (!strcasecmp(c->argv[1]->ptr,"populate") &&
++               c->argc >= 3 && c->argc <= 5) {
+@@ -523 +346,2 @@ void debugCommand(client *c) {
+-    if (getLongFromObjectOrReply(c, c->argv[2], &keys, NULL) != C_OK) return;
++        if (getLongFromObjectOrReply(c, c->argv[2], &keys, NULL) != C_OK)
++            return;
+@@ -555 +379,2 @@ void debugCommand(client *c) {
+-    for (j = 0; j < 20; j++) d = sdscatprintf(d, "%02x", digest[j]);
++        for (j = 0; j < 20; j++)
++            d = sdscatprintf(d, "%02x",digest[j]);
+@@ -567 +392,2 @@ void debugCommand(client *c) {
+-             c->argc == 3) {
++               c->argc == 3)
++    {
+@@ -571 +397,2 @@ void debugCommand(client *c) {
+-             c->argc == 3) {
++               c->argc == 3)
++    {
+@@ -595 +422,2 @@ void debugCommand(client *c) {
+-    if (getLongFromObjectOrReply(c, c->argv[2], &dbid, NULL) != C_OK) return;
++        if (getLongFromObjectOrReply(c, c->argv[2], &dbid, NULL) != C_OK)
++            return;
+@@ -608,2 +436 @@ void debugCommand(client *c) {
+-    serverLog(LL_WARNING,
+-              "Changing replication IDs after receiving DEBUG change-repl-id");
++        serverLog(LL_WARNING,"Changing replication IDs after receiving DEBUG change-repl-id");
+@@ -614,3 +441 @@ void debugCommand(client *c) {
+-    addReplyErrorFormat(c,
+-                        "Unknown subcommand or wrong number of arguments for "
+-                        "'%s'. Try DEBUG help",
++        addReplyErrorFormat(c, "Unknown subcommand or wrong number of arguments for '%s'. Try DEBUG help",
+@@ -650,2 +475,2 @@ void _serverAssertPrintClientInfo(const client *c) {
+-    serverLog(LL_WARNING, "client->argv[%d] = \"%s\" (refcount: %d)", j, arg,
+-              c->argv[j]->refcount);
++        serverLog(LL_WARNING,"client->argv[%d] = \"%s\" (refcount: %d)",
++            j, arg, c->argv[j]->refcount);
+@@ -674,2 +499 @@ void serverLogObjectDebugInfo(const robj *o) {
+-      serverLog(LL_WARNING, "Skiplist level: %d",
+-                (int)((const zset *)o->ptr)->zsl->level);
++            serverLog(LL_WARNING,"Skiplist level: %d", (int) ((const zset*)o->ptr)->zsl->level);
+@@ -683,2 +507 @@ void _serverAssertPrintObject(const robj *o) {
+-void _serverAssertWithInfo(const client *c, const robj *o, const char *estr,
+-                           const char *file, int line) {
++void _serverAssertWithInfo(const client *c, const robj *o, const char *estr, const char *file, int line) {
+@@ -697,2 +520 @@ void _serverPanic(const char *file, int line, const char *msg, ...) {
+-  serverLog(LL_WARNING,
+-            "!!! Software Failure. Press left mouse button to continue");
++    serverLog(LL_WARNING,"!!! Software Failure. Press left mouse button to continue");
+@@ -708,2 +530 @@ void bugReportStart(void) {
+-    serverLogRaw(
+-        LL_WARNING | LL_RAW,
++        serverLogRaw(LL_WARNING|LL_RAW,
+@@ -786 +607,2 @@ void logRegisters(ucontext_t *uc) {
+-            (unsigned long)uc->uc_mcontext->__ss.__gs);
++        (unsigned long) uc->uc_mcontext->__ss.__gs
++    );
+@@ -810 +632,2 @@ void logRegisters(ucontext_t *uc) {
+-            (unsigned long)uc->uc_mcontext->__ss.__gs);
++        (unsigned long) uc->uc_mcontext->__ss.__gs
++    );
+@@ -836 +659,2 @@ void logRegisters(ucontext_t *uc) {
+-            (unsigned long)uc->uc_mcontext.gregs[0]);
++        (unsigned long) uc->uc_mcontext.gregs[0]
++    );
+@@ -864 +688,2 @@ void logRegisters(ucontext_t *uc) {
+-            (unsigned long)uc->uc_mcontext.gregs[18]);
++        (unsigned long) uc->uc_mcontext.gregs[18]
++    );
+@@ -874,3 +699,3 @@ int openDirectLogFiledes(void) {
+-  int fd = log_to_stdout
+-               ? STDOUT_FILENO
+-               : open(server.logfile, O_APPEND | O_CREAT | O_WRONLY, 0644);
++    int fd = log_to_stdout ?
++        STDOUT_FILENO :
++        open(server.logfile, O_APPEND|O_CREAT|O_WRONLY, 0644);
+@@ -891,2 +716 @@ void logStackTrace(ucontext_t *uc) {
+-    if (write(fd, msg1, strlen(msg1)) == -1) {
+-    };
++        if (write(fd,msg1,strlen(msg1)) == -1) { };
+@@ -895,2 +719 @@ void logStackTrace(ucontext_t *uc) {
+-    if (write(fd, msg2, strlen(msg2)) == -1) {
+-    };
++        if (write(fd,msg2,strlen(msg2)) == -1) { };
+@@ -913 +736,2 @@ void logCurrentClient(void) {
+-    serverLog(LL_WARNING | LL_RAW, "argv[%d]: '%s'\n", j, (char *)decoded->ptr);
++        serverLog(LL_WARNING|LL_RAW,"argv[%d]: '%s'\n", j,
++            (char*)decoded->ptr);
+@@ -923,3 +747 @@ void logCurrentClient(void) {
+-      serverLog(LL_WARNING,
+-                "key '%s' found in DB containing the following object:",
+-                (char *)key->ptr);
++            serverLog(LL_WARNING,"key '%s' found in DB containing the following object:", (char*)key->ptr);
+@@ -955,2 +777,3 @@ int memtest_test_linux_anonymous_maps(void) {
+-    if (strstr(p, "stack") || strstr(p, "vdso") || strstr(p, "vsyscall"))
+-      continue;
++        if (strstr(p,"stack") ||
++            strstr(p,"vdso") ||
++            strstr(p,"vsyscall")) continue;
+@@ -968,2 +791 @@ int memtest_test_linux_anonymous_maps(void) {
+-    if (write(fd, logbuf, strlen(logbuf)) == -1) {
+-    }
++        if (write(fd,logbuf,strlen(logbuf)) == -1) { }
+@@ -974,2 +796 @@ int memtest_test_linux_anonymous_maps(void) {
+-    if (write(fd, ".", 1) == -1) {
+-    }
++        if (write(fd,".",1) == -1) { }
+@@ -977,4 +798 @@ int memtest_test_linux_anonymous_maps(void) {
+-    if (write(fd, errors ? "E" : "O", 1) == -1) {
+-    }
+-  }
+-  if (write(fd, "\n", 1) == -1) {
++        if (write(fd, errors ? "E" : "O",1) == -1) { }
+@@ -981,0 +800 @@ int memtest_test_linux_anonymous_maps(void) {
++    if (write(fd,"\n",1) == -1) { }
+@@ -1013 +832,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-  serverLog(LL_WARNING, "Redis %s crashed by signal: %d", REDIS_VERSION, sig);
++    serverLog(LL_WARNING,
++        "Redis %s crashed by signal: %d", REDIS_VERSION, sig);
+@@ -1015 +835,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-    serverLog(LL_WARNING, "Crashed running the instuction at: %p", eip);
++        serverLog(LL_WARNING,
++        "Crashed running the instuction at: %p", eip);
+@@ -1018 +839,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-    serverLog(LL_WARNING, "Accessing address: %p", (void *)info->si_addr);
++        serverLog(LL_WARNING,
++        "Accessing address: %p", (void*)info->si_addr);
+@@ -1020 +842,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-  serverLog(LL_WARNING, "Failed assertion: %s (%s:%d)", server.assert_failed,
++    serverLog(LL_WARNING,
++        "Failed assertion: %s (%s:%d)", server.assert_failed,
+@@ -1041,4 +864,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-    serverLogRaw(
+-        LL_WARNING | LL_RAW,
+-        "Fast memory test PASSED, however your memory can still be broken. "
+-        "Please run a memory test for several hours if possible.\n");
++        serverLogRaw(LL_WARNING|LL_RAW,
++            "Fast memory test PASSED, however your memory can still be broken. Please run a memory test for several hours if possible.\n");
+@@ -1055,2 +876 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-                "$ objdump --adjust-vma=%p -D -b binary -m i386:x86-64 "
+-                "/tmp/dump.bin\n"
++                "$ objdump --adjust-vma=%p -D -b binary -m i386:x86-64 /tmp/dump.bin\n"
+@@ -1067 +887,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-        serverLogHexDump(LL_WARNING, "dump of function", info.dli_saddr, len);
++                serverLogHexDump(LL_WARNING, "dump of function",
++                    info.dli_saddr ,len);
+@@ -1072,4 +893,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-  serverLogRaw(
+-      LL_WARNING | LL_RAW,
+-      "\n=== REDIS BUG REPORT END. Make sure to include from START to END. "
+-      "===\n\n"
++    serverLogRaw(LL_WARNING|LL_RAW,
++"\n=== REDIS BUG REPORT END. Make sure to include from START to END. ===\n\n"
+@@ -1078 +897,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-      "  Suspect RAM error? Use redis-server --test-memory to verify it.\n\n");
++"  Suspect RAM error? Use redis-server --test-memory to verify it.\n\n"
++);
+@@ -1106,0 +927 @@ void serverLogHexDump(int level, char *descr, void *value, size_t len) {
++#include <sys/time.h>

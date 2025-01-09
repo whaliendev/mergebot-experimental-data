@@ -1,0 +1,145 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot.no_comments_merged.cpp
+@@ -59,0 +60,2 @@ using chromeos_update_engine::PartitionUpdate;
++template <typename T>
++using RepeatedPtrField = google::protobuf::RepeatedPtrField<T>;
+@@ -253,2 +247 @@ bool SnapshotManager::FinishedSnapshotWrites(bool wipe) {
+-    LOG(ERROR) << "Can only transition to the Unverified state from the "
+-                  "Initiated state.";
++        LOG(ERROR) << "Can only transition to the Unverified state from the Initiated state.";
+@@ -899,4 +852,2 @@ auto SnapshotManager::CheckMergeState(
+-    if (!device_->IsRecovery() &&
+-        !RemoveAllUpdateState(lock.get(), before_cancel)) {
+-      LOG(ERROR) << "Failed to remove all update state after acknowleding "
+-                    "cancelled update.";
++        if (!device_->IsRecovery() && !RemoveAllUpdateState(lock.get(), before_cancel)) {
++            LOG(ERROR) << "Failed to remove all update state after acknowleding cancelled update.";
+@@ -1516,2 +1433 @@ bool SnapshotManager::AreAllSnapshotsCancelled(LockedFile* lock) {
+-    LOG(WARNING) << "Failed to list snapshots to determine whether device has "
+-                    "been flashed "
++        LOG(WARNING) << "Failed to list snapshots to determine whether device has been flashed "
+@@ -1532,2 +1446 @@ bool SnapshotManager::AreAllSnapshotsCancelled(LockedFile* lock) {
+-    LOG(WARNING) << "All partitions are re-flashed after update, removing all "
+-                    "update states.";
++        LOG(WARNING) << "All partitions are re-flashed after update, removing all update states.";
+@@ -1851,4 +1744,2 @@ bool SnapshotManager::MapPartitionWithSnapshot(
+-    LOG(ERROR) << "Mapping snapshot with a different name is unsupported: "
+-                  "partition_name = "
+-               << params.GetPartitionName()
+-               << ", device_name = " << params.GetDeviceName();
++        LOG(ERROR) << "Mapping snapshot with a different name is unsupported: partition_name = "
++                   << params.GetPartitionName() << ", device_name = " << params.GetDeviceName();
+@@ -2202,2 +2069 @@ bool SnapshotManager::MapAllSnapshots(
+-    LOG(ERROR) << "MapAllSnapshots could not read dynamic partition metadata "
+-                  "for device: "
++        LOG(ERROR) << "MapAllSnapshots could not read dynamic partition metadata for device: "
+@@ -2362,2 +2227 @@ SnapshotUpdateStatus SnapshotManager::ReadSnapshotUpdateStatus(
+-    LOG(WARNING) << "Unable to parse state file as SnapshotUpdateStatus, using "
+-                    "the old format";
++        LOG(WARNING) << "Unable to parse state file as SnapshotUpdateStatus, using the old format";
+@@ -2544,2 +2400 @@ Return SnapshotManager::CreateUpdateSnapshots(
+-    LOG(ERROR) << "Cannot create update snapshots with overlayfs setup. Run "
+-                  "`adb enable-verity`"
++        LOG(ERROR) << "Cannot create update snapshots with overlayfs setup. Run `adb enable-verity`"
+@@ -2594 +2444,0 @@ Return SnapshotManager::CreateUpdateSnapshots(
+-<<<<<<< HEAD
+@@ -2621,10 +2470,0 @@ Return SnapshotManager::CreateUpdateSnapshots(
+-|||||||
+-  bool use_compression = IsCompressionEnabled() &&
+-                         dap_metadata.vabc_enabled() &&
+-                         !device_->IsRecovery() && cow_format_support;
+-=======
+-  bool use_compression = IsCompressionEnabled() &&
+-                         dap_metadata.vabc_enabled() &&
+-                         !device_->IsRecovery() && cow_format_support &&
+-                         KernelSupportsCompressedSnapshots();
+->>>>>>> 3f96053b3895f09b2887ee08ceda2bfcb857053d
+@@ -2787,2 +2618 @@ Return SnapshotManager::CreateUpdateSnapshotsInternal(
+-      LOG(ERROR) << "Cannot delete existing snapshot before creating a new one "
+-                    "for partition "
++            LOG(ERROR) << "Cannot delete existing snapshot before creating a new one for partition "
+@@ -2872,2 +2691 @@ Return SnapshotManager::InitializeUpdateSnapshots(
+-      LOG(ERROR) << "Cannot unmap existing COW devices before re-mapping them "
+-                    "for zero-fill: "
++            LOG(ERROR) << "Cannot unmap existing COW devices before re-mapping them for zero-fill: "
+@@ -2988,2 +2801,58 @@ std::unique_ptr<ISnapshotWriter> SnapshotManager::OpenSnapshotWriter(
+-bool SnapshotManager::UnmapUpdateSnapshot(
+-    const std::string& target_partition_name) {
++#if !defined(LIBSNAPSHOT_NO_COW_WRITE)
++std::unique_ptr<ISnapshotWriter> SnapshotManager::OpenCompressedSnapshotWriter(
++        LockedFile* lock, const std::optional<std::string>& source_device,
++        [[maybe_unused]] const std::string& partition_name, const SnapshotStatus& status,
++        const SnapshotPaths& paths) {
++    CHECK(lock);
++    CowOptions cow_options;
++    cow_options.compression = status.compression_algorithm();
++    cow_options.max_blocks = {status.device_size() / cow_options.block_size};
++    cow_options.batch_write = status.batched_writes();
++    cow_options.num_compress_threads = status.enable_threading() ? 2 : 0;
++    if (device()->IsTestDevice()) {
++        cow_options.scratch_space = false;
++    }
++    CHECK(status.snapshot_size() == status.device_size());
++    auto writer = std::make_unique<CompressedSnapshotWriter>(cow_options);
++    if (source_device) {
++        writer->SetSourceDevice(*source_device);
++    }
++    std::string cow_path;
++    if (!GetMappedImageDevicePath(paths.cow_device_name, &cow_path)) {
++        LOG(ERROR) << "Could not determine path for " << paths.cow_device_name;
++        return nullptr;
++    }
++    unique_fd cow_fd(open(cow_path.c_str(), O_RDWR | O_CLOEXEC));
++    if (cow_fd < 0) {
++        PLOG(ERROR) << "OpenCompressedSnapshotWriter: open " << cow_path;
++        return nullptr;
++    }
++    if (!writer->SetCowDevice(std::move(cow_fd))) {
++        LOG(ERROR) << "Could not create COW writer from " << cow_path;
++        return nullptr;
++    }
++    return writer;
++}
++std::unique_ptr<ISnapshotWriter> SnapshotManager::OpenKernelSnapshotWriter(
++        LockedFile* lock, const std::optional<std::string>& source_device,
++        [[maybe_unused]] const std::string& partition_name, const SnapshotStatus& status,
++        const SnapshotPaths& paths) {
++    CHECK(lock);
++    CowOptions cow_options;
++    cow_options.max_blocks = {status.device_size() / cow_options.block_size};
++    auto writer = std::make_unique<OnlineKernelSnapshotWriter>(cow_options);
++    std::string path = paths.snapshot_device.empty() ? paths.target_device : paths.snapshot_device;
++    unique_fd fd(open(path.c_str(), O_RDWR | O_CLOEXEC));
++    if (fd < 0) {
++        PLOG(ERROR) << "open failed: " << path;
++        return nullptr;
++    }
++    if (source_device) {
++        writer->SetSourceDevice(*source_device);
++    }
++    uint64_t cow_size = status.cow_partition_size() + status.cow_file_size();
++    writer->SetSnapshotDevice(std::move(fd), cow_size);
++    return writer;
++}
++#endif
++bool SnapshotManager::UnmapUpdateSnapshot(const std::string& target_partition_name) {
+@@ -3044,5 +2907 @@ bool SnapshotManager::Dump(std::ostream& os) {
+-     << (access(GetForwardMergeIndicatorPath().c_str(), F_OK) == 0
+-             ? "exists"
+-             : strerror(errno))
+-     << std::endl;
+-  ss << "Source build fingerprint: " << update_status.source_build_fingerprint()
++       << (access(GetForwardMergeIndicatorPath().c_str(), F_OK) == 0 ? "exists" : strerror(errno))
+@@ -3049,0 +2909 @@ bool SnapshotManager::Dump(std::ostream& os) {
++    ss << "Source build fingerprint: " << update_status.source_build_fingerprint() << std::endl;
+@@ -3096,4 +2955,2 @@ std::unique_ptr<AutoDevice> SnapshotManager::EnsureMetadataMounted() {
+-    LOG(WARNING) << "/metadata is mounted, but errors occur when acquiring a "
+-                    "shared lock. "
+-                    "Subsequent calls to SnapshotManager will fail. Unmounting "
+-                    "/metadata now.";
++        LOG(WARNING) << "/metadata is mounted, but errors occur when acquiring a shared lock. "
++                        "Subsequent calls to SnapshotManager will fail. Unmounting /metadata now.";
+@@ -3512,2 +3355 @@ bool SnapshotManager::DeleteDeviceIfExists(
+-             << "  Probably a file descriptor was leaked or held open, or a "
+-                "loop device is"
++               << "  Probably a file descriptor was leaked or held open, or a loop device is"

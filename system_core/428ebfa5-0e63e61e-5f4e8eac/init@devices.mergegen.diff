@@ -1,0 +1,59 @@
+diff --git a/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@devices.no_comments_mergegen.h b/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@devices.no_comments_merged.h
+index 513be0d..3136651 100644
+--- a/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@devices.no_comments_mergegen.h
++++ b/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@devices.no_comments_merged.h
+@@ -3 +3,5 @@
+-#include <sys/stat.h> #include <sys/types.h> #include <algorithm> #include <string> #include <vector>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <algorithm>
++#include <string>
++#include <vector>
+@@ -36,0 +41 @@ class Subsystem {
++    Subsystem() {}
+@@ -41 +46,44 @@ class Subsystem {
+-return dir_name_ + "/" + devname; } bool operator==(const std::string& string_name) const { return name_ == string_name; } private: enum class DevnameSource { DEVNAME_UEVENT_DEVNAME, DEVNAME_UEVENT_DEVPATH, }; std::string name_; std::string dir_name_ = "/dev"; DevnameSource devname_source_; }; class DeviceHandler { public: friend class DeviceHandlerTester; DeviceHandler(); DeviceHandler(std::vector<Permissions> dev_permissions, std::vector<SysfsPermissions> sysfs_permissions, std::vector<Subsystem> subsystems, bool skip_restorecon); ~DeviceHandler(){}; void HandleDeviceEvent(const Uevent& uevent); std::vector<std::string> GetBlockDeviceSymlinks(const Uevent& uevent) const; void set_skip_restorecon(bool value) { skip_restorecon_ = value; } private: bool FindPlatformDevice(std::string path, std::string* platform_device_path) const; std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions( const std::string& path, const std::vector<std::string>& links) const; void MakeDevice(const std::string& path, const std::vector<std::string>& links) const; void MakeDevice(const std::string& path, int block, int major, int minor, const std::vector<std::string>& links) const; std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions( const std::string& path, const std::string* platform_device_path) const; std::tuple<mode_t, gid_t> GetDevicePermissions( const std::string& path, const std::string& path, const std::string&
++        return dir_name_ + "/" + devname;
++    }
++    bool operator==(const std::string& string_name) const { return name_ == string_name; }
++  private:
++    enum class DevnameSource {
++        DEVNAME_UEVENT_DEVNAME,
++        DEVNAME_UEVENT_DEVPATH,
++    };
++    std::string name_;
++    std::string dir_name_ = "/dev";
++    DevnameSource devname_source_;
++};
++class DeviceHandler {
++  public:
++    friend class DeviceHandlerTester;
++    DeviceHandler();
++    DeviceHandler(std::vector<Permissions> dev_permissions,
++                  std::vector<SysfsPermissions> sysfs_permissions,
++                  std::vector<Subsystem> subsystems, bool skip_restorecon);
++    ~DeviceHandler(){};
++    void HandleDeviceEvent(const Uevent& uevent);
++    std::vector<std::string> GetBlockDeviceSymlinks(const Uevent& uevent) const;
++    void set_skip_restorecon(bool value) { skip_restorecon_ = value; }
++  private:
++    bool FindPlatformDevice(std::string path, std::string* platform_device_path) const;
++    std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions(
++        const std::string& path, const std::vector<std::string>& links) const;
++    void MakeDevice(const std::string& path, int block, int major, int minor,
++                    const std::vector<std::string>& links) const;
++    std::vector<std::string> GetCharacterDeviceSymlinks(const Uevent& uevent) const;
++    void HandleDevice(const std::string& action, const std::string& devpath, int block, int major,
++                      int minor, const std::vector<std::string>& links) const;
++    void FixupSysPermissions(const std::string& upath, const std::string& subsystem) const;
++    void HandleBlockDeviceEvent(const Uevent& uevent) const;
++    void HandleGenericDeviceEvent(const Uevent& uevent) const;
++    std::vector<Permissions> dev_permissions_;
++    std::vector<SysfsPermissions> sysfs_permissions_;
++    std::vector<Subsystem> subsystems_;
++    selabel_handle* sehandle_;
++    bool skip_restorecon_;
++    std::string sysfs_mount_point_;
++};
++void SanitizePartitionName(std::string* string);
++#endif

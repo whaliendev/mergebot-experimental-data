@@ -1,0 +1,27 @@
+--- a/./output/duckdb/1a69272b-6255d307-fc797c18/src@parallel@pipeline_executor.no_comments_mergegen.cpp
++++ b/./output/duckdb/1a69272b-6255d307-fc797c18/src@parallel@pipeline_executor.no_comments_merged.cpp
+@@ -359,0 +360,24 @@ SourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {
++ OperatorSourceInput source_input = {*pipeline.source_state, *local_source_state, interrupt_state};
++ auto res = GetData(result, source_input);
++ D_ASSERT(res != SourceResultType::BLOCKED || result.size() == 0);
++ if (requires_batch_index) {
++  idx_t next_batch_index;
++  if (result.size() == 0) {
++   next_batch_index = NumericLimits<int64_t>::Maximum();
++  } else {
++   next_batch_index =
++       pipeline.source->GetBatchIndex(context, result, *pipeline.source_state, *local_source_state);
++   next_batch_index += pipeline.base_batch_index;
++  }
++  auto &partition_info = local_sink_state->partition_info;
++  if (next_batch_index != partition_info.batch_index.GetIndex()) {
++   if (partition_info.batch_index.GetIndex() > next_batch_index) {
++    throw InternalException(
++        "Pipeline batch index - gotten lower batch index %llu (down from previous batch index of %llu)",
++        next_batch_index, partition_info.batch_index.GetIndex());
++   }
++   auto current_batch = partition_info.batch_index.GetIndex();
++   partition_info.batch_index = next_batch_index;
++   pipeline.sink->NextBatch(context, *pipeline.sink->sink_state, *local_sink_state);
++   partition_info.min_batch_index = pipeline.UpdateBatchIndex(current_batch, next_batch_index);
++  }

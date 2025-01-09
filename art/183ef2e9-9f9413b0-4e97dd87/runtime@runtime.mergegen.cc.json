@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "bool Runtime::GetOatFilesExecutable() const {\n  return !IsAotCompiler() && !IsSystemServerProfiled();",
+        "b_contents": "void Runtime::ProcessWeakClass(GcRoot<mirror::Class>* root_ptr,\n                               IsMarkedVisitor* visitor,\n                               mirror::Class* update) {\n  // This does not need a read barrier because this is called by GC.\n  mirror::Class* cls = root_ptr->Read<kWithoutReadBarrier>();\n  if (cls != nullptr && cls != GetWeakClassSentinel()) {\n    DCHECK((cls->IsClass<kDefaultVerifyFlags>()));\n    // Look at the classloader of the class to know if it has been unloaded.\n    // This does not need a read barrier because this is called by GC.\n    ObjPtr<mirror::Object> class_loader =\n        cls->GetClassLoader<kDefaultVerifyFlags, kWithoutReadBarrier>();\n    if (class_loader == nullptr || visitor->IsMarked(class_loader.Ptr()) != nullptr) {\n      // The class loader is live, update the entry if the class has moved.\n      mirror::Class* new_cls = down_cast<mirror::Class*>(visitor->IsMarked(cls));\n      // Note that new_object can be null for CMS and newly allocated objects.\n      if (new_cls != nullptr && new_cls != cls) {\n        *root_ptr = GcRoot<mirror::Class>(new_cls);\n      }\n    } else {\n      // The class loader is not live, clear the entry.\n      *root_ptr = GcRoot<mirror::Class>(update);\n    }\n  }",
+        "base_contents": "void Runtime::ProcessWeakClass(GcRoot<mirror::Class>* root_ptr,\n                               IsMarkedVisitor* visitor,\n                               mirror::Class* update) {\n    // This does not need a read barrier because this is called by GC.\n  mirror::Class* cls = root_ptr->Read<kWithoutReadBarrier>();\n  if (cls != nullptr && cls != GetWeakClassSentinel()) {\n    DCHECK((cls->IsClass<kDefaultVerifyFlags>()));\n    // Look at the classloader of the class to know if it has been unloaded.\n    // This does not need a read barrier because this is called by GC.\n    ObjPtr<mirror::Object> class_loader =\n        cls->GetClassLoader<kDefaultVerifyFlags, kWithoutReadBarrier>();\n    if (class_loader == nullptr || visitor->IsMarked(class_loader.Ptr()) != nullptr) {\n      // The class loader is live, update the entry if the class has moved.\n      mirror::Class* new_cls = down_cast<mirror::Class*>(visitor->IsMarked(cls));\n      // Note that new_object can be null for CMS and newly allocated objects.\n      if (new_cls != nullptr && new_cls != cls) {\n        *root_ptr = GcRoot<mirror::Class>(new_cls);\n      }\n    } else {\n      // The class loader is not live, clear the entry.\n      *root_ptr = GcRoot<mirror::Class>(update);\n    }\n  }",
+        "res_region": "bool Runtime::GetOatFilesExecutable() const {\n  return !IsAotCompiler() && !IsSystemServerProfiled();",
+        "lookback": "  return IsSystemServer() && jit_options_->GetSaveProfilingInfo();\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 3404,
+        "end_line": 3455,
+        "merge_gen_region": "bool Runtime::GetOatFilesExecutable() const { return !IsAotCompiler() && !IsSystemServerProfiled();",
+        "resolved": true
+    }
+]

@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const {\n\tauto &gstate = input.global_state.Cast<HashJoinGlobalSinkState>();\n\tauto &lstate = input.local_state.Cast<HashJoinLocalSinkState>();",
+        "b_contents": "SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, GlobalSinkState &gstate_p, LocalSinkState &lstate_p,\n                                      DataChunk &input) const {\n\tauto &lstate = lstate_p.Cast<HashJoinLocalSinkState>();",
+        "base_contents": "SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, GlobalSinkState &gstate_p, LocalSinkState &lstate_p,\n                                      DataChunk &input) const {\n\tauto &gstate = gstate_p.Cast<HashJoinGlobalSinkState>();\n\tauto &lstate = lstate_p.Cast<HashJoinLocalSinkState>();",
+        "res_region": "SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const {\n\tauto &lstate = input.local_state.Cast<HashJoinLocalSinkState>();",
+        "lookback": "\treturn make_uniq<HashJoinLocalSinkState>(*this, context.client);\n}\n",
+        "lookahead": "\n\t// resolve the join keys for the right chunk",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 183,
+        "end_line": 196,
+        "merge_gen_region": "structResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const { auto &lstate = input.global_state.Cast<HashJoinGlobalSinkState>();",
+        "resolved": false
+    },
+    {
+        "a_contents": "\tlstate.build_executor.Execute(chunk, lstate.join_keys);",
+        "b_contents": "\tlstate.build_executor.Execute(input, lstate.join_keys);\n",
+        "base_contents": "\tlstate.build_executor.Execute(input, lstate.join_keys);",
+        "res_region": "\tlstate.build_executor.Execute(chunk, lstate.join_keys);\n",
+        "lookback": "\n\t// resolve the join keys for the right chunk\n\tlstate.join_keys.Reset();",
+        "lookahead": "\t// build the HT\n\tauto &ht = *lstate.hash_table;",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 200,
+        "end_line": 207,
+        "merge_gen_region": "// build the HT auto &ht = *lstate.hash_table;",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\tht.Build(lstate.join_keys, chunk);",
+        "b_contents": "\t\tht.Build(lstate.append_state, lstate.join_keys, input);",
+        "base_contents": "\t\tht.Build(lstate.join_keys, input);",
+        "res_region": "\t\tht.Build(lstate.append_state, lstate.join_keys, chunk);",
+        "lookback": "\t\tht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);\n\t} else if (!build_types.empty()) {\n\t\t// there is not a projected map: place the entire right chunk in the HT",
+        "lookahead": "\t} else {\n\t\t// there are only keys: place an empty chunk in the payload",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 220,
+        "end_line": 226,
+        "merge_gen_region": "// there is not a projected map: place the entire right chunk in the HT ht.Build(lstate.append_state, lstate.join_keys, chunk);",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\tlstate.build_chunk.SetCardinality(chunk.size());\n\t\tht.Build(lstate.join_keys, lstate.build_chunk);\n\t}\n\n\t// swizzle if we reach memory limit\n\tauto approx_ptr_table_size = ht.Count() * 3 * sizeof(data_ptr_t);\n\tif (can_go_external && ht.SizeInBytes() + approx_ptr_table_size >= gstate.sink_memory_per_thread) {\n\t\tlstate.hash_table->SwizzleBlocks();\n\t\tgstate.external = true;",
+        "b_contents": "\t\tlstate.build_chunk.SetCardinality(input.size());\n\t\tht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);",
+        "base_contents": "\t\tlstate.build_chunk.SetCardinality(input.size());\n\t\tht.Build(lstate.join_keys, lstate.build_chunk);\n\t}\n\n\t// swizzle if we reach memory limit\n\tauto approx_ptr_table_size = ht.Count() * 3 * sizeof(data_ptr_t);\n\tif (can_go_external && ht.SizeInBytes() + approx_ptr_table_size >= gstate.sink_memory_per_thread) {\n\t\tlstate.hash_table->SwizzleBlocks();\n\t\tgstate.external = true;",
+        "res_region": "\t\tlstate.build_chunk.SetCardinality(chunk.size());\n\t\tht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);",
+        "lookback": "\t\tht.Build(lstate.append_state, lstate.join_keys, chunk);\n\t} else {\n\t\t// there are only keys: place an empty chunk in the payload",
+        "lookahead": "\t}\n",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 229,
+        "end_line": 252,
+        "merge_gen_region": "// there are only keys: place an empty chunk in the payload lstate.build_chunk.SetCardinality(chunk.size()); ht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);",
+        "resolved": false
+    },
+    {
+        "a_contents": "\tif (!sink.external) {\n\t\tif (IsRightOuterJoin(join_type)) {\n\t\t\t{\n\t\t\t\tlock_guard<mutex> guard(gstate.lock);\n\t\t\t\tlstate.ScanFullOuter(sink, gstate);\n\t\t\t}\n\t\t\tsink.hash_table->GatherFullOuter(chunk, lstate.addresses, lstate.full_outer_found_entries);\n\t\t}\n\t\treturn chunk.size() == 0 ? SourceResultType::FINISHED : SourceResultType::HAVE_MORE_OUTPUT;",
+        "b_contents": "\tif (!sink.external && !IsRightOuterJoin(join_type)) {\n\t\treturn;",
+        "base_contents": "\tif (!sink.external) {\n\t\tif (IsRightOuterJoin(join_type)) {\n\t\t\t{\n\t\t\t\tlock_guard<mutex> guard(gstate.lock);\n\t\t\t\tlstate.ScanFullOuter(sink, gstate);\n\t\t\t}\n\t\t\tsink.hash_table->GatherFullOuter(chunk, lstate.addresses, lstate.full_outer_found_entries);\n\t\t}\n\t\treturn;",
+        "res_region": "\tif (!sink.external && !IsRightOuterJoin(join_type)) {\n\t\treturn SourceResultType::FINISHED;",
+        "lookback": "\tauto &lstate = input.local_state.Cast<HashJoinLocalSourceState>();\n\tsink.scanned_data = true;\n",
+        "lookahead": "\t}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 933,
+        "end_line": 956,
+        "merge_gen_region": "if (!sink.external && !IsRightOuterJoin(join_type)) { return chunk.size() == 0 ? SourceResultType::FINISHED : SourceResultType::HAVE_MORE_OUTPUT;",
+        "resolved": false
+    }
+]

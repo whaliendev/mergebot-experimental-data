@@ -1,0 +1,211 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/grpc/998bde89-c6947b74-25518e5b/src@core@ext@xds@xds_api.no_comments_mergebot.cc
++++ b/home/whalien/codebase/python/mergebot-eva/output/grpc/998bde89-c6947b74-25518e5b/src@core@ext@xds@xds_api.no_comments_merged.cc
+@@ -111,3 +110,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-  switch (type) {
+-    case HeaderMatcherType::REGEX:
+-      regex_match {
+@@ -374,6 +363,6 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-      const char* XdsApi::kEdsTypeUrl =
+-          "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment";
+-      const char* XdsApi::kEdsTypeUrl =
+-          "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment";
+-      const char* XdsApi::kEdsTypeUrl =
+-          "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment";
++const char* XdsApi::kLdsTypeUrl =
++    "type.googleapis.com/envoy.config.listener.v3.Listener";
++const char* XdsApi::kRdsTypeUrl =
++    "type.googleapis.com/envoy.config.route.v3.RouteConfiguration";
++const char* XdsApi::kCdsTypeUrl =
++    "type.googleapis.com/envoy.config.cluster.v3.Cluster";
+@@ -934,2 +898 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                "RouteAction weighted_cluster has no valid clusters "
+-                "specified.");
++          "RouteAction weighted_cluster has no valid clusters specified.");
+@@ -964,2 +925,3 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-              return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
+-                  "Invalid domain pattern.");
++        return GRPC_ERROR_CREATE_FROM_COPIED_STRING(
++            absl::StrCat("Invalid domain pattern \"", domain_pattern, "\".")
++                .c_str());
+@@ -1022,2 +980,2 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          const std::string& expected_server_name,
+-          absl::optional<XdsApi::LdsUpdate>* lds_update, upb_arena* arena) {
++    const std::set<absl::string_view>& expected_listener_names,
++    XdsApi::LdsUpdateMap* lds_update_map, upb_arena* arena) {
+@@ -1040,2 +997,12 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-            return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
+-                "Can't decode listener.");
++      return GRPC_ERROR_CREATE_FROM_STATIC_STRING("Can't decode listener.");
++    }
++    std::string listener_name =
++        UpbStringToStdString(envoy_config_listener_v3_Listener_name(listener));
++    if (expected_listener_names.find(listener_name) ==
++        expected_listener_names.end()) {
++      continue;
++    }
++    if (lds_update_map->find(listener_name) != lds_update_map->end()) {
++      return GRPC_ERROR_CREATE_FROM_COPIED_STRING(
++          absl::StrCat("duplicate listener name \"", listener_name, "\"")
++              .c_str());
+@@ -1043,3 +1010 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          absl::string_view name =
+-              UpbStringToAbsl(envoy_config_listener_v3_Listener_name(listener));
+-          if (name != expected_server_name) continue;
++    XdsApi::LdsUpdate& lds_update = (*lds_update_map)[listener_name];
+@@ -1061,2 +1025 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                "Could not parse HttpConnectionManager config from "
+-                "ApiListener");
++          "Could not parse HttpConnectionManager config from ApiListener");
+@@ -1073,3 +1036,2 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-            lds_update->emplace();
+-            (*lds_update)->rds_update = std::move(rds_update);
+-            return GRPC_ERROR_NONE;
++      lds_update.rds_update = std::move(rds_update);
++      continue;
+@@ -1080,2 +1042 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                "HttpConnectionManager neither has inlined route_config nor "
+-                "RDS.");
++          "HttpConnectionManager neither has inlined route_config nor RDS.");
+@@ -1096,2 +1056 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                "HttpConnectionManager ConfigSource for RDS does not specify "
+-                "ADS.");
++          "HttpConnectionManager ConfigSource for RDS does not specify ADS.");
+@@ -1099,2 +1058 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          lds_update->emplace();
+-          (*lds_update)->route_config_name = UpbStringToStdString(
++    lds_update.route_config_name = UpbStringToStdString(
+@@ -1103 +1060,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          return GRPC_ERROR_NONE;
+@@ -1111 +1068 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          absl::optional<XdsApi::RdsUpdate>* rds_update, upb_arena* arena) {
++    XdsApi::RdsUpdateMap* rds_update_map, upb_arena* arena) {
+@@ -1131 +1086 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          absl::string_view route_config_name = UpbStringToAbsl(
++    std::string route_config_name = UpbStringToStdString(
+@@ -1137,3 +1092,10 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          XdsApi::RdsUpdate local_rds_update;
+-          grpc_error* error = RouteConfigParse(client, tracer, symtab,
+-                                               route_config, &local_rds_update);
++    if (rds_update_map->find(route_config_name) != rds_update_map->end()) {
++      return GRPC_ERROR_CREATE_FROM_COPIED_STRING(
++          absl::StrCat("duplicate route config name \"", route_config_name,
++                       "\"")
++              .c_str());
++    }
++    XdsApi::RdsUpdate& rds_update =
++        (*rds_update_map)[std::move(route_config_name)];
++    grpc_error* error =
++        RouteConfigParse(client, tracer, symtab, route_config, &rds_update);
+@@ -1141,2 +1102,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          rds_update->emplace(std::move(local_rds_update));
+-          return GRPC_ERROR_NONE;
+@@ -1156 +1114,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          XdsApi::CdsUpdate cds_update;
+@@ -1182,0 +1139 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
++    XdsApi::CdsUpdate& cds_update = (*cds_update_map)[std::move(cluster_name)];
+@@ -1222,2 +1175,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          cds_update_map->emplace(std::move(cluster_name),
+-                                  std::move(cds_update));
+@@ -1255,3 +1206,2 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          const envoy_config_endpoint_v3_LocalityLbEndpoints*
+-              locality_lb_endpoints,
+-          XdsApi::PriorityListUpdate::LocalityMap::Locality* output_locality) {
++    const envoy_config_endpoint_v3_LocalityLbEndpoints* locality_lb_endpoints,
++    XdsApi::EdsUpdate::Priority::Locality* output_locality, size_t* priority) {
+@@ -1282 +1231 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-              lb_endpoints[i], &output_locality->serverlist);
++        lb_endpoints[i], &output_locality->endpoints);
+@@ -1285,2 +1234 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-        output_locality->priority =
+-            envoy_config_endpoint_v3_LocalityLbEndpoints_priority(
++  *priority = envoy_config_endpoint_v3_LocalityLbEndpoints_priority(
+@@ -1293 +1241 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          XdsApi::DropConfig* drop_config) {
++    XdsApi::EdsUpdate::DropConfig* drop_config) {
+@@ -1336 +1280,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          XdsApi::EdsUpdate eds_update;
+@@ -1367,0 +1310,2 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
++    XdsApi::EdsUpdate& eds_update =
++        (*eds_update_map)[std::move(eds_service_name)];
+@@ -1373,2 +1317,3 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-            XdsApi::PriorityListUpdate::LocalityMap::Locality locality;
+-            grpc_error* error = LocalityParse(endpoints[j], &locality);
++      size_t priority;
++      XdsApi::EdsUpdate::Priority::Locality locality;
++      grpc_error* error = LocalityParse(endpoints[j], &locality, &priority);
+@@ -1377 +1322,2 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-            eds_update.priority_list_update.Add(locality);
++      while (eds_update.priorities.size() < priority + 1) {
++        eds_update.priorities.emplace_back();
+@@ -1379,4 +1325,5 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          for (uint32_t priority = 0;
+-               priority < eds_update.priority_list_update.size(); ++priority) {
+-            auto* locality_map = eds_update.priority_list_update.Find(priority);
+-            if (locality_map == nullptr || locality_map->size() == 0) {
++      eds_update.priorities[priority].localities.emplace(locality.name.get(),
++                                                         std::move(locality));
++    }
++    for (const auto& priority : eds_update.priorities) {
++      if (priority.localities.empty()) {
+@@ -1387 +1334 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          eds_update.drop_config = MakeRefCounted<XdsApi::DropConfig>();
++    eds_update.drop_config = MakeRefCounted<XdsApi::EdsUpdate::DropConfig>();
+@@ -1403,2 +1349,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-          eds_update_map->emplace(std::move(eds_service_name),
+-                                  std::move(eds_update));
+@@ -1449 +1391,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-<<<<<<< HEAD
+@@ -1451,7 +1392,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                               expected_server_name, &result.lds_update,
+-                               arena.ptr());
+-|||||||
+-              LdsResponseParse(client_, tracer_, response, expected_server_name,
+-                               &result.lds_update, arena.ptr());
+-=======
+-              LdsResponseParse(client_, tracer_, response,
+@@ -1460 +1394,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+->>>>>>> c6947b749a69f51f60ce5ea8887efdd58462591b
+@@ -1462 +1395,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-<<<<<<< HEAD
+@@ -1466,8 +1398,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-                               &result.rds_update, arena.ptr());
+-|||||||
+-          result.parse_error = RdsResponseParse(
+-              client_, tracer_, response, expected_route_configuration_names,
+-              &result.rds_update, arena.ptr());
+-=======
+-          result.parse_error = RdsResponseParse(
+-              client_, tracer_, response, expected_route_configuration_names,
+@@ -1475 +1399,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+->>>>>>> c6947b749a69f51f60ce5ea8887efdd58462591b
+@@ -1487,0 +1412,13 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
++void MaybeLogLrsRequest(
++    XdsClient* client, TraceFlag* tracer, upb_symtab* symtab,
++    const envoy_service_load_stats_v3_LoadStatsRequest* request) {
++  if (GRPC_TRACE_FLAG_ENABLED(*tracer) &&
++      gpr_should_log(GPR_LOG_SEVERITY_DEBUG)) {
++    const upb_msgdef* msg_type =
++        envoy_service_load_stats_v3_LoadStatsRequest_getmsgdef(symtab);
++    char buf[10240];
++    upb_text_encode(request, msg_type, nullptr, 0, buf, sizeof(buf));
++    gpr_log(GPR_DEBUG, "[xds_client %p] constructed LRS request: %s", client,
++            buf);
++  }
++}
+@@ -1509 +1446 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-        MaybeLogLrsRequest(client_, tracer_, request, build_version_);
++  MaybeLogLrsRequest(client_, tracer_, symtab_.ptr(), request);
+@@ -1554,13 +1490,0 @@ XdsApi::Route::Matchers::HeaderMatcher::HeaderMatcher(
+-      void MaybeLogLrsRequest(
+-          XdsClient* client, TraceFlag* tracer, upb_symtab* symtab,
+-          const envoy_service_load_stats_v3_LoadStatsRequest* request) {
+-        if (GRPC_TRACE_FLAG_ENABLED(*tracer) &&
+-            gpr_should_log(GPR_LOG_SEVERITY_DEBUG)) {
+-          const upb_msgdef* msg_type =
+-              envoy_service_load_stats_v3_LoadStatsRequest_getmsgdef(symtab);
+-          char buf[10240];
+-          upb_text_encode(request, msg_type, nullptr, 0, buf, sizeof(buf));
+-          gpr_log(GPR_DEBUG, "[xds_client %p] constructed LRS request: %s",
+-                  client, buf);
+-        }
+-      }

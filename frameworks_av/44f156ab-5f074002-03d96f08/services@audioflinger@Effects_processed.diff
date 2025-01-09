@@ -1,0 +1,182 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_merged.cpp
+@@ -32,3 +32 @@
+-#define ALOGVV(a...) \
+-    do { \
+-    } while (0)
++#define ALOGVV(a...) do { } while(0)
+@@ -52,0 +51 @@ void writeToBuffer(const T& value, std::vector<uint8_t>* buffer) {
++#undef LOG_TAG
+@@ -441,0 +400,2 @@ static String8 effectFlagsToString(uint32_t flags) {
++void EffectBase::dump(int fd, const Vector<String16>& args __unused) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -443,3 +403,3 @@ static String8 effectFlagsToString(uint32_t flags) {
+-    const Vector<String16> args;
+-    EffectBase::dump(fd, args);
+-    const bool locked = afutils::dumpTryLock(proxyMutex());
++    String8 result;
++    result.appendFormat("\tEffect ID %d:\n", mId);
++    const bool locked = afutils::dumpTryLock(mutex());
+@@ -447,21 +407,30 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        String8 result("DeviceEffectProxy may be deadlocked\n");
+-        write(fd, result.c_str(), result.size());
+-    }
+-    String8 outStr;
+-    if (mHalEffect != nullptr) {
+-        outStr.appendFormat("%*sHAL Effect Id: %d\n", spaces, "", mHalEffect->id());
+-    } else {
+-        outStr.appendFormat("%*sNO HAL Effect\n", spaces, "");
+-    }
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    outStr.appendFormat("%*sSub Effects:\n", spaces, "");
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    for (const auto& iter : mEffectHandles) {
+-        outStr.appendFormat("%*sEffect for patch handle %d:\n", spaces + 2, "", iter.first);
+-        write(fd, outStr.c_str(), outStr.size());
+-        outStr.clear();
+-        sp<IAfEffectBase> effect = iter.second->effect().promote();
+-        if (effect != nullptr) {
+-            effect->dump(fd, args);
++        result.append("\t\tCould not lock Fx mutex:\n");
++    }
++    bool isInternal = isInternal_l();
++    result.append("\t\tSession State Registered Internal Enabled Suspended:\n");
++    result.appendFormat("\t\t%05d   %03d   %s          %s        %s       %s\n",
++            mSessionId, mState, mPolicyRegistered ? "y" : "n", isInternal ? "y" : "n",
++            ((isInternal && isEnabled()) || (!isInternal && mPolicyEnabled)) ? "y" : "n",
++            mSuspended ? "y" : "n");
++    result.append("\t\tDescriptor:\n");
++    char uuidStr[64];
++    AudioEffect::guidToString(&mDescriptor.uuid, uuidStr, sizeof(uuidStr));
++    result.appendFormat("\t\t- UUID: %s\n", uuidStr);
++    AudioEffect::guidToString(&mDescriptor.type, uuidStr, sizeof(uuidStr));
++    result.appendFormat("\t\t- TYPE: %s\n", uuidStr);
++    result.appendFormat("\t\t- apiVersion: %08X\n\t\t- flags: %08X (%s)\n",
++            mDescriptor.apiVersion,
++            mDescriptor.flags,
++            effectFlagsToString(mDescriptor.flags).c_str());
++    result.appendFormat("\t\t- name: %s\n",
++            mDescriptor.name);
++    result.appendFormat("\t\t- implementor: %s\n",
++            mDescriptor.implementor);
++    result.appendFormat("\t\t%zu Clients:\n", mHandles.size());
++    result.append("\t\t\t  Pid Priority Ctrl Locked client server\n");
++    char buffer[256];
++    for (size_t i = 0; i < mHandles.size(); ++i) {
++        IAfEffectHandle *handle = mHandles[i];
++        if (handle != NULL && !handle->disconnected()) {
++            handle->dumpToBuffer(buffer, sizeof(buffer));
++            result.append(buffer);
+@@ -471 +440 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        proxyMutex().unlock();
++        mutex().unlock();
+@@ -472,0 +442 @@ static String8 effectFlagsToString(uint32_t flags) {
++    write(fd, result.c_str(), result.length());
+@@ -473,0 +444 @@ static String8 effectFlagsToString(uint32_t flags) {
++#undef LOG_TAG
+@@ -479 +450,8 @@ EffectModule::EffectModule(const sp<EffectCallbackInterface>& callback, effect_d
+-      mConfig {
++      mConfig{{}, {}},
++      mStatus(NO_INIT),
++      mMaxDisableWaitCnt(1),
++      mDisableWaitCnt(0),
++      mOffloaded(false),
++      mIsOutput(false),
++      mSupportsFloat(false),
++      mEffectInterfaceDebug(desc->name) {
+@@ -1310,0 +1391,2 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
++void EffectModule::dump(int fd, const Vector<String16>& args) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -1312 +1393,0 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-    const Vector<String16> args;
+@@ -1314,24 +1395,34 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-    const bool locked = afutils::dumpTryLock(proxyMutex());
+-    if (!locked) {
+-        String8 result("DeviceEffectProxy may be deadlocked\n");
+-        write(fd, result.c_str(), result.size());
+-    }
+-    String8 outStr;
+-    if (mHalEffect != nullptr) {
+-        outStr.appendFormat("%*sHAL Effect Id: %d\n", spaces, "", mHalEffect->id());
+-    } else {
+-        outStr.appendFormat("%*sNO HAL Effect\n", spaces, "");
+-    }
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    outStr.appendFormat("%*sSub Effects:\n", spaces, "");
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    for (const auto& iter : mEffectHandles) {
+-        outStr.appendFormat("%*sEffect for patch handle %d:\n", spaces + 2, "", iter.first);
+-        write(fd, outStr.c_str(), outStr.size());
+-        outStr.clear();
+-        sp<IAfEffectBase> effect = iter.second->effect().promote();
+-        if (effect != nullptr) {
+-            effect->dump(fd, args);
+-        }
++    String8 result;
++    const bool locked = afutils::dumpTryLock(mutex());
++    result.append("\t\tStatus Engine:\n");
++    result.appendFormat("\t\t%03d    %p\n",
++            mStatus, mEffectInterface.get());
++    result.appendFormat("\t\t- data: %s\n", mSupportsFloat ? "float" : "int16");
++    result.append("\t\t- Input configuration:\n");
++    result.append("\t\t\tBuffer     Frames  Smp rate Channels Format\n");
++    result.appendFormat("\t\t\t%p %05zu   %05d    %08x %6d (%s)\n",
++            mConfig.inputCfg.buffer.raw,
++            mConfig.inputCfg.buffer.frameCount,
++            mConfig.inputCfg.samplingRate,
++            mConfig.inputCfg.channels,
++            mConfig.inputCfg.format,
++            toString(static_cast<audio_format_t>(mConfig.inputCfg.format)).c_str());
++    result.append("\t\t- Output configuration:\n");
++    result.append("\t\t\tBuffer     Frames  Smp rate Channels Format\n");
++    result.appendFormat("\t\t\t%p %05zu   %05d    %08x %6d (%s)\n",
++            mConfig.outputCfg.buffer.raw,
++            mConfig.outputCfg.buffer.frameCount,
++            mConfig.outputCfg.samplingRate,
++            mConfig.outputCfg.channels,
++            mConfig.outputCfg.format,
++            toString(static_cast<audio_format_t>(mConfig.outputCfg.format)).c_str());
++    result.appendFormat("\t\t- HAL buffers:\n"
++            "\t\t\tIn(%s) InConversion(%s) Out(%s) OutConversion(%s)\n",
++            dumpInOutBuffer(true , mInBuffer).c_str(),
++            dumpInOutBuffer(true , mInConversionBuffer).c_str(),
++            dumpInOutBuffer(false , mOutBuffer).c_str(),
++            dumpInOutBuffer(false , mOutConversionBuffer).c_str());
++    write(fd, result.c_str(), result.length());
++    if (mEffectInterface != 0) {
++        dprintf(fd, "\tEffect ID %d HAL dump:\n", mId);
++        (void)mEffectInterface->dump(fd);
+@@ -1340 +1431 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-        proxyMutex().unlock();
++        mutex().unlock();
+@@ -1342,0 +1434 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
++#undef LOG_TAG
+@@ -1397 +1491 @@ EffectHandle::~EffectHandle() {
+-    BINDER_METHOD_ENTRY(getConfig)
++BINDER_METHOD_ENTRY(getConfig) \
+@@ -1402 +1496,2 @@ mediautils::MethodStatistics<int>& getIEffectStatistics() {
+-#define BINDER_METHOD_ENTRY(ENTRY) {(Code)media::BnEffect::TRANSACTION_ ##ENTRY, #ENTRY},
++#define BINDER_METHOD_ENTRY(ENTRY) \
++        {(Code)media::BnEffect::TRANSACTION_##ENTRY, #ENTRY},
+@@ -1433,3 +1530 @@ status_t EffectHandle::initCheck() const {
+-        if (!_tmp.ok()) { \
+-            RETURN(_tmp.error()); \
+-        } \
++        if (!_tmp.ok()) { RETURN(_tmp.error()); } \
+@@ -1827 +1963,0 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-<<<<<<< HEAD
+@@ -1829,5 +1964,0 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-||||||| 03d96f08b9
+-        ssize_t idx_insert = getInsertIndex_ll(desc);
+-=======
+-        ssize_t idx_insert = getInsertIndex_l(desc);
+->>>>>>> 5f074002b58434e43de04d289454d0fc2017cd90
+@@ -2850,0 +3031,2 @@ uint32_t DeviceEffectProxy::channelCount() const {
++void DeviceEffectProxy::dump2(int fd, int spaces) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -2882,0 +3065 @@ uint32_t DeviceEffectProxy::channelCount() const {
++#undef LOG_TAG

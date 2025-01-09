@@ -1,0 +1,184 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/redis/2b00385d-69ef89f2-68254919/src@t_zset.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/redis/2b00385d-69ef89f2-68254919/src@t_zset.no_comments_merged.c
+index 34b25c6..5f1b40c 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/redis/2b00385d-69ef89f2-68254919/src@t_zset.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/redis/2b00385d-69ef89f2-68254919/src@t_zset.no_comments_merged.c
+@@ -4,2 +4 @@ zskiplistNode *zslCreateNode(int level, double score, robj *obj) {
+-  zskiplistNode *zn =
+-      zmalloc(sizeof(*zn) + level * sizeof(struct zskiplistLevel));
++    zskiplistNode *zn = zmalloc(sizeof(*zn)+level*sizeof(struct zskiplistLevel));
+@@ -41 +40,2 @@ int zslRandomLevel(void) {
+-  while ((random() & 0xFFFF) < (ZSKIPLIST_P * 0xFFFF)) level += 1;
++    while ((random()&0xFFFF) < (ZSKIPLIST_P * 0xFFFF))
++        level += 1;
+@@ -128,2 +128 @@ int zslDelete(zskiplist *zsl, double score, robj *obj) {
+-unsigned long zslDeleteRangeByScore(zskiplist *zsl, double min, double max,
+-                                    dict *dict) {
++unsigned long zslDeleteRangeByScore(zskiplist *zsl, double min, double max, dict *dict) {
+@@ -150,2 +149 @@ unsigned long zslDeleteRangeByScore(zskiplist *zsl, double min, double max,
+-unsigned long zslDeleteRangeByRank(zskiplist *zsl, unsigned int start,
+-                                   unsigned int end, dict *dict) {
++unsigned long zslDeleteRangeByRank(zskiplist *zsl, unsigned int start, unsigned int end, dict *dict) {
+@@ -211 +209,2 @@ zskiplistNode *zslistTypeGetElementByRank(zskiplist *zsl, unsigned long rank) {
+-    while (x->level[i].forward && (traversed + x->level[i].span) <= rank) {
++        while (x->level[i].forward && (traversed + x->level[i].span) <= rank)
++        {
+@@ -221,2 +220 @@ zskiplistNode *zslistTypeGetElementByRank(zskiplist *zsl, unsigned long rank) {
+-void zaddGenericCommand(redisClient *c, robj *key, robj *ele, double score,
+-                        int incr) {
++void zaddGenericCommand(redisClient *c, robj *key, robj *ele, double score, int incr) {
+@@ -238,23 +235,0 @@ void zaddGenericCommand(redisClient *c, robj *key, robj *ele, double score,
+-<<<<<<< HEAD
+-    de = dictFind(zs->dict, ele);
+-    if (de) {
+-      double *oldscore = dictGetEntryVal(de);
+-      *score = *oldscore + scoreval;
+-    } else {
+-      *score = scoreval;
+-    }
+-    if (isnan(*score)) {
+-      addReplyError(c, "resulting score is not a number (NaN)");
+-      zfree(score);
+-|||||||
+-    de = dictFind(zs->dict, ele);
+-    if (de) {
+-      double *oldscore = dictGetEntryVal(de);
+-      *score = *oldscore + scoreval;
+-    } else {
+-      *score = scoreval;
+-    }
+-    if (isnan(*score)) {
+-      addReplySds(c, sdsnew("-ERR resulting score is not a number (NaN)\r\n"));
+-      zfree(score);
+-=======
+@@ -262 +237,2 @@ void zaddGenericCommand(redisClient *c, robj *key, robj *ele, double score,
+-    if (de != NULL) score += *(double *)dictGetEntryVal(de);
++        if (de != NULL)
++            score += *(double*)dictGetEntryVal(de);
+@@ -264,2 +240 @@ void zaddGenericCommand(redisClient *c, robj *key, robj *ele, double score,
+-      addReplySds(c, sdsnew("-ERR resulting score is not a number (NaN)\r\n"));
+->>>>>>> 69ef89f2cf5a699d97475ff8e7c3ce714c6947cf
++            addReplyError(c,"resulting score is not a number (NaN)");
+@@ -309,2 +284 @@ void zaddCommand(redisClient *c) {
+-  if (getDoubleFromObjectOrReply(c, c->argv[2], &scoreval, NULL) != REDIS_OK)
+-    return;
++    if (getDoubleFromObjectOrReply(c,c->argv[2],&scoreval,NULL) != REDIS_OK) return;
+@@ -315,2 +289 @@ void zincrbyCommand(redisClient *c) {
+-  if (getDoubleFromObjectOrReply(c, c->argv[2], &scoreval, NULL) != REDIS_OK)
+-    return;
++    if (getDoubleFromObjectOrReply(c,c->argv[2],&scoreval,NULL) != REDIS_OK) return;
+@@ -326,2 +299 @@ void zremCommand(redisClient *c) {
+-      checkType(c, zsetobj, REDIS_ZSET))
+-    return;
++        checkType(c,zsetobj,REDIS_ZSET)) return;
+@@ -351,2 +323 @@ void zremrangebyscoreCommand(redisClient *c) {
+-      (getDoubleFromObjectOrReply(c, c->argv[3], &max, NULL) != REDIS_OK))
+-    return;
++        (getDoubleFromObjectOrReply(c, c->argv[3], &max, NULL) != REDIS_OK)) return;
+@@ -354,2 +325 @@ void zremrangebyscoreCommand(redisClient *c) {
+-      checkType(c, zsetobj, REDIS_ZSET))
+-    return;
++        checkType(c,zsetobj,REDIS_ZSET)) return;
+@@ -372,2 +342 @@ void zremrangebyrankCommand(redisClient *c) {
+-      (getLongFromObjectOrReply(c, c->argv[3], &end, NULL) != REDIS_OK))
+-    return;
++        (getLongFromObjectOrReply(c, c->argv[3], &end, NULL) != REDIS_OK)) return;
+@@ -375,2 +344 @@ void zremrangebyrankCommand(redisClient *c) {
+-      checkType(c, zsetobj, REDIS_ZSET))
+-    return;
++        checkType(c,zsetobj,REDIS_ZSET)) return;
+@@ -408,2 +376,2 @@ int qsortCompareZsetopsrcByCardinality(const void *s1, const void *s2) {
+-inline static void zunionInterAggregate(double *target, double val,
+-                                        int aggregate) {
++#define zunionInterDictValue(_e) (dictGetEntryVal(_e) == NULL ? 1.0 : *(double*)dictGetEntryVal(_e))
++inline static void zunionInterAggregate(double *target, double val, int aggregate) {
+@@ -462,4 +430,2 @@ void zunionInterGenericCommand(redisClient *c, robj *dstkey, int op) {
+-      if (remaining >= (setnum + 1) &&
+-          !strcasecmp(c->argv[j]->ptr, "weights")) {
+-        j++;
+-        remaining--;
++            if (remaining >= (setnum + 1) && !strcasecmp(c->argv[j]->ptr,"weights")) {
++                j++; remaining--;
+@@ -468,2 +434,2 @@ void zunionInterGenericCommand(redisClient *c, robj *dstkey, int op) {
+-                                         "weight value is not a double") !=
+-              REDIS_OK) {
++                            "weight value is not a double") != REDIS_OK)
++                    {
+@@ -475,2 +441 @@ void zunionInterGenericCommand(redisClient *c, robj *dstkey, int op) {
+-        j++;
+-        remaining--;
++                j++; remaining--;
+@@ -488,2 +453 @@ void zunionInterGenericCommand(redisClient *c, robj *dstkey, int op) {
+-        j++;
+-        remaining--;
++                j++; remaining--;
+@@ -587,2 +551 @@ void zrangeGenericCommand(redisClient *c, int reverse) {
+-      (getLongFromObjectOrReply(c, c->argv[3], &end, NULL) != REDIS_OK))
+-    return;
++        (getLongFromObjectOrReply(c, c->argv[3], &end, NULL) != REDIS_OK)) return;
+@@ -595,4 +558,2 @@ void zrangeGenericCommand(redisClient *c, int reverse) {
+-  if ((o = lookupKeyReadOrReply(c, c->argv[1], shared.emptymultibulk)) ==
+-          NULL ||
+-      checkType(c, o, REDIS_ZSET))
+-    return;
++    if ((o = lookupKeyReadOrReply(c,c->argv[1],shared.emptymultibulk)) == NULL
++         || checkType(c,o,REDIS_ZSET)) return;
+@@ -614,2 +575,2 @@ void zrangeGenericCommand(redisClient *c, int reverse) {
+-    ln = start == 0 ? zsl->header->level[0].forward
+-                    : zslistTypeGetElementByRank(zsl, start + 1);
++        ln = start == 0 ?
++            zsl->header->level[0].forward : zslistTypeGetElementByRank(zsl, start+1);
+@@ -621 +582,2 @@ void zrangeGenericCommand(redisClient *c, int reverse) {
+-    if (withscores) addReplyDouble(c, ln->score);
++        if (withscores)
++            addReplyDouble(c,ln->score);
+@@ -625,2 +587,6 @@ void zrangeGenericCommand(redisClient *c, int reverse) {
+-void zrangeCommand(redisClient *c) { zrangeGenericCommand(c, 0); }
+-void zrevrangeCommand(redisClient *c) { zrangeGenericCommand(c, 1); }
++void zrangeCommand(redisClient *c) {
++    zrangeGenericCommand(c,0);
++}
++void zrevrangeCommand(redisClient *c) {
++    zrangeGenericCommand(c,1);
++}
+@@ -652 +618,2 @@ void genericZrangebyscoreCommand(redisClient *c, int justcount) {
+-  if (c->argc != (4 + withscores) && c->argc != (7 + withscores)) badsyntax = 1;
++    if (c->argc != (4 + withscores) && c->argc != (7 + withscores))
++        badsyntax = 1;
+@@ -684 +651,2 @@ void genericZrangebyscoreCommand(redisClient *c, int justcount) {
+-      if (!justcount) replylen = addDeferredMultiBulkLength(c);
++            if (!justcount)
++                replylen = addDeferredMultiBulkLength(c);
+@@ -695 +663,2 @@ void genericZrangebyscoreCommand(redisClient *c, int justcount) {
+-          if (withscores) addReplyDouble(c, ln->score);
++                    if (withscores)
++                        addReplyDouble(c,ln->score);
+@@ -710,2 +679,6 @@ void genericZrangebyscoreCommand(redisClient *c, int justcount) {
+-void zrangebyscoreCommand(redisClient *c) { genericZrangebyscoreCommand(c, 0); }
+-void zcountCommand(redisClient *c) { genericZrangebyscoreCommand(c, 1); }
++void zrangebyscoreCommand(redisClient *c) {
++    genericZrangebyscoreCommand(c,0);
++}
++void zcountCommand(redisClient *c) {
++    genericZrangebyscoreCommand(c,1);
++}
+@@ -716,2 +689 @@ void zcardCommand(redisClient *c) {
+-      checkType(c, o, REDIS_ZSET))
+-    return;
++        checkType(c,o,REDIS_ZSET)) return;
+@@ -726,2 +698 @@ void zscoreCommand(redisClient *c) {
+-      checkType(c, o, REDIS_ZSET))
+-    return;
++        checkType(c,o,REDIS_ZSET)) return;
+@@ -745,2 +716 @@ void zrankGenericCommand(redisClient *c, int reverse) {
+-      checkType(c, o, REDIS_ZSET))
+-    return;
++        checkType(c,o,REDIS_ZSET)) return;
+@@ -766,2 +736,6 @@ void zrankGenericCommand(redisClient *c, int reverse) {
+-void zrankCommand(redisClient *c) { zrankGenericCommand(c, 0); }
+-void zrevrankCommand(redisClient *c) { zrankGenericCommand(c, 1); }
++void zrankCommand(redisClient *c) {
++    zrankGenericCommand(c, 0);
++}
++void zrevrankCommand(redisClient *c) {
++    zrankGenericCommand(c, 1);
++}

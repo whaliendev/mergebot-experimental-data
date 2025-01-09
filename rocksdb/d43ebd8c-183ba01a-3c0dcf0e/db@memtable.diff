@@ -1,0 +1,62 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@memtable.no_comments_mergebot.cc b/home/whalien/codebase/python/mergebot-eva/output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@memtable.no_comments_merged.cc
+index 30073b4..9e5b1b4 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@memtable.no_comments_mergebot.cc
++++ b/home/whalien/codebase/python/mergebot-eva/output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@memtable.no_comments_merged.cc
+@@ -45 +45,3 @@ MemTable::MemTable(const InternalKeyComparator& cmp, const Options& options)
+-MemTable::~MemTable() { assert(refs_ == 0); }
++MemTable::~MemTable() {
++  assert(refs_ == 0);
++}
+@@ -56 +58,2 @@ int MemTable::KeyComparator::operator()(const char* prefix_len_key,
+-                                        const Slice& key) const {
++                                        const Slice& key)
++    const {
+@@ -71,2 +73,0 @@ class MemTableIterator : public Iterator {
+- private:
+-  const MemTable& mem_;
+@@ -124,0 +126 @@ class MemTableIterator : public Iterator {
++  const MemTable& mem_;
+@@ -143,3 +145,3 @@ void MemTable::Add(SequenceNumber s, ValueType type,
+-  const size_t encoded_len = VarintLength(internal_key_size) +
+-                             internal_key_size + VarintLength(val_size) +
+-                             val_size;
++  const size_t encoded_len =
++      VarintLength(internal_key_size) + internal_key_size +
++      VarintLength(val_size) + val_size;
+@@ -235,3 +237,4 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s,
+-            if (merge_operator->PartialMerge(
+-                    key.user_key(), merge_context.GetOperand(0),
+-                    merge_context.GetOperand(1), &merge_result, logger.get())) {
++          if (merge_operator->PartialMerge(key.user_key(),
++                                           merge_context.GetOperand(0),
++                                           merge_context.GetOperand(1),
++                                           &merge_result, logger.get())) {
+@@ -260 +263,2 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s,
+-void MemTable::Update(SequenceNumber seq, const Slice& key,
++void MemTable::Update(SequenceNumber seq,
++                      const Slice& key,
+@@ -283,13 +286,0 @@ void MemTable::Update(SequenceNumber seq, const Slice& key,
+-<<<<<<< HEAD
+-            memcpy(p, value.data(), new_size);
+-            assert((p + new_size) - entry ==
+-                   (unsigned)(VarintLength(key_length) + key_length +
+-                              VarintLength(new_size) + new_size));
+-            return;
+-||||||| 3c0dcf0e2
+-            memcpy(p, value.data(), value.size());
+-            assert((p + value.size()) - entry ==
+-                   (unsigned)(VarintLength(key_length) + key_length +
+-                              VarintLength(value.size()) + value.size()));
+-            return true;
+-=======
+@@ -300,2 +291 @@ void MemTable::Update(SequenceNumber seq, const Slice& key,
+-            return true;
+->>>>>>> 183ba01a0e41018fd7721833b17cee882eb1a95a
++            return;
+@@ -312,2 +302,4 @@ void MemTable::Update(SequenceNumber seq, const Slice& key,
+-bool MemTable::UpdateCallback(SequenceNumber seq, const Slice& key,
+-                              const Slice& delta, const Options& options) {
++bool MemTable::UpdateCallback(SequenceNumber seq,
++                              const Slice& key,
++                              const Slice& delta,
++                              const Options& options) {

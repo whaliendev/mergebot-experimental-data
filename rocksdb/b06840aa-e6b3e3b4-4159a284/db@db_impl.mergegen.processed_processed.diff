@@ -1,0 +1,27 @@
+--- a/./output/rocksdb/b06840aa-e6b3e3b4-4159a284/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/b06840aa-e6b3e3b4-4159a284/db@db_impl.no_comments_merged.cc
+@@ -885 +885,2 @@ Status DBImpl::FlushMemTableToOutputFile(ColumnFamilyData* cfd,
+-arr(cfd->imm()->size() != 0); assert(imm()->IsFlushPending());
++  assert(cfd->imm()->size() != 0);
++  assert(cfd->imm()->IsFlushPending());
+@@ -903 +904,3 @@ arr(cfd->imm()->size() != 0); assert(imm()->IsFlushPending());
+-if (s.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) { s = Status::ShutdownInProgress( "Database shutdown started during memtable flush");
++  if (s.ok() && shutting_down_.Acquire_Load() && cfd->IsDropped()) {
++    s = Status::ShutdownInProgress(
++        "Column family closed during memtable flush");
+@@ -906 +909 @@ if (s.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) { s = Status:
+-    imm_.RollbackMemtableFlush(mems, file_number, &pending_outputs_);
++    cfd->imm()->RollbackMemtableFlush(mems, file_number, &pending_outputs_);
+@@ -909 +912,3 @@ if (s.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) { s = Status:
+-profd->imm()->InstallMemtableFlushResults( cfd, mems, versions_.get(), &mutex_, options_.info_log.get(), file_number, pending_outputs_, &deletion_state.memtables_to_free, db_directory_.get());
++  s = cfd->imm()->InstallMemtableFlushResults(
++      cfd, mems, versions_.get(), &mutex_, options_.info_log.get(), file_number,
++      pending_outputs_, &deletion_state.memtables_to_free, db_directory_.get());
+@@ -1930 +1935,3 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-if (status.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) { status = Status::ShutdownInProgress( "Database shutdown started during compaction"); }
++  if (status.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) {
++    status = Status::ShutdownInProgress(
++        "Database shutdown started during compaction");
+@@ -2816 +2823 @@ void DBImpl::TEST_GetFilesMetaData(
+-      versions_->current()->files_[level];
++        default_cf_handle_->cfd()->current()->files_[level];

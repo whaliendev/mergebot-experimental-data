@@ -1,0 +1,30 @@
+diff --git a/./output/grpc/e55267a6-c483ece5-cca89309/src@cpp@ext@filters@census@grpc_plugin.no_comments_mergegen.cc b/./output/grpc/e55267a6-c483ece5-cca89309/src@cpp@ext@filters@census@grpc_plugin.no_comments_merged.cc
+index 621fbfc..47ad908 100644
+--- a/./output/grpc/e55267a6-c483ece5-cca89309/src@cpp@ext@filters@census@grpc_plugin.no_comments_mergegen.cc
++++ b/./output/grpc/e55267a6-c483ece5-cca89309/src@cpp@ext@filters@census@grpc_plugin.no_comments_merged.cc
+@@ -11 +11,24 @@ namespace grpc {
+-void RegisterOpenCensusPlugin() { RegisterChannelFilter<grpc::CensusChannelData, grpc::CensusClientCallData>( "opencensus_client", GRPC_CLIENT_CHANNEL, INT_MAX , nullptr ); RegisterChannelFilter<grpc::CensusChannelData, grpc::CensusServerCallData>( "opencensus_server", GRPC_SERVER_CHANNEL, INT_MAX , nullptr );
++void RegisterOpenCensusPlugin() {
++  RegisterChannelFilter<CensusChannelData, CensusClientCallData>(
++      "opencensus_client", GRPC_CLIENT_CHANNEL, INT_MAX ,
++      nullptr );
++  RegisterChannelFilter<CensusChannelData, CensusServerCallData>(
++      "opencensus_server", GRPC_SERVER_CHANNEL, INT_MAX ,
++      nullptr );
++  RpcClientSentBytesPerRpc();
++  RpcClientReceivedBytesPerRpc();
++  RpcClientRoundtripLatency();
++  RpcClientServerLatency();
++  RpcClientSentMessagesPerRpc();
++  RpcClientReceivedMessagesPerRpc();
++  RpcServerSentBytesPerRpc();
++  RpcServerReceivedBytesPerRpc();
++  RpcServerServerLatency();
++  RpcServerSentMessagesPerRpc();
++  RpcServerReceivedMessagesPerRpc();
++}
++::opencensus::trace::Span GetSpanFromServerContext(
++    grpc::ServerContext* context) {
++  return reinterpret_cast<const grpc::CensusContext*>(context->census_context())
++      ->Span();
++}

@@ -1,0 +1,16 @@
+--- a/./output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@execution@join_hashtable.no_comments_mergegen.cpp
++++ b/./output/duckdb/b2ae2d3a-5b9bcdfb-e8b71325/src@execution@join_hashtable.no_comments_merged.cpp
+@@ -44 +44,3 @@ JoinHashTable::JoinHashTable(BufferManager &buffer_manager_p, const vector<JoinC
+-char_collection = make_uniq<TupleDataCollection>(buffer_manager, layout); sink_collection = make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);
++ data_collection = make_uniq<TupleDataCollection>(buffer_manager, layout);
++ sink_collection =
++     make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);
+@@ -641 +643 @@ idx_t JoinHashTable::FillWithHTOffsets(JoinHTScanState &state, Vector &addresses
+-bool JoinHashTable::RequiresExternalJoin() { for (auto &block : block_collection->blocks) { pinned_handles.push_back(buffer_manager.Pin(block->block)); } } void JoinHashTable::SwizzleBlocks() { if (block_collection->count == 0) { return; } if (layout.AllConstant()) {
++bool JoinHashTable::RequiresExternalJoin(ClientConfig &config, vector<unique_ptr<JoinHashTable>> &local_hts) {
+@@ -709 +711 @@ bool JoinHashTable::RequiresPartitioning(ClientConfig &config, vector<unique_ptr
+-      make_unique<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);
++      make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);
+@@ -717 +719 @@ void JoinHashTable::Partition(JoinHashTable &global_ht) {
+-     make_unique<RadixPartitionedTupleData>(buffer_manager, layout, global_ht.radix_bits, layout.ColumnCount() - 1);
++     make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, global_ht.radix_bits, layout.ColumnCount() - 1);

@@ -1,0 +1,498 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/e52f5c58-94c719f4-38b856f7/services@camera@libcameraservice@CameraService.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/e52f5c58-94c719f4-38b856f7/services@camera@libcameraservice@CameraService.no_comments_merged.h
+index e39d054..fe3079a 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/e52f5c58-94c719f4-38b856f7/services@camera@libcameraservice@CameraService.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/e52f5c58-94c719f4-38b856f7/services@camera@libcameraservice@CameraService.no_comments_merged.h
+@@ -46 +46 @@ namespace android {
+-volatile int32_t gLogLevel = 0;
++extern volatile int32_t gLogLevel;
+@@ -49 +49,2 @@ class MediaPlayer;
+-class CameraService : public BinderService<CameraService>,
++class CameraService :
++    public BinderService<CameraService>,
+@@ -54 +55,2 @@ class CameraService : public BinderService<CameraService>,
+-                      public AttributionAndPermissionUtilsEncapsulator {
++    public AttributionAndPermissionUtilsEncapsulator
++{
+@@ -58,127 +60,2 @@ class CameraService : public BinderService<CameraService>,
+-    class Client : public hardware::BnCamera, public BasicClient {
+-      public:
+-        typedef hardware::ICameraClient TCamCallbacks;
+-        virtual binder::Status disconnect();
+-        virtual status_t connect(const sp<hardware::ICameraClient>& client) = 0;
+-        virtual status_t lock() = 0;
+-        virtual status_t unlock() = 0;
+-        virtual status_t setPreviewTarget(const sp<IGraphicBufferProducer>& bufferProducer) = 0;
+-        virtual void setPreviewCallbackFlag(int flag) = 0;
+-        virtual status_t setPreviewCallbackTarget(
+-                const sp<IGraphicBufferProducer>& callbackProducer) = 0;
+-        virtual status_t startPreview() = 0;
+-        virtual void stopPreview() = 0;
+-        virtual bool previewEnabled() = 0;
+-        virtual status_t setVideoBufferMode(int32_t videoBufferMode) = 0;
+-        virtual status_t startRecording() = 0;
+-        virtual void stopRecording() = 0;
+-        virtual bool recordingEnabled() = 0;
+-        virtual void releaseRecordingFrame(const sp<IMemory>& mem) = 0;
+-        virtual status_t autoFocus() = 0;
+-        virtual status_t cancelAutoFocus() = 0;
+-        virtual status_t takePicture(int msgType) = 0;
+-        virtual status_t setParameters(const String8& params) = 0;
+-        virtual String8 getParameters() const = 0;
+-        virtual status_t sendCommand(int32_t cmd, int32_t arg1, int32_t arg2) = 0;
+-        virtual status_t setVideoTarget(const sp<IGraphicBufferProducer>& bufferProducer) = 0;
+-        Client(const sp<CameraService>& cameraService,
+-               const sp<hardware::ICameraClient>& cameraClient,
+-               std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils,
+-               const std::string& clientPackageName, bool systemNativeClient,
+-               const std::optional<std::string>& clientFeatureId, const std::string& cameraIdStr,
+-               int api1CameraId, int cameraFacing, int sensorOrientation, int clientPid,
+-               uid_t clientUid, int servicePid, bool overrideToPortrait);
+-        ~Client();
+-        const sp<hardware::ICameraClient>& getRemoteCallback() { return mRemoteCallback; }
+-        virtual sp<IBinder> asBinderWrapper() { return asBinder(this); }
+-        virtual void notifyError(int32_t errorCode, const CaptureResultExtras& resultExtras);
+-        virtual bool canCastToApiClient(apiLevel level) const;
+-        void setImageDumpMask(int ) {}
+-      protected:
+-        sp<hardware::ICameraClient> mRemoteCallback;
+-        int mCameraId;
+-    };
+-    class BasicClient : public virtual RefBase {
+-        friend class CameraService;
+-      public:
+-        virtual status_t initialize(sp<CameraProviderManager> manager,
+-                                    const std::string& monitorTags) = 0;
+-        virtual binder::Status disconnect();
+-        virtual sp<IBinder> asBinderWrapper() = 0;
+-        sp<IBinder> getRemote() { return mRemoteBinder; }
+-        bool getOverrideToPortrait() const { return mOverrideToPortrait; }
+-        virtual status_t dump(int fd, const Vector<String16>& args);
+-        virtual status_t dumpClient(int fd, const Vector<String16>& args) = 0;
+-        virtual status_t startWatchingTags(const std::string& tags, int outFd);
+-        virtual status_t stopWatchingTags(int outFd);
+-        virtual status_t dumpWatchedEventsToVector(std::vector<std::string>& out);
+-        virtual std::string getPackageName() const;
+-        virtual int getCameraFacing() const;
+-        virtual int getCameraOrientation() const;
+-        virtual void notifyError(int32_t errorCode, const CaptureResultExtras& resultExtras) = 0;
+-        virtual uid_t getClientUid() const;
+-        virtual int getClientPid() const;
+-        virtual bool canCastToApiClient(apiLevel level) const;
+-        virtual void block();
+-        virtual status_t setAudioRestriction(int32_t mode);
+-        virtual int32_t getServiceAudioRestriction() const;
+-        virtual int32_t getAudioRestriction() const;
+-        static bool isValidAudioRestriction(int32_t mode);
+-        virtual status_t setRotateAndCropOverride(uint8_t rotateAndCrop, bool fromHal = false) = 0;
+-        virtual status_t setAutoframingOverride(uint8_t autoframingValue) = 0;
+-        virtual bool supportsCameraMute() = 0;
+-        virtual status_t setCameraMute(bool enabled) = 0;
+-        virtual status_t setCameraServiceWatchdog(bool enabled) = 0;
+-        virtual void setStreamUseCaseOverrides(const std::vector<int64_t>& useCaseOverrides) = 0;
+-        virtual void clearStreamUseCaseOverrides() = 0;
+-        virtual bool supportsZoomOverride() = 0;
+-        virtual status_t setZoomOverride(int32_t zoomOverride) = 0;
+-        virtual status_t injectCamera(const std::string& injectedCamId,
+-                                      sp<CameraProviderManager> manager) = 0;
+-        virtual status_t stopInjection() = 0;
+-        virtual status_t injectSessionParams(
+-                const hardware::camera2::impl::CameraMetadataNative& sessionParams) = 0;
+-      protected:
+-        BasicClient(const sp<CameraService>& cameraService, const sp<IBinder>& remoteCallback,
+-                    std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils,
+-                    const std::string& clientPackageName, bool nativeClient,
+-                    const std::optional<std::string>& clientFeatureId,
+-                    const std::string& cameraIdStr, int cameraFacing, int sensorOrientation,
+-                    int clientPid, uid_t clientUid, int servicePid, bool overrideToPortrait);
+-        virtual ~BasicClient();
+-        bool mDestructionStarted;
+-        static sp<CameraService> sCameraService;
+-        const std::string mCameraIdStr;
+-        const int mCameraFacing;
+-        const int mOrientation;
+-        std::string mClientPackageName;
+-        bool mSystemNativeClient;
+-        std::optional<std::string> mClientFeatureId;
+-        pid_t mClientPid;
+-        const uid_t mClientUid;
+-        const pid_t mServicePid;
+-        bool mDisconnected;
+-        bool mUidIsTrusted;
+-        bool mOverrideToPortrait;
+-        mutable Mutex mAudioRestrictionLock;
+-        int32_t mAudioRestriction;
+-        sp<IBinder> mRemoteBinder;
+-        virtual status_t startCameraOps();
+-        virtual status_t startCameraStreamingOps();
+-        virtual status_t finishCameraStreamingOps();
+-        virtual status_t finishCameraOps();
+-        virtual status_t handleAppOpMode(int32_t mode);
+-        virtual status_t noteAppOp();
+-        std::unique_ptr<AppOpsManager> mAppOpsManager = nullptr;
+-        class OpsCallback : public BnAppOpsCallback {
+-          public:
+-            explicit OpsCallback(wp<BasicClient> client);
+-            virtual void opChanged(int32_t op, const String16& packageName);
+-          private:
+-            wp<BasicClient> mClient;
+-        };
+-        sp<OpsCallback> mOpsCallback;
+-        bool mOpsActive;
+-        bool mOpsStreaming;
+-        virtual void opChanged(int32_t op, const String16& packageName);
+-    };
++    class Client;
++    class BasicClient;
+@@ -186 +63,4 @@ class CameraService : public BinderService<CameraService>,
+-    enum apiLevel { API_1 = 1, API_2 = 2 };
++    enum apiLevel {
++        API_1 = 1,
++        API_2 = 2
++    };
+@@ -195 +75,4 @@ class CameraService : public BinderService<CameraService>,
+-    CameraService(std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper = nullptr);
++                        CameraService(std::shared_ptr<CameraServiceProxyWrapper>
++                                cameraServiceProxyWrapper = nullptr,
++                                std::shared_ptr<AttributionAndPermissionUtils>
++                                attributionAndPermissionUtils = nullptr);
+@@ -204 +87,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual void onTorchStatusChanged(const std::string& cameraId, TorchModeStatus newStatus,
++    virtual void onTorchStatusChanged(const std::string& cameraId,
++            TorchModeStatus newStatus,
+@@ -211,2 +95 @@ class CameraService : public BinderService<CameraService>,
+-                                                    int targetSdkVersion, bool overrideToPortrait,
+-                                                    CameraMetadata* cameraInfo) override;
++            int targetSdkVersion, bool overrideToPortrait, CameraMetadata* cameraInfo) override;
+@@ -224,3 +107,3 @@ class CameraService : public BinderService<CameraService>,
+-            const std::string& cameraId, const std::string& clientPackageName,
+-            const std::optional<std::string>& clientFeatureId, int32_t clientUid, int scoreOffset,
+-            int targetSdkVersion, bool overrideToPortrait,
++            const std::string& cameraId,
++            const std::string& clientPackageName, const std::optional<std::string>& clientFeatureId,
++            int32_t clientUid, int scoreOffset, int targetSdkVersion, bool overrideToPortrait,
+@@ -230 +113,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status removeListener(const sp<hardware::ICameraServiceListener>& listener);
++    virtual binder::Status removeListener(
++            const sp<hardware::ICameraServiceListener>& listener);
+@@ -232,2 +116 @@ class CameraService : public BinderService<CameraService>,
+-            std::vector<hardware::camera2::utils::ConcurrentCameraIdCombination>*
+-                    concurrentCameraIds);
++        std::vector<hardware::camera2::utils::ConcurrentCameraIdCombination>* concurrentCameraIds);
+@@ -237 +120,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status getLegacyParameters(int32_t cameraId,
++    virtual binder::Status getLegacyParameters(
++            int32_t cameraId,
+@@ -242,2 +126 @@ class CameraService : public BinderService<CameraService>,
+-                                                        int32_t torchStrength,
+-                                                        const sp<IBinder>& clientBinder);
++            int32_t torchStrength, const sp<IBinder>& clientBinder);
+@@ -246 +129,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status notifySystemEvent(int32_t eventId, const std::vector<int32_t>& args);
++    virtual binder::Status notifySystemEvent(int32_t eventId,
++            const std::vector<int32_t>& args);
+@@ -249 +133,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status supportsCameraApi(const std::string& cameraId, int32_t apiVersion,
++    virtual binder::Status supportsCameraApi(
++            const std::string& cameraId, int32_t apiVersion,
+@@ -251 +136,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status isHiddenPhysicalCamera(const std::string& cameraId,
++    virtual binder::Status isHiddenPhysicalCamera(
++            const std::string& cameraId,
+@@ -260,3 +146,2 @@ class CameraService : public BinderService<CameraService>,
+-  private:
+-    void remapCameraIds(const TCameraIdRemapping& cameraIdRemapping);
+-  public:
++    virtual binder::Status remapCameraIds(const hardware::CameraIdRemapping&
++            cameraIdRemapping);
+@@ -266,2 +151 @@ class CameraService : public BinderService<CameraService>,
+-    virtual binder::Status createDefaultRequest(
+-            const std::string& cameraId, int templateId,
++    virtual binder::Status createDefaultRequest(const std::string& cameraId, int templateId,
+@@ -270 +154,2 @@ class CameraService : public BinderService<CameraService>,
+-            const std::string& cameraId, const SessionConfiguration& sessionConfiguration,
++            const std::string& cameraId,
++            const SessionConfiguration& sessionConfiguration,
+@@ -276 +161,2 @@ class CameraService : public BinderService<CameraService>,
+-    virtual status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags);
++    virtual status_t onTransact(uint32_t code, const Parcel& data,
++                                   Parcel* reply, uint32_t flags);
+@@ -280,2 +166,2 @@ class CameraService : public BinderService<CameraService>,
+-                                     std::vector<hardware::CameraStatus>* cameraStatuses,
+-                                     bool isVendor = false, bool isProcessLocalTest = false);
++            std::vector<hardware::CameraStatus>* cameraStatuses, bool isVendor = false,
++            bool isProcessLocalTest = false);
+@@ -298,2 +184 @@ class CameraService : public BinderService<CameraService>,
+-                                                  int* facing = nullptr,
+-                                                  int* orientation = nullptr);
++            int* facing = nullptr, int* orientation = nullptr);
+@@ -304 +189,4 @@ class CameraService : public BinderService<CameraService>,
+-    class BasicClient : public virtual RefBase {
++    bool isAutomotiveExteriorSystemCamera(const std::string& cameraId) const;
++    class BasicClient :
++        public virtual RefBase,
++        public AttributionAndPermissionUtilsEncapsulator {
+@@ -311,2 +199,6 @@ class CameraService : public BinderService<CameraService>,
+-        sp<IBinder> getRemote() { return mRemoteBinder; }
+-        bool getOverrideToPortrait() const { return mOverrideToPortrait; }
++        sp<IBinder> getRemote() {
++            return mRemoteBinder;
++        }
++        bool getOverrideToPortrait() const {
++            return mOverrideToPortrait;
++        }
+@@ -321 +213,2 @@ class CameraService : public BinderService<CameraService>,
+-        virtual void notifyError(int32_t errorCode, const CaptureResultExtras& resultExtras) = 0;
++        virtual void notifyError(int32_t errorCode,
++                const CaptureResultExtras& resultExtras) = 0;
+@@ -335 +228,2 @@ class CameraService : public BinderService<CameraService>,
+-        virtual void setStreamUseCaseOverrides(const std::vector<int64_t>& useCaseOverrides) = 0;
++        virtual void setStreamUseCaseOverrides(
++                const std::vector<int64_t>& useCaseOverrides) = 0;
+@@ -345 +239,2 @@ class CameraService : public BinderService<CameraService>,
+-        BasicClient(const sp<CameraService>& cameraService, const sp<IBinder>& remoteCallback,
++        BasicClient(const sp<CameraService>& cameraService,
++                const sp<IBinder>& remoteCallback,
+@@ -347 +242,2 @@ class CameraService : public BinderService<CameraService>,
+-                    const std::string& clientPackageName, bool nativeClient,
++                const std::string& clientPackageName,
++                bool nativeClient,
+@@ -349,2 +245,7 @@ class CameraService : public BinderService<CameraService>,
+-                    const std::string& cameraIdStr, int cameraFacing, int sensorOrientation,
+-                    int clientPid, uid_t clientUid, int servicePid, bool overrideToPortrait);
++                const std::string& cameraIdStr,
++                int cameraFacing,
++                int sensorOrientation,
++                int clientPid,
++                uid_t clientUid,
++                int servicePid,
++                bool overrideToPortrait);
+@@ -388 +289,2 @@ class CameraService : public BinderService<CameraService>,
+-    class Client : public hardware::BnCamera, public BasicClient {
++    class Client : public hardware::BnCamera, public BasicClient
++    {
+@@ -417,4 +319,11 @@ class CameraService : public BinderService<CameraService>,
+-               const std::string& clientPackageName, bool systemNativeClient,
+-               const std::optional<std::string>& clientFeatureId, const std::string& cameraIdStr,
+-               int api1CameraId, int cameraFacing, int sensorOrientation, int clientPid,
+-               uid_t clientUid, int servicePid, bool overrideToPortrait);
++                const std::string& clientPackageName,
++                bool systemNativeClient,
++                const std::optional<std::string>& clientFeatureId,
++                const std::string& cameraIdStr,
++                int api1CameraId,
++                int cameraFacing,
++                int sensorOrientation,
++                int clientPid,
++                uid_t clientUid,
++                int servicePid,
++                bool overrideToPortrait);
+@@ -422,3 +331,8 @@ class CameraService : public BinderService<CameraService>,
+-        const sp<hardware::ICameraClient>& getRemoteCallback() { return mRemoteCallback; }
+-        virtual sp<IBinder> asBinderWrapper() { return asBinder(this); }
+-        virtual void notifyError(int32_t errorCode, const CaptureResultExtras& resultExtras);
++        const sp<hardware::ICameraClient>& getRemoteCallback() {
++            return mRemoteCallback;
++        }
++        virtual sp<IBinder> asBinderWrapper() {
++            return asBinder(this);
++        }
++        virtual void notifyError(int32_t errorCode,
++                                         const CaptureResultExtras& resultExtras);
+@@ -433,4 +347,4 @@ class CameraService : public BinderService<CameraService>,
+-        void onClientAdded(const resource_policy::ClientDescriptor<
+-                           std::string, sp<CameraService::BasicClient>>& descriptor);
+-        void onClientRemoved(const resource_policy::ClientDescriptor<
+-                             std::string, sp<CameraService::BasicClient>>& descriptor);
++        void onClientAdded(const resource_policy::ClientDescriptor<std::string,
++                sp<CameraService::BasicClient>>& descriptor);
++        void onClientRemoved(const resource_policy::ClientDescriptor<std::string,
++                sp<CameraService::BasicClient>>& descriptor);
+@@ -438,6 +352,4 @@ class CameraService : public BinderService<CameraService>,
+-    typedef std::shared_ptr<
+-            resource_policy::ClientDescriptor<std::string, sp<CameraService::BasicClient>>>
+-            DescriptorPtr;
+-    class CameraClientManager
+-        : public resource_policy::ClientManager<std::string, sp<CameraService::BasicClient>,
+-                                                ClientEventListener> {
++    typedef std::shared_ptr<resource_policy::ClientDescriptor<std::string,
++            sp<CameraService::BasicClient>>> DescriptorPtr;
++    class CameraClientManager : public resource_policy::ClientManager<std::string,
++            sp<CameraService::BasicClient>, ClientEventListener> {
+@@ -451,3 +363,2 @@ class CameraService : public BinderService<CameraService>,
+-                                                  const std::set<std::string>& conflictingKeys,
+-                                                  int32_t score, int32_t ownerId, int32_t state,
+-                                                  int oomScoreOffset, bool systemNativeClient);
++                const std::set<std::string>& conflictingKeys, int32_t score,
++                int32_t ownerId, int32_t state, int oomScoreOffset, bool systemNativeClient);
+@@ -455,2 +366,2 @@ class CameraService : public BinderService<CameraService>,
+-                                                  const CameraService::DescriptorPtr& partial,
+-                                                  int oomScoreOffset, bool systemNativeClient);
++                const CameraService::DescriptorPtr& partial, int oomScoreOffset,
++                bool systemNativeClient);
+@@ -461 +371,0 @@ class CameraService : public BinderService<CameraService>,
+-    bool isAutomotiveExteriorSystemCamera(const std::string& cameraId) const;
+@@ -467,2 +377 @@ class CameraService : public BinderService<CameraService>,
+-                return interface_cast<IActivityManager>(
+-                        sm->checkService(String16(kActivityService)));
++                 return interface_cast<IActivityManager>(sm->checkService(String16(kActivityService)));
+@@ -474,6 +382,0 @@ class CameraService : public BinderService<CameraService>,
+-    bool checkPermission(const std::string& cameraId, const std::string& permission,
+-                         const content::AttributionSourceState& attributionSource,
+-                         const std::string& message, int32_t attributedOpCode) const;
+-    bool hasPermissionsForSystemCamera(const std::string& cameraId, int callingPid,
+-                                       int callingUid) const;
+-    bool hasCameraPermissions() const;
+@@ -484,2 +387 @@ class CameraService : public BinderService<CameraService>,
+-        NOT_AVAILABLE =
+-                static_cast<int32_t>(hardware::ICameraServiceListener::STATUS_NOT_AVAILABLE),
++        NOT_AVAILABLE = static_cast<int32_t>(hardware::ICameraServiceListener::STATUS_NOT_AVAILABLE),
+@@ -496 +398,2 @@ class CameraService : public BinderService<CameraService>,
+-        void updateStatus(StatusInternal status, const std::string& cameraId,
++        void updateStatus(StatusInternal status,
++                const std::string& cameraId,
+@@ -522 +425,2 @@ class CameraService : public BinderService<CameraService>,
+-    class UidPolicy : public BnUidObserver,
++    class UidPolicy :
++        public BnUidObserver,
+@@ -526 +430,2 @@ class CameraService : public BinderService<CameraService>,
+-        explicit UidPolicy(sp<CameraService> service) : mRegistered(false), mService(service) {}
++        explicit UidPolicy(sp<CameraService> service)
++                : mRegistered(false), mService(service) {}
+@@ -570,3 +475 @@ class CameraService : public BinderService<CameraService>,
+-<<<<<<< HEAD
+-        explicit SensorPrivacyPolicy(
+-                wp<CameraService> service,
++            explicit SensorPrivacyPolicy(wp<CameraService> service,
+@@ -577,14 +480 @@ class CameraService : public BinderService<CameraService>,
+-||||||| 38b856f7cf
+-        explicit SensorPrivacyPolicy(
+-                wp<CameraService> service,
+-                std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils)
+-            : mService(service),
+-              mAttributionAndPermissionUtils(attributionAndPermissionUtils),
+-              mSensorPrivacyEnabled(false),
+-=======
+-        explicit SensorPrivacyPolicy(wp<CameraService> service)
+-            : mService(service),
+-              mSensorPrivacyEnabled(false),
+->>>>>>> 94c719f422ae504111728989cfb4c6779e016855
+-              mCameraPrivacyState(SensorPrivacyManager::DISABLED),
+-              mRegistered(false) {}
++                    mCameraPrivacyState(SensorPrivacyManager::DISABLED), mRegistered(false) {}
+@@ -597 +487,2 @@ class CameraService : public BinderService<CameraService>,
+-        binder::Status onSensorPrivacyChanged(int toggleType, int sensor, bool enabled);
++            binder::Status onSensorPrivacyChanged(int toggleType, int sensor,
++                                                  bool enabled);
+@@ -620,2 +511 @@ class CameraService : public BinderService<CameraService>,
+-                                                   int& clientUid, int& clientPid,
+-                                                 int& originalClientPid) const;
++                     int& clientUid, int& clientPid, int& originalClientPid) const;
+@@ -623,3 +513 @@ class CameraService : public BinderService<CameraService>,
+-                                                   const std::string& clientName,
+-                                                             int& clientUid,
+-                                                             int& clientPid,
++            const std::string& clientName, int& clientUid, int& clientPid,
+@@ -629,4 +517,3 @@ class CameraService : public BinderService<CameraService>,
+-    status_t handleEvictionsLocked(
+-            const std::string& cameraId, int clientPid, apiLevel effectiveApiLevel,
+-            const sp<IBinder>& remoteCallback, const std::string& packageName, int scoreOffset,
+-            bool systemNativeClient,
++    status_t handleEvictionsLocked(const std::string& cameraId, int clientPid,
++        apiLevel effectiveApiLevel, const sp<IBinder>& remoteCallback,
++        const std::string& packageName, int scoreOffset, bool systemNativeClient,
+@@ -634,2 +521 @@ class CameraService : public BinderService<CameraService>,
+-            std::shared_ptr<resource_policy::ClientDescriptor<std::string, sp<BasicClient>>>*
+-                    partial);
++        std::shared_ptr<resource_policy::ClientDescriptor<std::string, sp<BasicClient>>>* partial);
+@@ -641,0 +528,7 @@ class CameraService : public BinderService<CameraService>,
++    template<class CALLBACK, class CLIENT>
++    binder::Status connectHelper(const sp<CALLBACK>& cameraCb, const std::string& cameraId,
++            int api1CameraId, const std::string& clientPackageNameMaybe, bool systemNativeClient,
++            const std::optional<std::string>& clientFeatureId, int clientUid, int clientPid,
++            apiLevel effectiveApiLevel, bool shimUpdateOnly, int scoreOffset, int targetSdkVersion,
++            bool overrideToPortrait, bool forceSlowJpegMode, const std::string& originalCameraId,
++                   sp<CLIENT>& device);
+@@ -654 +547,2 @@ class CameraService : public BinderService<CameraService>,
+-    binder::Status parseCameraIdRemapping(const hardware::CameraIdRemapping& cameraIdRemapping,
++    binder::Status parseCameraIdRemapping(
++            const hardware::CameraIdRemapping& cameraIdRemapping,
+@@ -656 +550,3 @@ class CameraService : public BinderService<CameraService>,
+-    std::string resolveCameraId(const std::string& inputCameraId, int clientUid,
++    std::string resolveCameraId(
++            const std::string& inputCameraId,
++            int clientUid,
+@@ -659,2 +555,2 @@ class CameraService : public BinderService<CameraService>,
+-    std::vector<std::string> findOriginalIdsForRemappedCameraId(const std::string& inputCameraId,
+-                                                                int clientUid);
++    std::vector<std::string> findOriginalIdsForRemappedCameraId(
++        const std::string& inputCameraId, int clientUid);
+@@ -687 +583,2 @@ class CameraService : public BinderService<CameraService>,
+-    void logUserSwitch(const std::set<userid_t>& oldUserIds, const std::set<userid_t>& newUserIds);
++    void logUserSwitch(const std::set<userid_t>& oldUserIds,
++        const std::set<userid_t>& newUserIds);
+@@ -712,4 +609 @@ class CameraService : public BinderService<CameraService>,
+-            : mParent(parent),
+-              mListener(listener),
+-              mListenerUid(uid),
+-              mListenerPid(pid),
++                    : mParent(parent), mListener(listener), mListenerUid(uid), mListenerPid(pid),
+@@ -725 +619,2 @@ class CameraService : public BinderService<CameraService>,
+-        void handleBinderStatus(const binder::Status& ret, const char* logOnError, args_t... args) {
++            void handleBinderStatus(const binder::Status &ret, const char *logOnError,
++                    args_t... args) {
+@@ -727,2 +622,2 @@ class CameraService : public BinderService<CameraService>,
+-                (ret.exceptionCode() != binder::Status::Exception::EX_TRANSACTION_FAILED ||
+-                 !mLastTransactFailed)) {
++                        (ret.exceptionCode() != binder::Status::Exception::EX_TRANSACTION_FAILED
++                        || !mLastTransactFailed)) {
+@@ -763,3 +658,6 @@ class CameraService : public BinderService<CameraService>,
+-    void updateStatus(StatusInternal status, const std::string& cameraId,
+-                      std::initializer_list<StatusInternal> rejectedSourceStates);
+-    void updateStatus(StatusInternal status, const std::string& cameraId);
++    void updateStatus(StatusInternal status,
++            const std::string& cameraId,
++            std::initializer_list<StatusInternal>
++                rejectedSourceStates);
++    void updateStatus(StatusInternal status,
++            const std::string& cameraId);
+@@ -772 +670,2 @@ class CameraService : public BinderService<CameraService>,
+-    KeyedVector<std::string, TorchModeStatus> mTorchStatusMap;
++    KeyedVector<std::string, TorchModeStatus>
++            mTorchStatusMap;
+@@ -776 +675,2 @@ class CameraService : public BinderService<CameraService>,
+-    void onTorchStatusChangedLocked(const std::string& cameraId, TorchModeStatus newStatus,
++    void onTorchStatusChangedLocked(const std::string& cameraId,
++            TorchModeStatus newStatus,
+@@ -778,2 +678,4 @@ class CameraService : public BinderService<CameraService>,
+-    status_t getTorchStatusLocked(const std::string& cameraId, TorchModeStatus* status) const;
+-    status_t setTorchStatusLocked(const std::string& cameraId, TorchModeStatus status);
++    status_t getTorchStatusLocked(const std::string &cameraId,
++             TorchModeStatus *status) const;
++    status_t setTorchStatusLocked(const std::string &cameraId,
++            TorchModeStatus status);
+@@ -781,2 +683 @@ class CameraService : public BinderService<CameraService>,
+-                                          const std::list<std::string>& logicalCameraIds,
+-                                          SystemCameraKind deviceKind);
++            const std::list<std::string>& logicalCameraIds, SystemCameraKind deviceKind);
+@@ -816,8 +717,8 @@ class CameraService : public BinderService<CameraService>,
+-    static binder::Status makeClient(
+-            const sp<CameraService>& cameraService, const sp<IInterface>& cameraCb,
+-            const std::string& packageName, bool systemNativeClient,
+-            const std::optional<std::string>& featureId, const std::string& cameraId,
+-            int api1CameraId, int facing, int sensorOrientation, int clientPid, uid_t clientUid,
+-            int servicePid, std::pair<int, IPCTransport> deviceVersionAndIPCTransport,
+-            apiLevel effectiveApiLevel, bool overrideForPerfClass, bool overrideToPortrait,
+-            bool forceSlowJpegMode, const std::string& originalCameraId,
++    static binder::Status makeClient(const sp<CameraService>& cameraService,
++            const sp<IInterface>& cameraCb, const std::string& packageName,
++            bool systemNativeClient, const std::optional<std::string>& featureId,
++            const std::string& cameraId, int api1CameraId, int facing, int sensorOrientation,
++            int clientPid, uid_t clientUid, int servicePid,
++            std::pair<int, IPCTransport> deviceVersionAndIPCTransport, apiLevel effectiveApiLevel,
++            bool overrideForPerfClass, bool overrideToPortrait, bool forceSlowJpegMode,
++            const std::string& originalCameraId,
+@@ -829,2 +730,2 @@ class CameraService : public BinderService<CameraService>,
+-    void broadcastTorchModeStatus(const std::string& cameraId, TorchModeStatus status,
+-                                  SystemCameraKind systemCameraKind);
++    void broadcastTorchModeStatus(const std::string& cameraId,
++            TorchModeStatus status, SystemCameraKind systemCameraKind);

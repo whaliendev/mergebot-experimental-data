@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "auto SurfaceFlinger::getPreviousPresentFence(TimePoint frameTime, Period vsyncPeriod)\n        -> const FenceTimePtr& {\n    const bool isTwoVsyncsAhead = mExpectedPresentTime - frameTime > vsyncPeriod;\n    const size_t i = static_cast<size_t>(isTwoVsyncsAhead);\n    return mPreviousPresentFences[i].fenceTime;",
+        "b_contents": "SurfaceFlinger::FenceWithFenceTime SurfaceFlinger::previousFrameFence() {\n    const auto now = systemTime();\n    const auto vsyncPeriod = mScheduler->getDisplayStatInfo(now).vsyncPeriod;\n    const bool expectedPresentTimeIsTheNextVsync = mExpectedPresentTime - now <= vsyncPeriod;\n\n    size_t shift = 0;\n    if (!expectedPresentTimeIsTheNextVsync) {\n        shift = static_cast<size_t>((mExpectedPresentTime - now) / vsyncPeriod);\n        if (shift >= mPreviousPresentFences.size()) {\n            shift = mPreviousPresentFences.size() - 1;\n        }\n    }\n    ATRACE_FORMAT(\"previousFrameFence shift=%zu\", shift);\n    return mPreviousPresentFences[shift];",
+        "base_contents": "SurfaceFlinger::FenceWithFenceTime SurfaceFlinger::previousFrameFence() {\n    const auto now = systemTime();\n    const auto vsyncPeriod = mScheduler->getDisplayStatInfo(now).vsyncPeriod;\n    const bool expectedPresentTimeIsTheNextVsync = mExpectedPresentTime - now <= vsyncPeriod;\n    return expectedPresentTimeIsTheNextVsync ? mPreviousPresentFences[0]\n                                             : mPreviousPresentFences[1];",
+        "res_region": "auto SurfaceFlinger::getPreviousPresentFence(TimePoint frameTime, Period vsyncPeriod)\n        -> const FenceTimePtr& {\n    const bool isTwoVsyncsAhead = mExpectedPresentTime - frameTime > vsyncPeriod;\n    const size_t i = static_cast<size_t>(isTwoVsyncsAhead);\n    return mPreviousPresentFences[i].fenceTime;",
+        "lookback": "    }));\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1933,
+        "end_line": 1961,
+        "merge_gen_region": "auto SurfaceFlinger::getPreviousPresentFence(TimePoint frameTime, Period vsyncPeriod) -> const FenceTimePtr& { const bool isTwoVsyncsAhead = mExpectedPresentTime - frameTime > vsyncPeriod; const size_t i = static_cast<size_t>(isTwoVsyncsAhead); return mPreviousPresentFences[i].fenceTime;",
+        "resolved": true
+    },
+    {
+        "a_contents": "    mPreviousPresentFences[1] = mPreviousPresentFences[0];",
+        "b_contents": "    for (size_t i = mPreviousPresentFences.size()-1; i >= 1; i--) {\n        mPreviousPresentFences[i] = mPreviousPresentFences[i-1];\n    }\n\n    mPreviousPresentFences[0].fence =\n            display ? getHwComposer().getPresentFence(display->getPhysicalId()) : Fence::NO_FENCE;\n    mPreviousPresentFences[0].fenceTime =\n            std::make_shared<FenceTime>(mPreviousPresentFences[0].fence);",
+        "base_contents": "    mPreviousPresentFences[1] = mPreviousPresentFences[0];\n    mPreviousPresentFences[0].fence =\n            display ? getHwComposer().getPresentFence(display->getPhysicalId()) : Fence::NO_FENCE;\n    mPreviousPresentFences[0].fenceTime =\n            std::make_shared<FenceTime>(mPreviousPresentFences[0].fence);",
+        "res_region": "    mPreviousPresentFences[1] = mPreviousPresentFences[0];",
+        "lookback": "        glCompositionDoneFenceTime = FenceTime::NO_FENCE;\n    }\n",
+        "lookahead": "\n    auto presentFence =",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2398,
+        "end_line": 2415,
+        "merge_gen_region": "for (size_t i = mPreviousPresentFences.size()-1; i >= 1; i--) { mPreviousPresentFences[i] = mPreviousPresentFences[i-1];",
+        "resolved": false
+    }
+]

@@ -1,0 +1,147 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/c489bf0a-aa7dccf8-048f1ff1/file.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/c489bf0a-aa7dccf8-048f1ff1/file.no_comments_merged.c
+index 528dff1..79fc08f 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/c489bf0a-aa7dccf8-048f1ff1/file.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/c489bf0a-aa7dccf8-048f1ff1/file.no_comments_merged.c
+@@ -2,3 +1,0 @@
+-#include <sys/queue.h>
+-#include <sys/uio.h>
+-#include <imsg.h>
+@@ -13 +10,4 @@ static int file_next_stream = 3;
+-static char *file_get_path(struct client *c, const char *file) {
++RB_GENERATE(client_files, client_file, entry, file_cmp);
++static char *
++file_get_path(struct client *c, const char *file)
++{
+@@ -21,3 +21,7 @@ static char *file_get_path(struct client *c, const char *file) {
+-int file_cmp(struct client_file *cf1, struct client_file *cf2) {
+-  if (cf1->stream < cf2->stream) return (-1);
+-  if (cf1->stream > cf2->stream) return (1);
++int
++file_cmp(struct client_file *cf1, struct client_file *cf2)
++{
++ if (cf1->stream < cf2->stream)
++  return (-1);
++ if (cf1->stream > cf2->stream)
++  return (1);
+@@ -26,2 +30,3 @@ int file_cmp(struct client_file *cf1, struct client_file *cf2) {
+-struct client_file *file_create(struct client *c, int stream, client_file_cb cb,
+-                                void *cbdata) {
++struct client_file *
++file_create(struct client *c, int stream, client_file_cb cb, void *cbdata)
++{
+@@ -34 +39,2 @@ struct client_file *file_create(struct client *c, int stream, client_file_cb cb,
+-  if (cf->buffer == NULL) fatalx("out of memory");
++ if (cf->buffer == NULL)
++  fatalx("out of memory");
+@@ -43,2 +49,5 @@ struct client_file *file_create(struct client *c, int stream, client_file_cb cb,
+-void file_free(struct client_file *cf) {
+-  if (--cf->references != 0) return;
++void
++file_free(struct client_file *cf)
++{
++ if (--cf->references != 0)
++  return;
+@@ -53,2 +62,3 @@ void file_free(struct client_file *cf) {
+-static void file_fire_done_cb(__unused int fd, __unused short events,
+-                              void *arg) {
++static void
++file_fire_done_cb(__unused int fd, __unused short events, void *arg)
++{
+@@ -61 +71,3 @@ static void file_fire_done_cb(__unused int fd, __unused short events,
+-void file_fire_done(struct client_file *cf) {
++void
++file_fire_done(struct client_file *cf)
++{
+@@ -64 +76,3 @@ void file_fire_done(struct client_file *cf) {
+-void file_fire_read(struct client_file *cf) {
++void
++file_fire_read(struct client_file *cf)
++{
+@@ -66 +80,2 @@ void file_fire_read(struct client_file *cf) {
+-  if (cf->cb != NULL) cf->cb(c, cf->path, cf->error, 0, cf->buffer, cf->data);
++ if (cf->cb != NULL)
++  cf->cb(c, cf->path, cf->error, 0, cf->buffer, cf->data);
+@@ -68,3 +83,7 @@ void file_fire_read(struct client_file *cf) {
+-int file_can_print(struct client *c) {
+-  if (c == NULL) return (0);
+-  if (c->session != NULL && (~c->flags & CLIENT_CONTROL)) return (0);
++int
++file_can_print(struct client *c)
++{
++ if (c == NULL)
++  return (0);
++ if (c->session != NULL && (~c->flags & CLIENT_CONTROL))
++  return (0);
+@@ -73 +92,3 @@ int file_can_print(struct client *c) {
+-void file_print(struct client *c, const char *fmt, ...) {
++void
++file_print(struct client *c, const char *fmt, ...)
++{
+@@ -79 +100,3 @@ void file_print(struct client *c, const char *fmt, ...) {
+-void file_vprint(struct client *c, const char *fmt, va_list ap) {
++void
++file_vprint(struct client *c, const char *fmt, va_list ap)
++{
+@@ -82 +105,2 @@ void file_vprint(struct client *c, const char *fmt, va_list ap) {
+-  if (!file_can_print(c)) return;
++ if (!file_can_print(c))
++  return;
+@@ -97 +121,3 @@ void file_vprint(struct client *c, const char *fmt, va_list ap) {
+-void file_print_buffer(struct client *c, void *data, size_t size) {
++void
++file_print_buffer(struct client *c, void *data, size_t size)
++{
+@@ -100 +126,2 @@ void file_print_buffer(struct client *c, void *data, size_t size) {
+-  if (!file_can_print(c)) return;
++ if (!file_can_print(c))
++  return;
+@@ -115 +142,3 @@ void file_print_buffer(struct client *c, void *data, size_t size) {
+-void file_error(struct client *c, const char *fmt, ...) {
++void
++file_error(struct client *c, const char *fmt, ...)
++{
+@@ -119 +148,2 @@ void file_error(struct client *c, const char *fmt, ...) {
+-  if (!file_can_print(c)) return;
++ if (!file_can_print(c))
++  return;
+@@ -136,3 +166,4 @@ void file_error(struct client *c, const char *fmt, ...) {
+-void file_write(struct client *c, const char *path, int flags,
+-                const void *bdata, size_t bsize, client_file_cb cb,
+-                void *cbdata) {
++void
++file_write(struct client *c, const char *path, int flags, const void *bdata,
++    size_t bsize, client_file_cb cb, void *cbdata)
++{
+@@ -197,2 +228,3 @@ done:
+-void file_read(struct client *c, const char *path, client_file_cb cb,
+-               void *cbdata) {
++void
++file_read(struct client *c, const char *path, client_file_cb cb, void *cbdata)
++{
+@@ -229 +261,2 @@ void file_read(struct client *c, const char *path, client_file_cb cb,
+-      if (size != sizeof buffer) break;
++   if (size != sizeof buffer)
++    break;
+@@ -258 +291,3 @@ done:
+-static void file_push_cb(__unused int fd, __unused short events, void *arg) {
++static void
++file_push_cb(__unused int fd, __unused short events, void *arg)
++{
+@@ -261 +296,2 @@ static void file_push_cb(__unused int fd, __unused short events, void *arg) {
+-  if (~c->flags & CLIENT_DEAD) file_push(cf);
++ if (~c->flags & CLIENT_DEAD)
++  file_push(cf);
+@@ -264 +300,3 @@ static void file_push_cb(__unused int fd, __unused short events, void *arg) {
+-void file_push(struct client_file *cf) {
++void
++file_push(struct client_file *cf)
++{
+@@ -279 +317,2 @@ void file_push(struct client_file *cf) {
+-    if (proc_send(c->peer, MSG_WRITE, -1, msg, msglen) != 0) break;
++  if (proc_send(c->peer, MSG_WRITE, -1, msg, msglen) != 0)
++   break;
+@@ -282,2 +321,2 @@ void file_push(struct client_file *cf) {
+-    log_debug("%s: file %d sent %zu, left %zu", c->name, cf->stream, sent,
+-              left);
++  log_debug("%s: file %d sent %zu, left %zu", c->name, cf->stream,
++      sent, left);

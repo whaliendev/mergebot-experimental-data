@@ -1,0 +1,86 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental.no_comments_merged.cpp
+index be79f31..308cb47 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental.no_comments_merged.cpp
+@@ -27,2 +27 @@ static inline void append_int(borrowed_fd fd, std::vector<char>* bytes) {
+-static inline void append_bytes_with_size(borrowed_fd fd,
+-                                          std::vector<char>* bytes) {
++static inline void append_bytes_with_size(borrowed_fd fd, std::vector<char>* bytes) {
+@@ -39,2 +38 @@ static inline void append_bytes_with_size(borrowed_fd fd,
+-static inline std::pair<std::vector<char>, int32_t> read_id_sig_headers(
+-    borrowed_fd fd) {
++static inline std::pair<std::vector<char>, int32_t> read_id_sig_headers(borrowed_fd fd) {
+@@ -63,2 +61,2 @@ static inline Size verity_tree_size_for_file(Size fileSize) {
+-static std::pair<unique_fd, std::string> read_and_encode_signature(
+-    Size file_size, std::string signature_file) {
++static std::pair<unique_fd, std::string> read_and_encode_signature(Size file_size,
++                                                                   std::string signature_file) {
+@@ -68,2 +66 @@ static std::pair<unique_fd, std::string> read_and_encode_signature(
+-    fprintf(stderr, "Failed to stat signature file %s. Abort.\n",
+-            signature_file.c_str());
++        fprintf(stderr, "Failed to stat signature file %s. Abort.\n", signature_file.c_str());
+@@ -74,2 +71 @@ static std::pair<unique_fd, std::string> read_and_encode_signature(
+-    fprintf(stderr, "Failed to open signature file: %s. Abort.\n",
+-            signature_file.c_str());
++        fprintf(stderr, "Failed to open signature file: %s. Abort.\n", signature_file.c_str());
+@@ -79,2 +75 @@ static std::pair<unique_fd, std::string> read_and_encode_signature(
+-  if (auto expected = verity_tree_size_for_file(file_size);
+-      tree_size != expected) {
++    if (auto expected = verity_tree_size_for_file(file_size); tree_size != expected) {
+@@ -82,2 +77 @@ static std::pair<unique_fd, std::string> read_and_encode_signature(
+-            "Verity tree size mismatch in signature file: %s [was %lld, "
+-            "expected %lld].\n",
++                "Verity tree size mismatch in signature file: %s [was %lld, expected %lld].\n",
+@@ -95,2 +89 @@ static std::pair<unique_fd, std::string> read_and_encode_signature(
+-                                           (const uint8_t*)signature.data(),
+-                                           signature.size()));
++                                             (const uint8_t*)signature.data(), signature.size()));
+@@ -110,2 +103 @@ static unique_fd start_install(const std::vector<std::string>& files) {
+-    auto [signature_fd, signature] =
+-        read_and_encode_signature(st.st_size, file);
++        auto [signature_fd, signature] = read_and_encode_signature(st.st_size, file);
+@@ -115,2 +107,2 @@ static unique_fd start_install(const std::vector<std::string>& files) {
+-    auto file_desc = StringPrintf(
+-        "%s:%lld:%s:%s", android::base::Basename(file).c_str(),
++        auto file_desc =
++                StringPrintf("%s:%lld:%s:%s", android::base::Basename(file).c_str(),
+@@ -130,2 +122 @@ static unique_fd start_install(const std::vector<std::string>& files) {
+-      fprintf(stderr, "Failed to stream tree bytes: %s. Abort.\n",
+-              strerror(errno));
++            fprintf(stderr, "Failed to stream tree bytes: %s. Abort.\n", strerror(errno));
+@@ -151 +141,0 @@ std::optional<Process> install(std::vector<std::string> files) {
+-  <<<<<<< HEAD
+@@ -154,14 +144 @@ std::optional<Process> install(std::vector<std::string> files) {
+-    fprintf(stderr,
+-            "Failed to create socket pair for child to print to parent\n");
+-    return {};
+-  }
+-  auto [pipe_read_fd, pipe_write_fd] = print_fds;
+-  auto pipe_write_fd_param =
+-      std::to_string(intptr_t(adb_get_os_handle(pipe_write_fd)));
+-  close_on_exec(pipe_read_fd);
+-|||||||
+-=======
+-  int print_fds[2];
+-  if (adb_socketpair(print_fds) != 0) {
+-    fprintf(stderr,
+-            "Failed to create socket pair for child to print to parent\n");
++        fprintf(stderr, "Failed to create socket pair for child to print to parent\n");
+@@ -171 +148 @@ std::optional<Process> install(std::vector<std::string> files) {
+-  auto pipe_write_fd_param = std::to_string(pipe_write_fd);
++    auto pipe_write_fd_param = std::to_string(intptr_t(adb_get_os_handle(pipe_write_fd)));
+@@ -173 +149,0 @@ std::optional<Process> install(std::vector<std::string> files) {
+->>>>>>> f24e4b3ae4d5a391a1f86136589b59a27dde55d0
+@@ -176,2 +152,2 @@ std::optional<Process> install(std::vector<std::string> files) {
+-  auto child = adb_launch_process(adb_path, std::move(args),
+-                                  {connection_fd.get(), pipe_write_fd});
++    auto child =
++            adb_launch_process(adb_path, std::move(args), {connection_fd.get(), pipe_write_fd});
+@@ -184,2 +160 @@ std::optional<Process> install(std::vector<std::string> files) {
+-  std::unique_ptr<Process, decltype(killOnExit)> serverKiller(&child,
+-                                                              killOnExit);
++    std::unique_ptr<Process, decltype(killOnExit)> serverKiller(&child, killOnExit);
+@@ -213,2 +188 @@ Result wait_for_installation(int read_fd) {
+-      if (end_itr != std::string::npos &&
+-          end_itr >= begin_itr + failure_msg_head.size()) {
++            if (end_itr != std::string::npos && end_itr >= begin_itr + failure_msg_head.size()) {

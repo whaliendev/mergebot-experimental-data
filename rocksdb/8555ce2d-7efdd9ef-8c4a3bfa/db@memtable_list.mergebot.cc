@@ -143,6 +143,89 @@ void MemTableList::RollbackMemtableFlush(const autovector<MemTable*>& mems,
 
 // Record a successful flush in the manifest file
 Status MemTableList::InstallMemtableFlushResults(
+    ColumnFamilyData* cfd, const autovector<MemTable*>& mems, VersionSet* vset,
+    port::Mutex* mu, Logger* info_log, uint64_t file_number,
+    std::set<uint64_t>& pending_outputs, autovector<MemTable*>* to_delete,
+    Directory* db_directory) {
+  mu->AssertHeld();
+
+  // flush was sucessful
+  for (size_t i = 0; i < mems.size(); ++i) {
+    // All the edits are associated with the first memtable of this batch.
+    assert(i == 0 || mems[i]->GetEdits()->NumEntries() == 0);
+
+    mems[i]->flush_completed_ = true;
+    mems[i]->file_number_ = file_number;
+  }
+
+  // if some other thread is already commiting, then return
+  Status s;
+  if (commit_in_progress_) {
+    return s;
+  }
+
+  // Only a single thread can be executing this piece of code
+  commit_in_progress_ = true;
+
+  // scan all memtables from the earliest, and commit those
+  // (in that order) that have finished flushing. Memetables
+  // are always committed in the order that they were created.
+  while (!current_->memlist_.empty() && s.ok()) {
+    MemTable* m = current_->memlist_.back();  // get the last element
+    if (!m->flush_completed_) {
+      break;
+    }
+
+    Log(info_log, "Level-0 commit table #%lu started",
+        (unsigned long)m->file_number_);
+
+    // this can release and reacquire the mutex.
+    s = vset->LogAndApply(cfd, &m->edit_, mu, db_directory);
+
+    // we will be changing the version in the next code path,
+    // so we better create a new one, since versions are immutable
+    InstallNewVersion();
+
+    // All the later memtables that have the same filenum
+    // are part of the same batch. They can be committed now.
+    uint64_t mem_id = 1;  // how many memtables has been flushed.
+    do {
+      if (s.ok()) {  // commit new state
+        Log(info_log, "Level-0 commit table #%lu: memtable #%lu done",
+            (unsigned long)m->file_number_, (unsigned long)mem_id);
+        current_->Remove(m);
+        assert(m->file_number_ > 0);
+
+        // pending_outputs can be cleared only after the newly created file
+        // has been written to a committed version so that other concurrently
+        // executing compaction threads do not mistakenly assume that this
+        // file is not live.
+        pending_outputs.erase(m->file_number_);
+        if (m->Unref() != nullptr) {
+          to_delete->push_back(m);
+        }
+      } else {
+        // commit failed. setup state so that we can flush again.
+        Log(info_log, "Level-0 commit table #%lu: memtable #%lu failed",
+            (unsigned long)m->file_number_, (unsigned long)mem_id);
+        m->flush_completed_ = false;
+        m->flush_in_progress_ = false;
+        m->edit_.Clear();
+        num_flush_not_started_++;
+        pending_outputs.erase(m->file_number_);
+        m->file_number_ = 0;
+        imm_flush_needed.Release_Store((void*)1);
+      }
+      ++mem_id;
+    } while (!current_->memlist_.empty() && (m = current_->memlist_.back()) &&
+             m->file_number_ == file_number);
+  }
+  commit_in_progress_ = false;
+  return s;
+}
+
+// Record a successful flush in the manifest file
+Status MemTableList::InstallMemtableFlushResults(
     const autovector<MemTable*>& mems, VersionSet* vset, port::Mutex* mu,
     Logger* info_log, uint64_t file_number, std::set<uint64_t>& pending_outputs,
     autovector<MemTable*>* to_delete, Directory* db_directory,

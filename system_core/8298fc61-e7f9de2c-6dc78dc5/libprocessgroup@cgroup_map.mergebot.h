@@ -1,0 +1,81 @@
+/*
+ * Copyright (C) 2019 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+#include <sys/cdefs.h>
+#include <sys/types.h>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
+#include <android/cgrouprc.h>
+// Convenient wrapper of an ACgroupController pointer.
+
+// Minimal controller description to be mmapped into process address space
+
+class CgroupController {
+ private:
+  const ACgroupController* controller_ = nullptr;
+
+ public:
+  // Does not own controller
+  explicitCgroupController(const ACgroupController* controller)
+      : controller_(controller) {}
+
+  uint32_t version() const;
+  const char* name() const;
+  const char* path() const;
+
+  bool HasValue() const;
+
+  uint32_t CgroupController::version() const {
+    CHECK(HasValue());
+    return ACgroupController_getVersion(controller_);
+  }
+  const char* CgroupController::name() const {
+    CHECK(HasValue());
+    return ACgroupController_getName(controller_);
+  }
+  const char* CgroupController::path() const {
+    CHECK(HasValue());
+    return ACgroupController_getPath(controller_);
+  }
+
+  std::string GetTasksFilePath(const std::string& path) const;
+  std::string GetProcsFilePath(const std::string& path, uid_t uid,
+                               pid_t pid) const;
+  bool GetTaskGroup(int tid, std::string* group) const;
+};
+
+class CgroupMap {
+ private:
+  bool loaded_ = false;
+
+ public:
+  // Selinux policy ensures only init process can successfully use this function
+  static bool SetupCgroups();
+
+  static CgroupMap& GetInstance();
+
+  CgroupController FindController(const std::string& name) const;
+
+ private:
+  CgroupMap();
+  bool LoadRcFile();
+  void Print() const;
+};

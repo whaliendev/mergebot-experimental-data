@@ -1,0 +1,64 @@
+--- a/./output/system_core/0bb51f76-8cbbc2dc-d61ce22b/init@property_service.no_comments_conflict.cpp
++++ b/./output/system_core/0bb51f76-8cbbc2dc-d61ce22b/init@property_service.no_comments_merged.cpp
+@@ -40 +39,0 @@
+-<<<<<<< HEAD
+@@ -42,4 +40,0 @@
+-||||||| d61ce22b0
+-=======
+-#include <private/android_filesystem_config.h>
+->>>>>>> 8cbbc2dc
+@@ -91,0 +87 @@ static bool persistent_properties_loaded = false;
++static int property_set_fd = -1;
+@@ -97 +92,0 @@ static std::thread property_service_thread;
+-static std::thread property_service_for_system_thread;
+@@ -311,2 +305,0 @@ static std::optional<uint32_t> PropertySet(const std::string& name, const std::s
+-    if (name == "sys.powerctl") {
+-    } else {
+@@ -334 +326,0 @@ static std::optional<uint32_t> PropertySet(const std::string& name, const std::s
+-    }
+@@ -447 +439 @@ uint32_t HandlePropertySetNoSocket(const std::string& name, const std::string& v
+-static void handle_property_set_fd(int fd) {
++static void handle_property_set_fd() {
+@@ -449 +441 @@ static void handle_property_set_fd(int fd) {
+-    int s = accept4(fd, nullptr, nullptr, SOCK_CLOEXEC);
++    int s = accept4(property_set_fd, nullptr, nullptr, SOCK_CLOEXEC);
+@@ -1111 +1103 @@ static void HandleInitSocket() {
+-static void PropertyServiceThread(int fd, bool listen_init) {
++static void PropertyServiceThread() {
+@@ -1116 +1108 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-    if (auto result = epoll.RegisterHandler(fd, std::bind(handle_property_set_fd, fd));
++    if (auto result = epoll.RegisterHandler(property_set_fd, handle_property_set_fd);
+@@ -1120 +1111,0 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-    if (listen_init) {
+@@ -1124 +1114,0 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-    }
+@@ -1161,14 +1150,0 @@ void PersistWriteThread::Write(std::string name, std::string value, SocketConnec
+-void StartThread(const char* name, int mode, int gid, std::thread& t, bool listen_init) {
+-    int fd = -1;
+-    if (auto result = CreateSocket(name, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
+-                                                false, false, mode, 0,
+-                                           gid, {});
+-        result.ok()) {
+-        fd = *result;
+-    } else {
+-        LOG(FATAL) << "start_property_service socket creation failed: " << result.error();
+-    }
+-    listen(fd, 8);
+-    auto new_thread = std::thread(PropertyServiceThread, fd, listen_init);
+-    t.swap(new_thread);
+-}
+@@ -1184,3 +1160,11 @@ void StartPropertyService(int* epoll_socket) {
+-    StartThread(PROP_SERVICE_FOR_SYSTEM_NAME, 0660, AID_SYSTEM, property_service_for_system_thread,
+-                true);
+-    StartThread(PROP_SERVICE_NAME, 0666, 0, property_service_thread, false);
++    if (auto result = CreateSocket(PROP_SERVICE_NAME, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
++                                                false, false, 0666, 0,
++                                           0, {});
++        result.ok()) {
++        property_set_fd = *result;
++    } else {
++        LOG(FATAL) << "start_property_service socket creation failed: " << result.error();
++    }
++    listen(property_set_fd, 8);
++    auto new_thread = std::thread{PropertyServiceThread};
++    property_service_thread.swap(new_thread);

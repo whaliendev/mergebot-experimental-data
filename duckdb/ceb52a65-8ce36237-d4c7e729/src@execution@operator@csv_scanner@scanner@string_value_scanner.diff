@@ -1,0 +1,44 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/duckdb/ceb52a65-8ce36237-d4c7e729/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/duckdb/ceb52a65-8ce36237-d4c7e729/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_merged.cpp
+index 7e47b0e..4ff9244 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/duckdb/ceb52a65-8ce36237-d4c7e729/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/duckdb/ceb52a65-8ce36237-d4c7e729/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_merged.cpp
+@@ -776,0 +777,24 @@ bool StringValueResult::EmptyLine(StringValueResult &result, const idx_t buffer_
++ if (result.states.IsCarriageReturn() &&
++     result.state_machine.dialect_options.state_machine_options.new_line == NewLineIdentifier::CARRY_ON) {
++  result.last_position.buffer_pos++;
++ }
++ if (result.number_of_columns == 1) {
++  for (idx_t i = 0; i < result.null_str_count; i++) {
++   if (result.null_str_size[i] == 0) {
++    bool empty = false;
++    if (!result.state_machine.options.force_not_null.empty()) {
++     empty = result.state_machine.options.force_not_null[0];
++    }
++    if (empty) {
++     static_cast<string_t *>(result.vector_ptr[0])[result.number_of_rows] = string_t();
++    } else {
++     result.validity_mask[0]->SetInvalid(static_cast<idx_t>(result.number_of_rows));
++    }
++    result.number_of_rows++;
++   }
++  }
++  if (static_cast<idx_t>(result.number_of_rows) >= result.result_size) {
++   return true;
++  }
++ }
++ return false;
+@@ -1164,2 +1188 @@ void StringValueScanner::ProcessOverBufferValue() {
+-<<<<<<< HEAD
+-   value = string_t(overbuffer_string.c_str(), UnsafeNumericCast<uint32_t>(overbuffer_string.size()));
++   value = string_t(over_buffer_string.c_str(), UnsafeNumericCast<uint32_t>(over_buffer_string.size()));
+@@ -1167 +1190 @@ void StringValueScanner::ProcessOverBufferValue() {
+-    value = RemoveEscape(overbuffer_string.c_str(), overbuffer_string.size(),
++    value = RemoveEscape(over_buffer_string.c_str(), over_buffer_string.size(),
+@@ -1171,5 +1193,0 @@ void StringValueScanner::ProcessOverBufferValue() {
+-|||||||
+-   value = string_t(overbuffer_string.c_str(), UnsafeNumericCast<uint32_t>(overbuffer_string.size()));
+-=======
+-   value = string_t(over_buffer_string.c_str(), UnsafeNumericCast<uint32_t>(over_buffer_string.size()));
+->>>>>>> 8ce3623758d64d87b553cd9d76cc487a96f3d0d6
+@@ -1538,0 +1557 @@ ValidatorLine StringValueScanner::GetValidationLine() {
++}

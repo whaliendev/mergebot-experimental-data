@@ -1,0 +1,59 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+@@ -21,2 +21 @@
+-    ({ \
+-        auto _tmp = (x); \
++    ({ auto _tmp = (x); \
+@@ -24,2 +23,2 @@
+-        std::move(_tmp.value()); \
+-    })
++       std::move(_tmp.value()); })
++namespace audio_flags = android::media::audiopolicy;
+@@ -43,9 +42,9 @@ using media::audio::common::Int;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
++std::mutex AudioSystem::gMutex;
++dynamic_policy_callback AudioSystem::gDynPolicyCallback = NULL;
++record_config_callback AudioSystem::gRecordConfigCallback = NULL;
++routing_callback AudioSystem::gRoutingCallback = NULL;
++vol_range_init_req_callback AudioSystem::gVolRangeInitReqCallback = NULL;
++std::mutex AudioSystem::gApsCallbackMutex;
++std::mutex AudioSystem::gErrorCallbacksMutex;
++std::set<audio_error_callback> AudioSystem::gAudioErrorCallbacks;
++std::mutex AudioSystem::gSoundTriggerMutex;
+@@ -57,2 +56,2 @@ class ServiceHandler {
+-    sp<ServiceInterface> getService(bool canStartThreadPool = true)
+-            NO_THREAD_SAFETY_ANALYSIS() {
++    sp<ServiceInterface> getService()
++            EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS {
+@@ -107 +106 @@ class ServiceHandler {
+-        if (canStartThreadPool) {
++        if (mCanStartThreadPool) {
+@@ -143,0 +143,3 @@ class ServiceHandler {
++    void disableThreadPool() {
++        mCanStartThreadPool = false;
++    }
+@@ -151,0 +154 @@ class ServiceHandler {
++    std::atomic<bool> mCanStartThreadPool = true;
+@@ -176,3 +177,0 @@ sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-sp<IAudioFlinger> AudioSystem::get_audio_flinger_for_fuzzer() {
+-    return gAudioFlingerServiceHandler.getService(false );
+-}
+@@ -833,2 +843,2 @@ status_t AudioSystem::setForceUse(audio_policy_force_use_t usage,
+-    return statusTFromBinderStatus(aps->setForceUse(
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_policy_force_use_t_AudioPolicyForceUse(usage)),
++    return statusTFromBinderStatus(
++            aps->setForceUse(
+@@ -836 +846,4 @@ status_t AudioSystem::setForceUse(audio_policy_force_use_t usage,
+-                    legacy2aidl_audio_policy_forced_cfg_t_AudioPolicyForcedConfig(config))));
++                            legacy2aidl_audio_policy_force_use_t_AudioPolicyForceUse(usage)),
++                    VALUE_OR_RETURN_STATUS(
++                            legacy2aidl_audio_policy_forced_cfg_t_AudioPolicyForcedConfig(
++                                    config))));

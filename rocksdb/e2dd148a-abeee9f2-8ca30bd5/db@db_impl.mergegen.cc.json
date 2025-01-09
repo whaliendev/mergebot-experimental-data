@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "  if (is_manual) {\n    // another thread cannot pick up the same work\n    manual_compaction_->in_progress = true;\n  }\n\n  // TODO: remove memtable flush from formal compaction\n  while (imm_.IsFlushPending()) {\n    LogToBuffer(log_buffer,\n                \"BackgroundCompaction doing FlushMemTableToOutputFile, \"\n                \"compaction slots \"\n                \"available %d\",\n                options_.max_background_compactions - bg_compaction_scheduled_);\n    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state);\n    if (!stat.ok()) {\n      if (is_manual) {\n        manual_compaction_->status = stat;\n        manual_compaction_->done = true;\n        manual_compaction_->in_progress = false;\n        manual_compaction_ = nullptr;\n      }\n      return stat;\n    }\n  }\n\n  unique_ptr<Compaction> c;",
+        "base_contents": "  if (is_manual) {\n    // another thread cannot pick up the same work\n    manual_compaction_->in_progress = true;\n  }\n\n  // TODO: remove memtable flush from formal compaction\n  while (imm_.IsFlushPending()) {\n    Log(options_.info_log,\n        \"BackgroundCompaction doing FlushMemTableToOutputFile, compaction slots \"\n        \"available %d\",\n        options_.max_background_compactions - bg_compaction_scheduled_);\n    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state);\n    if (!stat.ok()) {\n      if (is_manual) {\n        manual_compaction_->status = stat;\n        manual_compaction_->done = true;\n        manual_compaction_->in_progress = false;\n        manual_compaction_ = nullptr;\n      }\n      return stat;\n    }\n  }\n\n  unique_ptr<Compaction> c;",
+        "res_region": "",
+        "lookback": "  unique_ptr<Compaction> c;\n  bool is_manual = (manual_compaction_ != nullptr) &&\n                   (manual_compaction_->in_progress == false);",
+        "lookahead": "  InternalKey manual_end_storage;\n  InternalKey* manual_end = &manual_end_storage;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1995,
+        "end_line": 2047,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  } else {\n    // no need to refcount in iteration since it's always under a mutex\n    for (auto cfd : *versions_->GetColumnFamilySet()) {\n      if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) {\n        c.reset(cfd->PickCompaction());\n        if (c != nullptr) {\n          // update statistics\n          MeasureTime(options_.statistics.get(), NUM_FILES_IN_SINGLE_COMPACTION,\n                      c->inputs(0)->size());\n          break;\n        }\n      }\n    }",
+        "b_contents": "  } else if (!options_.disable_auto_compactions) {\n    c.reset(versions_->PickCompaction(log_buffer));",
+        "base_contents": "  } else if (!options_.disable_auto_compactions) {\n    c.reset(versions_->PickCompaction());",
+        "res_region": "  } else {\n    // no need to refcount in iteration since it's always under a mutex\n    for (auto cfd : *versions_->GetColumnFamilySet()) {\n      if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) {\n        c.reset(cfd->PickCompaction(log_buffer));\n        if (c != nullptr) {\n          // update statistics\n          MeasureTime(options_.statistics.get(), NUM_FILES_IN_SINGLE_COMPACTION,\n                      c->inputs(0)->size());\n          break;\n        }\n      }\n    }",
+        "lookback": "        ((m->done || manual_end == nullptr)\n             ? \"(end)\"\n             : manual_end->DebugString().c_str()));",
+        "lookahead": "  }\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2068,
+        "end_line": 2088,
+        "merge_gen_region": "if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) { c.reset(cfd->PickCompaction()); if (c != nullptr) { // update statistics MeasureTime(options_.statistics.get(), NUM_FILES_IN_SINGLE_COMPACTION, c->inputs(0)->size()); break; } } }",
+        "resolved": false
+    },
+    {
+        "a_contents": "    Log(options_.info_log, \"Moved #%lld to level-%d %lld bytes %s: %s\\n\",\n        static_cast<unsigned long long>(f->number), c->level() + 1,\n        static_cast<unsigned long long>(f->file_size),\n        status.ToString().c_str(), c->input_version()->LevelSummary(&tmp));\n    c->ReleaseCompactionFiles(status);",
+        "b_contents": "    LogToBuffer(log_buffer, \"Moved #%lld to level-%d %lld bytes %s: %s\\n\",\n                static_cast<unsigned long long>(f->number), c->level() + 1,\n                static_cast<unsigned long long>(f->file_size),\n                status.ToString().c_str(),\n                versions_->current()->LevelSummary(&tmp));\n    versions_->ReleaseCompactionFiles(c.get(), status);",
+        "base_contents": "    Log(options_.info_log, \"Moved #%lld to level-%d %lld bytes %s: %s\\n\",\n        static_cast<unsigned long long>(f->number), c->level() + 1,\n        static_cast<unsigned long long>(f->file_size),\n        status.ToString().c_str(), versions_->current()->LevelSummary(&tmp));\n    versions_->ReleaseCompactionFiles(c.get(), status);",
+        "res_region": "    LogToBuffer(log_buffer, \"Moved #%lld to level-%d %lld bytes %s: %s\\n\",\n        static_cast<unsigned long long>(f->number), c->level() + 1,\n        static_cast<unsigned long long>(f->file_size),\n        status.ToString().c_str(), c->input_version()->LevelSummary(&tmp));\n    c->ReleaseCompactionFiles(status);",
+        "lookback": "    }\n\n    Version::LevelSummaryStorage tmp;",
+        "lookahead": "    *madeProgress = true;\n  } else {",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 2111,
+        "end_line": 2130,
+        "merge_gen_region": " LogToBuffer(log_buffer, \"Moved #%lld to level-%d %lld bytes %s: %s\\n\", static_cast<unsigned long long>(f->number), c->level() + 1, static_cast<unsigned long long>(f->file_size), status.ToString().c_str(), c->input_version()->LevelSummary(&tmp));",
+        "resolved": false
+    }
+]

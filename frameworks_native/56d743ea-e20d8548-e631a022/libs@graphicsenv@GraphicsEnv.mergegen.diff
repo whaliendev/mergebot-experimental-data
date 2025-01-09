@@ -1,0 +1,90 @@
+diff --git a/./output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_mergegen.cpp b/./output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_merged.cpp
+index 55c880d..4a8d3c1 100644
+--- a/./output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_mergegen.cpp
++++ b/./output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_merged.cpp
+@@ -120 +120,2 @@ bool GraphicsEnv::isDebuggable() {
+-                                             void GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path, const std::string& sphalLibraries) {
++void GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path,
++                                                 const std::string& sphalLibraries) {
+@@ -400,0 +402,2 @@ return mShouldUseAngle;
++void GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver,
++                               const std::string& packageName,
+@@ -402,0 +406 @@ if (mShouldUseAngle) {
++        ALOGE("ANGLE is already set for %s", packageName.c_str());
+@@ -407 +411,5 @@ if (mShouldUseAngle) {
+-mPackageName = std::move(packageName); if (mAnglePath == "system") { mShouldUseSystemAngle = true; } if (!mAnglePath.empty()) { mShouldUseAngle = true; } mShouldUseNativeDriver = shouldUseNativeDriver;
++    mAnglePath = std::move(path);
++    ALOGV("setting app package name to '%s'", packageName.c_str());
++    mPackageName = std::move(packageName);
++    if (mAnglePath == "system") {
++        mShouldUseSystemAngle = true;
+@@ -409 +417,66 @@ mPackageName = std::move(packageName); if (mAnglePath == "system") { mShouldUseS
+-std::string& GraphicsEnv::getPackageName() { return mPackageName; } const std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() { return mAngleEglFeatures; } android_namespace_t* GraphicsEnv::getAngleNamespace() { std::lock_guard<std::mutex> lock(mNamespaceMutex); if (mAngleNamespace) { return mAngleNamespace; } if (mAnglePath.empty() && !mShouldUseSystemAngle) { ALOGV("mAnglePath is empty and not using system ANGLE, abort creating ANGLE namespace"); return nullptr; }
++    if (!mAnglePath.empty()) {
++        mShouldUseAngle = true;
++    }
++    mShouldUseNativeDriver = shouldUseNativeDriver;
++}
++std::string& GraphicsEnv::getPackageName() {
++    return mPackageName;
++}
++const std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {
++    return mAngleEglFeatures;
++}
++android_namespace_t* GraphicsEnv::getAngleNamespace() {
++    std::lock_guard<std::mutex> lock(mNamespaceMutex);
++    if (mAngleNamespace) {
++        return mAngleNamespace;
++    }
++    if (mAnglePath.empty() && !mShouldUseSystemAngle) {
++        ALOGV("mAnglePath is empty and not using system ANGLE, abort creating ANGLE namespace");
++        return nullptr;
++    }
++    const char* const defaultLibraryPaths =
++#if defined(__LP64__)
++            "/vendor/lib64/egl:/system/lib64/egl";
++#else
++            "/vendor/lib/egl:/system/lib/egl";
++#endif
++    mAngleNamespace =
++            android_create_namespace("ANGLE",
++                                     mShouldUseSystemAngle ? defaultLibraryPaths
++                                                           : mAnglePath.c_str(),
++                                     mShouldUseSystemAngle
++                                             ? defaultLibraryPaths
++                                             : mAnglePath.c_str(),
++                                     ANDROID_NAMESPACE_TYPE_SHARED_ISOLATED,
++                                     nullptr,
++                                     mShouldUseSystemAngle ? android_get_exported_namespace("sphal")
++                                                           : nullptr);
++    ALOGD_IF(!mAngleNamespace, "Could not create ANGLE namespace from default");
++    if (!mShouldUseSystemAngle) {
++        return mAngleNamespace;
++    }
++    auto vndkNamespace = android_get_exported_namespace("vndk");
++    if (!vndkNamespace) {
++        return nullptr;
++    }
++    if (!linkDriverNamespaceLocked(mAngleNamespace, vndkNamespace, "")) {
++        mAngleNamespace = nullptr;
++    }
++    return mAngleNamespace;
++}
++void GraphicsEnv::nativeToggleAngleAsSystemDriver(bool enabled) {
++    const sp<IGpuService> gpuService = getGpuService();
++    if (!gpuService) {
++        ALOGE("No GPU service");
++        return;
++    }
++    gpuService->toggleAngleAsSystemDriver(enabled);
++}
++bool GraphicsEnv::shouldUseSystemAngle() {
++    return mShouldUseSystemAngle;
++}
++bool GraphicsEnv::shouldUseNativeDriver() {
++    return mShouldUseNativeDriver;
++}
++void GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,
++                                const std::string& layerPaths) {
+@@ -421 +493,0 @@ NativeLoaderNamespace* GraphicsEnv::getAppNamespace() {
+-const std::string& GraphicsEnv::getLayerPaths() {

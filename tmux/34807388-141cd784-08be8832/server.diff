@@ -1,0 +1,208 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/34807388-141cd784-08be8832/server.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/34807388-141cd784-08be8832/server.no_comments_merged.c
+index e56b00c..a0a36af 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/34807388-141cd784-08be8832/server.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/34807388-141cd784-08be8832/server.no_comments_merged.c
+@@ -8,2 +7,0 @@
+-#include <event.h>
+-#include <paths.h>
+@@ -37,2 +35,3 @@ static void server_child_stopped(pid_t, int);
+-void server_set_marked(struct session *s, struct winlink *wl,
+-                       struct window_pane *wp) {
++void
++server_set_marked(struct session *s, struct winlink *wl, struct window_pane *wp)
++{
+@@ -45,6 +44,14 @@ void server_set_marked(struct session *s, struct winlink *wl,
+-void server_clear_marked(void) { cmd_find_clear_state(&marked_pane, 0); }
+-int server_is_marked(struct session *s, struct winlink *wl,
+-                     struct window_pane *wp) {
+-  if (s == NULL || wl == NULL || wp == NULL) return (0);
+-  if (marked_pane.s != s || marked_pane.wl != wl) return (0);
+-  if (marked_pane.wp != wp) return (0);
++void
++server_clear_marked(void)
++{
++ cmd_find_clear_state(&marked_pane, 0);
++}
++int
++server_is_marked(struct session *s, struct winlink *wl, struct window_pane *wp)
++{
++ if (s == NULL || wl == NULL || wp == NULL)
++  return (0);
++ if (marked_pane.s != s || marked_pane.wl != wl)
++  return (0);
++ if (marked_pane.wp != wp)
++  return (0);
+@@ -53,2 +60,8 @@ int server_is_marked(struct session *s, struct winlink *wl,
+-int server_check_marked(void) { return (cmd_find_valid_state(&marked_pane)); }
+-intserver_create_socket(int flags, char **cause, uint64_t flags) {
++int
++server_check_marked(void)
++{
++ return (cmd_find_valid_state(&marked_pane));
++}
++int
++server_create_socket(uint64_t flags, char **cause)
++{
+@@ -67 +80,2 @@ intserver_create_socket(int flags, char **cause, uint64_t flags) {
+-  if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) goto fail;
++ if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
++  goto fail;
+@@ -89 +103,2 @@ fail:
+-    xasprintf(cause, "error creating %s (%s)", socket_path, strerror(errno));
++  xasprintf(cause, "error creating %s (%s)", socket_path,
++      strerror(errno));
+@@ -93,2 +108,3 @@ fail:
+-static void server_tidy_event(__unused int fd, __unused short events,
+-                              __unused void *data) {
++static void
++server_tidy_event(__unused int fd, __unused short events, __unused void *data)
++{
+@@ -105,2 +121,4 @@ static void server_tidy_event(__unused int fd, __unused short events,
+-int server_start(struct tmuxproc *client, uint64_t flags,
+-                 struct event_base *base, int lockfd, char *lockfile) {
++int
++server_start(struct tmuxproc *client, uint64_t flags, struct event_base *base,
++    int lockfd, char *lockfile)
++{
+@@ -122 +140,2 @@ int server_start(struct tmuxproc *client, uint64_t flags,
+-  if (event_reinit(base) != 0) fatalx("event_reinit failed");
++ if (event_reinit(base) != 0)
++  fatalx("event_reinit failed");
+@@ -126 +145,2 @@ int server_start(struct tmuxproc *client, uint64_t flags,
+-  if (log_get_level() > 1) tty_create_log();
++ if (log_get_level() > 1)
++  tty_create_log();
+@@ -128,2 +148 @@ int server_start(struct tmuxproc *client, uint64_t flags,
+-             "tty ps",
+-             NULL) != 0)
++     "tty ps", NULL) != 0)
+@@ -144 +163,2 @@ int server_start(struct tmuxproc *client, uint64_t flags,
+-  if (server_fd != -1) server_update_socket();
++ if (server_fd != -1)
++  server_update_socket();
+@@ -172 +192,3 @@ int server_start(struct tmuxproc *client, uint64_t flags,
+-static int server_loop(void) {
++static int
++server_loop(void)
++{
+@@ -179 +201,2 @@ static int server_loop(void) {
+-      if (c->flags & CLIENT_IDENTIFIED) items += cmdq_next(c);
++   if (c->flags & CLIENT_IDENTIFIED)
++    items += cmdq_next(c);
+@@ -186 +209,2 @@ static int server_loop(void) {
+-    if (!RB_EMPTY(&sessions)) return (0);
++  if (!RB_EMPTY(&sessions))
++   return (0);
+@@ -189 +213,2 @@ static int server_loop(void) {
+-    if (c->session != NULL) return (0);
++  if (c->session != NULL)
++   return (0);
+@@ -192,2 +217,4 @@ static int server_loop(void) {
+-  if (!TAILQ_EMPTY(&clients)) return (0);
+-  if (job_still_running()) return (0);
++ if (!TAILQ_EMPTY(&clients))
++  return (0);
++ if (job_still_running())
++  return (0);
+@@ -196 +223,3 @@ static int server_loop(void) {
+-static void server_send_exit(void) {
++static void
++server_send_exit(void)
++{
+@@ -212 +241,3 @@ static void server_send_exit(void) {
+-void server_update_socket(void) {
++void
++server_update_socket(void)
++{
+@@ -226 +257,2 @@ void server_update_socket(void) {
+-    if (stat(socket_path, &sb) != 0) return;
++  if (stat(socket_path, &sb) != 0)
++   return;
+@@ -229,3 +261,6 @@ void server_update_socket(void) {
+-      if (mode & S_IRUSR) mode |= S_IXUSR;
+-      if (mode & S_IRGRP) mode |= S_IXGRP;
+-      if (mode & S_IROTH) mode |= S_IXOTH;
++   if (mode & S_IRUSR)
++    mode |= S_IXUSR;
++   if (mode & S_IRGRP)
++    mode |= S_IXGRP;
++   if (mode & S_IROTH)
++    mode |= S_IXOTH;
+@@ -237 +272,3 @@ void server_update_socket(void) {
+-static void server_accept(int fd, short events, __unused void *data) {
++static void
++server_accept(int fd, short events, __unused void *data)
++{
+@@ -243 +280,2 @@ static void server_accept(int fd, short events, __unused void *data) {
+-  if (!(events & EV_READ)) return;
++ if (!(events & EV_READ))
++  return;
+@@ -246 +284,2 @@ static void server_accept(int fd, short events, __unused void *data) {
+-    if (errno == EAGAIN || errno == EINTR || errno == ECONNABORTED) return;
++  if (errno == EAGAIN || errno == EINTR || errno == ECONNABORTED)
++   return;
+@@ -263 +302,3 @@ static void server_accept(int fd, short events, __unused void *data) {
+-void server_add_accept(int timeout) {
++void
++server_add_accept(int timeout)
++{
+@@ -265,2 +306,4 @@ void server_add_accept(int timeout) {
+-  if (server_fd == -1) return;
+-  if (event_initialized(&server_ev_accept)) event_del(&server_ev_accept);
++ if (server_fd == -1)
++  return;
++ if (event_initialized(&server_ev_accept))
++  event_del(&server_ev_accept);
+@@ -268 +311,2 @@ void server_add_accept(int timeout) {
+-    event_set(&server_ev_accept, server_fd, EV_READ, server_accept, NULL);
++  event_set(&server_ev_accept, server_fd, EV_READ, server_accept,
++      NULL);
+@@ -271 +315,2 @@ void server_add_accept(int timeout) {
+-    event_set(&server_ev_accept, server_fd, EV_TIMEOUT, server_accept, NULL);
++  event_set(&server_ev_accept, server_fd, EV_TIMEOUT,
++      server_accept, NULL);
+@@ -275 +320,3 @@ void server_add_accept(int timeout) {
+-static void server_signal(int sig) {
++static void
++server_signal(int sig)
++{
+@@ -302 +349,3 @@ static void server_signal(int sig) {
+-static void server_child_signal(void) {
++static void
++server_child_signal(void)
++{
+@@ -308 +357,2 @@ static void server_child_signal(void) {
+-        if (errno == ECHILD) return;
++   if (errno == ECHILD)
++    return;
+@@ -319 +369,3 @@ static void server_child_signal(void) {
+-static void server_child_exited(pid_t pid, int status) {
++static void
++server_child_exited(pid_t pid, int status)
++{
+@@ -329 +381,2 @@ static void server_child_exited(pid_t pid, int status) {
+-        if (window_pane_destroy_ready(wp)) server_destroy_pane(wp, 1);
++    if (window_pane_destroy_ready(wp))
++     server_destroy_pane(wp, 1);
+@@ -336 +389,3 @@ static void server_child_exited(pid_t pid, int status) {
+-static void server_child_stopped(pid_t pid, int status) {
++static void
++server_child_stopped(pid_t pid, int status)
++{
+@@ -339 +394,2 @@ static void server_child_stopped(pid_t pid, int status) {
+-  if (WSTOPSIG(status) == SIGTTIN || WSTOPSIG(status) == SIGTTOU) return;
++ if (WSTOPSIG(status) == SIGTTIN || WSTOPSIG(status) == SIGTTOU)
++  return;
+@@ -343 +399,2 @@ static void server_child_stopped(pid_t pid, int status) {
+-        if (killpg(pid, SIGCONT) != 0) kill(pid, SIGCONT);
++    if (killpg(pid, SIGCONT) != 0)
++     kill(pid, SIGCONT);
+@@ -349 +406,3 @@ static void server_child_stopped(pid_t pid, int status) {
+-void server_add_message(const char *fmt, ...) {
++void
++server_add_message(const char *fmt, ...)
++{
+@@ -365 +424,2 @@ void server_add_message(const char *fmt, ...) {
+-    if (msg->msg_num + limit >= message_next) break;
++  if (msg->msg_num + limit >= message_next)
++   break;

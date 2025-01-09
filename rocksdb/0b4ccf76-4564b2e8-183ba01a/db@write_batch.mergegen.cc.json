@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "  bool IgnoreUpdate() {\n    return log_number_ != 0 && log_number_ < cf_mems_->GetLogNumber();\n  }\n\n  virtual void PutCF(uint32_t column_family_id, const Slice& key,\n                     const Slice& value) {\n    bool found = cf_mems_->Seek(column_family_id);\n    // TODO(icanadi) if found = false somehow return the error to caller\n    // Will need to change public API to do this\n    if (!found || IgnoreUpdate()) {\n      return;\n    }\n    MemTable* mem = cf_mems_->GetMemTable();\n    const Options* options = cf_mems_->GetFullOptions();\n    if (options->inplace_update_support &&\n        mem->Update(sequence_, kTypeValue, key, value)) {\n      RecordTick(options->statistics.get(), NUMBER_KEYS_UPDATED);",
+        "b_contents": "  virtual void Put(const Slice& key, const Slice& value) {\n    if (!options_->inplace_update_support) {\n      mem_->Add(sequence_, kTypeValue, key, value);\n    } else if (options_->inplace_callback == nullptr) {\n      mem_->Update(sequence_, key, value);\n      RecordTick(options_->statistics.get(), NUMBER_KEYS_UPDATED);",
+        "base_contents": "  virtual void Put(const Slice& key, const Slice& value) {\n    if (options_->inplace_update_support\n        && mem_->Update(sequence_, kTypeValue, key, value)) {\n      RecordTick(options_->statistics.get(), NUMBER_KEYS_UPDATED);",
+        "res_region": "  bool IgnoreUpdate() {\n    return log_number_ != 0 && log_number_ < cf_mems_->GetLogNumber();\n  }\n\n  virtual void PutCF(uint32_t column_family_id, const Slice& key,\n                     const Slice& value) {\n    bool found = cf_mems_->Seek(column_family_id);\n    // TODO(icanadi) if found = false somehow return the error to caller\n    // Will need to change public API to do this\n    if (!found || IgnoreUpdate()) {\n      return;\n    }\n    MemTable* mem = cf_mems_->GetMemTable();\n    const Options* options = cf_mems_->GetFullOptions();\n    if (!options->inplace_update_support) {\n      mem->Add(sequence_, kTypeValue, key, value);\n    } else if (options->inplace_callback == nullptr) {\n      mem->Update(sequence_, key, value);\n      RecordTick(options->statistics.get(), NUMBER_KEYS_UPDATED);",
+        "lookback": "    }\n  }\n",
+        "lookahead": "    } else {\n      if (mem->UpdateCallback(sequence_, key, value, *options)) {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 249,
+        "end_line": 279,
+        "merge_gen_region": "bool IgnoreUpdate() { return log_number_ != 0 && log_number_ < cf_mems_->GetLogNumber(); } virtual void PutCF(uint32_t column_family_id, const Slice& key, const Slice& value) { bool found = cf_mems_->Seek(column_family_id); // TODO(icanadi) if found = false somehow return the error to caller // Will need to change public API to do this if (!found || IgnoreUpdate()) { return; } MemTable* mem = cf_mems_->GetMemTable(); const Options* options = cf_mems_->GetFullOptions(); if (!options->inplace_update_support) { mem->Update(sequence_, kTypeValue, key, value); } else if (options_->inplace_callback == nullptr) { mem_->Update(sequence_, key, value); RecordTick(options->statistics.get(), NUMBER_KEYS_UPDATED);",
+        "resolved": false
+    },
+    {
+        "a_contents": "      mem->Add(sequence_, kTypeValue, key, value);",
+        "b_contents": "      if (mem_->UpdateCallback(sequence_, key, value, *options_)) {\n      } else {\n        // key not found in memtable. Do sst get, update, add\n        SnapshotImpl read_from_snapshot;\n        read_from_snapshot.number_ = sequence_;\n        ReadOptions ropts;\n        ropts.snapshot = &read_from_snapshot;\n\n        std::string prev_value;\n        std::string merged_value;\n        Status s = db_->Get(ropts, key, &prev_value);\n        char* prev_buffer = const_cast<char*>(prev_value.c_str());\n        uint32_t prev_size = prev_value.size();\n        auto status =\n          options_->inplace_callback(s.ok() ? prev_buffer: nullptr,\n                                     s.ok() ? &prev_size: nullptr,\n                                     value, &merged_value);\n        if (status == UpdateStatus::UPDATED_INPLACE) {\n          // prev_value is updated in-place with final value.\n          mem_->Add(sequence_, kTypeValue, key, Slice(prev_buffer, prev_size));\n          RecordTick(options_->statistics.get(), NUMBER_KEYS_WRITTEN);\n        } else if (status == UpdateStatus::UPDATED) {\n          // merged_value contains the final value.\n          mem_->Add(sequence_, kTypeValue, key, Slice(merged_value));\n          RecordTick(options_->statistics.get(), NUMBER_KEYS_WRITTEN);\n        }\n      }",
+        "base_contents": "      mem_->Add(sequence_, kTypeValue, key, value);",
+        "res_region": "      if (mem->UpdateCallback(sequence_, key, value, *options)) {\n      } else {\n        // key not found in memtable. Do sst get, update, add\n        SnapshotImpl read_from_snapshot;\n        read_from_snapshot.number_ = sequence_;\n        ReadOptions ropts;\n        ropts.snapshot = &read_from_snapshot;\n\n        std::string prev_value;\n        std::string merged_value;\n        Status s = db_->Get(ropts, key, &prev_value);\n        char* prev_buffer = const_cast<char*>(prev_value.c_str());\n        uint32_t prev_size = prev_value.size();\n        auto status = options->inplace_callback(s.ok() ? prev_buffer : nullptr,\n                                                s.ok() ? &prev_size : nullptr,\n                                                value, &merged_value);\n        if (status == UpdateStatus::UPDATED_INPLACE) {\n          // prev_value is updated in-place with final value.\n          mem->Add(sequence_, kTypeValue, key, Slice(prev_buffer, prev_size));\n          RecordTick(options->statistics.get(), NUMBER_KEYS_WRITTEN);\n        } else if (status == UpdateStatus::UPDATED) {\n          // merged_value contains the final value.\n          mem->Add(sequence_, kTypeValue, key, Slice(merged_value));\n          RecordTick(options->statistics.get(), NUMBER_KEYS_WRITTEN);\n        }\n      }",
+        "lookback": "      mem->Update(sequence_, key, value);\n      RecordTick(options->statistics.get(), NUMBER_KEYS_UPDATED);\n    } else {",
+        "lookahead": "    }\n    // Since all Puts are logged in trasaction logs (if enabled), always bump",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 281,
+        "end_line": 313,
+        "merge_gen_region": "if (mem_->UpdateCallback(sequence_, key, value, *options_)) { } else { // key not found in memtable. Do sst get, update, add SnapshotImpl read_from_snapshot; read_from_snapshot.number_ = sequence_; ReadOptions ropts; ropts.snapshot = &read_from_snapshot; std::string prev_value; std::string merged_value; Status s = db_->Get(ropts, key, &prev_value); char* prev_buffer = const_cast<char*>(prev_value.c_str()); uint32_t prev_size = prev_value.size(); auto status = options_->inplace_callback(s.ok() ? prev_buffer: nullptr, s.ok() ? &prev_size: nullptr, value, &merged_value); if (status == UpdateStatus::UPDATED_INPLACE) { // prev_value is updated in-place with final value. mem->Add(sequence_, kTypeValue, key, Slice(prev_buffer, prev_size)); RecordTick(options_->statistics.get(), NUMBER_KEYS_WRITTEN); } else if (status == UpdateStatus::UPDATED) { // merged_value contains the final value. mem->Add(sequence_, kTypeValue, key, Slice(prev_buffer, prev_size)); RecordTick(options_->statistics.get(), NUMBER_KEYS_WRITTEN); } }",
+        "resolved": false
+    },
+    {
+        "a_contents": "  virtual void MergeCF(uint32_t column_family_id, const Slice& key,\n                       const Slice& value) {\n    bool found = cf_mems_->Seek(column_family_id);\n    if (!found || IgnoreUpdate()) {\n      return;\n    }\n    MemTable* mem = cf_mems_->GetMemTable();\n    const Options* options = cf_mems_->GetFullOptions();",
+        "b_contents": "\n  virtual void Merge(const Slice& key, const Slice& value) {",
+        "base_contents": "  virtual void Merge(const Slice& key, const Slice& value) {",
+        "res_region": "\n  virtual void MergeCF(uint32_t column_family_id, const Slice& key,\n                       const Slice& value) {\n    bool found = cf_mems_->Seek(column_family_id);\n    if (!found || IgnoreUpdate()) {\n      return;\n    }\n    MemTable* mem = cf_mems_->GetMemTable();\n    const Options* options = cf_mems_->GetFullOptions();",
+        "lookback": "    // in memtable add/update.\n    sequence_++;\n  }",
+        "lookahead": "    bool perform_merge = false;\n",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 320,
+        "end_line": 334,
+        "merge_gen_region": "virtual void MergeCF(uint32_t column_family_id, const Slice& key, const Slice& value) { bool found = cf_mems_->Seek(column_family_id); if (!found || IgnoreUpdate()) { return; } MemTable* mem = cf_mems_->GetMemTable(); const Options* options = cf_mems_->GetFullOptions();",
+        "resolved": true
+    }
+]

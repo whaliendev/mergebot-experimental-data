@@ -1,0 +1,22 @@
+diff --git a/./output/grpc/8bab28db-b6a7d550-cbf18222/src@core@ext@filters@client_channel@xds@xds_api.no_comments_mergegen.cc b/./output/grpc/8bab28db-b6a7d550-cbf18222/src@core@ext@filters@client_channel@xds@xds_api.no_comments_merged.cc
+index 2006ab4..28f475d 100644
+--- a/./output/grpc/8bab28db-b6a7d550-cbf18222/src@core@ext@filters@client_channel@xds@xds_api.no_comments_mergegen.cc
++++ b/./output/grpc/8bab28db-b6a7d550-cbf18222/src@core@ext@filters@client_channel@xds@xds_api.no_comments_merged.cc
+@@ -847 +847,6 @@ grpc_error* RouteConfigParse(
+-      if (prefix.size > 0) {
++      if (prefix.size == 1) {
++        if (prefix.data[0] != '/') {
++          return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
++              "Prefix is not empty and does starting with a /");
++        }
++      } else if (prefix.size > 1) {
+@@ -911 +916,8 @@ grpc_error* RouteConfigParse(
+-if (rds_update->routes.empty()) { return GRPC_ERROR_CREATE_FROM_STATIC_STRING("No valid routes specified."); } else { if (!rds_update->routes.back().service.empty() || !rds_update->routes.back().method.empty()) { return GRPC_ERROR_CREATE_FROM_STATIC_STRING( "Default route must have empty service and method"); }
++  if (rds_update->routes.empty()) {
++    return GRPC_ERROR_CREATE_FROM_STATIC_STRING("No valid routes specified.");
++  } else {
++    if (!rds_update->routes.back().service.empty() ||
++        !rds_update->routes.back().method.empty()) {
++      return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
++          "Default route must have empty service and method");
++    }

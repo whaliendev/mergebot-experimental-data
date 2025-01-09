@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "ScopedAStatus Artd::validateClassLoaderContext(const std::string& in_dexPath,\n                                               const std::string& in_classLoaderContext,\n                                               std::optional<std::string>* _aidl_return) {\n  if (in_classLoaderContext == ClassLoaderContext::kUnsupportedClassLoaderContextEncoding) {\n    *_aidl_return = std::nullopt;\n    return ScopedAStatus::ok();\n  }\n\n  std::unique_ptr<ClassLoaderContext> context = ClassLoaderContext::Create(in_classLoaderContext);\n  if (context == nullptr) {\n    *_aidl_return = ART_FORMAT(\"Class loader context '{}' is invalid\", in_classLoaderContext);\n    return ScopedAStatus::ok();\n  }\n\n  std::vector<std::string> flattened_context = context->FlattenDexPaths();\n  std::string dex_dir = Dirname(in_dexPath);\n  for (const std::string& context_element : flattened_context) {\n    std::string context_path = std::filesystem::path(dex_dir).append(context_element);\n    if (Result<void> result = ValidateDexPath(context_path); !result.ok()) {\n      *_aidl_return = result.error().message();\n      return ScopedAStatus::ok();\n    }\n  }\n\n  *_aidl_return = std::nullopt;\n  return ScopedAStatus::ok();\n}\n",
+        "base_contents": "ScopedAStatus Artd::validateClassLoaderContext(const std::string& in_dexPath,\n                                               const std::string& in_classLoaderContext,\n                                               std::optional<std::string>* _aidl_return) {\n  if (in_classLoaderContext == ClassLoaderContext::kUnsupportedClassLoaderContextEncoding) {\n    *_aidl_return = std::nullopt;\n    return ScopedAStatus::ok();\n  }\n\n  std::unique_ptr<ClassLoaderContext> context = ClassLoaderContext::Create(in_classLoaderContext);\n  if (context == nullptr) {\n    *_aidl_return = \"Class loader context '{}' is invalid\"_format(in_classLoaderContext);\n    return ScopedAStatus::ok();\n  }\n\n  std::vector<std::string> flattened_context = context->FlattenDexPaths();\n  std::string dex_dir = Dirname(in_dexPath);\n  for (const std::string& context_element : flattened_context) {\n    std::string context_path = std::filesystem::path(dex_dir).append(context_element);\n    if (Result<void> result = ValidateDexPath(context_path); !result.ok()) {\n      *_aidl_return = result.error().message();\n      return ScopedAStatus::ok();\n    }\n  }\n\n  *_aidl_return = std::nullopt;\n  return ScopedAStatus::ok();\n}\n",
+        "res_region": "",
+        "lookback": "  return ScopedAStatus::ok();\n}\n",
+        "lookahead": "Result<void> Artd::Start() {\n  OR_RETURN(SetLogVerbosity());",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1181,
+        "end_line": 1240,
+        "merge_gen_region": "",
+        "resolved": true
+    }
+]

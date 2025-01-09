@@ -1,0 +1,58 @@
+diff --git a/./output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_mergegen.cpp b/./output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_merged.cpp
+index fd575dc..18647a7 100644
+--- a/./output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_mergegen.cpp
++++ b/./output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_merged.cpp
+@@ -13 +13,2 @@ static inline SchedPolicy _policy(SchedPolicy p) {
+-#if defined(__ANDROID__) int set_tid_to_cgroup(int tid, int fd) { if (fd < 0) { SLOGE("add_tid_to_cgroup failed; fd=%d\n", fd); errno = EINVAL; return -1; }
++#if defined(__ANDROID__)
++int set_cpuset_policy(int tid, SchedPolicy policy) {
+@@ -104 +104,0 @@ int set_sched_policy(int tid, SchedPolicy policy) {
+-return 0; } bool cpusets_enabled() { static bool enabled = (CgroupMap::GetInstance().FindController("cpuset") != nullptr); return enabled; } bool schedboost_enabled() { static bool enabled = (CgroupMap::GetInstance().FindController("schedtune") != nullptr); return enabled; } static int getCGroupSubsys(int tid, const char* subsys, std::string& subgroup) { const CgroupController* controller = CgroupMap::GetInstance().FindController(subsys); if (!controller) return -1; if (!controller->GetTaskGroup(tid, &subgroup)) { PLOG(ERROR) << "Failed to find cgroup for tid " << tid; return -1; } return 0; } int get_sched_policy(int tid, SchedPolicy* policy) { if (tid == 0) { tid = GetThreadId(); } std::string group; if (schedboost_enabled()) { if (getCGroupSubsys(tid, "schedtune", group) < 0) return -1; } if (group.empty() && cpusets_enabled()) { if (getCGroupSubsys(tid, "cpuset", group) < 0) return -1; }
+@@ -115 +115,36 @@ bool schedboost_enabled() {
+-static int getCGroupSubsys(int tid, const char* subsys, std::string& subgroup) { const CgroupController* controller = CgroupMap::GetInstance().FindController(subsys); if (!controller) return -1; if (!controller->GetTaskGroup(tid, &subgroup)) { PLOG(ERROR) << "Failed to find cgroup for tid " << tid; return -1; }
++static int getCGroupSubsys(int tid, const char* subsys, std::string& subgroup) {
++    const CgroupController* controller = CgroupMap::GetInstance().FindController(subsys);
++    if (!controller) return -1;
++    if (!controller->GetTaskGroup(tid, &subgroup)) {
++        PLOG(ERROR) << "Failed to find cgroup for tid " << tid;
++        return -1;
++    }
++    return 0;
++}
++int get_sched_policy(int tid, SchedPolicy* policy) {
++    if (tid == 0) {
++        tid = GetThreadId();
++    }
++    std::string group;
++    if (schedboost_enabled()) {
++        if (getCGroupSubsys(tid, "schedtune", group) < 0) return -1;
++    }
++    if (group.empty() && cpusets_enabled()) {
++        if (getCGroupSubsys(tid, "cpuset", group) < 0) return -1;
++    }
++    if (group.empty()) {
++        *policy = SP_FOREGROUND;
++    } else if (group == "foreground") {
++        *policy = SP_FOREGROUND;
++    } else if (group == "system-background") {
++        *policy = SP_SYSTEM;
++    } else if (group == "background") {
++        *policy = SP_BACKGROUND;
++    } else if (group == "top-app") {
++        *policy = SP_TOP_APP;
++    } else if (group == "restricted") {
++        *policy = SP_RESTRICTED;
++    } else {
++        errno = ERANGE;
++        return -1;
++    }
+@@ -118 +153,2 @@ static int getCGroupSubsys(int tid, const char* subsys, std::string& subgroup) {
+-int get_sched_policy(int, SchedPolicy* policy) { if (tid == 0) { tid = GetThreadId(); } std::string group; if (schedboost_enabled()) { if (getCGroupSubsys(tid, "schedtune", group) < 0) return -1; } if (group.empty() && cpusets_enabled()) { if (getCGroupSubsys(tid, "cpuset", group) < 0) return -1; }
++#else
++int set_sched_policy(int, SchedPolicy) {
+@@ -120,0 +157,5 @@ int get_sched_policy(int, SchedPolicy* policy) { if (tid == 0) { tid = GetThread
++int get_sched_policy(int, SchedPolicy* policy) {
++    *policy = SP_SYSTEM_DEFAULT;
++    return 0;
++}
++#endif

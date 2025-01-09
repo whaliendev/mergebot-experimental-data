@@ -1,0 +1,1351 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_merged.cpp
+index ea995fe..1c3c8f6 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_merged.cpp
+@@ -42,3 +42 @@
+-#define ALOGVV(a...) \
+-    do { \
+-    } while (0)
++#define ALOGVV(a...) do { } while(0)
+@@ -48,2 +45,0 @@ using ::android::base::StringPrintf;
+-using android::content::AttributionSourceState;
+-using android::detail::AudioHalVersionInfo;
+@@ -53,0 +50,2 @@ using media::audio::common::AudioMode;
++using android::content::AttributionSourceState;
++using android::detail::AudioHalVersionInfo;
+@@ -65 +63,2 @@ static pthread_once_t sMediaLogOnce = PTHREAD_ONCE_INIT;
+-static void sMediaLogInit() {
++static void sMediaLogInit()
++{
+@@ -145 +144 @@ static void sMediaLogInit() {
+-    BINDER_METHOD_ENTRY(resetReferencesForTest)
++BINDER_METHOD_ENTRY(resetReferencesForTest) \
+@@ -153 +152,3 @@ static auto& getIAudioFlingerStatistics() {
+-            IAUDIOFLINGER_BINDER_METHOD_MACRO_LIST METHOD_STATISTICS_BINDER_CODE_NAMES(Code)};
++        IAUDIOFLINGER_BINDER_METHOD_MACRO_LIST
++        METHOD_STATISTICS_BINDER_CODE_NAMES(Code)
++    };
+@@ -173 +174,3 @@ class DevicesFactoryHalCallbackImpl : public DevicesFactoryHalCallback {
+-        std::thread notifier([]() { AudioSystem::onNewAudioModulesAvailable(); });
++        std::thread notifier([]() {
++            AudioSystem::onNewAudioModulesAvailable();
++        });
+@@ -183 +186,2 @@ void AudioFlinger::instantiate() {
+-AudioFlinger::AudioFlinger() {
++AudioFlinger::AudioFlinger()
++{
+@@ -189,4 +193,2 @@ AudioFlinger::AudioFlinger() {
+-                ((use == AUDIO_UNIQUE_ID_USE_SESSION || use == AUDIO_UNIQUE_ID_USE_CLIENT)
+-                         ? movingBase
+-                         : 1) *
+-                AUDIO_UNIQUE_ID_USE_MAX;
++                ((use == AUDIO_UNIQUE_ID_USE_SESSION || use == AUDIO_UNIQUE_ID_USE_CLIENT) ?
++                        movingBase : 1) * AUDIO_UNIQUE_ID_USE_MAX;
+@@ -200,2 +202,2 @@ AudioFlinger::AudioFlinger() {
+-        mLogMemoryDealer =
+-                new MemoryDealer(kLogMemorySize, "LogWriters", MemoryHeapBase::READ_ONLY);
++        mLogMemoryDealer = new MemoryDealer(kLogMemorySize, "LogWriters",
++                MemoryHeapBase::READ_ONLY);
+@@ -210 +212,2 @@ AudioFlinger::AudioFlinger() {
+-void AudioFlinger::onFirstRef() {
++void AudioFlinger::onFirstRef()
++{
+@@ -214,2 +217,2 @@ void AudioFlinger::onFirstRef() {
+-    mDeviceEffectManager =
+-            sp<DeviceEffectManager>::make(sp<IAfDeviceEffectManagerCallback>::fromExisting(this)),
++    mDeviceEffectManager = sp<DeviceEffectManager>::make(
++            sp<IAfDeviceEffectManagerCallback>::fromExisting(this)),
+@@ -223,2 +226,2 @@ void AudioFlinger::onFirstRef() {
+-    mMelReporter =
+-            sp<MelReporter>::make(sp<IAfMelReporterCallback>::fromExisting(this), mPatchPanel);
++    mMelReporter = sp<MelReporter>::make(sp<IAfMelReporterCallback>::fromExisting(this),
++                                         mPatchPanel);
+@@ -251,2 +254,2 @@ status_t AudioFlinger::updateSecondaryOutputs(
+-        ALOGW_IF(i >= mPlaybackThreads.size(), "%s cannot find track with id %u", __func__,
+-                 trackId);
++        ALOGW_IF(i >= mPlaybackThreads.size(),
++                 "%s cannot find track with id %u", __func__, trackId);
+@@ -256,2 +259,2 @@ status_t AudioFlinger::updateSecondaryOutputs(
+-status_t AudioFlinger::getMmapPolicyInfos(AudioMMapPolicyType policyType,
+-                                          std::vector<AudioMMapPolicyInfo>* policyInfos) {
++status_t AudioFlinger::getMmapPolicyInfos(
++            AudioMMapPolicyType policyType, std::vector<AudioMMapPolicyInfo> *policyInfos) {
+@@ -270,2 +273,2 @@ status_t AudioFlinger::getMmapPolicyInfos(AudioMMapPolicyType policyType,
+-                ALOGE("Failed to query mmap policy info of %d, error %d", mAudioHwDevs.keyAt(i),
+-                      status);
++                ALOGE("Failed to query mmap policy info of %d, error %d",
++                      mAudioHwDevs.keyAt(i), status);
+@@ -301,2 +304 @@ status_t AudioFlinger::setDeviceConnectedState(const struct audio_port_v7* port,
+-                                  : dev->setConnectedState(
+-                                            port, state == media::DeviceConnectedState::CONNECTED);
++                : dev->setConnectedState(port, state == media::DeviceConnectedState::CONNECTED);
+@@ -334 +336,2 @@ std::optional<media::AudioVibratorInfo> AudioFlinger::getDefaultVibratorInfo_l()
+-AudioFlinger::~AudioFlinger() {
++AudioFlinger::~AudioFlinger()
++{
+@@ -362,5 +365,11 @@ AudioFlinger::~AudioFlinger() {
+-__attribute__((visibility("default"))) status_t MmapStreamInterface::openMmapStream(
+-        MmapStreamInterface::stream_direction_t direction, const audio_attributes_t* attr,
+-        audio_config_base_t* config, const AudioClient& client, audio_port_handle_t* deviceId,
+-        audio_session_t* sessionId, const sp<MmapStreamCallback>& callback,
+-        sp<MmapStreamInterface>& interface, audio_port_handle_t* handle) {
++__attribute__ ((visibility ("default")))
++status_t MmapStreamInterface::openMmapStream(MmapStreamInterface::stream_direction_t direction,
++                                             const audio_attributes_t *attr,
++                                             audio_config_base_t *config,
++                                             const AudioClient& client,
++                                             audio_port_handle_t *deviceId,
++                                             audio_session_t *sessionId,
++                                             const sp<MmapStreamCallback>& callback,
++                                             sp<MmapStreamInterface>& interface,
++                                             audio_port_handle_t *handle)
++{
+@@ -370,2 +379,3 @@ __attribute__((visibility("default"))) status_t MmapStreamInterface::openMmapStr
+-        ret = af->openMmapStream(direction, attr, config, client, deviceId, sessionId, callback,
+-                                 interface, handle);
++        ret = af->openMmapStream(
++                direction, attr, config, client, deviceId,
++                sessionId, callback, interface, handle);
+@@ -376,2 +386,4 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-                                      const audio_attributes_t* attr, audio_config_base_t* config,
+-                                      const AudioClient& client, audio_port_handle_t* deviceId,
++                                      const audio_attributes_t *attr,
++                                      audio_config_base_t *config,
++                                      const AudioClient& client,
++                                      audio_port_handle_t *deviceId,
+@@ -381 +393,2 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-                                      audio_port_handle_t* handle) {
++                                      audio_port_handle_t *handle)
++{
+@@ -402,2 +415,3 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-        ALOGW_IF(clientUid != callingUid, "%s uid %d tried to pass itself off as %d", __FUNCTION__,
+-                 callingUid, clientUid);
++        ALOGW_IF(clientUid != callingUid,
++                "%s uid %d tried to pass itself off as %d",
++                __FUNCTION__, callingUid, clientUid);
+@@ -410,2 +424,2 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-                 "%s uid %d pid %d tried to pass itself off as pid %d", __func__, callingUid,
+-                 callingPid, clientPid);
++                 "%s uid %d pid %d tried to pass itself off as pid %d",
++                 __func__, callingUid, callingPid, clientPid);
+@@ -414 +428,2 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-    adjAttributionSource = afutils::checkAttributionSourcePackage(adjAttributionSource);
++    adjAttributionSource = afutils::checkAttributionSourcePackage(
++            adjAttributionSource);
+@@ -423,4 +438,8 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-        ret = AudioSystem::getOutputForAttr(
+-                &localAttr, &io, actualSessionId, &streamType, adjAttributionSource, &fullConfig,
+-                (audio_output_flags_t)(AUDIO_OUTPUT_FLAG_MMAP_NOIRQ | AUDIO_OUTPUT_FLAG_DIRECT),
+-                deviceId, &portId, &secondaryOutputs, &isSpatialized, &isBitPerfect);
++        ret = AudioSystem::getOutputForAttr(&localAttr, &io,
++                                            actualSessionId,
++                                            &streamType, adjAttributionSource,
++                                            &fullConfig,
++                                            (audio_output_flags_t)(AUDIO_OUTPUT_FLAG_MMAP_NOIRQ |
++                                                    AUDIO_OUTPUT_FLAG_DIRECT),
++                                            deviceId, &portId, &secondaryOutputs, &isSpatialized,
++                                            &isBitPerfect);
+@@ -432,2 +451,2 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-        ALOGW_IF(!secondaryOutputs.empty(), "%s does not support secondary outputs, ignoring them",
+-                 __func__);
++        ALOGW_IF(!secondaryOutputs.empty(),
++                 "%s does not support secondary outputs, ignoring them", __func__);
+@@ -435,2 +454,5 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-        ret = AudioSystem::getInputForAttr(&localAttr, &io, RECORD_RIID_INVALID, actualSessionId,
+-                                           adjAttributionSource, config,
++        ret = AudioSystem::getInputForAttr(&localAttr, &io,
++                                              RECORD_RIID_INVALID,
++                                              actualSessionId,
++                                              adjAttributionSource,
++                                              config,
+@@ -464,2 +486,2 @@ status_t AudioFlinger::openMmapStream(MmapStreamInterface::stream_direction_t di
+-status_t AudioFlinger::addEffectToHal(const struct audio_port_config* device,
+-                                      const sp<EffectHalInterface>& effect) {
++status_t AudioFlinger::addEffectToHal(
++        const struct audio_port_config *device, const sp<EffectHalInterface>& effect) {
+@@ -473,2 +495,2 @@ status_t AudioFlinger::addEffectToHal(const struct audio_port_config* device,
+-status_t AudioFlinger::removeEffectFromHal(const struct audio_port_config* device,
+-                                           const sp<EffectHalInterface>& effect) {
++status_t AudioFlinger::removeEffectFromHal(
++        const struct audio_port_config *device, const sp<EffectHalInterface>& effect) {
+@@ -487,2 +509,4 @@ static const char* const audio_interfaces[] = {
+-AudioHwDevice* AudioFlinger::findSuitableHwDev_l(audio_module_handle_t module,
+-                                                 audio_devices_t deviceType) {
++AudioHwDevice* AudioFlinger::findSuitableHwDev_l(
++        audio_module_handle_t module,
++        audio_devices_t deviceType)
++{
+@@ -512 +536,2 @@ AudioHwDevice* AudioFlinger::findSuitableHwDev_l(audio_module_handle_t module,
+-void AudioFlinger::dumpClients_ll(int fd, const Vector<String16>& args __unused) {
++void AudioFlinger::dumpClients_ll(int fd, const Vector<String16>& args __unused)
++{
+@@ -535,2 +560,2 @@ void AudioFlinger::dumpClients_ll(int fd, const Vector<String16>& args __unused)
+-        result.appendFormat("  %7d %4d %7d %6u  %s\n", r->mSessionid, r->mCnt, r->mPid, r->mUid,
+-                            info.package.c_str());
++        result.appendFormat("  %7d %4d %7d %6u  %s\n", r->mSessionid, r->mCnt, r->mPid,
++                r->mUid, info.package.c_str());
+@@ -540 +565,2 @@ void AudioFlinger::dumpClients_ll(int fd, const Vector<String16>& args __unused)
+-void AudioFlinger::dumpInternals_l(int fd, const Vector<String16>& args __unused) {
++void AudioFlinger::dumpInternals_l(int fd, const Vector<String16>& args __unused)
++{
+@@ -555 +581,2 @@ void AudioFlinger::dumpInternals_l(int fd, const Vector<String16>& args __unused
+-void AudioFlinger::dumpPermissionDenial(int fd, const Vector<String16>& args __unused) {
++void AudioFlinger::dumpPermissionDenial(int fd, const Vector<String16>& args __unused)
++{
+@@ -559,2 +586 @@ void AudioFlinger::dumpPermissionDenial(int fd, const Vector<String16>& args __u
+-    snprintf(buffer, SIZE,
+-             "Permission Denial: "
++    snprintf(buffer, SIZE, "Permission Denial: "
+@@ -562 +588,2 @@ void AudioFlinger::dumpPermissionDenial(int fd, const Vector<String16>& args __u
+-             IPCThreadState::self()->getCallingPid(), IPCThreadState::self()->getCallingUid());
++            IPCThreadState::self()->getCallingPid(),
++            IPCThreadState::self()->getCallingUid());
+@@ -700 +727,2 @@ status_t AudioFlinger::dump(int fd, const Vector<String16>& args)
+-sp<Client> AudioFlinger::registerPid(pid_t pid) {
++sp<Client> AudioFlinger::registerPid(pid_t pid)
++{
+@@ -709 +737,2 @@ sp<Client> AudioFlinger::registerPid(pid_t pid) {
+-sp<NBLog::Writer> AudioFlinger::newWriter_l(size_t size, const char* name) {
++sp<NBLog::Writer> AudioFlinger::newWriter_l(size_t size, const char *name)
++{
+@@ -735 +764,2 @@ success:
+-void AudioFlinger::unregisterWriter(const sp<NBLog::Writer>& writer) {
++void AudioFlinger::unregisterWriter(const sp<NBLog::Writer>& writer)
++{
+@@ -747 +777,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-                                   media::CreateTrackResponse& _output) {
++                                   media::CreateTrackResponse& _output)
++{
+@@ -758,2 +789,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-    pid_t clientPid = VALUE_OR_RETURN_STATUS(
+-            aidl2legacy_int32_t_pid_t(input.clientInfo.attributionSource.pid));
++    pid_t clientPid =
++        VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_pid_t(input.clientInfo.attributionSource.pid));
+@@ -762,2 +793,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-    uid_t clientUid = VALUE_OR_RETURN_STATUS(
+-            aidl2legacy_int32_t_uid_t(input.clientInfo.attributionSource.uid));
++    uid_t clientUid =
++        VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_uid_t(input.clientInfo.attributionSource.uid));
+@@ -769,2 +800,3 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-        ALOGW_IF(clientUid != callingUid, "%s uid %d tried to pass itself off as %d", __FUNCTION__,
+-                 callingUid, clientUid);
++        ALOGW_IF(clientUid != callingUid,
++                "%s uid %d tried to pass itself off as %d",
++                __FUNCTION__, callingUid, clientUid);
+@@ -778,2 +810,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-                 "%s uid %d pid %d tried to pass itself off as pid %d", __func__, callingUid,
+-                 callingPid, clientPid);
++                 "%s uid %d pid %d tried to pass itself off as pid %d",
++                 __func__, callingUid, callingPid, clientPid);
+@@ -783 +815,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-    adjAttributionSource = afutils::checkAttributionSourcePackage(adjAttributionSource);
++    adjAttributionSource = afutils::checkAttributionSourcePackage(
++            adjAttributionSource);
+@@ -847,7 +880,8 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-        track = thread->createTrack_l(
+-                client, streamType, localAttr, &output.sampleRate, input.config.format,
+-                input.config.channel_mask, &output.frameCount, &output.notificationFrameCount,
+-                input.notificationsPerBuffer, input.speed, input.sharedBuffer, sessionId,
+-                &output.flags, callingPid, adjAttributionSource, input.clientInfo.clientTid,
+-                &lStatus, portId, input.audioTrackCallback, isSpatialized, isBitPerfect,
+-                &output.afTrackFlags);
++        track = thread->createTrack_l(client, streamType, localAttr, &output.sampleRate,
++                                      input.config.format, input.config.channel_mask,
++                                      &output.frameCount, &output.notificationFrameCount,
++                                      input.notificationsPerBuffer, input.speed,
++                                      input.sharedBuffer, sessionId, &output.flags,
++                                      callingPid, adjAttributionSource, input.clientInfo.clientTid,
++                                      &lStatus, portId, input.audioTrackCallback, isSpatialized,
++                                      isBitPerfect, &output.afTrackFlags);
+@@ -873 +907,2 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
+-                if (moveEffectChain_ll(sessionId, nullptr, thread, effectChain.get()) == NO_ERROR) {
++                if (moveEffectChain_ll(sessionId, nullptr, thread, effectChain.get())
++                        == NO_ERROR) {
+@@ -916 +951,2 @@ Exit:
+-uint32_t AudioFlinger::sampleRate(audio_io_handle_t ioHandle) const {
++uint32_t AudioFlinger::sampleRate(audio_io_handle_t ioHandle) const
++{
+@@ -925 +961,2 @@ uint32_t AudioFlinger::sampleRate(audio_io_handle_t ioHandle) const {
+-audio_format_t AudioFlinger::format(audio_io_handle_t output) const {
++audio_format_t AudioFlinger::format(audio_io_handle_t output) const
++{
+@@ -934 +971,2 @@ audio_format_t AudioFlinger::format(audio_io_handle_t output) const {
+-size_t AudioFlinger::frameCount(audio_io_handle_t ioHandle) const {
++size_t AudioFlinger::frameCount(audio_io_handle_t ioHandle) const
++{
+@@ -943 +981,2 @@ size_t AudioFlinger::frameCount(audio_io_handle_t ioHandle) const {
+-size_t AudioFlinger::frameCountHAL(audio_io_handle_t ioHandle) const {
++size_t AudioFlinger::frameCountHAL(audio_io_handle_t ioHandle) const
++{
+@@ -952 +991,2 @@ size_t AudioFlinger::frameCountHAL(audio_io_handle_t ioHandle) const {
+-uint32_t AudioFlinger::latency(audio_io_handle_t output) const {
++uint32_t AudioFlinger::latency(audio_io_handle_t output) const
++{
+@@ -961 +1001,2 @@ uint32_t AudioFlinger::latency(audio_io_handle_t output) const {
+-status_t AudioFlinger::setMasterVolume(float value) {
++status_t AudioFlinger::setMasterVolume(float value)
++{
+@@ -990 +1031,2 @@ status_t AudioFlinger::setMasterVolume(float value) {
+-status_t AudioFlinger::setMasterBalance(float balance) {
++status_t AudioFlinger::setMasterBalance(float balance)
++{
+@@ -1012 +1054,2 @@ status_t AudioFlinger::setMasterBalance(float balance) {
+-status_t AudioFlinger::setMode(audio_mode_t mode) {
++status_t AudioFlinger::setMode(audio_mode_t mode)
++{
+@@ -1047 +1090,2 @@ status_t AudioFlinger::setMode(audio_mode_t mode) {
+-status_t AudioFlinger::setMicMute(bool state) {
++status_t AudioFlinger::setMicMute(bool state)
++{
+@@ -1076 +1120,2 @@ status_t AudioFlinger::setMicMute(bool state) {
+-bool AudioFlinger::getMicMute() const {
++bool AudioFlinger::getMicMute() const
++{
+@@ -1097 +1142,2 @@ bool AudioFlinger::getMicMute() const {
+-void AudioFlinger::setRecordSilenced(audio_port_handle_t portId, bool silenced) {
++void AudioFlinger::setRecordSilenced(audio_port_handle_t portId, bool silenced)
++{
+@@ -1107 +1153,2 @@ void AudioFlinger::setRecordSilenced(audio_port_handle_t portId, bool silenced)
+-status_t AudioFlinger::setMasterMute(bool muted) {
++status_t AudioFlinger::setMasterMute(bool muted)
++{
+@@ -1134 +1181,2 @@ status_t AudioFlinger::setMasterMute(bool muted) {
+-float AudioFlinger::masterVolume() const {
++float AudioFlinger::masterVolume() const
++{
+@@ -1138 +1186,2 @@ float AudioFlinger::masterVolume() const {
+-status_t AudioFlinger::getMasterBalance(float* balance) const {
++status_t AudioFlinger::getMasterBalance(float *balance) const
++{
+@@ -1143 +1192,2 @@ status_t AudioFlinger::getMasterBalance(float* balance) const {
+-bool AudioFlinger::masterMute() const {
++bool AudioFlinger::masterMute() const
++{
+@@ -1147 +1197,2 @@ bool AudioFlinger::masterMute() const {
+-float AudioFlinger::masterVolume_l() const {
++float AudioFlinger::masterVolume_l() const
++{
+@@ -1150 +1201,2 @@ float AudioFlinger::masterVolume_l() const {
+-float AudioFlinger::getMasterBalance_l() const {
++float AudioFlinger::getMasterBalance_l() const
++{
+@@ -1153 +1205,2 @@ float AudioFlinger::getMasterBalance_l() const {
+-bool AudioFlinger::masterMute_l() const {
++bool AudioFlinger::masterMute_l() const
++{
+@@ -1156 +1209,2 @@ bool AudioFlinger::masterMute_l() const {
+-status_t AudioFlinger::checkStreamType(audio_stream_type_t stream) {
++status_t AudioFlinger::checkStreamType(audio_stream_type_t stream)
++{
+@@ -1169 +1223,2 @@ status_t AudioFlinger::setStreamVolume(audio_stream_type_t stream, float value,
+-                                       audio_io_handle_t output) {
++        audio_io_handle_t output)
++{
+@@ -1190,2 +1245,2 @@ status_t AudioFlinger::setStreamVolume(audio_stream_type_t stream, float value,
+-status_t AudioFlinger::setRequestedLatencyMode(audio_io_handle_t output,
+-                                               audio_latency_mode_t mode) {
++status_t AudioFlinger::setRequestedLatencyMode(
++        audio_io_handle_t output, audio_latency_mode_t mode) {
+@@ -1256 +1311,2 @@ status_t AudioFlinger::getSoundDoseInterface(const sp<media::ISoundDoseCallback>
+-status_t AudioFlinger::setStreamMute(audio_stream_type_t stream, bool muted) {
++status_t AudioFlinger::setStreamMute(audio_stream_type_t stream, bool muted)
++{
+@@ -1277 +1333,2 @@ status_t AudioFlinger::setStreamMute(audio_stream_type_t stream, bool muted) {
+-float AudioFlinger::streamVolume(audio_stream_type_t stream, audio_io_handle_t output) const {
++float AudioFlinger::streamVolume(audio_stream_type_t stream, audio_io_handle_t output) const
++{
+@@ -1292 +1349,2 @@ float AudioFlinger::streamVolume(audio_stream_type_t stream, audio_io_handle_t o
+-bool AudioFlinger::streamMute(audio_stream_type_t stream) const {
++bool AudioFlinger::streamMute(audio_stream_type_t stream) const
++{
+@@ -1300 +1358,2 @@ bool AudioFlinger::streamMute(audio_stream_type_t stream) const {
+-void AudioFlinger::broadcastParametersToRecordThreads_l(const String8& keyValuePairs) {
++void AudioFlinger::broadcastParametersToRecordThreads_l(const String8& keyValuePairs)
++{
+@@ -1305 +1364,2 @@ void AudioFlinger::broadcastParametersToRecordThreads_l(const String8& keyValueP
+-void AudioFlinger::updateOutDevicesForRecordThreads_l(const DeviceDescriptorBaseVector& devices) {
++void AudioFlinger::updateOutDevicesForRecordThreads_l(const DeviceDescriptorBaseVector& devices)
++{
+@@ -1312 +1372,2 @@ void AudioFlinger::forwardParametersToDownstreamPatches_l(
+-        const std::function<bool(const sp<IAfPlaybackThread>&)>& useThread) {
++        const std::function<bool(const sp<IAfPlaybackThread>&)>& useThread)
++{
+@@ -1315,2 +1376,2 @@ void AudioFlinger::forwardParametersToDownstreamPatches_l(
+-    ALOGV_IF(!swPatches.empty(), "%s found %zu downstream patches for stream ID %d", __func__,
+-             swPatches.size(), upStream);
++    ALOGV_IF(!swPatches.empty(), "%s found %zu downstream patches for stream ID %d",
++            __func__, swPatches.size(), upStream);
+@@ -1326 +1387,2 @@ void AudioFlinger::updateDownStreamPatches_l(const struct audio_patch* patch,
+-                                             const std::set<audio_io_handle_t>& streams) {
++                                             const std::set<audio_io_handle_t>& streams)
++{
+@@ -1336 +1398,2 @@ void AudioFlinger::updateDownStreamPatches_l(const struct audio_patch* patch,
+-void AudioFlinger::filterReservedParameters(String8& keyValuePairs, uid_t callingUid) {
++void AudioFlinger::filterReservedParameters(String8& keyValuePairs, uid_t callingUid)
++{
+@@ -1365,2 +1428,2 @@ void AudioFlinger::filterReservedParameters(String8& keyValuePairs, uid_t callin
+-    logFilteredParameters(param.size() + rejectedParam.size(), keyValuePairs, rejectedParam.size(),
+-                          rejectedParam.toString(), callingUid);
++    logFilteredParameters(param.size() + rejectedParam.size(), keyValuePairs,
++                          rejectedParam.size(), rejectedParam.toString(), callingUid);
+@@ -1383,4 +1446,5 @@ void AudioFlinger::logFilteredParameters(size_t originalKVPSize, const String8&
+-status_t AudioFlinger::setParameters(audio_io_handle_t ioHandle, const String8& keyValuePairs) {
+-    ALOGV("setParameters(): io %d, keyvalue %s, calling pid %d calling uid %d", ioHandle,
+-          keyValuePairs.c_str(), IPCThreadState::self()->getCallingPid(),
+-          IPCThreadState::self()->getCallingUid());
++status_t AudioFlinger::setParameters(audio_io_handle_t ioHandle, const String8& keyValuePairs)
++{
++    ALOGV("setParameters(): io %d, keyvalue %s, calling pid %d calling uid %d",
++            ioHandle, keyValuePairs.c_str(),
++            IPCThreadState::self()->getCallingPid(), IPCThreadState::self()->getCallingUid());
+@@ -1453,3 +1517,4 @@ status_t AudioFlinger::setParameters(audio_io_handle_t ioHandle, const String8&
+-String8 AudioFlinger::getParameters(audio_io_handle_t ioHandle, const String8& keys) const {
+-    ALOGVV("getParameters() io %d, keys %s, calling pid %d", ioHandle, keys.c_str(),
+-           IPCThreadState::self()->getCallingPid());
++String8 AudioFlinger::getParameters(audio_io_handle_t ioHandle, const String8& keys) const
++{
++    ALOGVV("getParameters() io %d, keys %s, calling pid %d",
++            ioHandle, keys.c_str(), IPCThreadState::self()->getCallingPid());
+@@ -1483 +1548,2 @@ size_t AudioFlinger::getInputBufferSize(uint32_t sampleRate, audio_format_t form
+-                                        audio_channel_mask_t channelMask) const {
++        audio_channel_mask_t channelMask) const
++{
+@@ -1488 +1554,2 @@ size_t AudioFlinger::getInputBufferSize(uint32_t sampleRate, audio_format_t form
+-    if ((sampleRate == 0) || !audio_is_valid_format(format) ||
++    if ((sampleRate == 0) ||
++            !audio_is_valid_format(format) ||
+@@ -1558,2 +1625,2 @@ size_t AudioFlinger::getInputBufferSize(uint32_t sampleRate, audio_format_t form
+-                    size_t dstFrames =
+-                            destinationFramesPossible(srcFrames, config.sample_rate, sampleRate);
++                    size_t dstFrames = destinationFramesPossible(
++                        srcFrames, config.sample_rate, sampleRate);
+@@ -1567,2 +1634 @@ size_t AudioFlinger::getInputBufferSize(uint32_t sampleRate, audio_format_t form
+-          "format %#x, channelMask %#x",
+-          sampleRate, format, channelMask);
++              "format %#x, channelMask %#x",sampleRate, format, channelMask);
+@@ -1571 +1637,2 @@ size_t AudioFlinger::getInputBufferSize(uint32_t sampleRate, audio_format_t form
+-uint32_t AudioFlinger::getInputFramesLost(audio_io_handle_t ioHandle) const {
++uint32_t AudioFlinger::getInputFramesLost(audio_io_handle_t ioHandle) const
++{
+@@ -1579 +1646,2 @@ uint32_t AudioFlinger::getInputFramesLost(audio_io_handle_t ioHandle) const {
+-status_t AudioFlinger::setVoiceVolume(float value) {
++status_t AudioFlinger::setVoiceVolume(float value)
++{
+@@ -1602 +1670,2 @@ status_t AudioFlinger::getRenderPosition(uint32_t* halFrames, uint32_t* dspFrame
+-                                         audio_io_handle_t output) const {
++        audio_io_handle_t output) const
++{
+@@ -1610 +1679,2 @@ status_t AudioFlinger::getRenderPosition(uint32_t* halFrames, uint32_t* dspFrame
+-void AudioFlinger::registerClient(const sp<media::IAudioFlingerClient>& client) {
++void AudioFlinger::registerClient(const sp<media::IAudioFlingerClient>& client)
++{
+@@ -1620,3 +1690,6 @@ void AudioFlinger::registerClient(const sp<media::IAudioFlingerClient>& client)
+-            sp<NotificationClient> notificationClient =
+-                    new NotificationClient(this, client, pid, uid);
+-            ALOGV("registerClient() client %p, pid %d, uid %u", notificationClient.get(), pid, uid);
++            sp<NotificationClient> notificationClient = new NotificationClient(this,
++                                                                                client,
++                                                                                pid,
++                                                                                uid);
++            ALOGV("registerClient() client %p, pid %d, uid %u",
++                    notificationClient.get(), pid, uid);
+@@ -1635 +1708,2 @@ void AudioFlinger::registerClient(const sp<media::IAudioFlingerClient>& client)
+-void AudioFlinger::removeNotificationClient(pid_t pid) {
++void AudioFlinger::removeNotificationClient(pid_t pid)
++{
+@@ -1671,5 +1745,6 @@ void AudioFlinger::ioConfigChanged_l(audio_io_config_event_t event,
+-                                     const sp<AudioIoDescriptor>& ioDesc, pid_t pid) {
+-    media::AudioIoConfigEvent eventAidl =
+-            VALUE_OR_FATAL(legacy2aidl_audio_io_config_event_t_AudioIoConfigEvent(event));
+-    media::AudioIoDescriptor descAidl =
+-            VALUE_OR_FATAL(legacy2aidl_AudioIoDescriptor_AudioIoDescriptor(ioDesc));
++                                   const sp<AudioIoDescriptor>& ioDesc,
++                                   pid_t pid) {
++    media::AudioIoConfigEvent eventAidl = VALUE_OR_FATAL(
++            legacy2aidl_audio_io_config_event_t_AudioIoConfigEvent(event));
++    media::AudioIoDescriptor descAidl = VALUE_OR_FATAL(
++            legacy2aidl_AudioIoDescriptor_AudioIoDescriptor(ioDesc));
+@@ -1685,2 +1760,2 @@ void AudioFlinger::ioConfigChanged_l(audio_io_config_event_t event,
+-void AudioFlinger::onSupportedLatencyModesChanged(audio_io_handle_t output,
+-                                                  const std::vector<audio_latency_mode_t>& modes) {
++void AudioFlinger::onSupportedLatencyModesChanged(
++        audio_io_handle_t output, const std::vector<audio_latency_mode_t>& modes) {
+@@ -1688,2 +1763,2 @@ void AudioFlinger::onSupportedLatencyModesChanged(audio_io_handle_t output,
+-    std::vector<media::audio::common::AudioLatencyMode> modesAidl =
+-            VALUE_OR_FATAL(convertContainer<std::vector<media::audio::common::AudioLatencyMode>>(
++    std::vector<media::audio::common::AudioLatencyMode> modesAidl = VALUE_OR_FATAL(
++                convertContainer<std::vector<media::audio::common::AudioLatencyMode>>(
+@@ -1694,2 +1769,2 @@ void AudioFlinger::onSupportedLatencyModesChanged(audio_io_handle_t output,
+-        mNotificationClients.valueAt(i)->audioFlingerClient()->onSupportedLatencyModesChanged(
+-                outputAidl, modesAidl);
++        mNotificationClients.valueAt(i)->audioFlingerClient()
++                ->onSupportedLatencyModesChanged(outputAidl, modesAidl);
+@@ -1704,2 +1779,4 @@ void AudioFlinger::onHardError(std::set<audio_port_handle_t>& trackPortIds) {
+-void AudioFlinger::removeClient_l(pid_t pid) {
+-    ALOGV("removeClient_l() pid %d, calling pid %d", pid, IPCThreadState::self()->getCallingPid());
++void AudioFlinger::removeClient_l(pid_t pid)
++{
++    ALOGV("removeClient_l() pid %d, calling pid %d", pid,
++            IPCThreadState::self()->getCallingPid());
+@@ -1708 +1785,3 @@ void AudioFlinger::removeClient_l(pid_t pid) {
+-sp<IAfThreadBase> AudioFlinger::getEffectThread_l(audio_session_t sessionId, int effectId) {
++sp<IAfThreadBase> AudioFlinger::getEffectThread_l(audio_session_t sessionId,
++        int effectId)
++{
+@@ -1732,4 +1811,10 @@ AudioFlinger::NotificationClient::NotificationClient(const sp<AudioFlinger>& aud
+-                                                     pid_t pid, uid_t uid)
+-    : mAudioFlinger(audioFlinger), mPid(pid), mUid(uid), mAudioFlingerClient(client) {}
+-AudioFlinger::NotificationClient::~NotificationClient() {}
+-void AudioFlinger::NotificationClient::binderDied(const wp<IBinder>& who __unused) {
++                                                     pid_t pid,
++                                                     uid_t uid)
++    : mAudioFlinger(audioFlinger), mPid(pid), mUid(uid), mAudioFlingerClient(client)
++{
++}
++AudioFlinger::NotificationClient::~NotificationClient()
++{
++}
++void AudioFlinger::NotificationClient::binderDied(const wp<IBinder>& who __unused)
++{
+@@ -1739 +1824,2 @@ void AudioFlinger::NotificationClient::binderDied(const wp<IBinder>& who __unuse
+-AudioFlinger::MediaLogNotifier::MediaLogNotifier() : mPendingRequests(false) {}
++AudioFlinger::MediaLogNotifier::MediaLogNotifier()
++    : mPendingRequests(false) {}
+@@ -1765 +1851,2 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-                                    media::CreateRecordResponse& _output) {
++                                    media::CreateRecordResponse& _output)
++{
+@@ -1779,2 +1866,2 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-    const uid_t currentUid =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_uid_t_int32_t(adjAttributionSource.uid));
++    const uid_t currentUid = VALUE_OR_RETURN_STATUS(legacy2aidl_uid_t_int32_t(
++           adjAttributionSource.uid));
+@@ -1782,2 +1869,3 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-        ALOGW_IF(currentUid != callingUid, "%s uid %d tried to pass itself off as %d", __FUNCTION__,
+-                 callingUid, currentUid);
++        ALOGW_IF(currentUid != callingUid,
++                "%s uid %d tried to pass itself off as %d",
++                __FUNCTION__, callingUid, currentUid);
+@@ -1788,2 +1876,2 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-    const pid_t currentPid =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_pid_t(adjAttributionSource.pid));
++    const pid_t currentPid = VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_pid_t(
++            adjAttributionSource.pid));
+@@ -1792,2 +1880,2 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-                 "%s uid %d pid %d tried to pass itself off as pid %d", __func__, callingUid,
+-                 callingPid, currentPid);
++                 "%s uid %d pid %d tried to pass itself off as pid %d",
++                 __func__, callingUid, callingPid, currentPid);
+@@ -1796 +1884,2 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-    adjAttributionSource = afutils::checkAttributionSourcePackage(adjAttributionSource);
++    adjAttributionSource = afutils::checkAttributionSourcePackage(
++            adjAttributionSource);
+@@ -1825,3 +1914,6 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-        lStatus = AudioSystem::getInputForAttr(&input.attr, &output.inputId, input.riid, sessionId,
+-                                               adjAttributionSource, &input.config, output.flags,
+-                                               &output.selectedDeviceId, &portId);
++    lStatus = AudioSystem::getInputForAttr(&input.attr, &output.inputId,
++                                      input.riid,
++                                      sessionId,
++                                      adjAttributionSource,
++                                      &input.config,
++                                      output.flags, &output.selectedDeviceId, &portId);
+@@ -1844,5 +1936,7 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-            recordTrack = thread->createRecordTrack_l(
+-                    client, input.attr, &output.sampleRate, input.config.format,
+-                    input.config.channel_mask, &output.frameCount, sessionId,
+-                    &output.notificationFrameCount, callingPid, adjAttributionSource, &output.flags,
+-                    input.clientInfo.clientTid, &lStatus, portId, input.maxSharedAudioHistoryMs);
++        recordTrack = thread->createRecordTrack_l(client, input.attr, &output.sampleRate,
++                                                  input.config.format, input.config.channel_mask,
++                                                  &output.frameCount, sessionId,
++                                                  &output.notificationFrameCount,
++                                                  callingPid, adjAttributionSource, &output.flags,
++                                                  input.clientInfo.clientTid,
++                                                  &lStatus, portId, input.maxSharedAudioHistoryMs);
+@@ -1857,2 +1951,5 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-                output.serverConfig = {thread->sampleRate(), thread->channelMask(),
+-                                       thread->format()};
++            output.serverConfig = {
++                    thread->sampleRate(),
++                    thread->channelMask(),
++                    thread->format()
++            };
+@@ -1860,2 +1957,5 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-                output.serverConfig = {recordTrack->sampleRate(), recordTrack->channelMask(),
+-                                       recordTrack->format()};
++            output.serverConfig = {
++                    recordTrack->sampleRate(),
++                    recordTrack->channelMask(),
++                    recordTrack->format()
++            };
+@@ -1863 +1963,5 @@ status_t AudioFlinger::createRecord(const media::CreateRecordRequest& _input,
+-            output.halConfig = {thread->sampleRate(), thread->channelMask(), thread->format()};
++        output.halConfig = {
++                thread->sampleRate(),
++                thread->channelMask(),
++                thread->format()
++        };
+@@ -1890 +1994,2 @@ Exit:
+-status_t AudioFlinger::getAudioPolicyConfig(media::AudioPolicyConfig* config) {
++status_t AudioFlinger::getAudioPolicyConfig(media::AudioPolicyConfig *config)
++{
+@@ -1918,2 +2023,2 @@ status_t AudioFlinger::getAudioPolicyConfig(media::AudioPolicyConfig* config) {
+-        config->supportedModes.insert(config->supportedModes.end(), allSupportedModes.begin(),
+-                                      allSupportedModes.end());
++        config->supportedModes.insert(config->supportedModes.end(),
++                allSupportedModes.begin(), allSupportedModes.end());
+@@ -1929 +2034,2 @@ status_t AudioFlinger::getAudioPolicyConfig(media::AudioPolicyConfig* config) {
+-audio_module_handle_t AudioFlinger::loadHwModule(const char* name) {
++audio_module_handle_t AudioFlinger::loadHwModule(const char *name)
++{
+@@ -1941 +2047,2 @@ audio_module_handle_t AudioFlinger::loadHwModule(const char* name) {
+-AudioHwDevice* AudioFlinger::loadHwModule_ll(const char* name) {
++AudioHwDevice* AudioFlinger::loadHwModule_ll(const char *name)
++{
+@@ -1985 +2092,2 @@ AudioHwDevice* AudioFlinger::loadHwModule_ll(const char* name) {
+-        flags = static_cast<AudioHwDevice::Flags>(flags | AudioHwDevice::AHWD_CAN_SET_MASTER_MUTE);
++        flags = static_cast<AudioHwDevice::Flags>(flags |
++                AudioHwDevice::AHWD_CAN_SET_MASTER_MUTE);
+@@ -2010,2 +2118,2 @@ AudioHwDevice* AudioFlinger::loadHwModule_ll(const char* name) {
+-            hwBurstMinMicros > 0 &&
+-            (hwBurstMinMicros < mAAudioHwBurstMinMicros || mAAudioHwBurstMinMicros == 0)) {
++            hwBurstMinMicros > 0
++            && (hwBurstMinMicros < mAAudioHwBurstMinMicros || mAAudioHwBurstMinMicros == 0)) {
+@@ -2024,5 +2132,4 @@ bool AudioFlinger::inputBufferSizeDevsCmp(const AudioHwDevice* lhs, const AudioH
+-            {AUDIO_HARDWARE_MODULE_ID_PRIMARY, 0},
+-            {AUDIO_HARDWARE_MODULE_ID_USB, 1},
+-            {AUDIO_HARDWARE_MODULE_ID_BLUETOOTH, 2},
+-            {AUDIO_HARDWARE_MODULE_ID_A2DP, 3},
+-            {AUDIO_HARDWARE_MODULE_ID_REMOTE_SUBMIX, std::numeric_limits<int>::max()}};
++        { AUDIO_HARDWARE_MODULE_ID_PRIMARY, 0 }, { AUDIO_HARDWARE_MODULE_ID_USB, 1 },
++        { AUDIO_HARDWARE_MODULE_ID_BLUETOOTH, 2 }, { AUDIO_HARDWARE_MODULE_ID_A2DP, 3 },
++        { AUDIO_HARDWARE_MODULE_ID_REMOTE_SUBMIX, std::numeric_limits<int>::max() }
++    };
+@@ -2044 +2151,2 @@ bool AudioFlinger::inputBufferSizeDevsCmp(const AudioHwDevice* lhs, const AudioH
+-uint32_t AudioFlinger::getPrimaryOutputSamplingRate() const {
++uint32_t AudioFlinger::getPrimaryOutputSamplingRate() const
++{
+@@ -2049 +2157,2 @@ uint32_t AudioFlinger::getPrimaryOutputSamplingRate() const {
+-size_t AudioFlinger::getPrimaryOutputFrameCount() const {
++size_t AudioFlinger::getPrimaryOutputFrameCount() const
++{
+@@ -2054 +2163,2 @@ size_t AudioFlinger::getPrimaryOutputFrameCount() const {
+-status_t AudioFlinger::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory) {
++status_t AudioFlinger::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory)
++{
+@@ -2066 +2176,2 @@ status_t AudioFlinger::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory)
+-    mClientSharedHeapSize = isLowRamDevice ? kMinimumClientSharedHeapSizeBytes
++    mClientSharedHeapSize =
++            isLowRamDevice ? kMinimumClientSharedHeapSizeBytes
+@@ -2073 +2184,2 @@ status_t AudioFlinger::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory)
+-          (isLowRamDevice ? "true" : "false"), (long long)mTotalMemory,
++            (isLowRamDevice ? "true" : "false"),
++            (long long)mTotalMemory,
+@@ -2077 +2189,2 @@ status_t AudioFlinger::setLowRamDevice(bool isLowRamDevice, int64_t totalMemory)
+-size_t AudioFlinger::getClientSharedHeapSize() const {
++size_t AudioFlinger::getClientSharedHeapSize() const
++{
+@@ -2084 +2197,2 @@ size_t AudioFlinger::getClientSharedHeapSize() const {
+-status_t AudioFlinger::setAudioPortConfig(const struct audio_port_config* config) {
++status_t AudioFlinger::setAudioPortConfig(const struct audio_port_config *config)
++{
+@@ -2106 +2220,2 @@ status_t AudioFlinger::setAudioPortConfig(const struct audio_port_config* config
+-audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId) {
++audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId)
++{
+@@ -2110,2 +2225,2 @@ audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId
+-        ALOGV("getAudioHwSyncForSession found ID %d for session %d", mHwAvSyncIds.valueAt(index),
+-              sessionId);
++        ALOGV("getAudioHwSyncForSession found ID %d for session %d",
++              mHwAvSyncIds.valueAt(index), sessionId);
+@@ -2133,2 +2248,2 @@ audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId
+-            ALOGV("getAudioHwSyncForSession removing ID %d for session %d", value,
+-                  mHwAvSyncIds.keyAt(i));
++            ALOGV("getAudioHwSyncForSession removing ID %d for session %d",
++                  value, mHwAvSyncIds.keyAt(i));
+@@ -2148,2 +2263 @@ audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId
+-            forwardParametersToDownstreamPatches_l(
+-                    thread->id(), keyValuePairs,
++            forwardParametersToDownstreamPatches_l(thread->id(), keyValuePairs,
+@@ -2157 +2271,2 @@ audio_hw_sync_t AudioFlinger::getAudioHwSyncForSession(audio_session_t sessionId
+-status_t AudioFlinger::systemReady() {
++status_t AudioFlinger::systemReady()
++{
+@@ -2180 +2295,2 @@ status_t AudioFlinger::systemReady() {
+-sp<IAudioManager> AudioFlinger::getOrCreateAudioManager() {
++sp<IAudioManager> AudioFlinger::getOrCreateAudioManager()
++{
+@@ -2182 +2298,2 @@ sp<IAudioManager> AudioFlinger::getOrCreateAudioManager() {
+-        sp<IBinder> binder = defaultServiceManager()->checkService(String16(kAudioServiceName));
++        sp<IBinder> binder =
++            defaultServiceManager()->checkService(String16(kAudioServiceName));
+@@ -2191 +2308,2 @@ sp<IAudioManager> AudioFlinger::getOrCreateAudioManager() {
+-status_t AudioFlinger::getMicrophones(std::vector<media::MicrophoneInfoFw>* microphones) const {
++status_t AudioFlinger::getMicrophones(std::vector<media::MicrophoneInfoFw>* microphones) const
++{
+@@ -2201,2 +2319,2 @@ status_t AudioFlinger::getMicrophones(std::vector<media::MicrophoneInfoFw>* micr
+-            std::transform(
+-                    mics.begin(), mics.end(), std::back_inserter(*microphones), [](auto& mic) {
++            std::transform(mics.begin(), mics.end(), std::back_inserter(*microphones), [](auto& mic)
++            {
+@@ -2212,2 +2330,3 @@ status_t AudioFlinger::getMicrophones(std::vector<media::MicrophoneInfoFw>* micr
+-void AudioFlinger::setAudioHwSyncForSession_l(IAfPlaybackThread* const thread,
+-                                              audio_session_t sessionId) {
++void AudioFlinger::setAudioHwSyncForSession_l(
++        IAfPlaybackThread* const thread, audio_session_t sessionId)
++{
+@@ -2222,2 +2341 @@ void AudioFlinger::setAudioHwSyncForSession_l(IAfPlaybackThread* const thread,
+-        forwardParametersToDownstreamPatches_l(
+-                thread->id(), keyValuePairs,
++        forwardParametersToDownstreamPatches_l(thread->id(), keyValuePairs,
+@@ -2228 +2346,2 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                                             audio_io_handle_t* output, audio_config_t* halConfig,
++                                                        audio_io_handle_t *output,
++                                                        audio_config_t *halConfig,
+@@ -2230,2 +2349,4 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                                             audio_devices_t deviceType, const String8& address,
+-                                             audio_output_flags_t flags) {
++                                                        audio_devices_t deviceType,
++                                                        const String8& address,
++                                                        audio_output_flags_t flags)
++{
+@@ -2244,2 +2365,7 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-    status_t status = outHwDev->openOutputStream(&outputStream, *output, deviceType, flags,
+-                                                 halConfig, address.c_str());
++    status_t status = outHwDev->openOutputStream(
++            &outputStream,
++            *output,
++            deviceType,
++            flags,
++            halConfig,
++            address.c_str());
+@@ -2252,2 +2378,2 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-            ALOGV("openOutput_l() created mmap playback thread: ID %d thread %p", *output,
+-                  thread.get());
++            ALOGV("openOutput_l() created mmap playback thread: ID %d thread %p",
++                  *output, thread.get());
+@@ -2258,4 +2384,4 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                thread = IAfPlaybackThread::createBitPerfectThread(this, outputStream, *output,
+-                                                                   mSystemReady);
+-                ALOGV("%s() created bit-perfect output: ID %d thread %p", __func__, *output,
+-                      thread.get());
++                thread = IAfPlaybackThread::createBitPerfectThread(
++                        this, outputStream, *output, mSystemReady);
++                ALOGV("%s() created bit-perfect output: ID %d thread %p",
++                      __func__, *output, thread.get());
+@@ -2265,2 +2391,2 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                ALOGV("openOutput_l() created spatializer output: ID %d thread %p", *output,
+-                      thread.get());
++                ALOGV("openOutput_l() created spatializer output: ID %d thread %p",
++                      *output, thread.get());
+@@ -2268,11 +2394,11 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                thread = IAfPlaybackThread::createOffloadThread(
+-                        this, outputStream, *output, mSystemReady, halConfig->offload_info);
+-                ALOGV("openOutput_l() created offload output: ID %d thread %p", *output,
+-                      thread.get());
+-            } else if ((flags & AUDIO_OUTPUT_FLAG_DIRECT) ||
+-                       !IAfThreadBase::isValidPcmSinkFormat(halConfig->format) ||
+-                       !IAfThreadBase::isValidPcmSinkChannelMask(halConfig->channel_mask)) {
+-                thread = IAfPlaybackThread::createDirectOutputThread(
+-                        this, outputStream, *output, mSystemReady, halConfig->offload_info);
+-                ALOGV("openOutput_l() created direct output: ID %d thread %p", *output,
+-                      thread.get());
++                thread = IAfPlaybackThread::createOffloadThread(this, outputStream, *output,
++                        mSystemReady, halConfig->offload_info);
++                ALOGV("openOutput_l() created offload output: ID %d thread %p",
++                      *output, thread.get());
++            } else if ((flags & AUDIO_OUTPUT_FLAG_DIRECT)
++                    || !IAfThreadBase::isValidPcmSinkFormat(halConfig->format)
++                    || !IAfThreadBase::isValidPcmSinkChannelMask(halConfig->channel_mask)) {
++                thread = IAfPlaybackThread::createDirectOutputThread(this, outputStream, *output,
++                        mSystemReady, halConfig->offload_info);
++                ALOGV("openOutput_l() created direct output: ID %d thread %p",
++                      *output, thread.get());
+@@ -2280,4 +2406,4 @@ sp<IAfThreadBase> AudioFlinger::openOutput_l(audio_module_handle_t module,
+-                thread = IAfPlaybackThread::createMixerThread(this, outputStream, *output,
+-                                                              mSystemReady);
+-                ALOGV("openOutput_l() created mixer output: ID %d thread %p", *output,
+-                      thread.get());
++                thread = IAfPlaybackThread::createMixerThread(
++                        this, outputStream, *output, mSystemReady);
++                ALOGV("openOutput_l() created mixer output: ID %d thread %p",
++                      *output, thread.get());
+@@ -2298,3 +2424,4 @@ status_t AudioFlinger::openOutput(const media::OpenOutputRequest& request,
+-                                  media::OpenOutputResponse* response) {
+-    audio_module_handle_t module =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_audio_module_handle_t(request.module));
++                                media::OpenOutputResponse* response)
++{
++    audio_module_handle_t module = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_int32_t_audio_module_handle_t(request.module));
+@@ -2303,7 +2430,6 @@ status_t AudioFlinger::openOutput(const media::OpenOutputRequest& request,
+-    audio_config_base_t mixerConfig =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_AudioConfigBase_audio_config_base_t(
+-                    request.mixerConfig, false ));
+-    sp<DeviceDescriptorBase> device =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_DeviceDescriptorBase(request.device));
+-    audio_output_flags_t flags =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_audio_output_flags_t_mask(request.flags));
++    audio_config_base_t mixerConfig = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_AudioConfigBase_audio_config_base_t(request.mixerConfig, false ));
++    sp<DeviceDescriptorBase> device = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_DeviceDescriptorBase(request.device));
++    audio_output_flags_t flags = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_int32_t_audio_output_flags_t_mask(request.flags));
+@@ -2313,2 +2439,6 @@ status_t AudioFlinger::openOutput(const media::OpenOutputRequest& request,
+-          this, module, device->toString().c_str(), halConfig.sample_rate, halConfig.format,
+-          halConfig.channel_mask, flags);
++              this, module,
++              device->toString().c_str(),
++              halConfig.sample_rate,
++              halConfig.format,
++              halConfig.channel_mask,
++              flags);
+@@ -2321,2 +2451,2 @@ status_t AudioFlinger::openOutput(const media::OpenOutputRequest& request,
+-    const sp<IAfThreadBase> thread =
+-            openOutput_l(module, &output, &halConfig, &mixerConfig, deviceType, address, flags);
++    const sp<IAfThreadBase> thread = openOutput_l(module, &output, &halConfig,
++            &mixerConfig, deviceType, address, flags);
+@@ -2344,2 +2474,2 @@ status_t AudioFlinger::openOutput(const media::OpenOutputRequest& request,
+-        response->flags =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_output_flags_t_int32_t_mask(flags));
++        response->flags = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_output_flags_t_int32_t_mask(flags));
+@@ -2351 +2481,2 @@ audio_io_handle_t AudioFlinger::openDuplicateOutput(audio_io_handle_t output1,
+-                                                    audio_io_handle_t output2) {
++        audio_io_handle_t output2)
++{
+@@ -2361,2 +2492,2 @@ audio_io_handle_t AudioFlinger::openDuplicateOutput(audio_io_handle_t output1,
+-    const sp<IAfDuplicatingThread> thread =
+-            IAfDuplicatingThread::create(this, thread1, id, mSystemReady);
++    const sp<IAfDuplicatingThread> thread = IAfDuplicatingThread::create(
++            this, thread1, id, mSystemReady);
+@@ -2368 +2499,2 @@ audio_io_handle_t AudioFlinger::openDuplicateOutput(audio_io_handle_t output1,
+-status_t AudioFlinger::closeOutput(audio_io_handle_t output) {
++status_t AudioFlinger::closeOutput(audio_io_handle_t output)
++{
+@@ -2371 +2503,2 @@ status_t AudioFlinger::closeOutput(audio_io_handle_t output) {
+-status_t AudioFlinger::closeOutput_nonvirtual(audio_io_handle_t output) {
++status_t AudioFlinger::closeOutput_nonvirtual(audio_io_handle_t output)
++{
+@@ -2390,3 +2523,3 @@ status_t AudioFlinger::closeOutput_nonvirtual(audio_io_handle_t output) {
+-            if (playbackThread->type() == IAfThreadBase::MIXER ||
+-                playbackThread->type() == IAfThreadBase::OFFLOAD ||
+-                playbackThread->type() == IAfThreadBase::SPATIALIZER) {
++            if (playbackThread->type() == IAfThreadBase::MIXER
++                    || playbackThread->type() == IAfThreadBase::OFFLOAD
++                    || playbackThread->type() == IAfThreadBase::SPATIALIZER) {
+@@ -2445 +2578,2 @@ status_t AudioFlinger::closeOutput_nonvirtual(audio_io_handle_t output) {
+-void AudioFlinger::closeOutputFinish(const sp<IAfPlaybackThread>& thread) {
++void AudioFlinger::closeOutputFinish(const sp<IAfPlaybackThread>& thread)
++{
+@@ -2450 +2584,2 @@ void AudioFlinger::closeOutputFinish(const sp<IAfPlaybackThread>& thread) {
+-void AudioFlinger::closeThreadInternal_l(const sp<IAfPlaybackThread>& thread) {
++void AudioFlinger::closeThreadInternal_l(const sp<IAfPlaybackThread>& thread)
++{
+@@ -2455 +2590,2 @@ void AudioFlinger::closeThreadInternal_l(const sp<IAfPlaybackThread>& thread) {
+-status_t AudioFlinger::suspendOutput(audio_io_handle_t output) {
++status_t AudioFlinger::suspendOutput(audio_io_handle_t output)
++{
+@@ -2465 +2601,2 @@ status_t AudioFlinger::suspendOutput(audio_io_handle_t output) {
+-status_t AudioFlinger::restoreOutput(audio_io_handle_t output) {
++status_t AudioFlinger::restoreOutput(audio_io_handle_t output)
++{
+@@ -2476 +2613,2 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-                                 media::OpenInputResponse* response) {
++                                 media::OpenInputResponse* response)
++{
+@@ -2478,2 +2616,2 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-    AudioDeviceTypeAddr device =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_AudioDeviceTypeAddress(request.device));
++    AudioDeviceTypeAddr device = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_AudioDeviceTypeAddress(request.device));
+@@ -2483,2 +2621,2 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-    audio_io_handle_t input =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_audio_io_handle_t(request.input));
++    audio_io_handle_t input = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_int32_t_audio_io_handle_t(request.input));
+@@ -2489 +2627,4 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-            &input, &config, device.mType, device.address().c_str(),
++            &input,
++            &config,
++            device.mType,
++            device.address().c_str(),
+@@ -2492 +2633,2 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-            AUDIO_DEVICE_NONE, String8{});
++            AUDIO_DEVICE_NONE,
++            String8{});
+@@ -2503,5 +2645,10 @@ status_t AudioFlinger::openInput(const media::OpenInputRequest& request,
+-sp<IAfThreadBase> AudioFlinger::openInput_l(audio_module_handle_t module, audio_io_handle_t* input,
+-                                            audio_config_t* config, audio_devices_t devices,
+-                                            const char* address, audio_source_t source,
+-                                            audio_input_flags_t flags, audio_devices_t outputDevice,
+-                                            const String8& outputDeviceAddress) {
++sp<IAfThreadBase> AudioFlinger::openInput_l(audio_module_handle_t module,
++                                                         audio_io_handle_t *input,
++                                                         audio_config_t *config,
++                                                         audio_devices_t devices,
++                                                         const char* address,
++                                                         audio_source_t source,
++                                                         audio_input_flags_t flags,
++                                                         audio_devices_t outputDevice,
++                                                         const String8& outputDeviceAddress)
++{
+@@ -2523,3 +2670,10 @@ sp<IAfThreadBase> AudioFlinger::openInput_l(audio_module_handle_t module, audio_
+-    status_t status =
+-            inHwDev->openInputStream(&inputStream, *input, devices, flags, config, address, source,
+-                                     outputDevice, outputDeviceAddress.c_str());
++    status_t status = inHwDev->openInputStream(
++            &inputStream,
++            *input,
++            devices,
++            flags,
++            config,
++            address,
++            source,
++            outputDevice,
++            outputDeviceAddress.c_str());
+@@ -2545 +2699,2 @@ sp<IAfThreadBase> AudioFlinger::openInput_l(audio_module_handle_t module, audio_
+-status_t AudioFlinger::closeInput(audio_io_handle_t input) {
++status_t AudioFlinger::closeInput(audio_io_handle_t input)
++{
+@@ -2548 +2703,2 @@ status_t AudioFlinger::closeInput(audio_io_handle_t input) {
+-status_t AudioFlinger::closeInput_nonvirtual(audio_io_handle_t input) {
++status_t AudioFlinger::closeInput_nonvirtual(audio_io_handle_t input)
++{
+@@ -2574,2 +2730,2 @@ status_t AudioFlinger::closeInput_nonvirtual(audio_io_handle_t input) {
+-                        ALOGV("closeInput() found thread %d for effect session %d", t->id(),
+-                              chain->sessionId());
++                        ALOGV("closeInput() found thread %d for effect session %d",
++                              t->id(), chain->sessionId());
+@@ -2606 +2762,2 @@ status_t AudioFlinger::closeInput_nonvirtual(audio_io_handle_t input) {
+-void AudioFlinger::closeInputFinish(const sp<IAfRecordThread>& thread) {
++void AudioFlinger::closeInputFinish(const sp<IAfRecordThread>& thread)
++{
+@@ -2612 +2769,2 @@ void AudioFlinger::closeInputFinish(const sp<IAfRecordThread>& thread) {
+-void AudioFlinger::closeThreadInternal_l(const sp<IAfRecordThread>& thread) {
++void AudioFlinger::closeThreadInternal_l(const sp<IAfRecordThread>& thread)
++{
+@@ -2635 +2793,2 @@ status_t AudioFlinger::invalidateTracks(const std::vector<audio_port_handle_t>&
+-audio_unique_id_t AudioFlinger::newAudioUniqueId(audio_unique_id_use_t use) {
++audio_unique_id_t AudioFlinger::newAudioUniqueId(audio_unique_id_use_t use)
++{
+@@ -2642 +2801,3 @@ audio_unique_id_t AudioFlinger::newAudioUniqueId(audio_unique_id_use_t use) {
+-void AudioFlinger::acquireAudioSessionId(audio_session_t audioSession, pid_t pid, uid_t uid) {
++void AudioFlinger::acquireAudioSessionId(
++        audio_session_t audioSession, pid_t pid, uid_t uid)
++{
+@@ -2672 +2833,2 @@ void AudioFlinger::acquireAudioSessionId(audio_session_t audioSession, pid_t pid
+-void AudioFlinger::releaseAudioSessionId(audio_session_t audioSession, pid_t pid) {
++void AudioFlinger::releaseAudioSessionId(audio_session_t audioSession, pid_t pid)
++{
+@@ -2697,2 +2859,2 @@ void AudioFlinger::releaseAudioSessionId(audio_session_t audioSession, pid_t pid
+-        ALOGW_IF(!isAudioServerUid(callerUid), "session id %d not found for pid %d", audioSession,
+-                 caller);
++        ALOGW_IF(!isAudioServerUid(callerUid),
++                 "session id %d not found for pid %d", audioSession, caller);
+@@ -2705 +2867,2 @@ Exit:
+-bool AudioFlinger::isSessionAcquired_l(audio_session_t audioSession) {
++bool AudioFlinger::isSessionAcquired_l(audio_session_t audioSession)
++{
+@@ -2760,2 +2923,2 @@ std::vector<sp<IAfEffectModule>> AudioFlinger::purgeStaleEffects_l() {
+-                ALOGV(" session %d still exists for %d with %d refs", sessionid, ref->mPid,
+-                      ref->mCnt);
++                ALOGV(" session %d still exists for %d with %d refs",
++                    sessionid, ref->mPid, ref->mCnt);
+@@ -2781 +2944,2 @@ std::vector<sp<IAfEffectModule>> AudioFlinger::purgeStaleEffects_l() {
+-std::vector<sp<IAfEffectModule>> AudioFlinger::purgeOrphanEffectChains_l() {
++std::vector< sp<IAfEffectModule> > AudioFlinger::purgeOrphanEffectChains_l()
++{
+@@ -2787,2 +2951,2 @@ std::vector<sp<IAfEffectModule>> AudioFlinger::purgeOrphanEffectChains_l() {
+-        if (session == AUDIO_SESSION_OUTPUT_MIX || session == AUDIO_SESSION_DEVICE ||
+-            session == AUDIO_SESSION_OUTPUT_STAGE) {
++        if (session == AUDIO_SESSION_OUTPUT_MIX || session == AUDIO_SESSION_DEVICE
++                || session == AUDIO_SESSION_OUTPUT_STAGE) {
+@@ -2815 +2979,2 @@ std::vector<sp<IAfEffectModule>> AudioFlinger::purgeOrphanEffectChains_l() {
+-void AudioFlinger::dumpToThreadLog_l(const sp<IAfThreadBase>& thread) {
++void AudioFlinger::dumpToThreadLog_l(const sp<IAfThreadBase> &thread)
++{
+@@ -2832 +2997,2 @@ void AudioFlinger::dumpToThreadLog_l(const sp<IAfThreadBase>& thread) {
+-IAfThreadBase* AudioFlinger::checkThread_l(audio_io_handle_t ioHandle) const {
++IAfThreadBase* AudioFlinger::checkThread_l(audio_io_handle_t ioHandle) const
++{
+@@ -2848 +3014,2 @@ IAfThreadBase* AudioFlinger::checkThread_l(audio_io_handle_t ioHandle) const {
+-sp<IAfThreadBase> AudioFlinger::checkOutputThread_l(audio_io_handle_t ioHandle) const {
++sp<IAfThreadBase> AudioFlinger::checkOutputThread_l(audio_io_handle_t ioHandle) const
++{
+@@ -2858 +3025,2 @@ sp<IAfThreadBase> AudioFlinger::checkOutputThread_l(audio_io_handle_t ioHandle)
+-IAfPlaybackThread* AudioFlinger::checkPlaybackThread_l(audio_io_handle_t output) const {
++IAfPlaybackThread* AudioFlinger::checkPlaybackThread_l(audio_io_handle_t output) const
++{
+@@ -2861 +3029,2 @@ IAfPlaybackThread* AudioFlinger::checkPlaybackThread_l(audio_io_handle_t output)
+-IAfPlaybackThread* AudioFlinger::checkMixerThread_l(audio_io_handle_t output) const {
++IAfPlaybackThread* AudioFlinger::checkMixerThread_l(audio_io_handle_t output) const
++{
+@@ -2865 +3034,2 @@ IAfPlaybackThread* AudioFlinger::checkMixerThread_l(audio_io_handle_t output) co
+-IAfRecordThread* AudioFlinger::checkRecordThread_l(audio_io_handle_t input) const {
++IAfRecordThread* AudioFlinger::checkRecordThread_l(audio_io_handle_t input) const
++{
+@@ -2868 +3038,2 @@ IAfRecordThread* AudioFlinger::checkRecordThread_l(audio_io_handle_t input) cons
+-IAfMmapThread* AudioFlinger::checkMmapThread_l(audio_io_handle_t io) const {
++IAfMmapThread* AudioFlinger::checkMmapThread_l(audio_io_handle_t io) const
++{
+@@ -2871 +3042,2 @@ IAfMmapThread* AudioFlinger::checkMmapThread_l(audio_io_handle_t io) const {
+-sp<VolumeInterface> AudioFlinger::getVolumeInterface_l(audio_io_handle_t output) const {
++sp<VolumeInterface> AudioFlinger::getVolumeInterface_l(audio_io_handle_t output) const
++{
+@@ -2885 +3057,2 @@ sp<VolumeInterface> AudioFlinger::getVolumeInterface_l(audio_io_handle_t output)
+-std::vector<sp<VolumeInterface>> AudioFlinger::getAllVolumeInterfaces_l() const {
++std::vector<sp<VolumeInterface>> AudioFlinger::getAllVolumeInterfaces_l() const
++{
+@@ -2899 +3072,2 @@ std::vector<sp<VolumeInterface>> AudioFlinger::getAllVolumeInterfaces_l() const
+-audio_unique_id_t AudioFlinger::nextUniqueId(audio_unique_id_use_t use) {
++audio_unique_id_t AudioFlinger::nextUniqueId(audio_unique_id_use_t use)
++{
+@@ -2903,2 +3077,2 @@ audio_unique_id_t AudioFlinger::nextUniqueId(audio_unique_id_use_t use) {
+-        uint32_t base = (uint32_t)atomic_fetch_add_explicit(
+-                &mNextUniqueIds[use], (uint_fast32_t)AUDIO_UNIQUE_ID_USE_MAX, memory_order_acq_rel);
++        uint32_t base = (uint32_t) atomic_fetch_add_explicit(&mNextUniqueIds[use],
++                (uint_fast32_t) AUDIO_UNIQUE_ID_USE_MAX, memory_order_acq_rel);
+@@ -2913 +3087,2 @@ audio_unique_id_t AudioFlinger::nextUniqueId(audio_unique_id_use_t use) {
+-IAfPlaybackThread* AudioFlinger::primaryPlaybackThread_l() const {
++IAfPlaybackThread* AudioFlinger::primaryPlaybackThread_l() const
++{
+@@ -2930 +3105,2 @@ IAfPlaybackThread* AudioFlinger::primaryPlaybackThread_l() const {
+-DeviceTypeSet AudioFlinger::primaryOutputDevice_l() const {
++DeviceTypeSet AudioFlinger::primaryOutputDevice_l() const
++{
+@@ -2938 +3114,2 @@ DeviceTypeSet AudioFlinger::primaryOutputDevice_l() const {
+-IAfPlaybackThread* AudioFlinger::fastPlaybackThread_l() const {
++IAfPlaybackThread* AudioFlinger::fastPlaybackThread_l() const
++{
+@@ -2965 +3142,2 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-        IAfTrack* track, IAfPlaybackThread* thread,
++        IAfTrack* track,
++        IAfPlaybackThread* thread,
+@@ -2974,3 +3152,4 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-        size_t sourceFrameCount = thread->frameCount() * track->sampleRate() / thread->sampleRate();
+-        size_t sinkFrameCount =
+-                secondaryThread->frameCount() * track->sampleRate() / secondaryThread->sampleRate();
++        size_t sourceFrameCount = thread->frameCount() * track->sampleRate()
++                                  / thread->sampleRate();
++        size_t sinkFrameCount = secondaryThread->frameCount() * track->sampleRate()
++                                  / secondaryThread->sampleRate();
+@@ -2980,4 +3159,2 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-                [&] {
+-                    audio_utils::lock_guard _l(secondaryThread->mutex());
+-                    return secondaryThread->latency_l();
+-                }(),
++                    [&] { audio_utils::lock_guard _l(secondaryThread->mutex());
++                          return secondaryThread->latency_l(); }(),
+@@ -2985 +3162,3 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-                secondaryThread->sampleRate(), track->sampleRate(), track->getSpeed());
++                    secondaryThread->sampleRate(),
++                    track->sampleRate(),
++                    track->getSpeed());
+@@ -2992,4 +3171,9 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-        sp<IAfPatchRecord> patchRecord = IAfPatchRecord::create(
+-                nullptr , track->sampleRate(), inChannelMask, track->format(),
+-                frameCount, nullptr , (size_t)0 ,
+-                AUDIO_INPUT_FLAG_DIRECT, 0ns );
++        sp<IAfPatchRecord> patchRecord = IAfPatchRecord::create(nullptr ,
++                                                       track->sampleRate(),
++                                                       inChannelMask,
++                                                       track->format(),
++                                                       frameCount,
++                                                       nullptr ,
++                                                       (size_t)0 ,
++                                                       AUDIO_INPUT_FLAG_DIRECT,
++                                                       0ns );
+@@ -3003,4 +3187,11 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-        sp<IAfPatchTrack> patchTrack = IAfPatchTrack::create(
+-                secondaryThread, track->streamType(), track->sampleRate(), track->channelMask(),
+-                track->format(), frameCount, patchRecord->buffer(), patchRecord->bufferSize(),
+-                outputFlags, 0ns , frameCountToBeReady);
++        sp<IAfPatchTrack> patchTrack = IAfPatchTrack::create(secondaryThread,
++                                                       track->streamType(),
++                                                       track->sampleRate(),
++                                                       track->channelMask(),
++                                                       track->format(),
++                                                       frameCount,
++                                                       patchRecord->buffer(),
++                                                       patchRecord->bufferSize(),
++                                                       outputFlags,
++                                                       0ns ,
++                                                       frameCountToBeReady);
+@@ -3019,4 +3210,6 @@ void AudioFlinger::updateSecondaryOutputsForTrack_l(
+-sp<audioflinger::SyncEvent> AudioFlinger::createSyncEvent(
+-        AudioSystem::sync_event_t type, audio_session_t triggerSession,
+-        audio_session_t listenerSession, const audioflinger::SyncEventCallback& callBack,
+-        const wp<IAfTrackBase>& cookie) {
++sp<audioflinger::SyncEvent> AudioFlinger::createSyncEvent(AudioSystem::sync_event_t type,
++                                    audio_session_t triggerSession,
++                                    audio_session_t listenerSession,
++                                    const audioflinger::SyncEventCallback& callBack,
++                                    const wp<IAfTrackBase>& cookie)
++{
+@@ -3024,2 +3217,2 @@ sp<audioflinger::SyncEvent> AudioFlinger::createSyncEvent(
+-    auto event = sp<audioflinger::SyncEvent>::make(type, triggerSession, listenerSession, callBack,
+-                                                   cookie);
++    auto event = sp<audioflinger::SyncEvent>::make(
++            type, triggerSession, listenerSession, callBack, cookie);
+@@ -3051 +3244,2 @@ sp<EffectsFactoryHalInterface> AudioFlinger::getEffectsFactory() {
+-status_t AudioFlinger::queryNumberEffects(uint32_t* numEffects) const {
++status_t AudioFlinger::queryNumberEffects(uint32_t *numEffects) const
++{
+@@ -3059 +3253,2 @@ status_t AudioFlinger::queryNumberEffects(uint32_t* numEffects) const {
+-status_t AudioFlinger::queryEffect(uint32_t index, effect_descriptor_t* descriptor) const {
++status_t AudioFlinger::queryEffect(uint32_t index, effect_descriptor_t *descriptor) const
++{
+@@ -3070 +3265,2 @@ status_t AudioFlinger::getEffectDescriptor(const effect_uuid_t* pUuid,
+-                                           effect_descriptor_t* descriptor) const {
++                                           effect_descriptor_t *descriptor) const
++{
+@@ -3120,2 +3316,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-    const AudioDeviceTypeAddr device =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_AudioDeviceTypeAddress(request.device));
++    const AudioDeviceTypeAddr device = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_AudioDeviceTypeAddress(request.device));
+@@ -3123,6 +3319,6 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-    const audio_session_t sessionId =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_audio_session_t(request.sessionId));
+-    audio_io_handle_t io =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_int32_t_audio_io_handle_t(request.output));
+-    const effect_descriptor_t descIn =
+-            VALUE_OR_RETURN_STATUS(aidl2legacy_EffectDescriptor_effect_descriptor_t(request.desc));
++    const audio_session_t sessionId = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_int32_t_audio_session_t(request.sessionId));
++    audio_io_handle_t io = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_int32_t_audio_io_handle_t(request.output));
++    const effect_descriptor_t descIn = VALUE_OR_RETURN_STATUS(
++            aidl2legacy_EffectDescriptor_effect_descriptor_t(request.desc));
+@@ -3141,2 +3337,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-                 "%s uid %d pid %d tried to pass itself off as pid %d", __func__, callingUid,
+-                 callingPid, currentPid);
++                 "%s uid %d pid %d tried to pass itself off as pid %d",
++                 __func__, callingUid, callingPid, currentPid);
+@@ -3177,4 +3373,4 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-        if (!modifyDefaultAudioEffectsAllowed(adjAttributionSource) &&
+-            !isAudioServerUid(callingUid)) {
+-            ALOGE("%s: effect on AUDIO_SESSION_OUTPUT_STAGE not granted for uid %d", __func__,
+-                  callingUid);
++        if (!modifyDefaultAudioEffectsAllowed(adjAttributionSource)
++                && !isAudioServerUid(callingUid)) {
++            ALOGE("%s: effect on AUDIO_SESSION_OUTPUT_STAGE not granted for uid %d",
++                    __func__, callingUid);
+@@ -3203,2 +3399,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-        uint32_t preferredType = (sessionId == AUDIO_SESSION_OUTPUT_MIX ? EFFECT_FLAG_TYPE_AUXILIARY
+-                                                                        : EFFECT_FLAG_TYPE_MASK);
++        uint32_t preferredType = (sessionId == AUDIO_SESSION_OUTPUT_MIX ?
++                                  EFFECT_FLAG_TYPE_AUXILIARY : EFFECT_FLAG_TYPE_MASK);
+@@ -3221,3 +3417,4 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-        if (hapticPlaybackRequired &&
+-            (sessionId == AUDIO_SESSION_DEVICE || sessionId == AUDIO_SESSION_OUTPUT_MIX ||
+-             sessionId == AUDIO_SESSION_OUTPUT_STAGE)) {
++        if (hapticPlaybackRequired
++                && (sessionId == AUDIO_SESSION_DEVICE
++                        || sessionId == AUDIO_SESSION_OUTPUT_MIX
++                        || sessionId == AUDIO_SESSION_OUTPUT_STAGE)) {
+@@ -3229,2 +3426,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-            ALOGW("%s: attempt to create a spatializer effect from uid/pid %d/%d", __func__,
+-                  callingUid, currentPid);
++            ALOGW("%s: attempt to create a spatializer effect from uid/pid %d/%d",
++                    __func__, callingUid, currentPid);
+@@ -3243,2 +3440,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-                    &descOut, device, client, effectClient, mPatchPanel->patches_l(), &enabledOut,
+-                    &lStatus, probe, request.notifyFramesProcessed);
++                    &descOut, device, client, effectClient, mPatchPanel->patches_l(),
++                    &enabledOut, &lStatus, probe, request.notifyFramesProcessed);
+@@ -3261,3 +3458,3 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-            if (sessionId != AUDIO_SESSION_OUTPUT_MIX &&
+-                ((descOut.flags & EFFECT_FLAG_TYPE_MASK) == EFFECT_FLAG_TYPE_PRE_PROC) &&
+-                getOrphanEffectChain_l(sessionId).get() != nullptr) {
++            if (sessionId != AUDIO_SESSION_OUTPUT_MIX
++                  && ((descOut.flags & EFFECT_FLAG_TYPE_MASK) == EFFECT_FLAG_TYPE_PRE_PROC)
++                  && getOrphanEffectChain_l(sessionId).get() != nullptr) {
+@@ -3278,2 +3475,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-                handle = createOrphanEffect_l(client, effectClient, priority, sessionId, &descOut,
+-                                              &enabledOut, &lStatus, pinned,
++                handle = createOrphanEffect_l(client, effectClient, priority, sessionId,
++                                              &descOut, &enabledOut, &lStatus, pinned,
+@@ -3288,2 +3485,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-        } else if (checkPlaybackThread_l(io) != nullptr &&
+-                   sessionId != AUDIO_SESSION_OUTPUT_STAGE) {
++        } else if (checkPlaybackThread_l(io) != nullptr
++                        && sessionId != AUDIO_SESSION_OUTPUT_STAGE) {
+@@ -3293,2 +3490,3 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-                    if (hapticPlaybackRequired &&
+-                        mPlaybackThreads.valueAt(i)->hapticChannelMask() == AUDIO_CHANNEL_NONE) {
++                    if (hapticPlaybackRequired
++                            && mPlaybackThreads.valueAt(i)
++                                    ->hapticChannelMask() == AUDIO_CHANNEL_NONE) {
+@@ -3296,2 +3494 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-                              "thread(io=%d) doesn't support",
+-                              __func__, (int)io);
++                              "thread(io=%d) doesn't support", __func__, (int)io);
+@@ -3348,2 +3545,2 @@ status_t AudioFlinger::createEffect(const media::CreateEffectRequest& request,
+-        handle = thread->createEffect_l(client, effectClient, priority, sessionId, &descOut,
+-                                        &enabledOut, &lStatus, pinned, probe,
++        handle = thread->createEffect_l(client, effectClient, priority, sessionId,
++                                        &descOut, &enabledOut, &lStatus, pinned, probe,
+@@ -3382,2 +3579,2 @@ Register:
+-    response->desc =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_effect_descriptor_t_EffectDescriptor(descOut));
++    response->desc = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_effect_descriptor_t_EffectDescriptor(descOut));
+@@ -3387 +3584,2 @@ Exit:
+-sp<IAfEffectHandle> AudioFlinger::createOrphanEffect_l(const sp<Client>& client,
++sp<IAfEffectHandle> AudioFlinger::createOrphanEffect_l(
++        const sp<Client>& client,
+@@ -3389,6 +3587,10 @@ sp<IAfEffectHandle> AudioFlinger::createOrphanEffect_l(const sp<Client>& client,
+-                                                       int32_t priority, audio_session_t sessionId,
+-                                                       effect_descriptor_t* desc, int* enabled,
+-                                                       status_t* status, bool pinned,
+-                                                       bool notifyFramesProcessed) {
+-    ALOGV("%s effectClient %p, priority %d, sessionId %d, factory %p", __func__, effectClient.get(),
+-          priority, sessionId, mEffectsFactoryHal.get());
++        int32_t priority,
++        audio_session_t sessionId,
++        effect_descriptor_t *desc,
++        int *enabled,
++        status_t *status,
++        bool pinned,
++        bool notifyFramesProcessed)
++{
++    ALOGV("%s effectClient %p, priority %d, sessionId %d, factory %p",
++          __func__, effectClient.get(), priority, sessionId, mEffectsFactoryHal.get());
+@@ -3407 +3609,2 @@ sp<IAfEffectHandle> AudioFlinger::createOrphanEffect_l(const sp<Client>& client,
+-        status_t llStatus = chain->createEffect(effect, desc, effectId, sessionId, pinned);
++        status_t llStatus =
++                chain->createEffect(effect, desc, effectId, sessionId, pinned);
+@@ -3449 +3652,3 @@ status_t AudioFlinger::moveEffects(audio_session_t sessionId, audio_io_handle_t
+-                                   audio_io_handle_t dstIo) NO_THREAD_SAFETY_ANALYSIS {
++        audio_io_handle_t dstIo)
++NO_THREAD_SAFETY_ANALYSIS
++{
+@@ -3506 +3711,4 @@ status_t AudioFlinger::moveEffects(audio_session_t sessionId, audio_io_handle_t
+-void AudioFlinger::setEffectSuspended(int effectId, audio_session_t sessionId, bool suspended) {
++void AudioFlinger::setEffectSuspended(int effectId,
++                                audio_session_t sessionId,
++                                bool suspended)
++{
+@@ -3517,4 +3725,7 @@ void AudioFlinger::setEffectSuspended(int effectId, audio_session_t sessionId, b
+-status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfPlaybackThread* srcThread,
+-                                          IAfPlaybackThread* dstThread, IAfEffectChain* srcChain) {
+-    ALOGV("%s: session %d from thread %p to thread %p %s", __func__, sessionId, srcThread,
+-          dstThread, (srcChain != nullptr ? "from specific chain" : ""));
++status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId,
++        IAfPlaybackThread* srcThread, IAfPlaybackThread* dstThread,
++        IAfEffectChain* srcChain)
++{
++    ALOGV("%s: session %d from thread %p to thread %p %s",
++            __func__, sessionId, srcThread, dstThread,
++            (srcChain != nullptr ? "from specific chain" : ""));
+@@ -3526,2 +3737,2 @@ status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfPlayback
+-        ALOGW("%s: effect chain for session %d not on source thread %p", __func__, sessionId,
+-              srcThread);
++        ALOGW("%s: effect chain for session %d not on source thread %p",
++                __func__, sessionId, srcThread);
+@@ -3553 +3764,2 @@ status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfPlayback
+-            errorString = StringPrintf("cannot add effect %p to destination thread", effect.get());
++            errorString = StringPrintf(
++                    "cannot add effect %p to destination thread", effect.get());
+@@ -3610,2 +3822,3 @@ status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfPlayback
+-status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfRecordThread* srcThread,
+-                                          IAfRecordThread* dstThread) {
++status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId,
++        IAfRecordThread* srcThread, IAfRecordThread* dstThread)
++{
+@@ -3647,2 +3860,3 @@ status_t AudioFlinger::moveEffectChain_ll(audio_session_t sessionId, IAfRecordTh
+-status_t AudioFlinger::moveAuxEffectToIo(int EffectId, const sp<IAfPlaybackThread>& dstThread,
+-                                         sp<IAfPlaybackThread>* srcThread) {
++status_t AudioFlinger::moveAuxEffectToIo(int EffectId,
++        const sp<IAfPlaybackThread>& dstThread, sp<IAfPlaybackThread>* srcThread)
++{
+@@ -3687 +3901,2 @@ status_t AudioFlinger::moveAuxEffectToIo(int EffectId, const sp<IAfPlaybackThrea
+-bool AudioFlinger::isNonOffloadableGlobalEffectEnabled_l() const {
++bool AudioFlinger::isNonOffloadableGlobalEffectEnabled_l() const
++{
+@@ -3702 +3917,2 @@ bool AudioFlinger::isNonOffloadableGlobalEffectEnabled_l() const {
+-void AudioFlinger::onNonOffloadableGlobalEffectEnable() {
++void AudioFlinger::onNonOffloadableGlobalEffectEnable()
++{
+@@ -3712 +3928,2 @@ void AudioFlinger::onNonOffloadableGlobalEffectEnable() {
+-status_t AudioFlinger::putOrphanEffectChain_l(const sp<IAfEffectChain>& chain) {
++status_t AudioFlinger::putOrphanEffectChain_l(const sp<IAfEffectChain>& chain)
++{
+@@ -3725 +3942,2 @@ status_t AudioFlinger::putOrphanEffectChain_l(const sp<IAfEffectChain>& chain) {
+-sp<IAfEffectChain> AudioFlinger::getOrphanEffectChain_l(audio_session_t session) {
++sp<IAfEffectChain> AudioFlinger::getOrphanEffectChain_l(audio_session_t session)
++{
+@@ -3735 +3953,2 @@ sp<IAfEffectChain> AudioFlinger::getOrphanEffectChain_l(audio_session_t session)
+-bool AudioFlinger::updateOrphanEffectChains(const sp<IAfEffectModule>& effect) {
++bool AudioFlinger::updateOrphanEffectChains(const sp<IAfEffectModule>& effect)
++{
+@@ -3739 +3958,2 @@ bool AudioFlinger::updateOrphanEffectChains(const sp<IAfEffectModule>& effect) {
+-bool AudioFlinger::updateOrphanEffectChains_l(const sp<IAfEffectModule>& effect) {
++bool AudioFlinger::updateOrphanEffectChains_l(const sp<IAfEffectModule>& effect)
++{
+@@ -3753 +3973,3 @@ bool AudioFlinger::updateOrphanEffectChains_l(const sp<IAfEffectModule>& effect)
+-status_t AudioFlinger::listAudioPorts(unsigned int* num_ports, struct audio_port* ports) const {
++status_t AudioFlinger::listAudioPorts(unsigned int* num_ports,
++        struct audio_port* ports) const
++{
+@@ -3765,2 +3987,3 @@ status_t AudioFlinger::getAudioPort(struct audio_port_v7* port) const {
+-status_t AudioFlinger::createAudioPatch(const struct audio_patch* patch,
+-                                        audio_patch_handle_t* handle) {
++status_t AudioFlinger::createAudioPatch(
++        const struct audio_patch* patch, audio_patch_handle_t* handle)
++{
+@@ -3774 +3997,2 @@ status_t AudioFlinger::createAudioPatch(const struct audio_patch* patch,
+-status_t AudioFlinger::releaseAudioPatch(audio_patch_handle_t handle) {
++status_t AudioFlinger::releaseAudioPatch(audio_patch_handle_t handle)
++{
+@@ -3778,2 +4002,3 @@ status_t AudioFlinger::releaseAudioPatch(audio_patch_handle_t handle) {
+-status_t AudioFlinger::listAudioPatches(unsigned int* num_patches,
+-                                        struct audio_patch* patches) const {
++status_t AudioFlinger::listAudioPatches(
++        unsigned int* num_patches, struct audio_patch* patches) const
++{
+@@ -3796 +4020,0 @@ status_t AudioFlinger::getAudioMixPort(const struct audio_port_v7* devicePort,
+-<<<<<<< HEAD
+@@ -3818,10 +4042,2 @@ status_t AudioFlinger::resetReferencesForTest() {
+-||||||| 7f0218eb8c
+-=======
+-status_t AudioFlinger::resetReferencesForTest() {
+-    mDeviceEffectManager.clear();
+-    mPatchPanel.clear();
+-    mMelReporter->resetReferencesForTest();
+-    return NO_ERROR;
+-}
+->>>>>>> fd414a83bb92cf343b57eb7fbab48d56e2702007
+-status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]] const Parcel& data,
++status_t AudioFlinger::onTransactWrapper(TransactionCode code,
++                                         [[maybe_unused]] const Parcel& data,
+@@ -3857 +4072,0 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]]
+-<<<<<<< HEAD
+@@ -3860,6 +4075,2 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]]
+-||||||| 7f0218eb8c
+-=======
+-        case TransactionCode::RESET_REFERENCES_FOR_TEST:
+->>>>>>> fd414a83bb92cf343b57eb7fbab48d56e2702007
+-            ALOGW("%s: transaction %d received from PID %d", __func__, static_cast<int>(code),
+-                  IPCThreadState::self()->getCallingPid());
++            ALOGW("%s: transaction %d received from PID %d",
++                  __func__, static_cast<int>(code), IPCThreadState::self()->getCallingPid());
+@@ -3893,2 +4104,3 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]]
+-                ALOGW("%s: transaction %d received from PID %d unauthorized UID %d", __func__,
+-                      static_cast<int>(code), IPCThreadState::self()->getCallingPid(),
++                ALOGW("%s: transaction %d received from PID %d unauthorized UID %d",
++                      __func__, static_cast<int>(code),
++                      IPCThreadState::self()->getCallingPid(),
+@@ -3936,3 +4148,3 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]]
+-            },
+-            mediautils::TimeCheck::kDefaultTimeoutDuration,
+-            mediautils::TimeCheck::kDefaultSecondChanceDuration, true );
++    }, mediautils::TimeCheck::kDefaultTimeoutDuration,
++    mediautils::TimeCheck::kDefaultSecondChanceDuration,
++    true );
+@@ -3942 +4153,0 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code, [[maybe_unused]]
+-}

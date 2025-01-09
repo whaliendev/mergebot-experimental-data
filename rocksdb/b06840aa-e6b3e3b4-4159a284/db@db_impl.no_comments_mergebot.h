@@ -272,13 +272,13 @@ class DBImpl : public DB {
       SequenceNumber* prev_snapshot);
   void InstallSuperVersion(ColumnFamilyData* cfd,
                            DeletionState& deletion_state);
-  Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
-                 const Slice& key, std::string* value,
-                 bool* value_found = nullptr);
   Status ReFitLevel(ColumnFamilyData* cfd, int level, int target_level = -1);
   std::pair<Iterator*, Iterator*> GetTailingIteratorPair(
       const ReadOptions& options, ColumnFamilyData* cfd,
       uint64_t* superversion_number);
+  Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
+                 const Slice& key, std::string* value,
+                 bool* value_found = nullptr);
 };
 extern Options SanitizeOptions(const std::string& db,
                                const InternalKeyComparator* icmp,

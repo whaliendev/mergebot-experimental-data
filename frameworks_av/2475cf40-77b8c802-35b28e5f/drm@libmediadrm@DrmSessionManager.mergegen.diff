@@ -1,0 +1,103 @@
+diff --git a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_mergegen.cpp b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_merged.cpp
+index b84f103..3e1c3c4 100644
+--- a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_merged.cpp
+@@ -3 +3,7 @@
+-#include <aidl/android/media/MediaResourceParcel.h> #include <android/binder_ibinder.h> #include <android/binder_manager.h> #include <cutils/properties.h> #include <media/MediaResource.h>
++#include <aidl/android/media/IResourceManagerClient.h>
++#include <aidl/android/media/IResourceManagerService.h>
++#include <aidl/android/media/MediaResourceParcel.h>
++#include <android/binder_ibinder.h>
++#include <android/binder_manager.h>
++#include <cutils/properties.h>
++#include <mediadrm/DrmUtils.h>
+@@ -7 +13 @@
+-#include <vector> #include <vector>
++#include <vector>
+@@ -24 +30,21 @@ static String8 GetSessionIdString(const Vector<uint8_t> &sessionId) {
+-template <typename Byte = uint8_t> static std::vector<Byte> toStdVec(const Vector<uint8_t> &vector) { auto v = reinterpret_cast<const Byte *>(vector.array()); std::vector<Byte> vec(v, v + vector.size()); return vec; } static std::vector<MediaResourceParcel> toResourceVec( const Vector<uint8_t> &sessionId, int64_t value) { using Type = aidl::android::media::MediaResourceType; using SubType = aidl::android::media::MediaResourceSubType; std::vector<MediaResourceParcel> resources; MediaResourceParcel resource{ Type::kDrmSession, SubType::kUnspecifiedSubType, toStdVec<int8_t>(sessionId), value}; resources.push_back(resource); return resources; } static std::shared_ptr<IResourceManagerService> getResourceManagerService() { ::ndk::SpAIBinder binder(AServiceManager_getService("media.resource_manager")); return IResourceManagerService::fromBinder(binder); }
++template <typename Byte = uint8_t>
++static std::vector<Byte> toStdVec(const Vector<uint8_t> &vector) {
++    auto v = reinterpret_cast<const Byte *>(vector.array());
++    std::vector<Byte> vec(v, v + vector.size());
++    return vec;
++}
++static std::vector<MediaResourceParcel> toResourceVec(
++        const Vector<uint8_t> &sessionId, int64_t value) {
++    using Type = aidl::android::media::MediaResourceType;
++    using SubType = aidl::android::media::MediaResourceSubType;
++    std::vector<MediaResourceParcel> resources;
++    MediaResourceParcel resource{
++            Type::kDrmSession, SubType::kUnspecifiedSubType,
++            toStdVec<int8_t>(sessionId), value};
++    resources.push_back(resource);
++    return resources;
++}
++static std::shared_ptr<IResourceManagerService> getResourceManagerService() {
++    ::ndk::SpAIBinder binder(AServiceManager_getService("media.resource_manager"));
++    return IResourceManagerService::fromBinder(binder);
++}
+@@ -37 +63,2 @@ sp<DrmSessionManager> DrmSessionManager::Instance() {
+-auto drmSessionManager = new DrmSessionManager(); drmSessionManager->init();
++    auto drmSessionManager = new DrmSessionManager();
++    drmSessionManager->init();
+@@ -43,3 +70,27 @@ DrmSessionManager::DrmSessionManager()
+-DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service) : mService(service), mInitialized(false), mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) { if (mService == NULL) { ALOGE("Failed to init ResourceManagerService"); }
+-DrmSessionManager::~DrmSessionManager() { if (mService != NULL) { AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } }
+-void DrmSessionManager::init() { Mutex::Autolock lock(mLock); if (mInitialized) { return; } mInitialized = true; if (mService != NULL) { AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } } void DrmSessionManager::addSession(int pid, const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) { uid_t uid = AIBinder_getCallingUid();
++DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service)
++    : mService(service),
++      mInitialized(false),
++      mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) {
++    if (mService == NULL) {
++        ALOGE("Failed to init ResourceManagerService");
++    }
++}
++DrmSessionManager::~DrmSessionManager() {
++    if (mService != NULL) {
++        AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);
++    }
++}
++void DrmSessionManager::init() {
++    Mutex::Autolock lock(mLock);
++    if (mInitialized) {
++        return;
++    }
++    mInitialized = true;
++    if (mService != NULL) {
++        AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);
++    }
++}
++void DrmSessionManager::addSession(int pid,
++        const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {
++    uid_t uid = AIBinder_getCallingUid();
++    ALOGV("addSession(pid %d, uid %d, drm %p, sessionId %s)", pid, uid, drm.get(),
+@@ -51 +102,3 @@ void DrmSessionManager::init() { Mutex::Autolock lock(mLock); if (mInitialized)
+-static int64_t clientId = 0; mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId}; mService->addResource(pid, uid, clientId++, drm, toResourceVec(sessionId, INT64_MAX));
++    static int64_t clientId = 0;
++    mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId};
++    mService->addResource(pid, uid, clientId++, drm, toResourceVec(sessionId, INT64_MAX));
+@@ -60 +113,2 @@ void DrmSessionManager::useSession(const Vector<uint8_t> &sessionId) {
+-auto info = it->second; mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId, -1));
++    auto info = it->second;
++    mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId, -1));
+@@ -69 +123,3 @@ void DrmSessionManager::removeSession(const Vector<uint8_t> &sessionId) {
+-auto info = it->second; mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId, INT64_MAX)); mSessionMap.erase(it);
++    auto info = it->second;
++    mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId, INT64_MAX));
++    mSessionMap.erase(it);
+@@ -72,0 +129,3 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
++    mLock.lock();
++    std::shared_ptr<IResourceManagerService> service(mService);
++    mLock.unlock();
+@@ -75,0 +135,4 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
++    Vector<uint8_t> dummy;
++    bool success;
++    ScopedAStatus status = service->reclaimResource(callingPid, toResourceVec(dummy, INT64_MAX), &success);
++    return status.isOk() && success;
+@@ -85 +148,4 @@ bool DrmSessionManager::containsSession(const Vector<uint8_t>& sessionId) const
+-void DrmSessionManager::binderDied() { ALOGW("ResourceManagerService died."); Mutex::Autolock lock(mLock); mService.reset();
++void DrmSessionManager::binderDied() {
++    ALOGW("ResourceManagerService died.");
++    Mutex::Autolock lock(mLock);
++    mService.reset();

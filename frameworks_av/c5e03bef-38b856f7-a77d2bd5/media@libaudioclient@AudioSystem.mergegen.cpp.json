@@ -1,0 +1,114 @@
+[
+    {
+        "a_contents": "template <typename ServiceInterface, typename Client, typename AidlInterface,\n        typename ServiceTraits>\nclass ServiceHandler {\npublic:\n    sp<ServiceInterface> getService()\n            EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS {  // std::unique_ptr\n        sp<ServiceInterface> service;\n        sp<Client> client;",
+        "b_contents": "template <typename ServiceInterface, typename Client, typename AidlInterface,\n        typename ServiceTraits>\nclass ServiceHandler {\npublic:\n    sp<ServiceInterface> getService(bool canStartThreadPool = true)\n            EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS {  // std::unique_ptr\n        sp<ServiceInterface> service;\n        sp<Client> client;",
+        "base_contents": "static sp<IBinder> gAudioFlingerBinder = nullptr;",
+        "res_region": "template <typename ServiceInterface, typename Client, typename AidlInterface,\n        typename ServiceTraits>\nclass ServiceHandler {\npublic:\n    sp<ServiceInterface> getService()\n            EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS {  // std::unique_ptr\n        sp<ServiceInterface> service;\n        sp<Client> client;",
+        "lookback": "// from the system server.\n// This allows specific isolated processes to access the audio system. Currently used only for the\n// HotwordDetectionService.",
+        "lookahead": "\n        bool reportNoError = false;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 84,
+        "end_line": 104,
+        "merge_gen_region": "template <typename ServiceInterface, typename Client, typename AidlInterface, typename ServiceTraits> class ServiceHandler { public: sp<ServiceInterface> getService() EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS { // std::unique_ptr sp<ServiceInterface> service; sp<Client> client;",
+        "resolved": true
+    },
+    {
+        "a_contents": "        if (mCvGetter) mCvGetter.reset();  // remove condition variable.\n        client = mClient;\n        service = mService;\n        // Make sure callbacks can be received by the client\n        if (mCanStartThreadPool) {",
+        "b_contents": "        if (mCvGetter) mCvGetter.reset();  // remove condition variable.\n        client = mClient;\n        service = mService;\n        // Make sure callbacks can be received by the client\n        if (canStartThreadPool) {",
+        "base_contents": "        afc = gAudioFlingerClient;\n        af = gAudioFlinger;\n        // Make sure callbacks can be received by gAudioFlingerClient\n        if(canStartThreadPool) {",
+        "res_region": "        if (mCvGetter) mCvGetter.reset();  // remove condition variable.\n        client = mClient;\n        service = mService;\n        // Make sure callbacks can be received by the client\n        if (mCanStartThreadPool) {",
+        "lookback": "            }\n            break;\n        }",
+        "lookahead": "            ProcessState::self()->startThreadPool();\n        }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 154,
+        "end_line": 171,
+        "merge_gen_region": "if (mCvGetter) mCvGetter.reset(); // remove condition variable. client = mClient; service = mService; // Make sure callbacks can be received by the client if (mCanStartThreadPool) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n    status_t setLocalService(const sp<ServiceInterface>& service) EXCLUDES(mMutex) {\n        std::lock_guard _l(mMutex);\n        // we allow clearing once set, but not a double non-null set.\n        if (mService != nullptr && service != nullptr) return INVALID_OPERATION;\n        mLocalService = service;\n        if (mCvGetter) mCvGetter->notify_one();\n        return OK;\n    }\n\n    sp<Client> getClient() EXCLUDES(mMutex)  {\n        const auto service = getService();\n        if (service == nullptr) return nullptr;\n        std::lock_guard _l(mMutex);\n        return mClient;\n    }\n\n    void setBinder(const sp<IBinder>& binder) EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        if (mService != nullptr) {\n            ALOGW(\"%s: ignoring; %s connection already established.\",\n                    __func__, ServiceTraits::SERVICE_NAME);\n            return;\n        }\n        mBinder = binder;\n        if (mCvGetter) mCvGetter->notify_one();\n    }\n\n    void clearService() EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        mService.clear();\n        if (mClient) ServiceTraits::onClearService(mClient);\n    }\n\n    void disableThreadPool() {\n        mCanStartThreadPool = false;\n    }\n\nprivate:\n    std::mutex mSingleGetter;\n    std::mutex mMutex;\n    std::shared_ptr<std::condition_variable> mCvGetter GUARDED_BY(mMutex);\n    sp<IBinder> mBinder GUARDED_BY(mMutex);\n    sp<ServiceInterface> mLocalService GUARDED_BY(mMutex);\n    sp<ServiceInterface> mService GUARDED_BY(mMutex);\n    sp<Client> mClient GUARDED_BY(mMutex);\n    std::atomic<bool> mCanStartThreadPool = true;\n};\n\nstruct AudioFlingerTraits {\n    static void onServiceCreate(\n            const sp<IAudioFlinger>& af, const sp<AudioSystem::AudioFlingerClient>& afc) {\n        const int64_t token = IPCThreadState::self()->clearCallingIdentity();\n        af->registerClient(afc);\n        IPCThreadState::self()->restoreCallingIdentity(token);\n    }\n\n    static sp<IAudioFlinger> createServiceAdapter(\n            const sp<media::IAudioFlingerService>& aidlInterface) {\n        return sp<AudioFlingerClientAdapter>::make(aidlInterface);\n    }\n\n    static void onClearService(const sp<AudioSystem::AudioFlingerClient>& afc) {\n        afc->clearIoCache();\n    }\n\n    static constexpr const char* SERVICE_NAME = IAudioFlinger::DEFAULT_SERVICE_NAME;\n};\n\n[[clang::no_destroy]] static constinit ServiceHandler<IAudioFlinger,\n        AudioSystem::AudioFlingerClient, media::IAudioFlingerService,\n        AudioFlingerTraits> gAudioFlingerServiceHandler;\n\nsp<IAudioFlinger> AudioSystem::get_audio_flinger() {\n    return gAudioFlingerServiceHandler.getService();",
+        "b_contents": "\n    status_t setLocalService(const sp<ServiceInterface>& service) EXCLUDES(mMutex) {\n        std::lock_guard _l(mMutex);\n        // we allow clearing once set, but not a double non-null set.\n        if (mService != nullptr && service != nullptr) return INVALID_OPERATION;\n        mLocalService = service;\n        if (mCvGetter) mCvGetter->notify_one();\n        return OK;\n    }\n\n    sp<Client> getClient() EXCLUDES(mMutex)  {\n        const auto service = getService();\n        if (service == nullptr) return nullptr;\n        std::lock_guard _l(mMutex);\n        return mClient;\n    }\n\n    void setBinder(const sp<IBinder>& binder) EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        if (mService != nullptr) {\n            ALOGW(\"%s: ignoring; %s connection already established.\",\n                    __func__, ServiceTraits::SERVICE_NAME);\n            return;\n        }\n        mBinder = binder;\n        if (mCvGetter) mCvGetter->notify_one();\n    }\n\n    void clearService() EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        mService.clear();\n        if (mClient) ServiceTraits::onClearService(mClient);\n    }\n\nprivate:\n    std::mutex mSingleGetter;\n    std::mutex mMutex;\n    std::shared_ptr<std::condition_variable> mCvGetter GUARDED_BY(mMutex);\n    sp<IBinder> mBinder GUARDED_BY(mMutex);\n    sp<ServiceInterface> mLocalService GUARDED_BY(mMutex);\n    sp<ServiceInterface> mService GUARDED_BY(mMutex);\n    sp<Client> mClient GUARDED_BY(mMutex);\n};\n\nstruct AudioFlingerTraits {\n    static void onServiceCreate(\n            const sp<IAudioFlinger>& af, const sp<AudioSystem::AudioFlingerClient>& afc) {\n        const int64_t token = IPCThreadState::self()->clearCallingIdentity();\n        af->registerClient(afc);\n        IPCThreadState::self()->restoreCallingIdentity(token);\n    }\n\n    static sp<IAudioFlinger> createServiceAdapter(\n            const sp<media::IAudioFlingerService>& aidlInterface) {\n        return sp<AudioFlingerClientAdapter>::make(aidlInterface);\n    }\n\n    static void onClearService(const sp<AudioSystem::AudioFlingerClient>& afc) {\n        afc->clearIoCache();\n    }\n\n    static constexpr const char* SERVICE_NAME = IAudioFlinger::DEFAULT_SERVICE_NAME;\n};\n\n[[clang::no_destroy]] static constinit ServiceHandler<IAudioFlinger,\n        AudioSystem::AudioFlingerClient, media::IAudioFlingerService,\n        AudioFlingerTraits> gAudioFlingerServiceHandler;\n\nsp<IAudioFlinger> AudioSystem::get_audio_flinger() {\n    return gAudioFlingerServiceHandler.getService();",
+        "base_contents": "    const int64_t token = IPCThreadState::self()->clearCallingIdentity();\n    af->registerClient(afc);\n    IPCThreadState::self()->restoreCallingIdentity(token);\n    if (reportNoError) reportError(NO_ERROR);\n    return af;",
+        "res_region": "\n    status_t setLocalService(const sp<ServiceInterface>& service) EXCLUDES(mMutex) {\n        std::lock_guard _l(mMutex);\n        // we allow clearing once set, but not a double non-null set.\n        if (mService != nullptr && service != nullptr) return INVALID_OPERATION;\n        mLocalService = service;\n        if (mCvGetter) mCvGetter->notify_one();\n        return OK;\n    }\n\n    sp<Client> getClient() EXCLUDES(mMutex)  {\n        const auto service = getService();\n        if (service == nullptr) return nullptr;\n        std::lock_guard _l(mMutex);\n        return mClient;\n    }\n\n    void setBinder(const sp<IBinder>& binder) EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        if (mService != nullptr) {\n            ALOGW(\"%s: ignoring; %s connection already established.\",\n                    __func__, ServiceTraits::SERVICE_NAME);\n            return;\n        }\n        mBinder = binder;\n        if (mCvGetter) mCvGetter->notify_one();\n    }\n\n    void clearService() EXCLUDES(mMutex)  {\n        std::lock_guard _l(mMutex);\n        mService.clear();\n        if (mClient) ServiceTraits::onClearService(mClient);\n    }\n\n    void disableThreadPool() {\n        mCanStartThreadPool = false;\n    }\n\nprivate:\n    std::mutex mSingleGetter;\n    std::mutex mMutex;\n    std::shared_ptr<std::condition_variable> mCvGetter GUARDED_BY(mMutex);\n    sp<IBinder> mBinder GUARDED_BY(mMutex);\n    sp<ServiceInterface> mLocalService GUARDED_BY(mMutex);\n    sp<ServiceInterface> mService GUARDED_BY(mMutex);\n    sp<Client> mClient GUARDED_BY(mMutex);\n    std::atomic<bool> mCanStartThreadPool = true;\n};\n\nstruct AudioFlingerTraits {\n    static void onServiceCreate(\n            const sp<IAudioFlinger>& af, const sp<AudioSystem::AudioFlingerClient>& afc) {\n        const int64_t token = IPCThreadState::self()->clearCallingIdentity();\n        af->registerClient(afc);\n        IPCThreadState::self()->restoreCallingIdentity(token);\n    }\n\n    static sp<IAudioFlinger> createServiceAdapter(\n            const sp<media::IAudioFlingerService>& aidlInterface) {\n        return sp<AudioFlingerClientAdapter>::make(aidlInterface);\n    }\n\n    static void onClearService(const sp<AudioSystem::AudioFlingerClient>& afc) {\n        afc->clearIoCache();\n    }\n\n    static constexpr const char* SERVICE_NAME = IAudioFlinger::DEFAULT_SERVICE_NAME;\n};\n\n[[clang::no_destroy]] static constinit ServiceHandler<IAudioFlinger,\n        AudioSystem::AudioFlingerClient, media::IAudioFlingerService,\n        AudioFlingerTraits> gAudioFlingerServiceHandler;\n\nsp<IAudioFlinger> AudioSystem::get_audio_flinger() {\n    return gAudioFlingerServiceHandler.getService();",
+        "lookback": "        if (reportNoError) AudioSystem::reportError(NO_ERROR);\n        return service;\n    }",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 180,
+        "end_line": 333,
+        "merge_gen_region": "status_t setLocalService(const sp<ServiceInterface>& service) EXCLUDES(mMutex) { std::lock_guard _l(mMutex); // we allow clearing once set, but not a double non-null set. if (mService != nullptr && service != nullptr) return INVALID_OPERATION; mLocalService = service; if (mCvGetter) mCvGetter->notify_one(); return OK; } sp<Client> getClient() EXCLUDES(mMutex) { const auto service = getService(); if (service == nullptr) return nullptr; std::lock_guard _l(mMutex); return mClient; } void setBinder(const sp<IBinder>& binder) EXCLUDES(mMutex) { std::lock_guard _l(mMutex); if (mService != nullptr) { ALOGW(\"%s: ignoring; %s connection already established.\", __func__, ServiceTraits::SERVICE_NAME); return; } mBinder = binder; if (mCvGetter) mCvGetter->notify_one(); } void clearService() EXCLUDES(mMutex) { std::lock_guard _l(mMutex); mService.clear(); if (mClient) ServiceTraits::onClearService(mClient); } void disableThreadPool() { mCanStartThreadPool = false; } private: std::mutex mSingleGetter; std::mutex mMutex; std::shared_ptr<std::condition_variable> mCvGetter GUARDED_BY(mMutex); sp<IBinder> mBinder GUARDED_BY(mMutex); sp<ServiceInterface> mLocalService GUARDED_BY(mMutex); sp<ServiceInterface> mLocalService GUARDED_BY(mMutex); sp<ServiceInterface> mLocalService GUARDED_BY(mMutex; std::shared_ptr<std::condition_variable> m",
+        "resolved": false
+    },
+    {
+        "a_contents": "sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {\n    return gAudioFlingerServiceHandler.getClient();",
+        "b_contents": "sp<IAudioFlinger> AudioSystem::get_audio_flinger_for_fuzzer() {\n    return gAudioFlingerServiceHandler.getService(false /* canStartThreadPool */);",
+        "base_contents": "const sp<IAudioFlinger> AudioSystem:: get_audio_flinger() {\n    return getAudioFlingerImpl();",
+        "res_region": "sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {\n    return gAudioFlingerServiceHandler.getClient();",
+        "lookback": "    return gAudioFlingerServiceHandler.getService();\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 336,
+        "end_line": 345,
+        "merge_gen_region": "sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() { return gAudioFlingerServiceHandler.getClient();",
+        "resolved": true
+    },
+    {
+        "a_contents": "void AudioSystem::setAudioFlingerBinder(const sp<IBinder>& audioFlinger) {\n    if (audioFlinger->getInterfaceDescriptor() != media::IAudioFlingerService::descriptor) {\n        ALOGE(\"%s: received a binder of type %s\",\n                __func__, String8(audioFlinger->getInterfaceDescriptor()).c_str());\n        return;\n    }\n    gAudioFlingerServiceHandler.setBinder(audioFlinger);",
+        "b_contents": "sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {\n    return gAudioFlingerServiceHandler.getClient();",
+        "base_contents": "const sp<IAudioFlinger> AudioSystem:: get_audio_flinger_for_fuzzer() {\n    return getAudioFlingerImpl(false);",
+        "res_region": "void AudioSystem::setAudioFlingerBinder(const sp<IBinder>& audioFlinger) {\n    if (audioFlinger->getInterfaceDescriptor() != media::IAudioFlingerService::descriptor) {\n        ALOGE(\"%s: received a binder of type %s\",\n                __func__, String8(audioFlinger->getInterfaceDescriptor()).c_str());\n        return;\n    }\n    gAudioFlingerServiceHandler.setBinder(audioFlinger);",
+        "lookback": "    return gAudioFlingerServiceHandler.getClient();\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 348,
+        "end_line": 362,
+        "merge_gen_region": "void AudioSystem::setAudioFlingerBinder(const sp<IBinder>& audioFlinger) { if (audioFlinger->getInterfaceDescriptor() != media::IAudioFlingerService::descriptor) { ALOGE(\"%s: received a binder of type %s\", __func__, String8(audioFlinger->getInterfaceDescriptor()).c_str()); return; } gAudioFlingerServiceHandler.setBinder(audioFlinger);",
+        "resolved": true
+    },
+    {
+        "a_contents": "status_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) {\n    return gAudioFlingerServiceHandler.setLocalService(af);",
+        "b_contents": "void AudioSystem::setAudioFlingerBinder(const sp<IBinder>& audioFlinger) {\n    if (audioFlinger->getInterfaceDescriptor() != media::IAudioFlingerService::descriptor) {\n        ALOGE(\"%s: received a binder of type %s\",\n                __func__, String8(audioFlinger->getInterfaceDescriptor()).c_str());\n        return;\n    }\n    gAudioFlingerServiceHandler.setBinder(audioFlinger);\n}\n\nstatus_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) {\n    return gAudioFlingerServiceHandler.setLocalService(af);",
+        "base_contents": "const sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {\n    // calling get_audio_flinger() will initialize gAudioFlingerClient if needed\n    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();\n    if (af == 0) return 0;\n    Mutex::Autolock _l(gLock);\n    return gAudioFlingerClient;",
+        "res_region": "status_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) {\n    return gAudioFlingerServiceHandler.setLocalService(af);",
+        "lookback": "    gAudioFlingerServiceHandler.setBinder(audioFlinger);\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 365,
+        "end_line": 387,
+        "merge_gen_region": "status_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) { return gAudioFlingerServiceHandler.setLocalService(af);",
+        "resolved": true
+    },
+    {
+        "a_contents": "    gAudioPolicyServiceHandler.clearService();\n}\n\nvoid AudioSystem::disableThreadPool() {\n    gAudioFlingerServiceHandler.disableThreadPool();\n    gAudioPolicyServiceHandler.disableThreadPool();",
+        "b_contents": "    gAudioPolicyServiceHandler.clearService();",
+        "base_contents": "    Mutex::Autolock _l(gLockAPS);\n    gAudioPolicyService.clear();",
+        "res_region": "    gAudioPolicyServiceHandler.clearService();\n}\n\nvoid AudioSystem::disableThreadPool() {\n    gAudioFlingerServiceHandler.disableThreadPool();\n    gAudioPolicyServiceHandler.disableThreadPool();",
+        "lookback": "}\n\nvoid AudioSystem::clearAudioPolicyService() {",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1099,
+        "end_line": 1111,
+        "merge_gen_region": "gAudioPolicyServiceHandler.clearService(); } void AudioSystem::disableThreadPool() { gAudioFlingerServiceHandler.disableThreadPool(); gAudioPolicyServiceHandler.disableThreadPool();",
+        "resolved": true
+    }
+]

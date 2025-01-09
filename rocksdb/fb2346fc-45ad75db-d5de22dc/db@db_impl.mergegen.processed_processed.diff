@@ -1,0 +1,27 @@
+--- a/./output/rocksdb/fb2346fc-45ad75db-d5de22dc/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/fb2346fc-45ad75db-d5de22dc/db@db_impl.no_comments_merged.cc
+@@ -1314,0 +1315,21 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
++    bool is_flush_pending = false;
++    for (auto cfd : *versions_->GetColumnFamilySet()) {
++      if (cfd->imm()->IsFlushPending()) {
++        is_flush_pending = true;
++      }
++    }
++    if (is_flush_pending) {
++      assert(options_.max_background_flushes != 0);
++      if (bg_flush_scheduled_ < options_.max_background_flushes) {
++        bg_flush_scheduled_++;
++        env_->Schedule(&DBImpl::BGWorkFlush, this, Env::Priority::HIGH);
++      } else {
++        bg_schedule_needed_ = true;
++      }
++    }
++    bool is_compaction_needed = false;
++    for (auto cfd : *versions_->GetColumnFamilySet()) {
++      if (cfd->current()->NeedsCompaction()) {
++        is_compaction_needed = true;
++        break;
++      }
+@@ -1316 +1337 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
+-if it's a manual compaction. if ((manual_compaction_ || is_compaction_needed) && (!bg_manual_only_ || manual_compaction_)) {
++    if ((manual_compaction_ || is_compaction_needed) &&

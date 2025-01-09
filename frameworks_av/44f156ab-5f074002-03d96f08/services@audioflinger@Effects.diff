@@ -1,0 +1,1329 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_merged.cpp
+index fdf37dd..0581d4e 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/44f156ab-5f074002-03d96f08/services@audioflinger@Effects.no_comments_merged.cpp
+@@ -32,3 +32 @@
+-#define ALOGVV(a...) \
+-    do { \
+-    } while (0)
++#define ALOGVV(a...) do { } while(0)
+@@ -52,0 +51 @@ void writeToBuffer(const T& value, std::vector<uint8_t>* buffer) {
++#undef LOG_TAG
+@@ -54,4 +53,12 @@ void writeToBuffer(const T& value, std::vector<uint8_t>* buffer) {
+-EffectBase::EffectBase(const sp<EffectCallbackInterface>& callback, effect_descriptor_t* desc,
+-                       int id, audio_session_t sessionId, bool pinned)
+-    : mPinned(pinned), mCallback(callback), mId(id), mSessionId(sessionId), mDescriptor(*desc) {}
+-status_t EffectBase::setEnabled_l(bool enabled) {
++EffectBase::EffectBase(const sp<EffectCallbackInterface>& callback,
++                                        effect_descriptor_t *desc,
++                                        int id,
++                                        audio_session_t sessionId,
++                                        bool pinned)
++    : mPinned(pinned),
++      mCallback(callback), mId(id), mSessionId(sessionId),
++      mDescriptor(*desc)
++{
++}
++status_t EffectBase::setEnabled_l(bool enabled)
++{
+@@ -91 +98,2 @@ status_t EffectBase::setEnabled_l(bool enabled) {
+-status_t EffectBase::setEnabled(bool enabled, bool fromHandle) {
++status_t EffectBase::setEnabled(bool enabled, bool fromHandle)
++{
+@@ -110 +118,2 @@ status_t EffectBase::setEnabled(bool enabled, bool fromHandle) {
+-bool EffectBase::isEnabled() const {
++bool EffectBase::isEnabled() const
++{
+@@ -124 +133,2 @@ bool EffectBase::isEnabled() const {
+-void EffectBase::setSuspended(bool suspended) {
++void EffectBase::setSuspended(bool suspended)
++{
+@@ -128 +138,2 @@ void EffectBase::setSuspended(bool suspended) {
+-bool EffectBase::suspended() const {
++bool EffectBase::suspended() const
++{
+@@ -132 +143,2 @@ bool EffectBase::suspended() const {
+-status_t EffectBase::addHandle(IAfEffectHandle* handle) {
++status_t EffectBase::addHandle(IAfEffectHandle *handle)
++{
+@@ -166 +178,2 @@ status_t EffectBase::addHandle(IAfEffectHandle* handle) {
+-status_t EffectBase::updatePolicyState() {
++status_t EffectBase::updatePolicyState()
++{
+@@ -176 +189,2 @@ status_t EffectBase::updatePolicyState() {
+-        if ((isInternal_l() && !mPolicyRegistered) || !getCallback()->isAudioPolicyReady()) {
++        if ((isInternal_l() && !mPolicyRegistered)
++                || !getCallback()->isAudioPolicyReady()) {
+@@ -206 +220,6 @@ status_t EffectBase::updatePolicyState() {
+-            status = AudioSystem::registerEffect(&mDescriptor, io, strategy, mSessionId, mId);
++            status = AudioSystem::registerEffect(
++                &mDescriptor,
++                io,
++                strategy,
++                mSessionId,
++                mId);
+@@ -217 +236,2 @@ status_t EffectBase::updatePolicyState() {
+-ssize_t EffectBase::removeHandle(IAfEffectHandle* handle) {
++ssize_t EffectBase::removeHandle(IAfEffectHandle *handle)
++{
+@@ -221 +241,2 @@ ssize_t EffectBase::removeHandle(IAfEffectHandle* handle) {
+-ssize_t EffectBase::removeHandle_l(IAfEffectHandle* handle) {
++ssize_t EffectBase::removeHandle_l(IAfEffectHandle *handle)
++{
+@@ -246 +267,2 @@ ssize_t EffectBase::removeHandle_l(IAfEffectHandle* handle) {
+-IAfEffectHandle* EffectBase::controlHandle_l() {
++IAfEffectHandle *EffectBase::controlHandle_l()
++{
+@@ -255 +277,2 @@ IAfEffectHandle* EffectBase::controlHandle_l() {
+-ssize_t EffectBase::disconnectHandle(IAfEffectHandle* handle, bool unpinIfLast) {
++ssize_t EffectBase::disconnectHandle(IAfEffectHandle *handle, bool unpinIfLast)
++{
+@@ -270 +293,2 @@ ssize_t EffectBase::disconnectHandle(IAfEffectHandle* handle, bool unpinIfLast)
+-bool EffectBase::purgeHandles() {
++bool EffectBase::purgeHandles()
++{
+@@ -287,18 +311,6 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        case EFFECT_FLAG_TYPE_INSERT:
+-            s.append("insert");
+-            break;
+-        case EFFECT_FLAG_TYPE_AUXILIARY:
+-            s.append("auxiliary");
+-            break;
+-        case EFFECT_FLAG_TYPE_REPLACE:
+-            s.append("replace");
+-            break;
+-        case EFFECT_FLAG_TYPE_PRE_PROC:
+-            s.append("preproc");
+-            break;
+-        case EFFECT_FLAG_TYPE_POST_PROC:
+-            s.append("postproc");
+-            break;
+-        default:
+-            s.append("unknown/reserved");
+-            break;
++    case EFFECT_FLAG_TYPE_INSERT: s.append("insert"); break;
++    case EFFECT_FLAG_TYPE_AUXILIARY: s.append("auxiliary"); break;
++    case EFFECT_FLAG_TYPE_REPLACE: s.append("replace"); break;
++    case EFFECT_FLAG_TYPE_PRE_PROC: s.append("preproc"); break;
++    case EFFECT_FLAG_TYPE_POST_PROC: s.append("postproc"); break;
++    default: s.append("unknown/reserved"); break;
+@@ -309,15 +321,5 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        case EFFECT_FLAG_INSERT_ANY:
+-            s.append("any");
+-            break;
+-        case EFFECT_FLAG_INSERT_FIRST:
+-            s.append("first");
+-            break;
+-        case EFFECT_FLAG_INSERT_LAST:
+-            s.append("last");
+-            break;
+-        case EFFECT_FLAG_INSERT_EXCLUSIVE:
+-            s.append("exclusive");
+-            break;
+-        default:
+-            s.append("unknown/reserved");
+-            break;
++    case EFFECT_FLAG_INSERT_ANY: s.append("any"); break;
++    case EFFECT_FLAG_INSERT_FIRST: s.append("first"); break;
++    case EFFECT_FLAG_INSERT_LAST: s.append("last"); break;
++    case EFFECT_FLAG_INSERT_EXCLUSIVE: s.append("exclusive"); break;
++    default: s.append("unknown/reserved"); break;
+@@ -328,15 +330,5 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        case EFFECT_FLAG_VOLUME_NONE:
+-            s.append("none");
+-            break;
+-        case EFFECT_FLAG_VOLUME_CTRL:
+-            s.append("implements control");
+-            break;
+-        case EFFECT_FLAG_VOLUME_IND:
+-            s.append("requires indication");
+-            break;
+-        case EFFECT_FLAG_VOLUME_MONITOR:
+-            s.append("monitors volume");
+-            break;
+-        default:
+-            s.append("unknown/reserved");
+-            break;
++    case EFFECT_FLAG_VOLUME_NONE: s.append("none"); break;
++    case EFFECT_FLAG_VOLUME_CTRL: s.append("implements control"); break;
++    case EFFECT_FLAG_VOLUME_IND: s.append("requires indication"); break;
++    case EFFECT_FLAG_VOLUME_MONITOR: s.append("monitors volume"); break;
++    default: s.append("unknown/reserved"); break;
+@@ -349,6 +341,2 @@ static String8 effectFlagsToString(uint32_t flags) {
+-            case EFFECT_FLAG_DEVICE_IND:
+-                s.append("requires updates");
+-                break;
+-            default:
+-                s.append("unknown/reserved");
+-                break;
++        case EFFECT_FLAG_DEVICE_IND: s.append("requires updates"); break;
++        default: s.append("unknown/reserved"); break;
+@@ -360,12 +348,4 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        case EFFECT_FLAG_INPUT_DIRECT:
+-            s.append("direct");
+-            break;
+-        case EFFECT_FLAG_INPUT_PROVIDER:
+-            s.append("provider");
+-            break;
+-        case EFFECT_FLAG_INPUT_BOTH:
+-            s.append("direct+provider");
+-            break;
+-        default:
+-            s.append("not set");
+-            break;
++    case EFFECT_FLAG_INPUT_DIRECT: s.append("direct"); break;
++    case EFFECT_FLAG_INPUT_PROVIDER: s.append("provider"); break;
++    case EFFECT_FLAG_INPUT_BOTH: s.append("direct+provider"); break;
++    default: s.append("not set"); break;
+@@ -376,12 +356,4 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        case EFFECT_FLAG_OUTPUT_DIRECT:
+-            s.append("direct");
+-            break;
+-        case EFFECT_FLAG_OUTPUT_PROVIDER:
+-            s.append("provider");
+-            break;
+-        case EFFECT_FLAG_OUTPUT_BOTH:
+-            s.append("direct+provider");
+-            break;
+-        default:
+-            s.append("not set");
+-            break;
++    case EFFECT_FLAG_OUTPUT_DIRECT: s.append("direct"); break;
++    case EFFECT_FLAG_OUTPUT_PROVIDER: s.append("provider"); break;
++    case EFFECT_FLAG_OUTPUT_BOTH: s.append("direct+provider"); break;
++    default: s.append("not set"); break;
+@@ -394,9 +366,3 @@ static String8 effectFlagsToString(uint32_t flags) {
+-            case EFFECT_FLAG_HW_ACC_SIMPLE:
+-                s.append("non-tunneled");
+-                break;
+-            case EFFECT_FLAG_HW_ACC_TUNNEL:
+-                s.append("tunneled");
+-                break;
+-            default:
+-                s.append("unknown/reserved");
+-                break;
++        case EFFECT_FLAG_HW_ACC_SIMPLE: s.append("non-tunneled"); break;
++        case EFFECT_FLAG_HW_ACC_TUNNEL: s.append("tunneled"); break;
++        default: s.append("unknown/reserved"); break;
+@@ -410,6 +376,2 @@ static String8 effectFlagsToString(uint32_t flags) {
+-            case EFFECT_FLAG_AUDIO_MODE_IND:
+-                s.append("required");
+-                break;
+-            default:
+-                s.append("unknown/reserved");
+-                break;
++        case EFFECT_FLAG_AUDIO_MODE_IND: s.append("required"); break;
++        default: s.append("unknown/reserved"); break;
+@@ -423,6 +385,2 @@ static String8 effectFlagsToString(uint32_t flags) {
+-            case EFFECT_FLAG_AUDIO_SOURCE_IND:
+-                s.append("required");
+-                break;
+-            default:
+-                s.append("unknown/reserved");
+-                break;
++        case EFFECT_FLAG_AUDIO_SOURCE_IND: s.append("required"); break;
++        default: s.append("unknown/reserved"); break;
+@@ -441,0 +400,2 @@ static String8 effectFlagsToString(uint32_t flags) {
++void EffectBase::dump(int fd, const Vector<String16>& args __unused) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -443,3 +403,3 @@ static String8 effectFlagsToString(uint32_t flags) {
+-    const Vector<String16> args;
+-    EffectBase::dump(fd, args);
+-    const bool locked = afutils::dumpTryLock(proxyMutex());
++    String8 result;
++    result.appendFormat("\tEffect ID %d:\n", mId);
++    const bool locked = afutils::dumpTryLock(mutex());
+@@ -447,21 +407,30 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        String8 result("DeviceEffectProxy may be deadlocked\n");
+-        write(fd, result.c_str(), result.size());
+-    }
+-    String8 outStr;
+-    if (mHalEffect != nullptr) {
+-        outStr.appendFormat("%*sHAL Effect Id: %d\n", spaces, "", mHalEffect->id());
+-    } else {
+-        outStr.appendFormat("%*sNO HAL Effect\n", spaces, "");
+-    }
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    outStr.appendFormat("%*sSub Effects:\n", spaces, "");
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    for (const auto& iter : mEffectHandles) {
+-        outStr.appendFormat("%*sEffect for patch handle %d:\n", spaces + 2, "", iter.first);
+-        write(fd, outStr.c_str(), outStr.size());
+-        outStr.clear();
+-        sp<IAfEffectBase> effect = iter.second->effect().promote();
+-        if (effect != nullptr) {
+-            effect->dump(fd, args);
++        result.append("\t\tCould not lock Fx mutex:\n");
++    }
++    bool isInternal = isInternal_l();
++    result.append("\t\tSession State Registered Internal Enabled Suspended:\n");
++    result.appendFormat("\t\t%05d   %03d   %s          %s        %s       %s\n",
++            mSessionId, mState, mPolicyRegistered ? "y" : "n", isInternal ? "y" : "n",
++            ((isInternal && isEnabled()) || (!isInternal && mPolicyEnabled)) ? "y" : "n",
++            mSuspended ? "y" : "n");
++    result.append("\t\tDescriptor:\n");
++    char uuidStr[64];
++    AudioEffect::guidToString(&mDescriptor.uuid, uuidStr, sizeof(uuidStr));
++    result.appendFormat("\t\t- UUID: %s\n", uuidStr);
++    AudioEffect::guidToString(&mDescriptor.type, uuidStr, sizeof(uuidStr));
++    result.appendFormat("\t\t- TYPE: %s\n", uuidStr);
++    result.appendFormat("\t\t- apiVersion: %08X\n\t\t- flags: %08X (%s)\n",
++            mDescriptor.apiVersion,
++            mDescriptor.flags,
++            effectFlagsToString(mDescriptor.flags).c_str());
++    result.appendFormat("\t\t- name: %s\n",
++            mDescriptor.name);
++    result.appendFormat("\t\t- implementor: %s\n",
++            mDescriptor.implementor);
++    result.appendFormat("\t\t%zu Clients:\n", mHandles.size());
++    result.append("\t\t\t  Pid Priority Ctrl Locked client server\n");
++    char buffer[256];
++    for (size_t i = 0; i < mHandles.size(); ++i) {
++        IAfEffectHandle *handle = mHandles[i];
++        if (handle != NULL && !handle->disconnected()) {
++            handle->dumpToBuffer(buffer, sizeof(buffer));
++            result.append(buffer);
+@@ -471 +440 @@ static String8 effectFlagsToString(uint32_t flags) {
+-        proxyMutex().unlock();
++        mutex().unlock();
+@@ -472,0 +442 @@ static String8 effectFlagsToString(uint32_t flags) {
++    write(fd, result.c_str(), result.length());
+@@ -473,0 +444 @@ static String8 effectFlagsToString(uint32_t flags) {
++#undef LOG_TAG
+@@ -479 +450,8 @@ EffectModule::EffectModule(const sp<EffectCallbackInterface>& callback, effect_d
+-      mConfig {
++      mConfig{{}, {}},
++      mStatus(NO_INIT),
++      mMaxDisableWaitCnt(1),
++      mDisableWaitCnt(0),
++      mOffloaded(false),
++      mIsOutput(false),
++      mSupportsFloat(false),
++      mEffectInterfaceDebug(desc->name) {
+@@ -482 +460,2 @@ EffectModule::EffectModule(const sp<EffectCallbackInterface>& callback, effect_d
+-    mStatus = callback->createEffectHal(&desc->uuid, sessionId, deviceId, &mEffectInterface);
++    mStatus = callback->createEffectHal(
++            &desc->uuid, sessionId, deviceId, &mEffectInterface);
+@@ -501 +480,2 @@ Error:
+-EffectModule::~EffectModule() {
++EffectModule::~EffectModule()
++{
+@@ -506,2 +486,2 @@ EffectModule::~EffectModule() {
+-        ALOGW("EffectModule %p destructor called with unreleased interface, effect %s", this,
+-              uuidStr);
++        ALOGW("EffectModule %p destructor called with unreleased interface, effect %s",
++                this, uuidStr);
+@@ -520 +500,2 @@ bool EffectModule::updateState_l() {
+-                memset(mConfig.inputCfg.buffer.raw, 0,
++            memset(mConfig.inputCfg.buffer.raw,
++                   0,
+@@ -531 +512,2 @@ bool EffectModule::updateState_l() {
+-            if (stop_ll() == NO_ERROR && !(isVolumeControl() && isOffloadedOrDirect_l())) {
++        if (stop_ll() == NO_ERROR
++            && !(isVolumeControl() && isOffloadedOrDirect_l())) {
+@@ -556 +538,2 @@ bool EffectModule::updateState_l() {
+-void EffectModule::process() {
++void EffectModule::process()
++{
+@@ -561,3 +544,6 @@ void EffectModule::process() {
+-    const uint32_t inChannelCount = audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
+-    const uint32_t outChannelCount = audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
+-    const bool auxType = (mDescriptor.flags & EFFECT_FLAG_TYPE_MASK) == EFFECT_FLAG_TYPE_AUXILIARY;
++    const uint32_t inChannelCount =
++            audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
++    const uint32_t outChannelCount =
++            audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
++    const bool auxType =
++            (mDescriptor.flags & EFFECT_FLAG_TYPE_MASK) == EFFECT_FLAG_TYPE_AUXILIARY;
+@@ -565,3 +551,3 @@ void EffectModule::process() {
+-            mInChannelCountRequested != mOutChannelCountRequested
+-                    ? 0
+-                    : mOutChannelCountRequested * std::min(mConfig.inputCfg.buffer.frameCount,
++            mInChannelCountRequested != mOutChannelCountRequested ? 0
++                    : mOutChannelCountRequested * std::min(
++                            mConfig.inputCfg.buffer.frameCount,
+@@ -570 +556,3 @@ void EffectModule::process() {
+-        accumulate_float(mConfig.outputCfg.buffer.f32, mConfig.inputCfg.buffer.f32,
++        accumulate_float(
++                mConfig.outputCfg.buffer.f32,
++                mConfig.inputCfg.buffer.f32,
+@@ -574 +562,3 @@ void EffectModule::process() {
+-        memcpy(mConfig.outputCfg.buffer.f32, mConfig.inputCfg.buffer.f32,
++        memcpy(
++                mConfig.outputCfg.buffer.f32,
++                mConfig.inputCfg.buffer.f32,
+@@ -582 +572,2 @@ void EffectModule::process() {
+-                    memcpy_to_i16_from_float(mConfig.inputCfg.buffer.s16,
++                    memcpy_to_i16_from_float(
++                            mConfig.inputCfg.buffer.s16,
+@@ -590 +581,2 @@ void EffectModule::process() {
+-                adjust_channels(inBuffer->audioBuffer()->f32, mInChannelCountRequested,
++                adjust_channels(
++                        inBuffer->audioBuffer()->f32, mInChannelCountRequested,
+@@ -593,2 +585,2 @@ void EffectModule::process() {
+-                                sizeof(float) * mInChannelCountRequested *
+-                                        mConfig.inputCfg.buffer.frameCount);
++                        sizeof(float)
++                        * mInChannelCountRequested * mConfig.inputCfg.buffer.frameCount);
+@@ -597,3 +589,4 @@ void EffectModule::process() {
+-            if (mConfig.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE &&
+-                mOutChannelCountRequested != outChannelCount) {
+-                adjust_selected_channels(outBuffer->audioBuffer()->f32, mOutChannelCountRequested,
++            if (mConfig.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE
++                    && mOutChannelCountRequested != outChannelCount) {
++                adjust_selected_channels(
++                        outBuffer->audioBuffer()->f32, mOutChannelCountRequested,
+@@ -602,2 +595,2 @@ void EffectModule::process() {
+-                                         sizeof(float) * mOutChannelCountRequested *
+-                                                 mConfig.outputCfg.buffer.frameCount);
++                        sizeof(float)
++                        * mOutChannelCountRequested * mConfig.outputCfg.buffer.frameCount);
+@@ -612 +605,2 @@ void EffectModule::process() {
+-                    memcpy_to_i16_from_float(mInConversionBuffer->audioBuffer()->s16,
++                    memcpy_to_i16_from_float(
++                            mInConversionBuffer->audioBuffer()->s16,
+@@ -622 +616,2 @@ void EffectModule::process() {
+-                    memcpy_to_i16_from_float(mOutConversionBuffer->audioBuffer()->s16,
++                    memcpy_to_i16_from_float(
++                            mOutConversionBuffer->audioBuffer()->s16,
+@@ -630,4 +625,5 @@ void EffectModule::process() {
+-                sp<EffectBufferHalInterface> target = mOutChannelCountRequested != outChannelCount
+-                                                              ? mOutConversionBuffer
+-                                                              : mOutBuffer;
+-                memcpy_to_float_from_i16(target->audioBuffer()->f32,
++                sp<EffectBufferHalInterface> target =
++                        mOutChannelCountRequested != outChannelCount
++                        ? mOutConversionBuffer : mOutBuffer;
++                memcpy_to_float_from_i16(
++                        target->audioBuffer()->f32,
+@@ -638,3 +634,3 @@ void EffectModule::process() {
+-                adjust_selected_channels(
+-                        mOutConversionBuffer->audioBuffer()->f32, outChannelCount,
+-                        mOutBuffer->audioBuffer()->f32, mOutChannelCountRequested, sizeof(float),
++                adjust_selected_channels(mOutConversionBuffer->audioBuffer()->f32, outChannelCount,
++                        mOutBuffer->audioBuffer()->f32, mOutChannelCountRequested,
++                        sizeof(float),
+@@ -659 +655,2 @@ void EffectModule::process() {
+-            const size_t size = mConfig.inputCfg.buffer.frameCount * inChannelCount * sizeof(float);
++            const size_t size =
++                    mConfig.inputCfg.buffer.frameCount * inChannelCount * sizeof(float);
+@@ -673 +670,2 @@ void EffectModule::process() {
+-void EffectModule::reset_l() {
++void EffectModule::reset_l()
++{
+@@ -681 +679,2 @@ void EffectModule::reset_l() {
+-status_t EffectModule::configure_l() {
++status_t EffectModule::configure_l()
++{
+@@ -707,2 +706,4 @@ status_t EffectModule::configure_l() {
+-    mInChannelCountRequested = audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
+-    mOutChannelCountRequested = audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
++    mInChannelCountRequested =
++            audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
++    mOutChannelCountRequested =
++            audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
+@@ -736 +737,4 @@ status_t EffectModule::configure_l() {
+-    status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG, sizeof(mConfig), &mConfig, &size,
++    status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG,
++                                       sizeof(mConfig),
++                                       &mConfig,
++                                       &size,
+@@ -744,4 +748,4 @@ status_t EffectModule::configure_l() {
+-        (mConfig.inputCfg.channels != AUDIO_CHANNEL_OUT_STEREO ||
+-         mConfig.outputCfg.channels != AUDIO_CHANNEL_OUT_STEREO)) {
+-        if (mConfig.inputCfg.channels != AUDIO_CHANNEL_OUT_STEREO &&
+-            (mDescriptor.flags & EFFECT_FLAG_TYPE_MASK) != EFFECT_FLAG_TYPE_AUXILIARY) {
++            (mConfig.inputCfg.channels != AUDIO_CHANNEL_OUT_STEREO
++                    || mConfig.outputCfg.channels != AUDIO_CHANNEL_OUT_STEREO)) {
++        if (mConfig.inputCfg.channels != AUDIO_CHANNEL_OUT_STEREO
++                && (mDescriptor.flags & EFFECT_FLAG_TYPE_MASK) != EFFECT_FLAG_TYPE_AUXILIARY) {
+@@ -756 +760,4 @@ status_t EffectModule::configure_l() {
+-        status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG, sizeof(mConfig), &mConfig, &size,
++        status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG,
++                                           sizeof(mConfig),
++                                           &mConfig,
++                                           &size,
+@@ -770 +777,4 @@ status_t EffectModule::configure_l() {
+-        status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG, sizeof(mConfig), &mConfig, &size,
++        status = mEffectInterface->command(EFFECT_CMD_SET_CONFIG,
++                                           sizeof(mConfig),
++                                           &mConfig,
++                                           &size,
+@@ -794,2 +804,5 @@ status_t EffectModule::configure_l() {
+-            mEffectInterface->command(EFFECT_CMD_SET_PARAM, sizeof(effect_param_t) + 8, &buf32,
+-                                      &size, &cmdStatus);
++            mEffectInterface->command(EFFECT_CMD_SET_PARAM,
++                    sizeof(effect_param_t) + 8,
++                    &buf32,
++                    &size,
++                    &cmdStatus);
+@@ -798,6 +811,5 @@ status_t EffectModule::configure_l() {
+-    mMaxDisableWaitCnt =
+-            (uint32_t)std::max((uint64_t)1,
+-                               (uint64_t)mConfig.outputCfg.buffer.frameCount == 0
+-                                       ? 1
+-                                       : (MAX_DISABLE_TIME_MS * mConfig.outputCfg.samplingRate /
+-                                          ((uint64_t)1000 * mConfig.outputCfg.buffer.frameCount)));
++    mMaxDisableWaitCnt = (uint32_t)std::max(
++            (uint64_t)1,
++            (uint64_t)mConfig.outputCfg.buffer.frameCount == 0 ? 1
++                : (MAX_DISABLE_TIME_MS * mConfig.outputCfg.samplingRate
++                / ((uint64_t)1000 * mConfig.outputCfg.buffer.frameCount)));
+@@ -809 +821,2 @@ exit:
+-status_t EffectModule::init_l() {
++status_t EffectModule::init_l()
++{
+@@ -816 +829,5 @@ status_t EffectModule::init_l() {
+-    status_t status = mEffectInterface->command(EFFECT_CMD_INIT, 0, NULL, &size, &cmdStatus);
++    status_t status = mEffectInterface->command(EFFECT_CMD_INIT,
++                                                0,
++                                                NULL,
++                                                &size,
++                                                &cmdStatus);
+@@ -822 +839,2 @@ status_t EffectModule::init_l() {
+-void EffectModule::addEffectToHal_l() {
++void EffectModule::addEffectToHal_l()
++{
+@@ -832 +850,2 @@ void EffectModule::addEffectToHal_l() {
+-status_t EffectModule::start_l() {
++status_t EffectModule::start_l()
++{
+@@ -843 +862,2 @@ status_t EffectModule::start_l() {
+-status_t EffectModule::start_ll() {
++status_t EffectModule::start_ll()
++{
+@@ -852 +872,5 @@ status_t EffectModule::start_ll() {
+-    status_t status = mEffectInterface->command(EFFECT_CMD_ENABLE, 0, NULL, &size, &cmdStatus);
++    status_t status = mEffectInterface->command(EFFECT_CMD_ENABLE,
++                                                0,
++                                                NULL,
++                                                &size,
++                                                &cmdStatus);
+@@ -861 +885,2 @@ status_t EffectModule::start_ll() {
+-status_t EffectModule::stop_l() {
++status_t EffectModule::stop_l()
++{
+@@ -865 +890,2 @@ status_t EffectModule::stop_l() {
+-status_t EffectModule::stop_ll() {
++status_t EffectModule::stop_ll()
++{
+@@ -879 +905,5 @@ status_t EffectModule::stop_ll() {
+-    status_t status = mEffectInterface->command(EFFECT_CMD_DISABLE, 0, NULL, &size, &cmdStatus);
++    status_t status = mEffectInterface->command(EFFECT_CMD_DISABLE,
++                                                0,
++                                                NULL,
++                                                &size,
++                                                &cmdStatus);
+@@ -888 +918,2 @@ status_t EffectModule::stop_ll() {
+-void EffectModule::release_l(const std::string& from) {
++void EffectModule::release_l(const std::string& from)
++{
+@@ -896 +927,2 @@ void EffectModule::release_l(const std::string& from) {
+-status_t EffectModule::removeEffectFromHal_l() {
++status_t EffectModule::removeEffectFromHal_l()
++{
+@@ -912,2 +944,5 @@ static T roundUpDelta(const T& value, const T& divisor) {
+-status_t EffectModule::command(int32_t cmdCode, const std::vector<uint8_t>& cmdData,
+-                               int32_t maxReplySize, std::vector<uint8_t>* reply) {
++status_t EffectModule::command(int32_t cmdCode,
++                     const std::vector<uint8_t>& cmdData,
++                     int32_t maxReplySize,
++                     std::vector<uint8_t>* reply)
++{
+@@ -942,5 +977,9 @@ status_t EffectModule::command(int32_t cmdCode, const std::vector<uint8_t>& cmdD
+-        (static_cast<signed>(sizeof(effect_param_t)) > maxReplySize ||
+-         param->psize > maxReplySize - sizeof(effect_param_t) ||
+-         param->vsize > maxReplySize - sizeof(effect_param_t) - param->psize ||
+-         roundUpDelta(param->psize, (uint32_t)sizeof(int)) >
+-                 maxReplySize - sizeof(effect_param_t) - param->psize - param->vsize)) {
++            (static_cast<signed>(sizeof(effect_param_t)) > maxReplySize
++                    || param->psize > maxReplySize - sizeof(effect_param_t)
++                    || param->vsize > maxReplySize - sizeof(effect_param_t)
++                            - param->psize
++                    || roundUpDelta(param->psize, (uint32_t) sizeof(int)) >
++                            maxReplySize
++                                    - sizeof(effect_param_t)
++                                    - param->psize
++                                    - param->vsize)) {
+@@ -951,6 +990,13 @@ status_t EffectModule::command(int32_t cmdCode, const std::vector<uint8_t>& cmdD
+-    if ((cmdCode == EFFECT_CMD_SET_PARAM ||
+-         cmdCode == EFFECT_CMD_SET_PARAM_DEFERRED) &&
+-        (param == nullptr || param->psize > cmdSize - sizeof(effect_param_t) ||
+-         param->vsize > cmdSize - sizeof(effect_param_t) - param->psize ||
+-         roundUpDelta(param->psize, (uint32_t)sizeof(int)) >
+-                 cmdSize - sizeof(effect_param_t) - param->psize - param->vsize)) {
++    if ((cmdCode == EFFECT_CMD_SET_PARAM
++            || cmdCode == EFFECT_CMD_SET_PARAM_DEFERRED)
++            &&
++                    (param == nullptr
++                            || param->psize > cmdSize - sizeof(effect_param_t)
++                            || param->vsize > cmdSize - sizeof(effect_param_t)
++                                    - param->psize
++                            || roundUpDelta(param->psize,
++                                            (uint32_t) sizeof(int)) >
++                                    cmdSize
++                                            - sizeof(effect_param_t)
++                                            - param->psize
++                                            - param->vsize)) {
+@@ -962,2 +1008,5 @@ status_t EffectModule::command(int32_t cmdCode, const std::vector<uint8_t>& cmdD
+-    status_t status = mEffectInterface->command(
+-            cmdCode, cmdSize, const_cast<uint8_t*>(cmdData.data()), &replySize, reply->data());
++    status_t status = mEffectInterface->command(cmdCode,
++                                                cmdSize,
++                                                const_cast<uint8_t*>(cmdData.data()),
++                                                &replySize,
++                                                reply->data());
+@@ -975 +1024,2 @@ status_t EffectModule::command(int32_t cmdCode, const std::vector<uint8_t>& cmdD
+-bool EffectModule::isProcessEnabled() const {
++bool EffectModule::isProcessEnabled() const
++{
+@@ -992 +1042,2 @@ bool EffectModule::isProcessEnabled() const {
+-bool EffectModule::isOffloadedOrDirect_l() const {
++bool EffectModule::isOffloadedOrDirect_l() const
++{
+@@ -995 +1046,2 @@ bool EffectModule::isOffloadedOrDirect_l() const {
+-bool EffectModule::isVolumeControlEnabled_l() const {
++bool EffectModule::isVolumeControlEnabled_l() const
++{
+@@ -1009 +1061,2 @@ void EffectModule::setInBuffer(const sp<EffectBufferHalInterface>& buffer) {
+-    const uint32_t inChannelCount = audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
++    const uint32_t inChannelCount =
++            audio_channel_count_from_out_mask(mConfig.inputCfg.channels);
+@@ -1017 +1070,2 @@ void EffectModule::setInBuffer(const sp<EffectBufferHalInterface>& buffer) {
+-        if (size > 0 && (mInConversionBuffer == nullptr || size > mInConversionBuffer->getSize())) {
++        if (size > 0 && (mInConversionBuffer == nullptr
++                || size > mInConversionBuffer->getSize())) {
+@@ -1040 +1094,2 @@ void EffectModule::setOutBuffer(const sp<EffectBufferHalInterface>& buffer) {
+-    const uint32_t outChannelCount = audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
++    const uint32_t outChannelCount =
++            audio_channel_count_from_out_mask(mConfig.outputCfg.channels);
+@@ -1048,2 +1103,2 @@ void EffectModule::setOutBuffer(const sp<EffectBufferHalInterface>& buffer) {
+-        if (size > 0 &&
+-            (mOutConversionBuffer == nullptr || size > mOutConversionBuffer->getSize())) {
++        if (size > 0 && (mOutConversionBuffer == nullptr
++                || size > mOutConversionBuffer->getSize())) {
+@@ -1076 +1131,2 @@ status_t EffectModule::setVolume_l(uint32_t* left, uint32_t* right, bool control
+-status_t EffectModule::setVolumeInternal(uint32_t* left, uint32_t* right, bool controller) {
++status_t EffectModule::setVolumeInternal(
++        uint32_t *left, uint32_t *right, bool controller) {
+@@ -1090,2 +1146,5 @@ status_t EffectModule::setVolumeInternal(uint32_t* left, uint32_t* right, bool c
+-    status_t status =
+-            mEffectInterface->command(EFFECT_CMD_SET_VOLUME, size, volume, &size, pVolume);
++    status_t status = mEffectInterface->command(EFFECT_CMD_SET_VOLUME,
++                                                size,
++                                                volume,
++                                                &size,
++                                                pVolume);
+@@ -1100 +1159,2 @@ status_t EffectModule::setVolumeInternal(uint32_t* left, uint32_t* right, bool c
+-void EffectChain::setVolumeForOutput_l(uint32_t left, uint32_t right) {
++void EffectChain::setVolumeForOutput_l(uint32_t left, uint32_t right)
++{
+@@ -1108,2 +1168,3 @@ void EffectChain::setVolumeForOutput_l(uint32_t left, uint32_t right) {
+-status_t EffectModule::sendSetAudioDevicesCommand(const AudioDeviceTypeAddrVector& devices,
+-                                                  uint32_t cmdCode) {
++status_t EffectModule::sendSetAudioDevicesCommand(
++        const AudioDeviceTypeAddrVector &devices, uint32_t cmdCode)
++{
+@@ -1122 +1183,4 @@ status_t EffectModule::sendSetAudioDevicesCommand(const AudioDeviceTypeAddrVecto
+-        status = mEffectInterface->command(cmdCode, sizeof(uint32_t), &deviceType, &size,
++        status = mEffectInterface->command(cmdCode,
++                                           sizeof(uint32_t),
++                                           &deviceType,
++                                           &size,
+@@ -1127 +1191,2 @@ status_t EffectModule::sendSetAudioDevicesCommand(const AudioDeviceTypeAddrVecto
+-status_t EffectModule::setDevices(const AudioDeviceTypeAddrVector& devices) {
++status_t EffectModule::setDevices(const AudioDeviceTypeAddrVector &devices)
++{
+@@ -1130 +1195,2 @@ status_t EffectModule::setDevices(const AudioDeviceTypeAddrVector& devices) {
+-status_t EffectModule::setInputDevice(const AudioDeviceTypeAddr& device) {
++status_t EffectModule::setInputDevice(const AudioDeviceTypeAddr &device)
++{
+@@ -1133 +1199,2 @@ status_t EffectModule::setInputDevice(const AudioDeviceTypeAddr& device) {
+-status_t EffectModule::setMode(audio_mode_t mode) {
++status_t EffectModule::setMode(audio_mode_t mode)
++{
+@@ -1142,2 +1209,5 @@ status_t EffectModule::setMode(audio_mode_t mode) {
+-        status = mEffectInterface->command(EFFECT_CMD_SET_AUDIO_MODE, sizeof(audio_mode_t), &mode,
+-                                           &size, &cmdStatus);
++        status = mEffectInterface->command(EFFECT_CMD_SET_AUDIO_MODE,
++                                           sizeof(audio_mode_t),
++                                           &mode,
++                                           &size,
++                                           &cmdStatus);
+@@ -1150 +1220,2 @@ status_t EffectModule::setMode(audio_mode_t mode) {
+-status_t EffectModule::setAudioSource(audio_source_t source) {
++status_t EffectModule::setAudioSource(audio_source_t source)
++{
+@@ -1158,2 +1229,5 @@ status_t EffectModule::setAudioSource(audio_source_t source) {
+-        status = mEffectInterface->command(EFFECT_CMD_SET_AUDIO_SOURCE, sizeof(audio_source_t),
+-                                           &source, &size, NULL);
++        status = mEffectInterface->command(EFFECT_CMD_SET_AUDIO_SOURCE,
++                                           sizeof(audio_source_t),
++                                           &source,
++                                           &size,
++                                           NULL);
+@@ -1163 +1237,2 @@ status_t EffectModule::setAudioSource(audio_source_t source) {
+-status_t EffectModule::setOffloaded_l(bool offloaded, audio_io_handle_t io) {
++status_t EffectModule::setOffloaded_l(bool offloaded, audio_io_handle_t io)
++{
+@@ -1175,2 +1250,5 @@ status_t EffectModule::setOffloaded_l(bool offloaded, audio_io_handle_t io) {
+-        status = mEffectInterface->command(EFFECT_CMD_OFFLOAD, sizeof(effect_offload_param_t), &cmd,
+-                                           &size, &cmdStatus);
++        status = mEffectInterface->command(EFFECT_CMD_OFFLOAD,
++                                           sizeof(effect_offload_param_t),
++                                           &cmd,
++                                           &size,
++                                           &cmdStatus);
+@@ -1190 +1268,2 @@ status_t EffectModule::setOffloaded_l(bool offloaded, audio_io_handle_t io) {
+-bool EffectModule::isOffloaded_l() const {
++bool EffectModule::isOffloaded_l() const
++{
+@@ -1241,2 +1320,2 @@ status_t EffectModule::setVibratorInfo_l(const media::AudioVibratorInfo& vibrato
+-    std::vector<uint8_t> request(sizeof(effect_param_t) + sizeof(int32_t) +
+-                                 paramCount * sizeof(float));
++    std::vector<uint8_t> request(
++            sizeof(effect_param_t) + sizeof(int32_t) + paramCount * sizeof(float));
+@@ -1281,2 +1360,2 @@ status_t EffectModule::sendMetadata_ll(const std::vector<playback_track_metadata
+-    std::vector<uint8_t> request(sizeof(effect_param_t) + sizeof(int32_t) +
+-                                 metadata.size() * sizeof(uint32_t));
++    std::vector<uint8_t> request(
++            sizeof(effect_param_t) + sizeof(int32_t) + metadata.size() * sizeof(uint32_t));
+@@ -1304 +1383,2 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-        ss << (isInput ? buffer->externalData() : buffer->audioBuffer()->raw) << " -> "
++        ss << (isInput ? buffer->externalData() : buffer->audioBuffer()->raw)
++                << " -> "
+@@ -1310,0 +1391,2 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
++void EffectModule::dump(int fd, const Vector<String16>& args) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -1312 +1393,0 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-    const Vector<String16> args;
+@@ -1314,24 +1395,34 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-    const bool locked = afutils::dumpTryLock(proxyMutex());
+-    if (!locked) {
+-        String8 result("DeviceEffectProxy may be deadlocked\n");
+-        write(fd, result.c_str(), result.size());
+-    }
+-    String8 outStr;
+-    if (mHalEffect != nullptr) {
+-        outStr.appendFormat("%*sHAL Effect Id: %d\n", spaces, "", mHalEffect->id());
+-    } else {
+-        outStr.appendFormat("%*sNO HAL Effect\n", spaces, "");
+-    }
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    outStr.appendFormat("%*sSub Effects:\n", spaces, "");
+-    write(fd, outStr.c_str(), outStr.size());
+-    outStr.clear();
+-    for (const auto& iter : mEffectHandles) {
+-        outStr.appendFormat("%*sEffect for patch handle %d:\n", spaces + 2, "", iter.first);
+-        write(fd, outStr.c_str(), outStr.size());
+-        outStr.clear();
+-        sp<IAfEffectBase> effect = iter.second->effect().promote();
+-        if (effect != nullptr) {
+-            effect->dump(fd, args);
+-        }
++    String8 result;
++    const bool locked = afutils::dumpTryLock(mutex());
++    result.append("\t\tStatus Engine:\n");
++    result.appendFormat("\t\t%03d    %p\n",
++            mStatus, mEffectInterface.get());
++    result.appendFormat("\t\t- data: %s\n", mSupportsFloat ? "float" : "int16");
++    result.append("\t\t- Input configuration:\n");
++    result.append("\t\t\tBuffer     Frames  Smp rate Channels Format\n");
++    result.appendFormat("\t\t\t%p %05zu   %05d    %08x %6d (%s)\n",
++            mConfig.inputCfg.buffer.raw,
++            mConfig.inputCfg.buffer.frameCount,
++            mConfig.inputCfg.samplingRate,
++            mConfig.inputCfg.channels,
++            mConfig.inputCfg.format,
++            toString(static_cast<audio_format_t>(mConfig.inputCfg.format)).c_str());
++    result.append("\t\t- Output configuration:\n");
++    result.append("\t\t\tBuffer     Frames  Smp rate Channels Format\n");
++    result.appendFormat("\t\t\t%p %05zu   %05d    %08x %6d (%s)\n",
++            mConfig.outputCfg.buffer.raw,
++            mConfig.outputCfg.buffer.frameCount,
++            mConfig.outputCfg.samplingRate,
++            mConfig.outputCfg.channels,
++            mConfig.outputCfg.format,
++            toString(static_cast<audio_format_t>(mConfig.outputCfg.format)).c_str());
++    result.appendFormat("\t\t- HAL buffers:\n"
++            "\t\t\tIn(%s) InConversion(%s) Out(%s) OutConversion(%s)\n",
++            dumpInOutBuffer(true , mInBuffer).c_str(),
++            dumpInOutBuffer(true , mInConversionBuffer).c_str(),
++            dumpInOutBuffer(false , mOutBuffer).c_str(),
++            dumpInOutBuffer(false , mOutConversionBuffer).c_str());
++    write(fd, result.c_str(), result.length());
++    if (mEffectInterface != 0) {
++        dprintf(fd, "\tEffect ID %d HAL dump:\n", mId);
++        (void)mEffectInterface->dump(fd);
+@@ -1340 +1431 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-        proxyMutex().unlock();
++        mutex().unlock();
+@@ -1342,0 +1434 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
++#undef LOG_TAG
+@@ -1344 +1436,2 @@ static std::string dumpInOutBuffer(bool isInput, const sp<EffectBufferHalInterfa
+-sp<IAfEffectHandle> IAfEffectHandle::create(const sp<IAfEffectBase>& effect,
++sp<IAfEffectHandle> IAfEffectHandle::create(
++        const sp<IAfEffectBase>& effect,
+@@ -1347,2 +1440,4 @@ sp<IAfEffectHandle> IAfEffectHandle::create(const sp<IAfEffectBase>& effect,
+-                                            int32_t priority, bool notifyFramesProcessed) {
+-    return sp<EffectHandle>::make(effect, client, effectClient, priority, notifyFramesProcessed);
++        int32_t priority, bool notifyFramesProcessed)
++{
++    return sp<EffectHandle>::make(
++            effect, client, effectClient, priority, notifyFramesProcessed);
+@@ -1350,3 +1445,4 @@ sp<IAfEffectHandle> IAfEffectHandle::create(const sp<IAfEffectBase>& effect,
+-EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect, const sp<Client>& client,
+-                           const sp<media::IEffectClient>& effectClient, int32_t priority,
+-                           bool notifyFramesProcessed)
++EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect,
++                                         const sp<Client>& client,
++                                         const sp<media::IEffectClient>& effectClient,
++                                         int32_t priority, bool notifyFramesProcessed)
+@@ -1354,9 +1450,5 @@ EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect, const sp<Client>& cl
+-      mEffect(effect),
+-      mEffectClient(media::EffectClientAsyncProxy::makeIfNeeded(effectClient)),
+-      mClient(client),
+-      mCblk(nullptr),
+-      mPriority(priority),
+-      mHasControl(false),
+-      mEnabled(false),
+-      mDisconnected(false),
+-      mNotifyFramesProcessed(notifyFramesProcessed) {
++    mEffect(effect), mEffectClient(media::EffectClientAsyncProxy::makeIfNeeded(effectClient)),
++    mClient(client), mCblk(nullptr),
++    mPriority(priority), mHasControl(false), mEnabled(false), mDisconnected(false),
++    mNotifyFramesProcessed(notifyFramesProcessed)
++{
+@@ -1376 +1468,2 @@ EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect, const sp<Client>& cl
+-                    .append(" \n")});
++                    .append(" \n")
++            });
+@@ -1379,2 +1472,2 @@ EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect, const sp<Client>& cl
+-        ALOGE("not enough memory for Effect size=%zu",
+-              EFFECT_PARAM_BUFFER_SIZE + sizeof(effect_param_cblk_t));
++        ALOGE("not enough memory for Effect size=%zu", EFFECT_PARAM_BUFFER_SIZE +
++                sizeof(effect_param_cblk_t));
+@@ -1387 +1480,2 @@ EffectHandle::EffectHandle(const sp<IAfEffectBase>& effect, const sp<Client>& cl
+-EffectHandle::~EffectHandle() {
++EffectHandle::~EffectHandle()
++{
+@@ -1397 +1491 @@ EffectHandle::~EffectHandle() {
+-    BINDER_METHOD_ENTRY(getConfig)
++BINDER_METHOD_ENTRY(getConfig) \
+@@ -1402 +1496,2 @@ mediautils::MethodStatistics<int>& getIEffectStatistics() {
+-#define BINDER_METHOD_ENTRY(ENTRY) {(Code)media::BnEffect::TRANSACTION_ ##ENTRY, #ENTRY},
++#define BINDER_METHOD_ENTRY(ENTRY) \
++        {(Code)media::BnEffect::TRANSACTION_##ENTRY, #ENTRY},
+@@ -1404 +1499,3 @@ mediautils::MethodStatistics<int>& getIEffectStatistics() {
+-            IEFFECT_BINDER_METHOD_MACRO_LIST METHOD_STATISTICS_BINDER_CODE_NAMES(Code)};
++        IEFFECT_BINDER_METHOD_MACRO_LIST
++        METHOD_STATISTICS_BINDER_CODE_NAMES(Code)
++    };
+@@ -1409,2 +1506,2 @@ mediautils::MethodStatistics<int>& getIEffectStatistics() {
+-status_t EffectHandle::onTransact(uint32_t code, const Parcel& data, Parcel* reply,
+-                                  uint32_t flags) {
++status_t EffectHandle::onTransact(
++        uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags) {
+@@ -1420,2 +1517 @@ status_t EffectHandle::onTransact(uint32_t code, const Parcel& data, Parcel* rep
+-            },
+-            {} , {} , false );
++    }, {} , {} , false );
+@@ -1424 +1520,2 @@ status_t EffectHandle::onTransact(uint32_t code, const Parcel& data, Parcel* rep
+-status_t EffectHandle::initCheck() const {
++status_t EffectHandle::initCheck() const
++{
+@@ -1433,3 +1530 @@ status_t EffectHandle::initCheck() const {
+-        if (!_tmp.ok()) { \
+-            RETURN(_tmp.error()); \
+-        } \
++        if (!_tmp.ok()) { RETURN(_tmp.error()); } \
+@@ -1438 +1533,2 @@ status_t EffectHandle::initCheck() const {
+-Status EffectHandle::enable(int32_t* _aidl_return) {
++Status EffectHandle::enable(int32_t* _aidl_return)
++{
+@@ -1467 +1563,2 @@ Status EffectHandle::enable(int32_t* _aidl_return) {
+-Status EffectHandle::disable(int32_t* _aidl_return) {
++Status EffectHandle::disable(int32_t* _aidl_return)
++{
+@@ -1488 +1585,2 @@ Status EffectHandle::disable(int32_t* _aidl_return) {
+-Status EffectHandle::disconnect() {
++Status EffectHandle::disconnect()
++{
+@@ -1493 +1591,2 @@ Status EffectHandle::disconnect() {
+-void EffectHandle::disconnect(bool unpinIfLast) {
++void EffectHandle::disconnect(bool unpinIfLast)
++{
+@@ -1507 +1606,2 @@ void EffectHandle::disconnect(bool unpinIfLast) {
+-                ALOGW("%s Effect handle %p disconnected after thread destruction", __func__, this);
++                ALOGW("%s Effect handle %p disconnected after thread destruction",
++                    __func__, this);
+@@ -1525 +1625,2 @@ Status EffectHandle::getCblk(media::SharedFileRegion* _aidl_return) {
+-Status EffectHandle::getConfig(media::EffectConfig* _config, int32_t* _aidl_return) {
++Status EffectHandle::getConfig(
++        media::EffectConfig* _config, int32_t* _aidl_return) {
+@@ -1549,5 +1650,8 @@ Status EffectHandle::getConfig(media::EffectConfig* _config, int32_t* _aidl_retu
+-Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdData,
+-                             int32_t maxResponseSize, std::vector<uint8_t>* response,
+-                             int32_t* _aidl_return) {
+-    ALOGVV("command(), cmdCode: %d, mHasControl: %d, mEffect: %p", cmdCode, mHasControl,
+-           mEffect.unsafe_get());
++Status EffectHandle::command(int32_t cmdCode,
++                       const std::vector<uint8_t>& cmdData,
++                       int32_t maxResponseSize,
++                       std::vector<uint8_t>* response,
++                       int32_t* _aidl_return)
++{
++    ALOGVV("command(), cmdCode: %d, mHasControl: %d, mEffect: %p",
++            cmdCode, mHasControl, mEffect.unsafe_get());
+@@ -1604 +1708,2 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-        if (clientIndex > EFFECT_PARAM_BUFFER_SIZE || serverIndex > EFFECT_PARAM_BUFFER_SIZE) {
++        if (clientIndex > EFFECT_PARAM_BUFFER_SIZE ||
++            serverIndex > EFFECT_PARAM_BUFFER_SIZE) {
+@@ -1614,2 +1719,3 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-            if (size < 0 || size > EFFECT_PARAM_BUFFER_SIZE ||
+-                ((uint8_t*)p + size) > mBuffer + clientIndex) {
++            if (size < 0
++                    || size > EFFECT_PARAM_BUFFER_SIZE
++                    || ((uint8_t *)p + size) > mBuffer + clientIndex) {
+@@ -1621 +1727,2 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-                      reinterpret_cast<const uint8_t*>(p) + size, std::back_inserter(param));
++                      reinterpret_cast<const uint8_t*>(p) + size,
++                      std::back_inserter(param));
+@@ -1623 +1730,4 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-            status_t ret = effect->command(EFFECT_CMD_SET_PARAM, param, sizeof(int), &replyBuffer);
++            status_t ret = effect->command(EFFECT_CMD_SET_PARAM,
++                                            param,
++                                            sizeof(int),
++                                            &replyBuffer);
+@@ -1625 +1735,2 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-            if (serverIndex != mCblk->serverIndex || clientIndex > mCblk->clientIndex) {
++            if (serverIndex != mCblk->serverIndex
++                    || clientIndex > mCblk->clientIndex) {
+@@ -1644 +1755,4 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-    status_t status = effect->command(cmdCode, cmdData, maxResponseSize, response);
++    status_t status = effect->command(cmdCode,
++                                      cmdData,
++                                      maxResponseSize,
++                                      response);
+@@ -1647 +1761,2 @@ Status EffectHandle::command(int32_t cmdCode, const std::vector<uint8_t>& cmdDat
+-void EffectHandle::setControl(bool hasControl, bool signal, bool enabled) {
++void EffectHandle::setControl(bool hasControl, bool signal, bool enabled)
++{
+@@ -1655,2 +1770,4 @@ void EffectHandle::setControl(bool hasControl, bool signal, bool enabled) {
+-void EffectHandle::commandExecuted(uint32_t cmdCode, const std::vector<uint8_t>& cmdData,
+-                                   const std::vector<uint8_t>& replyData) {
++void EffectHandle::commandExecuted(uint32_t cmdCode,
++                         const std::vector<uint8_t>& cmdData,
++                         const std::vector<uint8_t>& replyData)
++{
+@@ -1661 +1778,2 @@ void EffectHandle::commandExecuted(uint32_t cmdCode, const std::vector<uint8_t>&
+-void EffectHandle::setEnabled(bool enabled) {
++void EffectHandle::setEnabled(bool enabled)
++{
+@@ -1666 +1784,2 @@ void EffectHandle::setEnabled(bool enabled) {
+-void EffectHandle::framesProcessed(int32_t frames) const {
++void EffectHandle::framesProcessed(int32_t frames) const
++{
+@@ -1676,2 +1795,7 @@ void EffectHandle::dumpToBuffer(char* buffer, size_t size) const
+-             (mClient == 0) ? getpid() : mClient->pid(), mPriority, mHasControl ? "yes" : "no",
+-             locked ? "yes" : "no", mCblk ? mCblk->clientIndex : 0, mCblk ? mCblk->serverIndex : 0);
++            (mClient == 0) ? getpid() : mClient->pid(),
++            mPriority,
++            mHasControl ? "yes" : "no",
++            locked ? "yes" : "no",
++            mCblk ? mCblk->clientIndex : 0,
++            mCblk ? mCblk->serverIndex : 0
++            );
+@@ -1684 +1808,2 @@ void EffectHandle::dumpToBuffer(char* buffer, size_t size) const
+-sp<IAfEffectChain> IAfEffectChain::create(const sp<IAfThreadBase>& thread,
++sp<IAfEffectChain> IAfEffectChain::create(
++        const sp<IAfThreadBase>& thread,
+@@ -1686 +1811,2 @@ sp<IAfEffectChain> IAfEffectChain::create(const sp<IAfThreadBase>& thread,
+-                                          const sp<IAfThreadCallback>& afThreadCallback) {
++        const sp<IAfThreadCallback>& afThreadCallback)
++{
+@@ -1691,9 +1817,5 @@ EffectChain::EffectChain(const sp<IAfThreadBase>& thread, audio_session_t sessio
+-    : mSessionId(sessionId),
+-      mActiveTrackCnt(0),
+-      mTrackCnt(0),
+-      mTailBufferCount(0),
+-      mLeftVolume(UINT_MAX),
+-      mRightVolume(UINT_MAX),
+-      mNewLeftVolume(UINT_MAX),
+-      mNewRightVolume(UINT_MAX),
+-      mEffectCallback(new EffectCallback(wp<EffectChain>(this), thread, afThreadCallback)) {
++    : mSessionId(sessionId), mActiveTrackCnt(0), mTrackCnt(0), mTailBufferCount(0),
++      mLeftVolume(UINT_MAX), mRightVolume(UINT_MAX),
++      mNewLeftVolume(UINT_MAX), mNewRightVolume(UINT_MAX),
++      mEffectCallback(new EffectCallback(wp<EffectChain>(this), thread, afThreadCallback))
++{
+@@ -1703 +1825,2 @@ EffectChain::EffectChain(const sp<IAfThreadBase>& thread, audio_session_t sessio
+-                ((kProcessTailDurationMs * thread->sampleRate()) / 1000) / thread->frameCount();
++            ((kProcessTailDurationMs * thread->sampleRate()) / 1000) /
++                thread->frameCount();
+@@ -1706 +1829,3 @@ EffectChain::EffectChain(const sp<IAfThreadBase>& thread, audio_session_t sessio
+-sp<IAfEffectModule> EffectChain::getEffectFromDesc(effect_descriptor_t* descriptor) const {
++sp<IAfEffectModule> EffectChain::getEffectFromDesc(
++        effect_descriptor_t *descriptor) const
++{
+@@ -1716 +1841,2 @@ sp<IAfEffectModule> EffectChain::getEffectFromDesc(effect_descriptor_t* descript
+-sp<IAfEffectModule> EffectChain::getEffectFromId_l(int id) const {
++sp<IAfEffectModule> EffectChain::getEffectFromId_l(int id) const
++{
+@@ -1726 +1852,3 @@ sp<IAfEffectModule> EffectChain::getEffectFromId_l(int id) const {
+-sp<IAfEffectModule> EffectChain::getEffectFromType_l(const effect_uuid_t* type) const {
++sp<IAfEffectModule> EffectChain::getEffectFromType_l(
++        const effect_uuid_t *type) const
++{
+@@ -1736 +1864,2 @@ sp<IAfEffectModule> EffectChain::getEffectFromType_l(const effect_uuid_t* type)
+-std::vector<int> EffectChain::getEffectIds_l() const {
++std::vector<int> EffectChain::getEffectIds_l() const
++{
+@@ -1744 +1873,2 @@ std::vector<int> EffectChain::getEffectIds_l() const {
+-void EffectChain::clearInputBuffer() {
++void EffectChain::clearInputBuffer()
++{
+@@ -1748 +1878,2 @@ void EffectChain::clearInputBuffer() {
+-void EffectChain::clearInputBuffer_l() {
++void EffectChain::clearInputBuffer_l()
++{
+@@ -1752,2 +1883,2 @@ void EffectChain::clearInputBuffer_l() {
+-    const size_t frameSize = audio_bytes_per_sample(AUDIO_FORMAT_PCM_FLOAT) *
+-                             mEffectCallback->inChannelCount(mEffects[0]->id());
++    const size_t frameSize = audio_bytes_per_sample(AUDIO_FORMAT_PCM_FLOAT)
++            * mEffectCallback->inChannelCount(mEffects[0]->id());
+@@ -1795,2 +1926,6 @@ void EffectChain::process_l() {
+-status_t EffectChain::createEffect(sp<IAfEffectModule>& effect, effect_descriptor_t* desc, int id,
+-                                   audio_session_t sessionId, bool pinned) {
++status_t EffectChain::createEffect(sp<IAfEffectModule>& effect,
++                                                   effect_descriptor_t *desc,
++                                                   int id,
++                                                   audio_session_t sessionId,
++                                                   bool pinned)
++{
+@@ -1808 +1943,2 @@ status_t EffectChain::createEffect(sp<IAfEffectModule>& effect, effect_descripto
+-status_t EffectChain::addEffect(const sp<IAfEffectModule>& effect) {
++status_t EffectChain::addEffect(const sp<IAfEffectModule>& effect)
++{
+@@ -1812 +1948,2 @@ status_t EffectChain::addEffect(const sp<IAfEffectModule>& effect) {
+-status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
++status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect)
++{
+@@ -1820,2 +1957,2 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-        status_t result =
+-                mEffectCallback->allocateHalBuffer(numSamples * sizeof(float), &halBuffer);
++        status_t result = mEffectCallback->allocateHalBuffer(
++                numSamples * sizeof(float), &halBuffer);
+@@ -1827 +1963,0 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-<<<<<<< HEAD
+@@ -1829,5 +1964,0 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-||||||| 03d96f08b9
+-        ssize_t idx_insert = getInsertIndex_ll(desc);
+-=======
+-        ssize_t idx_insert = getInsertIndex_l(desc);
+->>>>>>> 5f074002b58434e43de04d289454d0fc2017cd90
+@@ -1840 +1971,2 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-        if (mEffectCallback->isSpatializer() && mSessionId == AUDIO_SESSION_OUTPUT_STAGE) {
++        if (mEffectCallback->isSpatializer()
++                && mSessionId == AUDIO_SESSION_OUTPUT_STAGE) {
+@@ -1865,2 +1997,2 @@ status_t EffectChain::addEffect_l(const sp<IAfEffectModule>& effect) {
+-        ALOGV("%s effect %p, added in chain %p at rank %zu", __func__, effect.get(), this,
+-              idx_insert);
++        ALOGV("%s effect %p, added in chain %p at rank %zu",
++                __func__, effect.get(), this, idx_insert);
+@@ -1888,2 +2020,2 @@ ssize_t EffectChain::getInsertIndex_l(const effect_descriptor_t& desc) {
+-    if (IAfEffectModule::isSpatializer(&desc.type) ||
+-        (memcmp(&desc.type, EFFECT_UIID_DOWNMIX, sizeof(effect_uuid_t)) == 0)) {
++    if (IAfEffectModule::isSpatializer(&desc.type)
++            || (memcmp(&desc.type, EFFECT_UIID_DOWNMIX, sizeof(effect_uuid_t)) == 0)) {
+@@ -1905,2 +2037,2 @@ ssize_t EffectChain::getInsertIndex_l(const effect_descriptor_t& desc) {
+-                ALOGW("%s could not insert effect %s: exclusive conflict with %s", __func__,
+-                      desc.name, d.name);
++                ALOGW("%s could not insert effect %s: exclusive conflict with %s",
++                        __func__, desc.name, d.name);
+@@ -1915 +2047,2 @@ ssize_t EffectChain::getInsertIndex_l(const effect_descriptor_t& desc) {
+-            if (iPref == EFFECT_FLAG_INSERT_LAST && idx_insert_last == -1) {
++            if (iPref == EFFECT_FLAG_INSERT_LAST &&
++                idx_insert_last == -1) {
+@@ -1933 +2066,3 @@ ssize_t EffectChain::getInsertIndex_l(const effect_descriptor_t& desc) {
+-size_t EffectChain::removeEffect(const sp<IAfEffectModule>& effect, bool release) {
++size_t EffectChain::removeEffect(const sp<IAfEffectModule>& effect,
++                                                 bool release)
++{
+@@ -1968 +2103,2 @@ size_t EffectChain::removeEffect(const sp<IAfEffectModule>& effect, bool release
+-void EffectChain::setDevices_l(const AudioDeviceTypeAddrVector& devices) {
++void EffectChain::setDevices_l(const AudioDeviceTypeAddrVector &devices)
++{
+@@ -1975 +2111,2 @@ void EffectChain::setDevices_l(const AudioDeviceTypeAddrVector& devices) {
+-void EffectChain::setInputDevice_l(const AudioDeviceTypeAddr& device) {
++void EffectChain::setInputDevice_l(const AudioDeviceTypeAddr &device)
++{
+@@ -1982 +2119,2 @@ void EffectChain::setInputDevice_l(const AudioDeviceTypeAddr& device) {
+-void EffectChain::setMode_l(audio_mode_t mode) {
++void EffectChain::setMode_l(audio_mode_t mode)
++{
+@@ -1989 +2127,2 @@ void EffectChain::setMode_l(audio_mode_t mode) {
+-void EffectChain::setAudioSource_l(audio_source_t source) {
++void EffectChain::setAudioSource_l(audio_source_t source)
++{
+@@ -2015,2 +2154,2 @@ bool EffectChain::setVolume_l(uint32_t* left, uint32_t* right, bool force) {
+-    if (!force && volumeControlEffect == cachedVolumeControlEffect && *left == mLeftVolume &&
+-        *right == mRightVolume) {
++    if (!force && volumeControlEffect == cachedVolumeControlEffect &&
++            *left == mLeftVolume && *right == mRightVolume) {
+@@ -2064 +2203,2 @@ bool EffectChain::setVolume_l(uint32_t* left, uint32_t* right, bool force) {
+-void EffectChain::resetVolume_l() {
++void EffectChain::resetVolume_l()
++{
+@@ -2071 +2211,2 @@ void EffectChain::resetVolume_l() {
+-bool EffectChain::containsHapticGeneratingEffect() {
++bool EffectChain::containsHapticGeneratingEffect()
++{
+@@ -2075 +2216,2 @@ bool EffectChain::containsHapticGeneratingEffect() {
+-bool EffectChain::containsHapticGeneratingEffect_l() {
++bool EffectChain::containsHapticGeneratingEffect_l()
++{
+@@ -2083 +2225,2 @@ bool EffectChain::containsHapticGeneratingEffect_l() {
+-void EffectChain::setHapticScale_l(int id, os::HapticScale hapticScale) {
++void EffectChain::setHapticScale_l(int id, os::HapticScale hapticScale)
++{
+@@ -2089 +2232,2 @@ void EffectChain::setHapticScale_l(int id, os::HapticScale hapticScale) {
+-void EffectChain::syncHalEffectsState_l() {
++void EffectChain::syncHalEffectsState_l()
++{
+@@ -2111,4 +2255,5 @@ void EffectChain::dump(int fd, const Vector<String16>& args) const
+-        result.appendFormat("\t%-*s%-*s   Active tracks:\n", (int)inBufferStr.size(),
+-                            "In buffer    ", (int)outBufferStr.size(), "Out buffer      ");
+-        result.appendFormat("\t%s   %s   %d\n", inBufferStr.c_str(), outBufferStr.c_str(),
+-                            mActiveTrackCnt);
++        result.appendFormat("\t%-*s%-*s   Active tracks:\n",
++                (int)inBufferStr.size(), "In buffer    ",
++                (int)outBufferStr.size(), "Out buffer      ");
++        result.appendFormat("\t%s   %s   %d\n",
++                inBufferStr.c_str(), outBufferStr.c_str(), mActiveTrackCnt);
+@@ -2129 +2274,3 @@ void EffectChain::dump(int fd, const Vector<String16>& args) const
+-void EffectChain::setEffectSuspended_l(const effect_uuid_t* type, bool suspend) {
++void EffectChain::setEffectSuspended_l(
++        const effect_uuid_t *type, bool suspend)
++{
+@@ -2178 +2325,2 @@ void EffectChain::setEffectSuspended_l(const effect_uuid_t* type, bool suspend)
+-void EffectChain::setEffectSuspendedAll_l(bool suspend) {
++void EffectChain::setEffectSuspendedAll_l(bool suspend)
++{
+@@ -2223,2 +2371,2 @@ void EffectChain::setEffectSuspendedAll_l(bool suspend) {
+-static const effect_uuid_t SL_IID_VOLUME_ = {
+-        0x09e8ede0, 0xddde, 0x11db, 0xb4f6, {0x00, 0x02, 0xa5, 0xd5, 0xc5, 0x1b}};
++static const effect_uuid_t SL_IID_VOLUME_ = { 0x09e8ede0, 0xddde, 0x11db, 0xb4f6,
++                                            { 0x00, 0x02, 0xa5, 0xd5, 0xc5, 0x1b } };
+@@ -2234 +2382,2 @@ bool EffectChain::isEffectEligibleForBtNrecSuspend_l(const effect_uuid_t* type)
+-bool EffectChain::isEffectEligibleForSuspend(const effect_descriptor_t& desc) {
++bool EffectChain::isEffectEligibleForSuspend(const effect_descriptor_t& desc)
++{
+@@ -2244 +2393,3 @@ bool EffectChain::isEffectEligibleForSuspend(const effect_descriptor_t& desc) {
+-void EffectChain::getSuspendEligibleEffects(Vector<sp<IAfEffectModule>>& effects) {
++void EffectChain::getSuspendEligibleEffects(
++        Vector< sp<IAfEffectModule> > &effects)
++{
+@@ -2253 +2404,2 @@ void EffectChain::getSuspendEligibleEffects(Vector<sp<IAfEffectModule>>& effects
+-sp<IAfEffectModule> EffectChain::getEffectIfEnabled_l(const effect_uuid_t* type) {
++sp<IAfEffectModule> EffectChain::getEffectIfEnabled_l(const effect_uuid_t *type)
++{
+@@ -2292 +2444,2 @@ void EffectChain::checkSuspendOnEffectEnabled_l(const sp<IAfEffectModule>& effec
+-bool EffectChain::isNonOffloadableEnabled() const {
++bool EffectChain::isNonOffloadableEnabled() const
++{
+@@ -2296 +2449,2 @@ bool EffectChain::isNonOffloadableEnabled() const {
+-bool EffectChain::isNonOffloadableEnabled_l() const {
++bool EffectChain::isNonOffloadableEnabled_l() const
++{
+@@ -2305 +2459,2 @@ bool EffectChain::isNonOffloadableEnabled_l() const {
+-void EffectChain::setThread(const sp<IAfThreadBase>& thread) {
++void EffectChain::setThread(const sp<IAfThreadBase>& thread)
++{
+@@ -2309 +2464,2 @@ void EffectChain::setThread(const sp<IAfThreadBase>& thread) {
+-                ((kProcessTailDurationMs * thread->sampleRate()) / 1000) / thread->frameCount();
++            ((kProcessTailDurationMs * thread->sampleRate()) / 1000) /
++                thread->frameCount();
+@@ -2314 +2470,2 @@ void EffectChain::setThread(const sp<IAfThreadBase>& thread) {
+-void EffectChain::checkOutputFlagCompatibility(audio_output_flags_t* flags) const {
++void EffectChain::checkOutputFlagCompatibility(audio_output_flags_t *flags) const
++{
+@@ -2325 +2482,2 @@ void EffectChain::checkOutputFlagCompatibility(audio_output_flags_t* flags) cons
+-void EffectChain::checkInputFlagCompatibility(audio_input_flags_t* flags) const {
++void EffectChain::checkInputFlagCompatibility(audio_input_flags_t *flags) const
++{
+@@ -2333 +2491,2 @@ void EffectChain::checkInputFlagCompatibility(audio_input_flags_t* flags) const
+-bool EffectChain::isRawCompatible() const {
++bool EffectChain::isRawCompatible() const
++{
+@@ -2342 +2501,2 @@ bool EffectChain::isRawCompatible() const {
+-bool EffectChain::isFastCompatible() const {
++bool EffectChain::isFastCompatible() const
++{
+@@ -2345 +2505,2 @@ bool EffectChain::isFastCompatible() const {
+-        if (effect->isProcessImplemented() && effect->isImplementationSoftware()) {
++        if (effect->isProcessImplemented()
++                && effect->isImplementationSoftware()) {
+@@ -2354 +2515,2 @@ bool EffectChain::isBitPerfectCompatible() const {
+-        if (effect->isProcessImplemented() && effect->isImplementationSoftware()) {
++        if (effect->isProcessImplemented()
++                && effect->isImplementationSoftware()) {
+@@ -2360 +2522,2 @@ bool EffectChain::isBitPerfectCompatible() const {
+-bool EffectChain::isCompatibleWithThread_l(const sp<IAfThreadBase>& thread) const {
++bool EffectChain::isCompatibleWithThread_l(const sp<IAfThreadBase>& thread) const
++{
+@@ -2369,2 +2532 @@ bool EffectChain::isCompatibleWithThread_l(const sp<IAfThreadBase>& thread) cons
+-void EffectChain::sendMetadata_l(
+-        const std::vector<playback_track_metadata_v7_t>& allMetadata,
++void EffectChain::sendMetadata_l(const std::vector<playback_track_metadata_v7_t>& allMetadata,
+@@ -2374,2 +2536,2 @@ void EffectChain::sendMetadata_l(
+-        if (spatializedMetadata.has_value() &&
+-            IAfEffectModule::isSpatializer(&effect->desc().type)) {
++        if (spatializedMetadata.has_value()
++                && IAfEffectModule::isSpatializer(&effect->desc().type)) {
+@@ -2382,2 +2544,2 @@ void EffectChain::sendMetadata_l(
+-status_t EffectChain::EffectCallback::createEffectHal(const effect_uuid_t* pEffectUuid,
+-                                                      int32_t sessionId, int32_t deviceId,
++status_t EffectChain::EffectCallback::createEffectHal(
++        const effect_uuid_t *pEffectUuid, int32_t sessionId, int32_t deviceId,
+@@ -2393 +2555,2 @@ status_t EffectChain::EffectCallback::createEffectHal(const effect_uuid_t* pEffe
+-bool EffectChain::EffectCallback::updateOrphanEffectChains(const sp<IAfEffectBase>& effect) {
++bool EffectChain::EffectCallback::updateOrphanEffectChains(
++        const sp<IAfEffectBase>& effect) {
+@@ -2396,2 +2559,2 @@ bool EffectChain::EffectCallback::updateOrphanEffectChains(const sp<IAfEffectBas
+-status_t EffectChain::EffectCallback::allocateHalBuffer(size_t size,
+-                                                        sp<EffectBufferHalInterface>* buffer) {
++status_t EffectChain::EffectCallback::allocateHalBuffer(
++        size_t size, sp<EffectBufferHalInterface>* buffer) {
+@@ -2400 +2563,2 @@ status_t EffectChain::EffectCallback::allocateHalBuffer(size_t size,
+-status_t EffectChain::EffectCallback::addEffectToHal(const sp<EffectHalInterface>& effect) {
++status_t EffectChain::EffectCallback::addEffectToHal(
++        const sp<EffectHalInterface>& effect) {
+@@ -2414 +2578,2 @@ status_t EffectChain::EffectCallback::addEffectToHal(const sp<EffectHalInterface
+-status_t EffectChain::EffectCallback::removeEffectFromHal(const sp<EffectHalInterface>& effect) {
++status_t EffectChain::EffectCallback::removeEffectFromHal(
++        const sp<EffectHalInterface>& effect) {
+@@ -2446 +2611,2 @@ bool EffectChain::EffectCallback::isOffloadOrDirect() const {
+-    return mThreadType == IAfThreadBase::OFFLOAD || mThreadType == IAfThreadBase::DIRECT;
++    return mThreadType == IAfThreadBase::OFFLOAD
++            || mThreadType == IAfThreadBase::DIRECT;
+@@ -2487 +2653,2 @@ audio_channel_mask_t EffectChain::EffectCallback::inChannelMask(int id) const
+-            if ((t->hasAudioSession_l(c->sessionId()) & IAfThreadBase::SPATIALIZED_SESSION) != 0) {
++            if ((t->hasAudioSession_l(c->sessionId())
++                    & IAfThreadBase::SPATIALIZED_SESSION) != 0) {
+@@ -2502 +2669,2 @@ uint32_t EffectChain::EffectCallback::inChannelCount(int id) const {
+-audio_channel_mask_t EffectChain::EffectCallback::outChannelMask() const NO_THREAD_SAFETY_ANALYSIS
++audio_channel_mask_t EffectChain::EffectCallback::outChannelMask() const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -2514 +2682,2 @@ audio_channel_mask_t EffectChain::EffectCallback::outChannelMask() const NO_THRE
+-            if ((t->hasAudioSession_l(c->sessionId()) & IAfThreadBase::SPATIALIZED_SESSION) != 0) {
++            if ((t->hasAudioSession_l(c->sessionId())
++                    & IAfThreadBase::SPATIALIZED_SESSION) != 0) {
+@@ -2623,3 +2792,7 @@ sp<IAfDeviceEffectProxy> IAfDeviceEffectProxy::create(
+-        const AudioDeviceTypeAddr& device, const sp<DeviceEffectManagerCallback>& callback,
+-        effect_descriptor_t* desc, int id, bool notifyFramesProcessed) {
+-    return sp<DeviceEffectProxy>::make(device, callback, desc, id, notifyFramesProcessed);
++        const AudioDeviceTypeAddr& device,
++        const sp<DeviceEffectManagerCallback>& callback,
++        effect_descriptor_t *desc, int id, bool notifyFramesProcessed)
++{
++    return sp<DeviceEffectProxy>::make(device,
++            callback,
++            desc, id, notifyFramesProcessed);
+@@ -2627 +2800,2 @@ sp<IAfDeviceEffectProxy> IAfDeviceEffectProxy::create(
+-status_t DeviceEffectProxy::setEnabled(bool enabled, bool fromHandle) {
++status_t DeviceEffectProxy::setEnabled(bool enabled, bool fromHandle)
++{
+@@ -2675,2 +2849,2 @@ status_t DeviceEffectProxy::onUpdatePatch(audio_patch_handle_t oldPatchHandle,
+-status_t DeviceEffectProxy::onCreatePatch(audio_patch_handle_t patchHandle,
+-                                          const IAfPatchPanel::Patch& patch) {
++status_t DeviceEffectProxy::onCreatePatch(
++        audio_patch_handle_t patchHandle, const IAfPatchPanel::Patch& patch) {
+@@ -2688,2 +2862,2 @@ status_t DeviceEffectProxy::onCreatePatch(audio_patch_handle_t patchHandle,
+-        ALOGV("%s %s effecthandle %p for patch %d", __func__,
+-              (erasedHandle == 0 ? "adding" : "replacing"), handle.get(), patchHandle);
++        ALOGV("%s %s effecthandle %p for patch %d",
++                __func__, (erasedHandle == 0 ? "adding" : "replacing"), handle.get(), patchHandle);
+@@ -2692,2 +2866,2 @@ status_t DeviceEffectProxy::onCreatePatch(audio_patch_handle_t patchHandle,
+-    ALOGW_IF(status == BAD_VALUE, "%s cannot attach effect %s on patch %d", __func__,
+-             mDescriptor.name, patchHandle);
++    ALOGW_IF(status == BAD_VALUE,
++            "%s cannot attach effect %s on patch %d", __func__, mDescriptor.name, patchHandle);
+@@ -2697,2 +2871,2 @@ status_t DeviceEffectProxy::checkPort(const IAfPatchPanel::Patch& patch,
+-                                      const struct audio_port_config* port,
+-                                      sp<IAfEffectHandle>* handle) NO_THREAD_SAFETY_ANALYSIS
++        const struct audio_port_config *port, sp<IAfEffectHandle> *handle)
++NO_THREAD_SAFETY_ANALYSIS
+@@ -2700,3 +2874,3 @@ status_t DeviceEffectProxy::checkPort(const IAfPatchPanel::Patch& patch,
+-    ALOGV("%s type %d device type %d address %s device ID %d patch.isSoftware() %d", __func__,
+-          port->type, port->ext.device.type, port->ext.device.address, port->id,
+-          patch.isSoftware());
++    ALOGV("%s type %d device type %d address %s device ID %d patch.isSoftware() %d",
++            __func__, port->type, port->ext.device.type,
++            port->ext.device.address, port->id, patch.isSoftware());
+@@ -2724,3 +2898,4 @@ status_t DeviceEffectProxy::checkPort(const IAfPatchPanel::Patch& patch,
+-            mHalEffect = new EffectModule(
+-                    mMyCallback, const_cast<effect_descriptor_t*>(&mDescriptor),
+-                    mMyCallback->newEffectId(), AUDIO_SESSION_DEVICE, false , port->id);
++            mHalEffect = new EffectModule(mMyCallback,
++                                      const_cast<effect_descriptor_t *>(&mDescriptor),
++                                      mMyCallback->newEffectId(), AUDIO_SESSION_DEVICE,
++                                      false , port->id);
+@@ -2760,2 +2935,3 @@ status_t DeviceEffectProxy::checkPort(const IAfPatchPanel::Patch& patch,
+-                                         const_cast<effect_descriptor_t*>(&mDescriptor), &enabled,
+-                                         &status, false, false , mNotifyFramesProcessed);
++                                         const_cast<effect_descriptor_t *>(&mDescriptor),
++                                         &enabled, &status, false, false ,
++                                         mNotifyFramesProcessed);
+@@ -2789 +2965,2 @@ void DeviceEffectProxy::onReleasePatch(audio_patch_handle_t patchHandle) {
+-size_t DeviceEffectProxy::removeEffect(const sp<IAfEffectModule>& effect) {
++size_t DeviceEffectProxy::removeEffect(const sp<IAfEffectModule>& effect)
++{
+@@ -2798 +2975,2 @@ size_t DeviceEffectProxy::removeEffect(const sp<IAfEffectModule>& effect) {
+-status_t DeviceEffectProxy::addEffectToHal(const sp<EffectHalInterface>& effect) {
++status_t DeviceEffectProxy::addEffectToHal(
++        const sp<EffectHalInterface>& effect) {
+@@ -2804 +2982,2 @@ status_t DeviceEffectProxy::addEffectToHal(const sp<EffectHalInterface>& effect)
+-status_t DeviceEffectProxy::removeEffectFromHal(const sp<EffectHalInterface>& effect) {
++status_t DeviceEffectProxy::removeEffectFromHal(
++        const sp<EffectHalInterface>& effect) {
+@@ -2810,2 +2989,3 @@ status_t DeviceEffectProxy::removeEffectFromHal(const sp<EffectHalInterface>& ef
+-status_t DeviceEffectProxy::command(int32_t cmdCode, const std::vector<uint8_t>& cmdData,
+-                                    int32_t maxReplySize, std::vector<uint8_t>* reply) {
++status_t DeviceEffectProxy::command(
++        int32_t cmdCode, const std::vector<uint8_t>& cmdData, int32_t maxReplySize,
++        std::vector<uint8_t>* reply) {
+@@ -2850,0 +3031,2 @@ uint32_t DeviceEffectProxy::channelCount() const {
++void DeviceEffectProxy::dump2(int fd, int spaces) const
++NO_THREAD_SAFETY_ANALYSIS
+@@ -2882,0 +3065 @@ uint32_t DeviceEffectProxy::channelCount() const {
++#undef LOG_TAG
+@@ -2887,2 +3070,2 @@ int DeviceEffectProxy::ProxyCallback::newEffectId() {
+-bool DeviceEffectProxy::ProxyCallback::disconnectEffectHandle(IAfEffectHandle* handle,
+-                                                              bool unpinIfLast) {
++bool DeviceEffectProxy::ProxyCallback::disconnectEffectHandle(
++        IAfEffectHandle *handle, bool unpinIfLast) {
+@@ -2909,2 +3092,2 @@ bool DeviceEffectProxy::ProxyCallback::disconnectEffectHandle(IAfEffectHandle* h
+-status_t DeviceEffectProxy::ProxyCallback::createEffectHal(const effect_uuid_t* pEffectUuid,
+-                                                           int32_t sessionId, int32_t deviceId,
++status_t DeviceEffectProxy::ProxyCallback::createEffectHal(
++        const effect_uuid_t *pEffectUuid, int32_t sessionId, int32_t deviceId,
+@@ -2914 +3097,2 @@ status_t DeviceEffectProxy::ProxyCallback::createEffectHal(const effect_uuid_t*
+-status_t DeviceEffectProxy::ProxyCallback::addEffectToHal(const sp<EffectHalInterface>& effect) {
++status_t DeviceEffectProxy::ProxyCallback::addEffectToHal(
++        const sp<EffectHalInterface>& effect) {
+@@ -2943 +3127,2 @@ uint32_t DeviceEffectProxy::ProxyCallback::sampleRate() const {
+-audio_channel_mask_t DeviceEffectProxy::ProxyCallback::inChannelMask(int id __unused) const {
++audio_channel_mask_t DeviceEffectProxy::ProxyCallback::inChannelMask(
++        int id __unused) const {
+@@ -2971 +3156,2 @@ uint32_t DeviceEffectProxy::ProxyCallback::outChannelCount() const {
+-void DeviceEffectProxy::ProxyCallback::onEffectEnable(const sp<IAfEffectBase>& effectBase) {
++void DeviceEffectProxy::ProxyCallback::onEffectEnable(
++        const sp<IAfEffectBase>& effectBase) {
+@@ -2978 +3164,2 @@ void DeviceEffectProxy::ProxyCallback::onEffectEnable(const sp<IAfEffectBase>& e
+-void DeviceEffectProxy::ProxyCallback::onEffectDisable(const sp<IAfEffectBase>& effectBase) {
++void DeviceEffectProxy::ProxyCallback::onEffectDisable(
++        const sp<IAfEffectBase>& effectBase) {

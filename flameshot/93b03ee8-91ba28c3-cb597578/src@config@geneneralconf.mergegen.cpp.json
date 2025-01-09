@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "    initSaveAfterCopy();",
+        "b_contents": "    initCopyAndCloseAfterUpload();",
+        "base_contents": "",
+        "res_region": "    initCopyAndCloseAfterUpload();\n    initSaveAfterCopy();",
+        "lookback": "    initShowTrayIcon();\n    initAutostart();\n    initCloseAfterCapture();",
+        "lookahead": "\n    // this has to be at the end",
+        "label": [
+            "concat",
+            "complex_conflict"
+        ],
+        "start_line": 42,
+        "end_line": 47,
+        "merge_gen_region": "initSaveAfterCopy(); initCopyAndCloseAfterUpload();",
+        "resolved": false
+    },
+    {
+        "a_contents": "    m_saveAfterCopy->setChecked(config.saveAfterCopyValue());\n\n    if (!config.saveAfterCopyPathValue().isEmpty()) {\n        m_savePath->setText(config.saveAfterCopyPathValue());\n    } else {\n        ConfigHandler().setSaveAfterCopyPath(\n            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));\n    }",
+        "b_contents": "    m_copyAndCloseAfterUpload->setChecked(config.copyAndCloseAfterUploadEnabled());",
+        "base_contents": "",
+        "res_region": "    m_copyAndCloseAfterUpload->setChecked(config.copyAndCloseAfterUploadEnabled());\n    m_saveAfterCopy->setChecked(config.saveAfterCopyValue());\n\n    if (!config.saveAfterCopyPathValue().isEmpty()) {\n        m_savePath->setText(config.saveAfterCopyPathValue());\n    } else {\n        ConfigHandler().setSaveAfterCopyPath(\n            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation));\n    }",
+        "lookback": "    m_sysNotifications->setChecked(config.desktopNotificationValue());\n    m_autostart->setChecked(config.startupLaunchValue());\n    m_closeAfterCapture->setChecked(config.closeAfterScreenshotValue());",
+        "lookahead": "\n#if defined(Q_OS_LINUX) || defined(Q_OS_UNIX)",
+        "label": [
+            "concat",
+            "complex_conflict"
+        ],
+        "start_line": 60,
+        "end_line": 72,
+        "merge_gen_region": "m_saveAfterCopy->setChecked(config.saveAfterCopyValue()); if (!config.saveAfterCopyPathValue().isEmpty()) { m_savePath->setText(config.saveAfterCopyPathValue()); } else { ConfigHandler().setSaveAfterCopyPath( QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); } m_copyAndCloseAfterUpload->setChecked(config.copyAndCloseAfterUploadEnabled());",
+        "resolved": false
+    },
+    {
+        "a_contents": "\nvoid GeneneralConf::initSaveAfterCopy() {\n    m_saveAfterCopy = new QCheckBox(tr(\"Save image after copy\"), this);\n    m_saveAfterCopy->setToolTip(tr(\"Save image file after copying it\"));\n    m_layout->addWidget(m_saveAfterCopy);\n    connect(m_saveAfterCopy, &QCheckBox::clicked, this, \n        &GeneneralConf::saveAfterCopyChanged);\n\n    QHBoxLayout *pathLayout = new QHBoxLayout();\n    m_layout->addStretch();\n    QGroupBox *box = new QGroupBox(tr(\"Save Path\"));\n    box->setFlat(true);\n    box->setLayout(pathLayout);\n    m_layout->addWidget(box);\n\n    m_savePath = new QLineEdit(\n        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), \n        this);\n    m_savePath->setDisabled(true);\n    QString foreground = this->palette().foreground().color().name();\n    m_savePath->setStyleSheet(QStringLiteral(\"color: %1\").arg(foreground));\n    pathLayout->addWidget(m_savePath);\n\n    m_changeSaveButton = new QPushButton(tr(\"Change...\"), this);\n    pathLayout->addWidget(m_changeSaveButton);\n    connect(m_changeSaveButton, &QPushButton::clicked, this, \n        &GeneneralConf::changeSavePath);\n}\n\nvoid GeneneralConf::saveAfterCopyChanged(bool checked) {\n    ConfigHandler().setSaveAfterCopy(checked);\n}\n\nvoid GeneneralConf::changeSavePath() {\n    QString path = QFileDialog::getExistingDirectory(\n        this,\n        tr(\"Choose a Folder\"),\n        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),\n        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);\n    if (path.isEmpty()) {\n        return;\n    }\n    if (!QFileInfo(path).isWritable()) {\n        QMessageBox::about(this, tr(\"Error\"), \n            tr(\"Unable to write to directory.\"));\n        return;\n    }\n    m_savePath->setText(path);\n    ConfigHandler().setSaveAfterCopyPath(path);\n}",
+        "b_contents": "\nvoid GeneneralConf::initCopyAndCloseAfterUpload()\n{\n    m_copyAndCloseAfterUpload = new QCheckBox(tr(\"Copy URL after upload\"), this);\n    ConfigHandler config;\n    m_copyAndCloseAfterUpload->setChecked(config.copyAndCloseAfterUploadEnabled());\n    m_copyAndCloseAfterUpload->setToolTip(tr(\"Copy URL and close window after upload\"));\n    m_layout->addWidget(m_copyAndCloseAfterUpload);\n\n    connect(m_copyAndCloseAfterUpload, &QCheckBox::clicked, [](bool checked) {\n        ConfigHandler().setCopyAndCloseAfterUploadEnabled(checked);\n    });\n}",
+        "base_contents": "",
+        "res_region": "\nvoid GeneneralConf::initCopyAndCloseAfterUpload()\n{\n    m_copyAndCloseAfterUpload = new QCheckBox(tr(\"Copy URL after upload\"), this);\n    ConfigHandler config;\n    m_copyAndCloseAfterUpload->setChecked(config.copyAndCloseAfterUploadEnabled());\n    m_copyAndCloseAfterUpload->setToolTip(tr(\"Copy URL and close window after upload\"));\n    m_layout->addWidget(m_copyAndCloseAfterUpload);\n\n    connect(m_copyAndCloseAfterUpload, &QCheckBox::clicked, [](bool checked) {\n        ConfigHandler().setCopyAndCloseAfterUploadEnabled(checked);\n    });\n}\n\nvoid GeneneralConf::initSaveAfterCopy() {\n    m_saveAfterCopy = new QCheckBox(tr(\"Save image after copy\"), this);\n    m_saveAfterCopy->setToolTip(tr(\"Save image file after copying it\"));\n    m_layout->addWidget(m_saveAfterCopy);\n    connect(m_saveAfterCopy, &QCheckBox::clicked, this,\n        &GeneneralConf::saveAfterCopyChanged);\n\n    QHBoxLayout *pathLayout = new QHBoxLayout();\n    m_layout->addStretch();\n    QGroupBox *box = new QGroupBox(tr(\"Save Path\"));\n    box->setFlat(true);\n    box->setLayout(pathLayout);\n    m_layout->addWidget(box);\n\n    m_savePath = new QLineEdit(\n        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),\n        this);\n    m_savePath->setDisabled(true);\n    QString foreground = this->palette().foreground().color().name();\n    m_savePath->setStyleSheet(QStringLiteral(\"color: %1\").arg(foreground));\n    pathLayout->addWidget(m_savePath);\n\n    m_changeSaveButton = new QPushButton(tr(\"Change...\"), this);\n    pathLayout->addWidget(m_changeSaveButton);\n    connect(m_changeSaveButton, &QPushButton::clicked, this,\n        &GeneneralConf::changeSavePath);\n}\n\nvoid GeneneralConf::saveAfterCopyChanged(bool checked) {\n    ConfigHandler().setSaveAfterCopy(checked);\n}\n\nvoid GeneneralConf::changeSavePath() {\n    QString path = QFileDialog::getExistingDirectory(\n        this,\n        tr(\"Choose a Folder\"),\n        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation),\n        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);\n    if (path.isEmpty()) {\n        return;\n    }\n    if (!QFileInfo(path).isWritable()) {\n        QMessageBox::about(this, tr(\"Error\"),\n            tr(\"Unable to write to directory.\"));\n        return;\n    }\n    m_savePath->setText(path);\n    ConfigHandler().setSaveAfterCopyPath(path);\n}",
+        "lookback": "    connect(m_closeAfterCapture, &QCheckBox::clicked, this,\n            &GeneneralConf::closeAfterCaptureChanged);\n}",
+        "lookahead": "",
+        "label": [
+            "concat",
+            "complex_conflict"
+        ],
+        "start_line": 246,
+        "end_line": 312,
+        "merge_gen_region": "void GeneneralConf::initSaveAfterCopy() { m_saveAfterCopy = new QCheckBox(tr(\"Save image after copy\"), this); m_saveAfterCopy->setToolTip(tr(\"Save image file after copying it\")); m_layout->addWidget(m_saveAfterCopy); connect(m_saveAfterCopy, &QCheckBox::clicked, this, &GeneneralConf::saveAfterCopyChanged); QHBoxLayout *pathLayout = new QHBoxLayout(); m_layout->addStretch(); QGroupBox *box = new QGroupBox(tr(\"Save Path\")); box->setFlat(true); box->setLayout(pathLayout); m_layout->addWidget(box); m_savePath = new QLineEdit( QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), this); m_savePath->setDisabled(true); QString foreground = this->palette().foreground().color().name(); m_savePath->setStyleSheet(QStringLiteral(\"color: %1\").arg(foreground)); pathLayout->addWidget(m_savePath); m_changeSaveButton = new QPushButton(tr(\"Change...\"), this); pathLayout->addWidget(m_changeSaveButton); connect(m_changeSaveButton, &QPushButton::clicked, this, &GeneneralConf::changeSavePath); } void GeneneralConf::changeSavePath() { QString path = QFileDialog::getExistingDirectory( this, tr(\"Choose a Folder\"), QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks); if (path.isEmpty()) { return; } if (!QFileInfo(path).isWritable()) { QMessageBox::about(this, tr(\"Error\"), tr(\"Unable to write to directory.\")); return; } m_savePath->setText(path); ConfigHandler().setSaveAfterCopyChanged(bool checked)",
+        "resolved": false
+    }
+]

@@ -1,0 +1,322 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "void AudioPolicyEffects::setDefaultDeviceEffects() {\n    mDefaultDeviceEffectFuture = std::async(\n                std::launch::async, &AudioPolicyEffects::initDefaultDeviceEffects, this);\n}\n",
+        "base_contents": "void AudioPolicyEffects::setDefaultDeviceEffects() {\n    mDefaultDeviceEffectFuture = std::async(\n                std::launch::async, &AudioPolicyEffects::initDefaultDeviceEffects, this);\n}\n\nAudioPolicyEffects::~AudioPolicyEffects()\n{\n    size_t i = 0;\n    // release audio input processing resources\n    for (i = 0; i < mInputSources.size(); i++) {\n        delete mInputSources.valueAt(i);\n    }\n    mInputSources.clear();\n\n    for (i = 0; i < mInputSessions.size(); i++) {\n        mInputSessions.valueAt(i)->mEffects.clear();\n        delete mInputSessions.valueAt(i);\n    }\n    mInputSessions.clear();\n\n    // release audio output processing resources\n    for (i = 0; i < mOutputStreams.size(); i++) {\n        delete mOutputStreams.valueAt(i);\n    }\n    mOutputStreams.clear();\n\n    for (i = 0; i < mOutputSessions.size(); i++) {\n        mOutputSessions.valueAt(i)->mEffects.clear();\n        delete mOutputSessions.valueAt(i);\n    }\n    mOutputSessions.clear();\n}\n\n",
+        "res_region": "",
+        "lookback": "    }\n}\n",
+        "lookahead": "status_t AudioPolicyEffects::addInputEffects(audio_io_handle_t input,\n                             audio_source_t inputSource,",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 63,
+        "end_line": 105,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectVector>& sessionDesc = mInputSessions[audioSession];\n    if (sessionDesc == nullptr) {\n        sessionDesc = std::make_shared<EffectVector>(audioSession);",
+        "b_contents": "    ssize_t idx = mInputSessions.indexOfKey(audioSession);\n    std::shared_ptr<EffectVector> sessionDesc;\n    if (idx < 0) {\n        sessionDesc = std::make_shared<EffectVector>(audioSession);\n        mInputSessions.add(audioSession, sessionDesc);\n    } else {\n        // EffectVector is existing and we just need to increase ref count\n        sessionDesc = mInputSessions.valueAt(idx);",
+        "base_contents": "    ssize_t idx = mInputSessions.indexOfKey(audioSession);\n    EffectVector *sessionDesc;\n    if (idx < 0) {\n        sessionDesc = new EffectVector(audioSession);\n        mInputSessions.add(audioSession, sessionDesc);\n    } else {\n        // EffectVector is existing and we just need to increase ref count\n        sessionDesc = mInputSessions.valueAt(idx);",
+        "res_region": "    std::shared_ptr<EffectVector>& sessionDesc = mInputSessions[audioSession];\n    if (sessionDesc == nullptr) {\n        sessionDesc = std::make_shared<EffectVector>(audioSession);",
+        "lookback": "        ALOGV(\"addInputEffects(): no processing needs to be attached to this source\");\n        return status;\n    }",
+        "lookahead": "    }\n    sessionDesc->mRefCount++;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 122,
+        "end_line": 144,
+        "merge_gen_region": "std::shared_ptr<EffectVector>& sessionDesc = mInputSessions[audioSession]; if (sessionDesc == nullptr) { sessionDesc = std::make_shared<EffectVector>(audioSession);",
+        "resolved": true
+    },
+    {
+        "a_contents": "        const std::shared_ptr<EffectDescVector>& effects = sourceIt->second;\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "b_contents": "        const std::shared_ptr<EffectDescVector>& effects = mInputSources.valueAt(index);\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "base_contents": "        Vector <EffectDesc *> effects = mInputSources.valueAt(index)->mEffects;\n        for (size_t i = 0; i < effects.size(); i++) {\n            EffectDesc *effect = effects[i];",
+        "res_region": "        const std::shared_ptr<EffectDescVector>& effects = sourceIt->second;\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "lookback": "    ALOGV(\"addInputEffects(): input: %d, refCount: %d\", input, sessionDesc->mRefCount);\n    if (sessionDesc->mRefCount == 1) {\n        int64_t token = IPCThreadState::self()->clearCallingIdentity();",
+        "lookahead": "            AttributionSourceState attributionSource;\n            attributionSource.packageName = \"android\";",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 151,
+        "end_line": 161,
+        "merge_gen_region": "const std::shared_ptr<EffectDescVector>& effects = sourceIt->second; for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectVector> sessionDesc = it->second;",
+        "b_contents": "    std::shared_ptr<EffectVector> sessionDesc = mInputSessions.valueAt(index);",
+        "base_contents": "    EffectVector *sessionDesc = mInputSessions.valueAt(index);",
+        "res_region": "    std::shared_ptr<EffectVector> sessionDesc = it->second;",
+        "lookback": "    if (it == mInputSessions.end()) {\n        return status;\n    }",
+        "lookahead": "    sessionDesc->mRefCount--;\n    ALOGV(\"releaseInputEffects(): input: %d, refCount: %d\", input, sessionDesc->mRefCount);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 200,
+        "end_line": 206,
+        "merge_gen_region": "std::shared_ptr<EffectVector> sessionDesc = it->second;",
+        "resolved": true
+    },
+    {
+        "a_contents": "        mInputSessions.erase(it);",
+        "b_contents": "        mInputSessions.removeItemsAt(index);",
+        "base_contents": "        delete sessionDesc;\n        mInputSessions.removeItemsAt(index);",
+        "res_region": "        mInputSessions.erase(it);",
+        "lookback": "    ALOGV(\"releaseInputEffects(): input: %d, refCount: %d\", input, sessionDesc->mRefCount);\n    if (sessionDesc->mRefCount == 0) {\n        sessionDesc->setProcessorEnabled(false);",
+        "lookahead": "        ALOGV(\"releaseInputEffects(): all effects released\");\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 211,
+        "end_line": 218,
+        "merge_gen_region": "mInputSessions.erase(it);",
+        "resolved": true
+    },
+    {
+        "a_contents": "    const std::vector<sp<AudioEffect>>& effects = it->second->mEffects;\n    const size_t copysize = std::min(effects.size(), (size_t)*count);\n    for (size_t i = 0; i < copysize; i++) {\n        descriptors[i] = effects[i]->descriptor();",
+        "b_contents": "    const std::vector<sp<AudioEffect>>& effects = mInputSessions.valueAt(index)->mEffects;\n\n    for (size_t i = 0; i < effects.size(); i++) {\n        effect_descriptor_t desc = effects[i]->descriptor();\n        if (i < *count) {\n            descriptors[i] = desc;\n        }",
+        "base_contents": "    Vector< sp<AudioEffect> > effects = mInputSessions.valueAt(index)->mEffects;\n\n    for (size_t i = 0; i < effects.size(); i++) {\n        effect_descriptor_t desc = effects[i]->descriptor();\n        if (i < *count) {\n            descriptors[i] = desc;\n        }",
+        "res_region": "    const std::vector<sp<AudioEffect>>& effects = it->second->mEffects;\n    const size_t copysize = std::min(effects.size(), (size_t)*count);\n    for (size_t i = 0; i < copysize; i++) {\n        descriptors[i] = effects[i]->descriptor();",
+        "lookback": "        *count = 0;\n        return BAD_VALUE;\n    }",
+        "lookahead": "    }\n    if (effects.size() > *count) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 236,
+        "end_line": 257,
+        "merge_gen_region": "const std::vector<sp<AudioEffect>>& effects = it->second->mEffects; const size_t copysize = std::min(effects.size(), (size_t)*count); for (size_t i = 0; i < copysize; i++) { descriptors[i] = effects[i]->descriptor();",
+        "resolved": true
+    },
+    {
+        "a_contents": "    const std::vector<sp<AudioEffect>>& effects = it->second->mEffects;\n    const size_t copysize = std::min(effects.size(), (size_t)*count);\n    for (size_t i = 0; i < copysize; i++) {\n        descriptors[i] = effects[i]->descriptor();",
+        "b_contents": "    const std::vector<sp<AudioEffect>>& effects = mOutputSessions.valueAt(index)->mEffects;\n\n    for (size_t i = 0; i < effects.size(); i++) {\n        effect_descriptor_t desc = effects[i]->descriptor();\n        if (i < *count) {\n            descriptors[i] = desc;\n        }",
+        "base_contents": "    Vector< sp<AudioEffect> > effects = mOutputSessions.valueAt(index)->mEffects;\n\n    for (size_t i = 0; i < effects.size(); i++) {\n        effect_descriptor_t desc = effects[i]->descriptor();\n        if (i < *count) {\n            descriptors[i] = desc;\n        }",
+        "res_region": "    const std::vector<sp<AudioEffect>>& effects = it->second->mEffects;\n    const size_t copysize = std::min(effects.size(), (size_t)*count);\n    for (size_t i = 0; i < copysize; i++) {\n        descriptors[i] = effects[i]->descriptor();",
+        "lookback": "        *count = 0;\n        return BAD_VALUE;\n    }",
+        "lookahead": "    }\n    if (effects.size() > *count) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 279,
+        "end_line": 300,
+        "merge_gen_region": "const std::vector<sp<AudioEffect>>& effects = it->second->mEffects; const size_t copysize = std::min(effects.size(), (size_t)*count); for (size_t i = 0; i < copysize; i++) { descriptors[i] = effects[i]->descriptor();",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectVector>& procDesc = mOutputSessions[audioSession];\n    if (procDesc == nullptr) {\n        procDesc = std::make_shared<EffectVector>(audioSession);",
+        "b_contents": "    ssize_t idx = mOutputSessions.indexOfKey(audioSession);\n    std::shared_ptr<EffectVector> procDesc;\n    if (idx < 0) {\n        procDesc = std::make_shared<EffectVector>(audioSession);\n        mOutputSessions.add(audioSession, procDesc);\n    } else {\n        // EffectVector is existing and we just need to increase ref count\n        procDesc = mOutputSessions.valueAt(idx);",
+        "base_contents": "    ssize_t idx = mOutputSessions.indexOfKey(audioSession);\n    EffectVector *procDesc;\n    if (idx < 0) {\n        procDesc = new EffectVector(audioSession);\n        mOutputSessions.add(audioSession, procDesc);\n    } else {\n        // EffectVector is existing and we just need to increase ref count\n        procDesc = mOutputSessions.valueAt(idx);",
+        "res_region": "    std::shared_ptr<EffectVector>& procDesc = mOutputSessions[audioSession];\n    if (procDesc == nullptr) {\n        procDesc = std::make_shared<EffectVector>(audioSession);",
+        "lookback": "        return NO_ERROR;\n    }\n",
+        "lookahead": "    }\n    procDesc->mRefCount++;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 329,
+        "end_line": 351,
+        "merge_gen_region": "std::shared_ptr<EffectVector>& procDesc = mOutputSessions[audioSession]; if (procDesc == nullptr) { procDesc = std::make_shared<EffectVector>(audioSession);",
+        "resolved": true
+    },
+    {
+        "a_contents": "        const std::shared_ptr<EffectDescVector>& effects = it->second;\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "b_contents": "        const std::shared_ptr<EffectDescVector>& effects = mOutputStreams.valueAt(index);\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "base_contents": "        Vector <EffectDesc *> effects = mOutputStreams.valueAt(index)->mEffects;\n        for (size_t i = 0; i < effects.size(); i++) {\n            EffectDesc *effect = effects[i];",
+        "res_region": "        const std::shared_ptr<EffectDescVector>& effects = it->second;\n        for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "lookback": "    if (procDesc->mRefCount == 1) {\n        // make sure effects are associated to audio server even if we are executing a binder call\n        int64_t token = IPCThreadState::self()->clearCallingIdentity();",
+        "lookahead": "            AttributionSourceState attributionSource;\n            attributionSource.packageName = \"android\";",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 360,
+        "end_line": 370,
+        "merge_gen_region": "const std::shared_ptr<EffectDescVector>& effects = it->second; for (const std::shared_ptr<EffectDesc>& effect : *effects) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectVector> procDesc = it->second;",
+        "b_contents": "    std::shared_ptr<EffectVector> procDesc = mOutputSessions.valueAt(index);",
+        "base_contents": "    EffectVector *procDesc = mOutputSessions.valueAt(index);",
+        "res_region": "    std::shared_ptr<EffectVector> procDesc = it->second;",
+        "lookback": "        return NO_ERROR;\n    }\n",
+        "lookahead": "    procDesc->mRefCount--;\n    ALOGV(\"releaseOutputSessionEffects(): session: %d, refCount: %d\",",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 409,
+        "end_line": 415,
+        "merge_gen_region": "std::shared_ptr<EffectVector> procDesc = it->second; procDesc->mRefCount--;",
+        "resolved": false
+    },
+    {
+        "a_contents": "        mOutputSessions.erase(it);",
+        "b_contents": "        mOutputSessions.removeItemsAt(index);",
+        "base_contents": "        delete procDesc;\n        mOutputSessions.removeItemsAt(index);",
+        "res_region": "        mOutputSessions.erase(it);",
+        "lookback": "    if (procDesc->mRefCount == 0) {\n        procDesc->setProcessorEnabled(false);\n        procDesc->mEffects.clear();",
+        "lookahead": "        ALOGV(\"releaseOutputSessionEffects(): output processing released from session: %d\",\n              audioSession);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 422,
+        "end_line": 429,
+        "merge_gen_region": "mOutputSessions.erase(it);",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectDescVector>& desc = mInputSources[source];\n    if (desc == nullptr) {\n        desc = std::make_shared<EffectDescVector>();",
+        "b_contents": "    ssize_t index = mInputSources.indexOfKey(source);\n    std::shared_ptr<EffectDescVector> desc;\n    if (index < 0) {\n        // No effects for this source type yet.\n        desc = std::make_shared<EffectDescVector>();\n        mInputSources.add(source, desc);\n    } else {\n        desc = mInputSources.valueAt(index);",
+        "base_contents": "    ssize_t index = mInputSources.indexOfKey(source);\n    EffectDescVector *desc = NULL;\n    if (index < 0) {\n        // No effects for this source type yet.\n        desc = new EffectDescVector();\n        mInputSources.add(source, desc);\n    } else {\n        desc = mInputSources.valueAt(index);",
+        "res_region": "    std::shared_ptr<EffectDescVector>& desc = mInputSources[source];\n    if (desc == nullptr) {\n        desc = std::make_shared<EffectDescVector>();",
+        "lookback": "    audio_utils::lock_guard _l(mMutex);\n\n    // Find the EffectDescVector for the given source type, or create a new one if necessary.",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 478,
+        "end_line": 500,
+        "merge_gen_region": "std::shared_ptr<EffectDescVector>& desc = mInputSources[source]; if (desc == nullptr) { desc = std::make_shared<EffectDescVector>();",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::shared_ptr<EffectDescVector>& desc = mOutputStreams[stream];\n    if (desc == nullptr) {",
+        "b_contents": "    ssize_t index = mOutputStreams.indexOfKey(stream);\n    std::shared_ptr<EffectDescVector> desc;\n    if (index < 0) {",
+        "base_contents": "    ssize_t index = mOutputStreams.indexOfKey(stream);\n    EffectDescVector *desc = NULL;\n    if (index < 0) {",
+        "res_region": "    std::shared_ptr<EffectDescVector>& desc = mOutputStreams[stream];\n    if (desc == nullptr) {",
+        "lookback": "    audio_utils::lock_guard _l(mMutex);\n\n    // Find the EffectDescVector for the given stream type, or create a new one if necessary.",
+        "lookahead": "        // No effects for this stream type yet.\n        desc = std::make_shared<EffectDescVector>();",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 558,
+        "end_line": 569,
+        "merge_gen_region": "std::shared_ptr<EffectDescVector>& desc = mOutputStreams[stream]; if (desc == nullptr) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "        desc = std::make_shared<EffectDescVector>();",
+        "b_contents": "        desc = std::make_shared<EffectDescVector>();\n        mOutputStreams.add(stream, desc);\n    } else {\n        desc = mOutputStreams.valueAt(index);",
+        "base_contents": "        desc = new EffectDescVector();\n        mOutputStreams.add(stream, desc);\n    } else {\n        desc = mOutputStreams.valueAt(index);",
+        "res_region": "        desc = std::make_shared<EffectDescVector>();",
+        "lookback": "    std::shared_ptr<EffectDescVector>& desc = mOutputStreams[stream];\n    if (desc == nullptr) {\n        // No effects for this stream type yet.",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 571,
+        "end_line": 583,
+        "merge_gen_region": "desc = std::make_shared<EffectDescVector>();",
+        "resolved": true
+    },
+    {
+        "a_contents": "        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "b_contents": "        auto descVector = mInputSources[i];\n        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "base_contents": "        EffectDescVector* descVector = mInputSources[i];\n        for (auto desc = descVector->mEffects.begin(); desc != descVector->mEffects.end(); ++desc) {",
+        "res_region": "        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "lookback": "    // Check each source type.\n    for (auto& [source, descVector] : mInputSources) {\n        // Check each effect for each source.",
+        "lookahead": "            if ((*desc)->mId == id) {\n                // Found it!",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 618,
+        "end_line": 626,
+        "merge_gen_region": "for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "b_contents": "        auto descVector = mOutputStreams[i];\n        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "base_contents": "        EffectDescVector* descVector = mOutputStreams[i];\n        for (auto desc = descVector->mEffects.begin(); desc != descVector->mEffects.end(); ++desc) {",
+        "res_region": "        for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "lookback": "    // Check each stream type.\n    for (auto& [stream, descVector] : mOutputStreams) {\n        // Check each effect for each stream.",
+        "lookahead": "            if ((*desc)->mId == id) {\n                // Found it!",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 655,
+        "end_line": 663,
+        "merge_gen_region": "for (auto desc = descVector->begin(); desc != descVector->end(); ++desc) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    for (const auto& effect : mEffects) {\n        effect->setEnabled(enabled);",
+        "b_contents": "    for (size_t i = 0; i < mEffects.size(); i++) {\n        mEffects[i]->setEnabled(enabled);",
+        "base_contents": "    for (size_t i = 0; i < mEffects.size(); i++) {\n        mEffects.itemAt(i)->setEnabled(enabled);",
+        "res_region": "    for (const auto& effect : mEffects) {\n        effect->setEnabled(enabled);",
+        "lookback": "\nvoid AudioPolicyEffects::EffectVector::setProcessorEnabled(bool enabled)\n{",
+        "lookahead": "    }\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 680,
+        "end_line": 689,
+        "merge_gen_region": "for (const auto& effect : mEffects) { effect->setEnabled(enabled);",
+        "resolved": true
+    },
+    {
+        "a_contents": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "b_contents": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name.c_str(), effect->uuid));",
+        "base_contents": "                effectDescs->mEffects.add(new EffectDesc{effect->name.c_str(), effect->uuid});",
+        "res_region": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "lookback": "        for (auto& stream : processingChain) {\n            auto effectDescs = std::make_shared<EffectDescVector>();\n            for (auto& effect : stream.effects) {",
+        "lookahead": "            }\n            streams[stream.type] = std::move(effectDescs);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1093,
+        "end_line": 1101,
+        "merge_gen_region": "effectDescs->push_back( std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "resolved": true
+    },
+    {
+        "a_contents": "            streams[stream.type] = std::move(effectDescs);",
+        "b_contents": "            streams.add(stream.type, std::move(effectDescs));",
+        "base_contents": "            streams.add(stream.type, effectDescs.release());",
+        "res_region": "            streams[stream.type] = std::move(effectDescs);",
+        "lookback": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name, effect->uuid));\n            }",
+        "lookahead": "        }\n    };",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1103,
+        "end_line": 1109,
+        "merge_gen_region": "streams[stream.type] = std::move(effectDescs);",
+        "resolved": true
+    },
+    {
+        "a_contents": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "b_contents": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name.c_str(), effect->uuid));",
+        "base_contents": "                effectDescs->mEffects.add(new EffectDesc{effect->name.c_str(), effect->uuid});",
+        "res_region": "                effectDescs->push_back(\n                        std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "lookback": "        for (auto& deviceProcess : processingChain) {\n            auto effectDescs = std::make_unique<EffectDescVector>();\n            for (auto& effect : deviceProcess.effects) {",
+        "lookahead": "            }\n            auto devEffects = std::make_unique<DeviceEffects>(",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1117,
+        "end_line": 1125,
+        "merge_gen_region": "effect->push_back( std::make_shared<EffectDesc>(effect->name, effect->uuid));",
+        "resolved": false
+    }
+]

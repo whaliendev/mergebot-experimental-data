@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "static std::mutex accept_messages_lock;\nstatic std::thread property_service_thread;",
+        "b_contents": "",
+        "base_contents": "static std::thread property_service_thread;",
+        "res_region": "static std::mutex accept_messages_lock;\nstatic std::thread property_service_thread;",
+        "lookback": "static int from_init_socket = -1;\nstatic int init_socket = -1;\nstatic bool accept_messages = false;",
+        "lookahead": "\nstatic PropertyInfoAreaFile property_info_area;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 96,
+        "end_line": 102,
+        "merge_gen_region": "static std::mutex accept_messages_lock;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // We must release the fd before sending it to init, otherwise there will be a race with init.\n    // If init calls close() before Release(), then fdsan will see the wrong tag and abort().",
+        "b_contents": "    auto property_msg = PropertyMessage{};\n    auto* control_message = property_msg.mutable_control_message();\n    control_message->set_msg(msg);\n    control_message->set_name(name);\n    control_message->set_pid(pid);\n\n    // We must release the fd before sending it to init, otherwise there will be a race with init.\n    // If init calls close() before Release(), then fdsan will see the wrong tag and abort().",
+        "base_contents": "    // We must release the fd before spawning the thread, otherwise there will be a race with the\n    // thread. If the thread calls close() before this function calls Release(), then fdsan will see\n    // the wrong tag and abort().",
+        "res_region": "    // We must release the fd before sending it to init, otherwise there will be a race with init.\n    // If init calls close() before Release(), then fdsan will see the wrong tag and abort().",
+        "lookback": "        return PROP_ERROR_HANDLE_CONTROL_MESSAGE;\n    }\n",
+        "lookahead": "    int fd = -1;\n    if (socket != nullptr && SelinuxGetVendorAndroidVersion() > __ANDROID_API_Q__) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 399,
+        "end_line": 415,
+        "merge_gen_region": "auto property_msg = PropertyMessage{}; auto* control_message = property_msg.mutable_control_message(); control_message->set_msg(msg); control_message->set_name(name); control_message->set_pid(pid); // We must release the fd before sending it to init, otherwise there will be a race with init. // If init calls close() before Release(), then fdsan will see the wrong tag and abort(). int fd = -1;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    bool queue_success = QueueControlMessage(msg, name, pid, fd);\n    if (!queue_success && fd != -1) {\n        uint32_t response = PROP_ERROR_HANDLE_CONTROL_MESSAGE;\n        TEMP_FAILURE_RETRY(send(fd, &response, sizeof(response), 0));\n        close(fd);\n    }",
+        "b_contents": "    if (auto result = SendMessage(init_socket, property_msg); !result.ok()) {\n        // We've already released the fd above, so if we fail to send the message to init, we need\n        // to manually free it here.\n        if (fd != -1) {\n            close(fd);\n        }\n        *error = \"Failed to send control message: \" + result.error().message();\n        return PROP_ERROR_HANDLE_CONTROL_MESSAGE;\n    }",
+        "base_contents": "    // Handling a control message likely calls SetProperty, which we must synchronously handle,\n    // therefore we must fork a thread to handle it.\n    control_message_thread.Run({msg, name, pid, fd});",
+        "res_region": "    bool queue_success = QueueControlMessage(msg, name, pid, fd);\n    if (!queue_success && fd != -1) {\n        uint32_t response = PROP_ERROR_HANDLE_CONTROL_MESSAGE;\n        TEMP_FAILURE_RETRY(send(fd, &response, sizeof(response), 0));\n        close(fd);\n    }",
+        "lookback": "        fd = socket->Release();\n    }\n",
+        "lookahead": "\n    return PROP_SUCCESS;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 422,
+        "end_line": 443,
+        "merge_gen_region": "bool queue_success = QueueControlMessage(msg, name, pid, fd); if (!queue_success && fd != -1) { uint32_t response = PROP_ERROR_HANDLE_CONTROL_MESSAGE; TEMP_FAILURE_RETRY(send(fd, &response, sizeof(response), 0)); close(fd); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "        case InitMessage::kStopSendingMessages: {\n            accept_messages = false;\n            break;\n        }\n        case InitMessage::kStartSendingMessages: {\n            accept_messages = true;\n            break;\n        }",
+        "base_contents": "        case InitMessage::kStopSendingMessages: {\n            accept_messages = false;\n            break;\n        }\n        case InitMessage::kStartSendingMessages: {\n            accept_messages = true;\n            break;\n        }\n        case InitMessage::kPausePropertyService: {\n            pause_property_service = true;\n            break;\n        }",
+        "res_region": "",
+        "lookback": "            persistent_properties_loaded = true;\n            break;\n        }",
+        "lookahead": "        default:\n            LOG(ERROR) << \"Unknown message type from init: \" << init_message.msg_case();",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1153,
+        "end_line": 1176,
+        "merge_gen_region": "",
+        "resolved": true
+    }
+]

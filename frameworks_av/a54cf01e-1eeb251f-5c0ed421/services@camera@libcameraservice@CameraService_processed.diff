@@ -1,0 +1,250 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/a54cf01e-1eeb251f-5c0ed421/services@camera@libcameraservice@CameraService.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/a54cf01e-1eeb251f-5c0ed421/services@camera@libcameraservice@CameraService.no_comments_merged.cpp
+@@ -21 +20,0 @@
+-#include <android/permission/PermissionChecker.h>
+@@ -63 +61,0 @@
+-#include "utils/CameraThreadState.h"
+@@ -91 +88,0 @@ using companion::virtualnative::IVirtualDeviceManagerNative;
+-using frameworks::cameraservice::service::implementation::AidlCameraService;
+@@ -92,0 +90 @@ using frameworks::cameraservice::service::V2_0::implementation::HidlCameraServic
++using frameworks::cameraservice::service::implementation::AidlCameraService;
+@@ -99,0 +98,2 @@ using hardware::camera2::utils::ConcurrentCameraIdCombination;
++namespace flags = com::android::internal::camera::flags;
++namespace vd_flags = android::companion::virtualdevice::flags;
+@@ -100,0 +101,2 @@ volatile int32_t gLogLevel = 0;
++#define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
++#define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
+@@ -119,34 +123,2 @@ static const std::string kServiceName("cameraserver");
+-sp<CameraService> CameraService::BasicClient::BasicClient::sCameraService;
+-CameraService::BasicClient::BasicClient(
+-        const sp<CameraService>& cameraService, const sp<IBinder>& remoteCallback,
+-        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils,
+-        const std::string& clientPackageName, bool nativeClient,
+-        const std::optional<std::string>& clientFeatureId, const std::string& cameraIdStr,
+-        int cameraFacing, int sensorOrientation, int clientPid, uid_t clientUid, int servicePid,
+-        int rotationOverride)
+-    : AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils),
+-      mDestructionStarted(false),
+-      mCameraIdStr(cameraIdStr),
+-      mCameraFacing(cameraFacing),
+-      mOrientation(sensorOrientation),
+-      mClientPackageName(clientPackageName),
+-      mSystemNativeClient(nativeClient),
+-      mClientFeatureId(clientFeatureId),
+-      mClientPid(clientPid),
+-      mClientUid(clientUid),
+-      mServicePid(servicePid),
+-      mDisconnected(false),
+-      mUidIsTrusted(false),
+-      mRotationOverride(rotationOverride),
+-      mAudioRestriction(hardware::camera2::ICameraDeviceUser::AUDIO_RESTRICTION_NONE),
+-      mRemoteBinder(remoteCallback),
+-      mOpsActive(false),
+-      mOpsStreaming(false) {
+-    if (sCameraService == nullptr) {
+-        sCameraService = cameraService;
+-    }
+-    if (!mSystemNativeClient) {
+-        mAppOpsManager = std::make_unique<AppOpsManager>();
+-    }
+-    mUidIsTrusted = isTrustedCallingUid(mClientUid);
+-}
++const std::string CameraService::kOfflineDevice("offline-");
++const std::string CameraService::kWatchAllClientsFlag("all");
+@@ -154 +125,0 @@ constexpr int32_t kInvalidDeviceId = -1;
+-sp<CameraService> CameraService::BasicClient::BasicClient::sCameraService;
+@@ -158,4 +129,3 @@ CameraService::CameraService(
+-        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils)
+-    : AttributionAndPermissionUtilsEncapsulator(
+-              attributionAndPermissionUtils == nullptr
+-                      ? std::make_shared<AttributionAndPermissionUtils>()
++        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils) :
++        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils == nullptr ?
++                std::make_shared<AttributionAndPermissionUtils>()\
+@@ -680,27 +659,8 @@ Status CameraService::getNumberOfCameras(int32_t type, int32_t deviceId, int32_t
+-void CameraService::remapCameraIds(const TCameraIdRemapping& cameraIdRemapping) {
+-    std::unique_ptr<AutoConditionLock> serviceLockWrapper =
+-            AutoConditionLock::waitAndAcquire(mServiceLockWrapper);
+-    std::vector<sp<BasicClient>> clientsToDisconnect;
+-    std::vector<std::string> cameraIdsToUpdate;
+-    for (const auto& [packageName, injectionMap] : cameraIdRemapping) {
+-        for (auto& [id0, id1] : injectionMap) {
+-            ALOGI("%s: UPDATE:= %s: %s: %s", __FUNCTION__, packageName.c_str(), id0.c_str(),
+-                  id1.c_str());
+-            auto clientDescriptor = mActiveClientManager.get(id0);
+-            if (clientDescriptor != nullptr) {
+-                sp<BasicClient> clientSp = clientDescriptor->getValue();
+-                if (clientSp->getPackageName() == packageName) {
+-                    clientsToDisconnect.push_back(clientSp);
+-                    cameraIdsToUpdate.push_back(id0);
+-                }
+-            }
+-        }
+-    }
+-    for (auto& clientSp : clientsToDisconnect) {
+-        clientSp->notifyError(hardware::camera2::ICameraDeviceCallbacks::ERROR_CAMERA_DISCONNECTED,
+-                              CaptureResultExtras{});
+-    }
+-    mServiceLock.unlock();
+-    int64_t token = CameraThreadState::clearCallingIdentity();
+-    for (auto& clientSp : clientsToDisconnect) {
+-        clientSp->disconnect();
++Status CameraService::remapCameraIds(const hardware::CameraIdRemapping& cameraIdRemapping) {
++    if (!checkCallingPermission(toString16(sCameraInjectExternalCameraPermission))) {
++        const int pid = getCallingPid();
++        const int uid = getCallingUid();
++        ALOGE("%s: Permission Denial: can't configure camera ID mapping pid=%d, uid=%d",
++                __FUNCTION__, pid, uid);
++        return STATUS_ERROR(ERROR_PERMISSION_DENIED,
++                "Permission Denial: no permission to configure camera id mapping");
+@@ -708,7 +668,4 @@ void CameraService::remapCameraIds(const TCameraIdRemapping& cameraIdRemapping)
+-    clientsToDisconnect.clear();
+-    CameraThreadState::restoreCallingIdentity(token);
+-    mServiceLock.lock();
+-    {
+-        Mutex::Autolock lock(mCameraIdRemappingLock);
+-        mCameraIdRemapping.clear();
+-        mCameraIdRemapping.insert(cameraIdRemapping.begin(), cameraIdRemapping.end());
++    TCameraIdRemapping cameraIdRemappingMap{};
++    binder::Status parseStatus = parseCameraIdRemapping(cameraIdRemapping, &cameraIdRemappingMap);
++    if (!parseStatus.isOk()) {
++        return parseStatus;
+@@ -715,0 +673,2 @@ void CameraService::remapCameraIds(const TCameraIdRemapping& cameraIdRemapping)
++    remapCameraIds(cameraIdRemappingMap);
++    return Status::ok();
+@@ -814,0 +772,43 @@ Status CameraService::isSessionConfigurationWithParametersSupported(
++Status CameraService::isSessionConfigurationWithParametersSupportedUnsafe(
++        const std::string& cameraId, const SessionConfiguration& sessionConfiguration,
++        bool overrideForPerfClass, bool* supported) {
++    *supported = false;
++    status_t ret = mCameraProviderManager->isSessionConfigurationSupported(
++            cameraId, sessionConfiguration, overrideForPerfClass,
++                                   true, supported);
++    binder::Status res;
++    switch (ret) {
++        case OK:
++            return Status::ok();
++        case INVALID_OPERATION: {
++                std::string msg = fmt::sprintf(
++                        "Camera %s: Session configuration with parameters supported query not "
++                        "supported!",
++                        cameraId.c_str());
++                ALOGW("%s: %s", __FUNCTION__, msg.c_str());
++                logServiceError(msg, CameraService::ERROR_INVALID_OPERATION);
++                *supported = false;
++                return STATUS_ERROR(CameraService::ERROR_INVALID_OPERATION, msg.c_str());
++            }
++            break;
++        case NAME_NOT_FOUND: {
++                std::string msg = fmt::sprintf("Camera %s: Unknown camera ID.", cameraId.c_str());
++                ALOGW("%s: %s", __FUNCTION__, msg.c_str());
++                logServiceError(msg, CameraService::ERROR_ILLEGAL_ARGUMENT);
++                *supported = false;
++                return STATUS_ERROR(CameraService::ERROR_ILLEGAL_ARGUMENT, msg.c_str());
++            }
++            break;
++        default: {
++                std::string msg = fmt::sprintf(
++                        "Unable to retrieve session configuration support for camera "
++                        "device %s: Error: %s (%d)",
++                        cameraId.c_str(), strerror(-ret), ret);
++                ALOGE("%s: %s", __FUNCTION__, msg.c_str());
++                logServiceError(msg, CameraService::ERROR_ILLEGAL_ARGUMENT);
++                *supported = false;
++                return STATUS_ERROR(CameraService::ERROR_ILLEGAL_ARGUMENT, msg.c_str());
++            }
++            break;
++    }
++}
+@@ -1020 +1021 @@ void CameraService::remapCameraIds(const TCameraIdRemapping& cameraIdRemapping)
+-    int64_t token = CameraThreadState::clearCallingIdentity();
++    int64_t token = clearCallingIdentity();
+@@ -1025 +1026 @@ void CameraService::remapCameraIds(const TCameraIdRemapping& cameraIdRemapping)
+-    CameraThreadState::restoreCallingIdentity(token);
++    restoreCallingIdentity(token);
+@@ -1643,2 +1637 @@ Status CameraService::validateClientPermissionsLocked(const std::string& cameraI
+-                                "Caller \"%s\" (PID %d, UID %d) cannot open camera \"%s\" without "
+-                                "camera permission",
++                "Caller \"%s\" (PID %d, UID %d) cannot open camera \"%s\" without camera permission",
+@@ -3489,0 +3453,29 @@ sp<CameraService> CameraService::BasicClient::BasicClient::sCameraService;
++CameraService::BasicClient::BasicClient(const sp<CameraService>& cameraService,
++        const sp<IBinder>& remoteCallback,
++        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils,
++        const std::string& clientPackageName, bool nativeClient,
++        const std::optional<std::string>& clientFeatureId, const std::string& cameraIdStr,
++        int cameraFacing, int sensorOrientation, int clientPid, uid_t clientUid,
++        int servicePid, int rotationOverride):
++        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils),
++        mDestructionStarted(false),
++        mCameraIdStr(cameraIdStr), mCameraFacing(cameraFacing), mOrientation(sensorOrientation),
++        mClientPackageName(clientPackageName), mSystemNativeClient(nativeClient),
++        mClientFeatureId(clientFeatureId),
++        mClientPid(clientPid), mClientUid(clientUid),
++        mServicePid(servicePid),
++        mDisconnected(false), mUidIsTrusted(false),
++        mRotationOverride(rotationOverride),
++        mAudioRestriction(hardware::camera2::ICameraDeviceUser::AUDIO_RESTRICTION_NONE),
++        mRemoteBinder(remoteCallback),
++        mOpsActive(false),
++        mOpsStreaming(false)
++{
++    if (sCameraService == nullptr) {
++        sCameraService = cameraService;
++    }
++    if (!mSystemNativeClient) {
++        mAppOpsManager = std::make_unique<AppOpsManager>();
++    }
++    mUidIsTrusted = isTrustedCallingUid(mClientUid);
++}
+@@ -5444,2 +5410 @@ status_t CameraService::printHelp(int out) {
+-            "  set-rotate-and-crop <ROTATION> overrides the rotate-and-crop value for AUTO "
+-            "backcompat\n"
++        "  set-rotate-and-crop <ROTATION> overrides the rotate-and-crop value for AUTO backcompat\n"
+@@ -5460,4 +5425,2 @@ status_t CameraService::printHelp(int out) {
+-            "      streams with the same resolution, the tie-breaker is (JPEG, RAW, YUV, and "
+-            "PRIV)\n"
+-            "      Valid values are (case sensitive): DEFAULT, PREVIEW, STILL_CAPTURE, "
+-            "VIDEO_RECORD,\n"
++        "      streams with the same resolution, the tie-breaker is (JPEG, RAW, YUV, and PRIV)\n"
++        "      Valid values are (case sensitive): DEFAULT, PREVIEW, STILL_CAPTURE, VIDEO_RECORD,\n"
+@@ -5526,40 +5490,0 @@ void CameraService::clearInjectionParameters() {
+-Status CameraService::isSessionConfigurationWithParametersSupportedUnsafe(
+-        const std::string& cameraId, const SessionConfiguration& sessionConfiguration,
+-        bool overrideForPerfClass, bool* supported) {
+-    *supported = false;
+-    status_t ret = mCameraProviderManager->isSessionConfigurationSupported(
+-            cameraId, sessionConfiguration, overrideForPerfClass,
+-                                   true, supported);
+-    binder::Status res;
+-    switch (ret) {
+-        case OK:
+-            return Status::ok();
+-        case INVALID_OPERATION: {
+-            std::string msg = fmt::sprintf(
+-                    "Camera %s: Session configuration with parameters supported query not "
+-                    "supported!",
+-                    cameraId.c_str());
+-            ALOGW("%s: %s", __FUNCTION__, msg.c_str());
+-            logServiceError(msg, CameraService::ERROR_INVALID_OPERATION);
+-            *supported = false;
+-            return STATUS_ERROR(CameraService::ERROR_INVALID_OPERATION, msg.c_str());
+-        } break;
+-        case NAME_NOT_FOUND: {
+-            std::string msg = fmt::sprintf("Camera %s: Unknown camera ID.", cameraId.c_str());
+-            ALOGW("%s: %s", __FUNCTION__, msg.c_str());
+-            logServiceError(msg, CameraService::ERROR_ILLEGAL_ARGUMENT);
+-            *supported = false;
+-            return STATUS_ERROR(CameraService::ERROR_ILLEGAL_ARGUMENT, msg.c_str());
+-        } break;
+-        default: {
+-            std::string msg = fmt::sprintf(
+-                    "Unable to retrieve session configuration support for camera "
+-                    "device %s: Error: %s (%d)",
+-                    cameraId.c_str(), strerror(-ret), ret);
+-            ALOGE("%s: %s", __FUNCTION__, msg.c_str());
+-            logServiceError(msg, CameraService::ERROR_ILLEGAL_ARGUMENT);
+-            *supported = false;
+-            return STATUS_ERROR(CameraService::ERROR_ILLEGAL_ARGUMENT, msg.c_str());
+-        } break;
+-    }
+-}

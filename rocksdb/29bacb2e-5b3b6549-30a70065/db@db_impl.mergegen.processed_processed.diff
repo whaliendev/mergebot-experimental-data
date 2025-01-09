@@ -1,0 +1,24 @@
+--- a/./output/rocksdb/29bacb2e-5b3b6549-30a70065/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/29bacb2e-5b3b6549-30a70065/db@db_impl.no_comments_merged.cc
+@@ -2032 +2032 @@ struct IterState {
+-  IterState(DBImpl* db, port::Mutex* mu, DBImpl::SuperVersion* super_version)
++  IterState(DBImpl* db, port::Mutex* mu, SuperVersion* super_version)
+@@ -2036 +2036 @@ struct IterState {
+-  DBImpl::SuperVersion* super_version;
++  SuperVersion* super_version;
+@@ -2058 +2058 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+-sp_snapshot = versions_->LastSequence(); SuperVersion* super_version = default_cfd_->imm()->current(); immutable_mems->Ref(); version = default_cfd_->current(); version->Ref();
++  SuperVersion* super_version = default_cfd_->GetSuperVersion()->Ref();
+@@ -2063 +2063,6 @@ sp_snapshot = versions_->LastSequence(); SuperVersion* super_version = default_c
+-Ptr_version->current->AddIterators(options, storage_options_, &iterator_list); Iterator* internal_iter = NewMergingIterator(&default_cfd_->internal_comparator(), &iterator_list[0], iterator_list.size());
++  super_version->current->AddIterators(options, storage_options_,
++                                       &iterator_list);
++  Iterator* internal_iter =
++      NewMergingIterator(&default_cfd_->internal_comparator(),
++                         &iterator_list[0], iterator_list.size());
++  IterState* cleanup = new IterState(this, &mutex_, super_version);
+@@ -2075 +2080 @@ std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(
+-super_mem = default_cfd_->mem(); mutable_mem->Ref(); immutable_version = default_cfd_->imm()->current(); immutable_mems->Ref(); version = default_cfd_->Ref();
++  SuperVersion* super_version = default_cfd_->GetSuperVersion()->Ref();
+@@ -2184,0 +2193 @@ std::vector<Status> DBImpl::MultiGet(
++  SuperVersion* get_version = default_cfd_->GetSuperVersion()->Ref();

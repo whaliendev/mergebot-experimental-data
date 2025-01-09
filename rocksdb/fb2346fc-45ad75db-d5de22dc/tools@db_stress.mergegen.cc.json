@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "DEFINE_int32(prefix_size, 0, \"Control the prefix size for HashSkipListRep\");\nstatic const bool FLAGS_prefix_size_dummy __attribute__((unused)) =\n    google::RegisterFlagValidator(&FLAGS_prefix_size, &ValidatePrefixSize);",
+        "b_contents": "DEFINE_int32(prefix_size, 7, \"Control the prefix size for HashSkipListRep\");\nstatic const bool FLAGS_prefix_size_dummy =\n  google::RegisterFlagValidator(&FLAGS_prefix_size, &ValidatePrefixSize);",
+        "base_contents": "DEFINE_int32(prefix_size, 0, \"Control the prefix size for HashSkipListRep\");\nstatic const bool FLAGS_prefix_size_dummy =\n  google::RegisterFlagValidator(&FLAGS_prefix_size, &ValidatePrefixSize);",
+        "res_region": "DEFINE_int32(prefix_size, 7, \"Control the prefix size for HashSkipListRep\");\nstatic const bool FLAGS_prefix_size_dummy =\n  google::RegisterFlagValidator(&FLAGS_prefix_size, &ValidatePrefixSize);",
+        "lookback": "  }\n  return true;\n}",
+        "lookahead": "\nDEFINE_bool(use_merge, false, \"On true, replaces all writes with a Merge \"",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 346,
+        "end_line": 358,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "  Status MultiPrefixScan(ThreadState* thread, const ReadOptions& readoptions,\n                         ColumnFamilyHandle* column_family,\n                         const Slice& prefix) {",
+        "b_contents": "  Status MultiPrefixScan(ThreadState* thread,\n                         const ReadOptions& readoptions,\n                         const Slice& key) {",
+        "base_contents": "  Status MultiPrefixScan(ThreadState* thread,\n                         const ReadOptions& readoptions,\n                         const Slice& prefix) {",
+        "res_region": "  Status MultiPrefixScan(ThreadState* thread, const ReadOptions& readoptions,\n                         ColumnFamilyHandle* column_family,\n                         const Slice& key) {",
+        "lookback": "  // each series should be the same length, and it is verified for each\n  // index i that all the i'th values are of the form \"0\"+V, \"1\"+V,...\"9\"+V.\n  // ASSUMES that MultiPut was used to put (K, V)",
+        "lookahead": "    std::string prefixes[10] = {\"0\", \"1\", \"2\", \"3\", \"4\",\n                                \"5\", \"6\", \"7\", \"8\", \"9\"};",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 969,
+        "end_line": 981,
+        "merge_gen_region": "// ASSUMES that MultiPut was used to put (K, V) Status MultiPrefixScan(ThreadState* thread, const ReadOptions& readoptions, ColumnFamilyHandle* column_family, const Slice& key) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "    unique_ptr<Iterator> iter(db_->NewIterator(readoptionscopy, column_family));",
+        "b_contents": "    readoptionscopy.prefix_seek = FLAGS_prefix_size > 0;\n    unique_ptr<Iterator> iter(db_->NewIterator(readoptionscopy));",
+        "base_contents": "    unique_ptr<Iterator> iter(db_->NewIterator(readoptionscopy));",
+        "res_region": "    readoptionscopy.prefix_seek = FLAGS_prefix_size > 0;\n    unique_ptr<Iterator> iter(db_->NewIterator(readoptionscopy, column_family));",
+        "lookback": "    const Snapshot* snapshot = db_->GetSnapshot();\n    ReadOptions readoptionscopy = readoptions;\n    readoptionscopy.snapshot = snapshot;",
+        "lookahead": "\n    iter->Seek(key);",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 1058,
+        "end_line": 1065,
+        "merge_gen_region": " readoptionscopy.prefix_seek = FLAGS_prefix_size > 0;",
+        "resolved": false
+    },
+    {
+        "a_contents": "          Iterator* iter = db_->NewIterator(read_opts, column_family);\n          int count = 0;",
+        "b_contents": "          Iterator* iter = db_->NewIterator(read_opts);\n          int64_t count = 0;",
+        "base_contents": "          Iterator* iter = db_->NewIterator(read_opts);\n          int count = 0;",
+        "res_region": "          Iterator* iter = db_->NewIterator(read_opts, column_family);\n          int64_t count = 0;",
+        "lookback": "        if (!FLAGS_test_batches_snapshots) {\n          Slice prefix = Slice(key.data(), FLAGS_prefix_size);\n          read_opts.prefix = &prefix;",
+        "lookahead": "          for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {\n            assert(iter->key().starts_with(prefix));",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 1186,
+        "end_line": 1195,
+        "merge_gen_region": "key_opts.prefix = &prefix; Iterator* iter = db_->NewIterator(read_opts, column_family); int64_t count = 0; for (iter->SeekToFirst();",
+        "resolved": false
+    },
+    {
+        "a_contents": "          MultiPrefixScan(thread, read_opts, column_family, prefix);",
+        "b_contents": "          MultiPrefixScan(thread, read_opts, key);",
+        "base_contents": "          MultiPrefixScan(thread, read_opts, prefix);",
+        "res_region": "          MultiPrefixScan(thread, read_opts, column_family, key);",
+        "lookback": "          }\n          delete iter;\n        } else {",
+        "lookahead": "        }\n        read_opts.prefix = nullptr;",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1209,
+        "end_line": 1215,
+        "merge_gen_region": "<<<<<<< HEAD MultiPrefixScan(thread, read_opts, column_family, key); ======= MultiPrefixScan(thread, read_opts, key); >>>>>>> arrayapi",
+        "resolved": false
+    }
+]

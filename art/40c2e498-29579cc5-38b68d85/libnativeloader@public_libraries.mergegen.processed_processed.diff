@@ -1,0 +1,14 @@
+--- a/./output/art/40c2e498-29579cc5-38b68d85/libnativeloader@public_libraries.no_comments_mergegen.cpp
++++ b/./output/art/40c2e498-29579cc5-38b68d85/libnativeloader@public_libraries.no_comments_merged.cpp
+@@ -340 +347,10 @@ const std::map<std::string, std::string>& apex_public_libraries() {
+-bool is_product_treblelized() { #if defined(ART_TARGET_ANDROID)
++bool is_product_treblelized() {
++#if defined(ART_TARGET_ANDROID)
++  static bool product_treblelized =
++      !(android::base::GetIntProperty("ro.product.first_api_level", 0) < __ANDROID_API_R__ &&
++        !android::sysprop::VndkProperties::product_vndk_version().has_value());
++  return product_treblelized;
++#else
++  return false;
++#endif
++}

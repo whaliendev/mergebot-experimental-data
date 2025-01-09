@@ -1,0 +1,78 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_merged.cpp
+index 5a888ba..18647a7 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/8c3eed81-43a0b172-3e96c44e/libprocessgroup@sched_policy.no_comments_merged.cpp
+@@ -4,6 +3,0 @@
+-#include <fcntl.h>
+-#include <android-base/macros.h>
+-#include <log/log.h>
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+@@ -18,0 +13 @@ static inline SchedPolicy _policy(SchedPolicy p) {
++#if defined(__ANDROID__)
+@@ -26,2 +21,2 @@ int set_cpuset_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"HighEnergySaving", "ProcessCapacityLow",
+-                                   "TimerSlackHigh"})
++            return SetTaskProfiles(tid,
++                                   {"HighEnergySaving", "ProcessCapacityLow", "TimerSlackHigh"})
+@@ -33,2 +28,2 @@ int set_cpuset_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"HighPerformance", "ProcessCapacityHigh",
+-                                   "TimerSlackNormal"})
++            return SetTaskProfiles(tid,
++                                   {"HighPerformance", "ProcessCapacityHigh", "TimerSlackNormal"})
+@@ -38,2 +33,2 @@ int set_cpuset_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"MaxPerformance", "ProcessCapacityMax",
+-                                   "TimerSlackNormal"})
++            return SetTaskProfiles(tid,
++                                   {"MaxPerformance", "ProcessCapacityMax", "TimerSlackNormal"})
+@@ -43,3 +38 @@ int set_cpuset_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"ServiceCapacityLow", "TimerSlackNormal"})
+-                 ? 0
+-                 : -1;
++            return SetTaskProfiles(tid, {"ServiceCapacityLow", "TimerSlackNormal"}) ? 0 : -1;
+@@ -47,4 +40 @@ int set_cpuset_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid,
+-                             {"ServiceCapacityRestricted", "TimerSlackNormal"})
+-                 ? 0
+-                 : -1;
++            return SetTaskProfiles(tid, {"ServiceCapacityRestricted", "TimerSlackNormal"}) ? 0 : -1;
+@@ -103,2 +93 @@ int set_sched_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"HighEnergySaving", "TimerSlackHigh"}) ? 0
+-                                                                          : -1;
++            return SetTaskProfiles(tid, {"HighEnergySaving", "TimerSlackHigh"}) ? 0 : -1;
+@@ -108,2 +97 @@ int set_sched_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"HighPerformance", "TimerSlackNormal"}) ? 0
+-                                                                           : -1;
++            return SetTaskProfiles(tid, {"HighPerformance", "TimerSlackNormal"}) ? 0 : -1;
+@@ -111,2 +99 @@ int set_sched_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"MaxPerformance", "TimerSlackNormal"}) ? 0
+-                                                                          : -1;
++            return SetTaskProfiles(tid, {"MaxPerformance", "TimerSlackNormal"}) ? 0 : -1;
+@@ -114,3 +101 @@ int set_sched_policy(int tid, SchedPolicy policy) {
+-      return SetTaskProfiles(tid, {"RealtimePerformance", "TimerSlackNormal"})
+-                 ? 0
+-                 : -1;
++            return SetTaskProfiles(tid, {"RealtimePerformance", "TimerSlackNormal"}) ? 0 : -1;
+@@ -123,2 +108 @@ bool cpusets_enabled() {
+-  static bool enabled =
+-      (CgroupMap::GetInstance().FindController("cpuset") != nullptr);
++    static bool enabled = (CgroupMap::GetInstance().FindController("cpuset") != nullptr);
+@@ -128,2 +112 @@ bool schedboost_enabled() {
+-  static bool enabled =
+-      (CgroupMap::GetInstance().FindController("schedtune") != nullptr);
++    static bool enabled = (CgroupMap::GetInstance().FindController("schedtune") != nullptr);
+@@ -133,2 +116 @@ static int getCGroupSubsys(int tid, const char* subsys, std::string& subgroup) {
+-  const CgroupController* controller =
+-      CgroupMap::GetInstance().FindController(subsys);
++    const CgroupController* controller = CgroupMap::GetInstance().FindController(subsys);
+@@ -170,0 +153,9 @@ int get_sched_policy(int tid, SchedPolicy* policy) {
++#else
++int set_sched_policy(int, SchedPolicy) {
++    return 0;
++}
++int get_sched_policy(int, SchedPolicy* policy) {
++    *policy = SP_SYSTEM_DEFAULT;
++    return 0;
++}
++#endif

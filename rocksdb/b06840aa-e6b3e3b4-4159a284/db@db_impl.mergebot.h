@@ -473,11 +473,6 @@ class DBImpl : public DB {
   void InstallSuperVersion(ColumnFamilyData* cfd,
                            DeletionState& deletion_state);
 
-  // Function that Get and KeyMayExist call with no_io true or false
-  // Note: 'value_found' from KeyMayExist propagates here
-  Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
-                 const Slice& key, std::string* value,
-                 bool* value_found = nullptr);
   // Move the files in the input level to the target level.
   // If target_level < 0, automatically calculate the minimum level that could
   // hold the data set.
@@ -490,6 +485,12 @@ class DBImpl : public DB {
   std::pair<Iterator*, Iterator*> GetTailingIteratorPair(
       const ReadOptions& options, ColumnFamilyData* cfd,
       uint64_t* superversion_number);
+
+  // Function that Get and KeyMayExist call with no_io true or false
+  // Note: 'value_found' from KeyMayExist propagates here
+  Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
+                 const Slice& key, std::string* value,
+                 bool* value_found = nullptr);
 };
 
 // Sanitize db options.  The caller should delete result.info_log if

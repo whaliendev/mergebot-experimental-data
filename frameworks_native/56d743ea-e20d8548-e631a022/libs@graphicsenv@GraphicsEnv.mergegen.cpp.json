@@ -1,0 +1,130 @@
+[
+    {
+        "a_contents": "/**\n * APIs for updatable graphics drivers\n */\n\nvoid GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path,\n                                                 const std::string& sphalLibraries) {",
+        "b_contents": "void GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path,\n                                                 const std::string& sphalLibraries) {",
+        "base_contents": "void GraphicsEnv::setDriverPathAndSphalLibraries(const std::string path,\n                                                 const std::string sphalLibraries) {",
+        "res_region": "/**\n * APIs for updatable graphics drivers\n */\n\nvoid GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path,\n                                                 const std::string& sphalLibraries) {",
+        "lookback": "    return appDebuggable || platformDebuggable;\n}\n",
+        "lookahead": "    if (!mDriverPath.empty() || !mSphalLibraries.empty()) {\n        ALOGV(\"ignoring attempt to change driver path from '%s' to '%s' or change sphal libraries \"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 172,
+        "end_line": 185,
+        "merge_gen_region": "/** * APIs for updatable graphics drivers */ void GraphicsEnv::setDriverPathAndSphalLibraries(const std::string& path, const std::string& sphalLibraries) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "/**\n * APIs for ANGLE\n */\n",
+        "b_contents": "",
+        "base_contents": "void* GraphicsEnv::loadLibrary(std::string name) {\n    const android_dlextinfo dlextinfo = {\n            .flags = ANDROID_DLEXT_USE_NAMESPACE,\n            .library_namespace = getAngleNamespace(),\n    };\n\n    std::string libName = std::string(\"lib\") + name + \"_angle.so\";\n\n    void* so = android_dlopen_ext(libName.c_str(), RTLD_LOCAL | RTLD_NOW, &dlextinfo);\n\n    if (so) {\n        ALOGD(\"dlopen_ext from APK (%s) success at %p\", libName.c_str(), so);\n        return so;\n    } else {\n        ALOGE(\"dlopen_ext(\\\"%s\\\") failed: %s\", libName.c_str(), dlerror());\n    }\n\n    return nullptr;\n}\n\nbool GraphicsEnv::shouldUseAngle(std::string appName) {\n    if (appName != mAngleAppName) {\n        // Make sure we are checking the app we were init'ed for\n        ALOGE(\"App name does not match: expected '%s', got '%s'\", mAngleAppName.c_str(),\n              appName.c_str());\n        return false;\n    }\n\n    return shouldUseAngle();\n}\n",
+        "res_region": "/**\n * APIs for ANGLE\n */\n",
+        "lookback": "    return true;\n}\n",
+        "lookahead": "bool GraphicsEnv::shouldUseAngle() {\n    // Make sure we are init'ed",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 526,
+        "end_line": 564,
+        "merge_gen_region": "/** * APIs for ANGLE */",
+        "resolved": true
+    },
+    {
+        "a_contents": "    return mShouldUseAngle;",
+        "b_contents": "    return (mShouldUseAngle == YES) ? true : false;",
+        "base_contents": "    return (mUseAngle == YES) ? true : false;",
+        "res_region": "    return mShouldUseAngle;",
+        "lookback": "        return false;\n    }\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 572,
+        "end_line": 578,
+        "merge_gen_region": "return mShouldUseAngle;",
+        "resolved": true
+    },
+    {
+        "a_contents": "// Set ANGLE information.\n// If path is \"system\", it means system ANGLE must be used for the process.\n// If shouldUseNativeDriver is true, it means native GLES drivers must be used for the process.\n// If path is set to nonempty and shouldUseNativeDriver is true, ANGLE will be used regardless.\nvoid GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver,\n                               const std::string& packageName,",
+        "b_contents": "void GraphicsEnv::updateShouldUseAngle() {\n    const char* ANGLE_PREFER_ANGLE = \"angle\";\n    const char* ANGLE_PREFER_NATIVE = \"native\";\n\n    mShouldUseAngle = NO;\n    if (mAngleDeveloperOptIn == ANGLE_PREFER_ANGLE) {\n        ALOGV(\"User set \\\"Developer Options\\\" to force the use of ANGLE\");\n        mShouldUseAngle = YES;\n    } else if (mAngleDeveloperOptIn == ANGLE_PREFER_NATIVE) {\n        ALOGV(\"User set \\\"Developer Options\\\" to force the use of Native\");\n    } else {\n        ALOGV(\"User set invalid \\\"Developer Options\\\": '%s'\", mAngleDeveloperOptIn.c_str());\n    }\n}\n\nvoid GraphicsEnv::setAngleInfo(const std::string& path, const std::string& packageName,\n                               const std::string& developerOptIn,",
+        "base_contents": "void GraphicsEnv::updateUseAngle() {\n    const char* ANGLE_PREFER_ANGLE = \"angle\";\n    const char* ANGLE_PREFER_NATIVE = \"native\";\n\n    mUseAngle = NO;\n    if (mAngleDeveloperOptIn == ANGLE_PREFER_ANGLE) {\n        ALOGV(\"User set \\\"Developer Options\\\" to force the use of ANGLE\");\n        mUseAngle = YES;\n    } else if (mAngleDeveloperOptIn == ANGLE_PREFER_NATIVE) {\n        ALOGV(\"User set \\\"Developer Options\\\" to force the use of Native\");\n    } else {\n        ALOGV(\"User set invalid \\\"Developer Options\\\": '%s'\", mAngleDeveloperOptIn.c_str());\n    }\n}\n\nvoid GraphicsEnv::setAngleInfo(const std::string path, const std::string appName,\n                               const std::string developerOptIn,",
+        "res_region": "// Set ANGLE information.\n// If path is \"system\", it means system ANGLE must be used for the process.\n// If shouldUseNativeDriver is true, it means native GLES drivers must be used for the process.\n// If path is set to nonempty and shouldUseNativeDriver is true, ANGLE will be used regardless.\nvoid GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver,\n                               const std::string& packageName,",
+        "lookback": "    return mShouldUseAngle;\n}\n",
+        "lookahead": "                               const std::vector<std::string> eglFeatures) {\n    if (mShouldUseAngle) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 581,
+        "end_line": 624,
+        "merge_gen_region": "// Set ANGLE information. // If path is \"system\", it means system ANGLE must be used for the process. // If shouldUseNativeDriver is true, it means native GLES drivers must be used for the process. // If path is set to nonempty and shouldUseNativeDriver is true, ANGLE will be used regardless. void GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver, const std::string& packageName,",
+        "resolved": true
+    },
+    {
+        "a_contents": "    if (mShouldUseAngle) {\n        // ANGLE is already set up for this application process, even if the application\n        // needs to switch from apk to system or vice versa, the application process must\n        // be killed and relaunch so that the loader can properly load ANGLE again.\n        // The architecture does not support runtime switch between drivers, so just return.\n        ALOGE(\"ANGLE is already set for %s\", packageName.c_str());",
+        "b_contents": "    if (mShouldUseAngle != UNKNOWN) {\n        // We've already figured out an answer for this app, so just return.\n        ALOGV(\"Already evaluated the rules file for '%s': use ANGLE = %s\", packageName.c_str(),\n              (mShouldUseAngle == YES) ? \"true\" : \"false\");",
+        "base_contents": "    if (mUseAngle != UNKNOWN) {\n        // We've already figured out an answer for this app, so just return.\n        ALOGV(\"Already evaluated the rules file for '%s': use ANGLE = %s\", appName.c_str(),\n              (mUseAngle == YES) ? \"true\" : \"false\");",
+        "res_region": "    if (mShouldUseAngle) {\n        // ANGLE is already set up for this application process, even if the application\n        // needs to switch from apk to system or vice versa, the application process must\n        // be killed and relaunch so that the loader can properly load ANGLE again.\n        // The architecture does not support runtime switch between drivers, so just return.\n        ALOGE(\"ANGLE is already set for %s\", packageName.c_str());",
+        "lookback": "void GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver,\n                               const std::string& packageName,\n                               const std::vector<std::string> eglFeatures) {",
+        "lookahead": "        return;\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 626,
+        "end_line": 643,
+        "merge_gen_region": "if (mShouldUseAngle) { // ANGLE is already set up for this application process, even if the application // needs to switch from apk to system or vice versa, the application process must // be killed and relaunch so that the loader can properly load ANGLE again. // The architecture does not support runtime switch between drivers, so just return. ALOGE(\"ANGLE is already set for %s\", packageName.c_str());",
+        "resolved": true
+    },
+    {
+        "a_contents": "    mAnglePath = std::move(path);\n    ALOGV(\"setting app package name to '%s'\", packageName.c_str());\n    mPackageName = std::move(packageName);\n    if (mAnglePath == \"system\") {\n        mShouldUseSystemAngle = true;\n    }\n    if (!mAnglePath.empty()) {\n        mShouldUseAngle = true;\n    }\n    mShouldUseNativeDriver = shouldUseNativeDriver;",
+        "b_contents": "    mAnglePath = path;\n    ALOGV(\"setting app package name to '%s'\", packageName.c_str());\n    mPackageName = packageName;\n    ALOGV(\"setting ANGLE application opt-in to '%s'\", developerOptIn.c_str());\n    mAngleDeveloperOptIn = developerOptIn;\n\n    // Update the current status of whether we should use ANGLE or not\n    updateShouldUseAngle();",
+        "base_contents": "    mAnglePath = path;\n    ALOGV(\"setting ANGLE app name to '%s'\", appName.c_str());\n    mAngleAppName = appName;\n    ALOGV(\"setting ANGLE application opt-in to '%s'\", developerOptIn.c_str());\n    mAngleDeveloperOptIn = developerOptIn;\n\n    // Update the current status of whether we should use ANGLE or not\n    updateUseAngle();",
+        "res_region": "    mAnglePath = std::move(path);\n    ALOGV(\"setting app package name to '%s'\", packageName.c_str());\n    mPackageName = std::move(packageName);\n    if (mAnglePath == \"system\") {\n        mShouldUseSystemAngle = true;\n    }\n    if (!mAnglePath.empty()) {\n        mShouldUseAngle = true;\n    }\n    mShouldUseNativeDriver = shouldUseNativeDriver;",
+        "lookback": "\n    mAngleEglFeatures = std::move(eglFeatures);\n    ALOGV(\"setting ANGLE path to '%s'\", path.c_str());",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 649,
+        "end_line": 678,
+        "merge_gen_region": "mPackageName = std::move(packageName); if (mAnglePath == \"system\") { mShouldUseSystemAngle = true; } if (!mAnglePath.empty()) { mShouldUseAngle = true; } mShouldUseNativeDriver = shouldUseNativeDriver;",
+        "resolved": false
+    },
+    {
+        "a_contents": "std::string& GraphicsEnv::getPackageName() {\n    return mPackageName;\n}\n\nconst std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {\n    return mAngleEglFeatures;\n}\n\nandroid_namespace_t* GraphicsEnv::getAngleNamespace() {\n    std::lock_guard<std::mutex> lock(mNamespaceMutex);\n\n    if (mAngleNamespace) {\n        return mAngleNamespace;\n    }\n\n    if (mAnglePath.empty() && !mShouldUseSystemAngle) {\n        ALOGV(\"mAnglePath is empty and not using system ANGLE, abort creating ANGLE namespace\");\n        return nullptr;\n    }\n\n    // Construct the search paths for system ANGLE.\n    const char* const defaultLibraryPaths =\n#if defined(__LP64__)\n            \"/vendor/lib64/egl:/system/lib64/egl\";\n#else\n            \"/vendor/lib/egl:/system/lib/egl\";\n#endif\n\n    // If the application process will run on top of system ANGLE, construct the namespace\n    // with sphal namespace being the parent namespace so that search paths and libraries\n    // are properly inherited.\n    mAngleNamespace =\n            android_create_namespace(\"ANGLE\",\n                                     mShouldUseSystemAngle ? defaultLibraryPaths\n                                                           : mAnglePath.c_str(), // ld_library_path\n                                     mShouldUseSystemAngle\n                                             ? defaultLibraryPaths\n                                             : mAnglePath.c_str(), // default_library_path\n                                     ANDROID_NAMESPACE_TYPE_SHARED_ISOLATED,\n                                     nullptr, // permitted_when_isolated_path\n                                     mShouldUseSystemAngle ? android_get_exported_namespace(\"sphal\")\n                                                           : nullptr); // parent\n\n    ALOGD_IF(!mAngleNamespace, \"Could not create ANGLE namespace from default\");\n\n    if (!mShouldUseSystemAngle) {\n        return mAngleNamespace;\n    }\n\n    auto vndkNamespace = android_get_exported_namespace(\"vndk\");\n    if (!vndkNamespace) {\n        return nullptr;\n    }\n\n    if (!linkDriverNamespaceLocked(mAngleNamespace, vndkNamespace, \"\")) {\n        mAngleNamespace = nullptr;\n    }\n\n    return mAngleNamespace;\n}\n\nvoid GraphicsEnv::nativeToggleAngleAsSystemDriver(bool enabled) {\n    const sp<IGpuService> gpuService = getGpuService();\n    if (!gpuService) {\n        ALOGE(\"No GPU service\");\n        return;\n    }\n    gpuService->toggleAngleAsSystemDriver(enabled);\n}\n\nbool GraphicsEnv::shouldUseSystemAngle() {\n    return mShouldUseSystemAngle;\n}\n\nbool GraphicsEnv::shouldUseNativeDriver() {\n    return mShouldUseNativeDriver;\n}\n\n/**\n * APIs for debuggable layers\n */\n\nvoid GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,\n                                const std::string& layerPaths) {",
+        "b_contents": "void GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,\n                                const std::string& layerPaths) {",
+        "base_contents": "void GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace, const std::string layerPaths) {",
+        "res_region": "std::string& GraphicsEnv::getPackageName() {\n    return mPackageName;\n}\n\nconst std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {\n    return mAngleEglFeatures;\n}\n\nandroid_namespace_t* GraphicsEnv::getAngleNamespace() {\n    std::lock_guard<std::mutex> lock(mNamespaceMutex);\n\n    if (mAngleNamespace) {\n        return mAngleNamespace;\n    }\n\n    if (mAnglePath.empty() && !mShouldUseSystemAngle) {\n        ALOGV(\"mAnglePath is empty and not using system ANGLE, abort creating ANGLE namespace\");\n        return nullptr;\n    }\n\n    // Construct the search paths for system ANGLE.\n    const char* const defaultLibraryPaths =\n#if defined(__LP64__)\n            \"/vendor/lib64/egl:/system/lib64/egl\";\n#else\n            \"/vendor/lib/egl:/system/lib/egl\";\n#endif\n\n    // If the application process will run on top of system ANGLE, construct the namespace\n    // with sphal namespace being the parent namespace so that search paths and libraries\n    // are properly inherited.\n    mAngleNamespace =\n            android_create_namespace(\"ANGLE\",\n                                     mShouldUseSystemAngle ? defaultLibraryPaths\n                                                           : mAnglePath.c_str(), // ld_library_path\n                                     mShouldUseSystemAngle\n                                             ? defaultLibraryPaths\n                                             : mAnglePath.c_str(), // default_library_path\n                                     ANDROID_NAMESPACE_TYPE_SHARED_ISOLATED,\n                                     nullptr, // permitted_when_isolated_path\n                                     mShouldUseSystemAngle ? android_get_exported_namespace(\"sphal\")\n                                                           : nullptr); // parent\n\n    ALOGD_IF(!mAngleNamespace, \"Could not create ANGLE namespace from default\");\n\n    if (!mShouldUseSystemAngle) {\n        return mAngleNamespace;\n    }\n\n    auto vndkNamespace = android_get_exported_namespace(\"vndk\");\n    if (!vndkNamespace) {\n        return nullptr;\n    }\n\n    if (!linkDriverNamespaceLocked(mAngleNamespace, vndkNamespace, \"\")) {\n        mAngleNamespace = nullptr;\n    }\n\n    return mAngleNamespace;\n}\n\nvoid GraphicsEnv::nativeToggleAngleAsSystemDriver(bool enabled) {\n    const sp<IGpuService> gpuService = getGpuService();\n    if (!gpuService) {\n        ALOGE(\"No GPU service\");\n        return;\n    }\n    gpuService->toggleAngleAsSystemDriver(enabled);\n}\n\nbool GraphicsEnv::shouldUseSystemAngle() {\n    return mShouldUseSystemAngle;\n}\n\nbool GraphicsEnv::shouldUseNativeDriver() {\n    return mShouldUseNativeDriver;\n}\n\n/**\n * APIs for debuggable layers\n */\n\nvoid GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,\n                                const std::string& layerPaths) {",
+        "lookback": "    mShouldUseNativeDriver = shouldUseNativeDriver;\n}\n",
+        "lookahead": "    if (mLayerPaths.empty()) {\n        mLayerPaths = layerPaths;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 681,
+        "end_line": 771,
+        "merge_gen_region": "std::string& GraphicsEnv::getPackageName() { return mPackageName; } const std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() { return mAngleEglFeatures; } android_namespace_t* GraphicsEnv::getAngleNamespace() { std::lock_guard<std::mutex> lock(mNamespaceMutex); if (mAngleNamespace) { return mAngleNamespace; } if (mAnglePath.empty() && !mShouldUseSystemAngle) { ALOGV(\"mAnglePath is empty and not using system ANGLE, abort creating ANGLE namespace\"); return nullptr; } // Construct the search paths for system ANGLE. const char* const defaultLibraryPaths = #if defined(__LP64__) \"/vendor/lib64/egl:/system/lib64/egl\"; #else \"/vendor/lib/egl:/system/lib/egl\"; #endif // If the application process will run on top of system ANGLE, construct the namespace // with sphal namespace being the parent namespace so that search paths and libraries // are properly inherited. mAngleNamespace = android_create_namespace(\"ANGLE\", mShouldUseSystemAngle ? defaultLibraryPaths : mAnglePath.c_str(), // ld_library_path mShouldUseSystemAngle ? defaultLibraryPaths : mAnglePath.c_str(), // ld_library_path mShouldUseSystemAngle ? defaultLibraryPaths : mAnglePath.c_str(), // default_library_path ANDROID_NAMESPACE_TYPE_SHARED_ISOLATED, nullptr, // permitted_when_isolated_path mShouldUseSystemAngle ? android_get_exported_namespace(\"sphal\") : nullptr); // parent ALOGD_IF(!mAngleNamespace, \"Could not create ANGLE namespace from default\"); if (!mShouldUseSystemAngleNamespace; } auto vndkNamespace = android_get_exported_namespace(\"vndk\"); if",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "std::string& GraphicsEnv::getPackageName() {\n    return mPackageName;\n}\n\nconst std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {\n    return mAngleEglFeatures;\n}\n",
+        "base_contents": "std::string& GraphicsEnv::getAngleAppName() {\n    return mAngleAppName;\n}\n\nconst std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {\n    return mAngleEglFeatures;\n}\n",
+        "res_region": "",
+        "lookback": "    return mAppNamespace;\n}\n",
+        "lookahead": "const std::string& GraphicsEnv::getLayerPaths() {\n    return mLayerPaths;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 785,
+        "end_line": 804,
+        "merge_gen_region": "const std::string& GraphicsEnv::getLayerPaths() {",
+        "resolved": false
+    }
+]

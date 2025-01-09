@@ -287,12 +287,6 @@ class DBImpl : public DB {
   Status FlushMemTableToOutputFile(ColumnFamilyData* cfd, bool* madeProgress,
                                    DeletionState& deletion_state);
 
-  // Flush the in-memory write buffer to storage.  Switches to a new
-  // log-file/memtable and writes a new descriptor iff successful.
-  Status FlushMemTableToOutputFile(bool* madeProgress,
-                                   DeletionState& deletion_state,
-                                   LogBuffer* log_buffer);
-
   Status RecoverLogFile(uint64_t log_number, SequenceNumber* max_sequence,
                         bool read_only);
 
@@ -496,6 +490,17 @@ class DBImpl : public DB {
       SequenceNumber in, std::vector<SequenceNumber>& snapshots,
       SequenceNumber* prev_snapshot);
 
+  // Background threads call this function, which is just a wrapper around
+  // the cfd->InstallSuperVersion() function. Background threads carry
+  // deletion_state which can have new_superversion already allocated.
+  void InstallSuperVersion(ColumnFamilyData* cfd,
+                           DeletionState& deletion_state);
+
+  using DB::GetPropertiesOfAllTables;
+  virtual Status GetPropertiesOfAllTables(
+      ColumnFamilyHandle* column_family,
+      TablePropertiesCollection* props) override;
+
   // Function that Get and KeyMayExist call with no_io true or false
   // Note: 'value_found' from KeyMayExist propagates here
   Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
@@ -513,17 +518,6 @@ class DBImpl : public DB {
   std::pair<Iterator*, Iterator*> GetTailingIteratorPair(
       const ReadOptions& options, ColumnFamilyData* cfd,
       uint64_t* superversion_number);
-
-  // Background threads call this function, which is just a wrapper around
-  // the cfd->InstallSuperVersion() function. Background threads carry
-  // deletion_state which can have new_superversion already allocated.
-  void InstallSuperVersion(ColumnFamilyData* cfd,
-                           DeletionState& deletion_state);
-
-  using DB::GetPropertiesOfAllTables;
-  virtual Status GetPropertiesOfAllTables(
-      ColumnFamilyHandle* column_family,
-      TablePropertiesCollection* props) override;
 };
 
 // Sanitize db options.  The caller should delete result.info_log if
@@ -532,7 +526,6 @@ extern Options SanitizeOptions(const std::string& db,
                                const InternalKeyComparator* icmp,
                                const InternalFilterPolicy* ipolicy,
                                const Options& src);
-
 extern DBOptions SanitizeOptions(const std::string& db, const DBOptions& src);
 
 // Determine compression type, based on user options, level of the output

@@ -1,0 +1,78 @@
+--- a/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@init_first_stage.no_comments_mergegen.cpp
++++ b/./output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@init_first_stage.no_comments_merged.cpp
+@@ -3,0 +4 @@
++#include <chrono>
+@@ -16,0 +18 @@
++using namespace std::chrono_literals;
+@@ -25,2 +27,2 @@ class FirstStageMount {
+-    void InitRequiredDevices();
+-    void InitVerityDevice(const std::string& verity_device);
++    bool InitRequiredDevices();
++    bool InitVerityDevice(const std::string& verity_device);
+@@ -89,2 +91,4 @@ bool FirstStageMount::DoFirstStageMount() {
+-bool FirstStageMount::InitDevices() { if (!GetRequiredDevices()) return false; InitRequiredDevices();
+-void FirstStageMount::InitRequiredDevices() {
++bool FirstStageMount::InitDevices() {
++    return GetRequiredDevices() && InitRequiredDevices();
++}
++bool FirstStageMount::InitRequiredDevices() {
+@@ -92 +96 @@ void FirstStageMount::InitRequiredDevices() {
+-        return;
++        return true;
+@@ -96 +100,27 @@ void FirstStageMount::InitRequiredDevices() {
+-const std::string dm_path = "/devices/virtual/misc/device-mapper"; device_init(("/sys" + dm_callback = [this, &dm_path](const Uevent& uevent) { if (uevent.path == dm_path) { device_handler_.HandleDeviceEvent(uevent); found = true; return ListenerAction::kStop; return ListenerAction::kContinue; }; uevent_listener_.RegenerateUeventsForPath("/sys" + dm_path, dm_callback); if (!found) { uevent_listener_.Poll(dm_callback, 10s); } if (!found) { LOG(ERROR) << "device-mapper device not found"; return false; }
++        bool found = false;
++        auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) {
++            if (uevent.path == dm_path) {
++                device_handler_.HandleDeviceEvent(uevent);
++                found = true;
++                return ListenerAction::kStop;
++            }
++            return ListenerAction::kContinue;
++        };
++        uevent_listener_.RegenerateUeventsForPath("/sys" + dm_path, dm_callback);
++        if (!found) {
++            uevent_listener_.Poll(dm_callback, 10s);
++        }
++        if (!found) {
++            LOG(ERROR) << "device-mapper device not found";
++            return false;
++        }
++    }
++    auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); };
++    uevent_listener_.RegenerateUevents(uevent_callback);
++    if (!required_devices_partition_names_.empty()) {
++        uevent_listener_.Poll(uevent_callback, 10s);
++    }
++    if (!required_devices_partition_names_.empty()) {
++        LOG(ERROR) << __PRETTY_FUNCTION__ << ": partition(s) not found: "
++                   << android::base::Join(required_devices_partition_names_, ", ");
++        return false;
+@@ -119 +149 @@ ListenerAction FirstStageMount::UeventCallback(const Uevent& uevent) {
+-void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
++bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+@@ -122 +152,3 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-base_init(syspath.c_str(), [&](uevent* uevent) { if (uevent.device_name == device_name) {
++    bool found = false;
++    auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent& uevent) {
++        if (uevent.device_name == device_name) {
+@@ -124 +156,3 @@ base_init(syspath.c_str(), [&](uevent* uevent) { if (uevent.device_name == devic
+-LOG(VERBOSE) << "Creating dm-verity device : " << verity_device; device_handler_.HandleDeviceEvent(uevent);
++            device_handler_.HandleDeviceEvent(uevent);
++            found = true;
++            return ListenerAction::kStop;
+@@ -125,0 +160,11 @@ LOG(VERBOSE) << "Creating dm-verity device : " << verity_device; device_handler_
++        return ListenerAction::kContinue;
++    };
++    uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback);
++    if (!found) {
++        uevent_listener_.Poll(verity_callback, 10s);
++    }
++    if (!found) {
++        LOG(ERROR) << "dm-verity device not found";
++        return false;
++    }
++    return true;
+@@ -175 +220 @@ bool FirstStageMountVBootV1::SetUpDmVerity(fstab_rec* fstab_rec) {
+-            InitVerityDevice(fstab_rec->blk_device);
++            return InitVerityDevice(fstab_rec->blk_device);

@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "bool OemPostWipeData(FastbootDevice* device) {\n    auto fastboot_hal = device->fastboot_hal();\n    if (!fastboot_hal) {\n        return false;\n    }\n\n    Result ret;\n    auto ret_val = fastboot_hal->doOemSpecificErase([&](Result result) { ret = result; });\n    if (!ret_val.isOk()) {\n        return false;\n    }\n    if (ret.status == Status::NOT_SUPPORTED) {\n        return false;\n    } else if (ret.status != Status::SUCCESS) {\n        device->WriteStatus(FastbootResult::FAIL, ret.message);\n    } else {\n        device->WriteStatus(FastbootResult::OKAY, \"Erasing succeeded\");\n    }\n\n    return true;\n}\n",
+        "b_contents": "bool OemPostWipeData(FastbootDevice* device) {\n    auto fastboot_hal = device->fastboot_hal();\n    if (!fastboot_hal) {\n        return false;\n    }\n\n    Result ret;\n    // Check whether fastboot_hal support \"oem postwipedata\" API or not.\n    const std::string checkPostWipeDataCmd(\"oem postwipedata support\");\n    auto check_cmd_ret_val = fastboot_hal->doOemCommand(checkPostWipeDataCmd,\n                                        [&](Result result) { ret = result; });\n    if (!check_cmd_ret_val.isOk()) {\n        return false;\n    }\n    if (ret.status != Status::SUCCESS) {\n        return false;\n    }\n\n    const std::string postWipeDataCmd(\"oem postwipedata userdata\");\n    auto ret_val = fastboot_hal->doOemCommand(postWipeDataCmd,\n                                        [&](Result result) { ret = result; });\n    if (!ret_val.isOk()) {\n        return false;\n    }\n    if (ret.status != Status::SUCCESS) {\n        device->WriteStatus(FastbootResult::FAIL, ret.message);\n    } else {\n        device->WriteStatus(FastbootResult::OKAY, \"Erasing succeeded\");\n    }\n\n    return true;\n}\n",
+        "base_contents": "",
+        "res_region": "bool OemPostWipeData(FastbootDevice* device) {\n    auto fastboot_hal = device->fastboot_hal();\n    if (!fastboot_hal) {\n        return false;\n    }\n\n    Result ret;\n    auto ret_val = fastboot_hal->doOemSpecificErase([&](Result result) { ret = result; });\n    if (!ret_val.isOk()) {\n        return false;\n    }\n    if (ret.status == Status::NOT_SUPPORTED) {\n        return false;\n    } else if (ret.status != Status::SUCCESS) {\n        device->WriteStatus(FastbootResult::FAIL, ret.message);\n    } else {\n        device->WriteStatus(FastbootResult::OKAY, \"Erasing succeeded\");\n    }\n\n    return true;\n}\n",
+        "lookback": "    return device->WriteOkay(message);\n}\n",
+        "lookahead": "bool EraseHandler(FastbootDevice* device, const std::vector<std::string>& args) {\n    if (args.size() < 2) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 166,
+        "end_line": 224,
+        "merge_gen_region": "bool OemPostWipeData(FastbootDevice* device) { auto fastboot_hal = device->fastboot_hal(); if (!fastboot_hal) { return false; } Result ret; auto ret_val = fastboot_hal->doOemSpecificErase([&](Result result) { ret = result; }); if (!ret_val.isOk()) { return false; } if (ret.status == Status::NOT_SUPPORTED) { return false; } else if (ret.status != Status::SUCCESS) { device->WriteStatus(FastbootResult::FAIL, ret.message); } else { device->WriteStatus(FastbootResult::OKAY, \"Erasing succeeded\"); } return true; }",
+        "resolved": true
+    }
+]

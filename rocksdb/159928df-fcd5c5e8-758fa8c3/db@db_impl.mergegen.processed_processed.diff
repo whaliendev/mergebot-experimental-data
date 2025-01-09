@@ -1,0 +1,25 @@
+--- a/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@db_impl.no_comments_merged.cc
+@@ -1,0 +2 @@
++#define __STDC_FORMAT_MACROS 
+@@ -1295 +1296,4 @@ Status DBImpl::WaitForFlushMemTable(ColumnFamilyData* cfd) {
+-Status DBImpl::TEST_FlushMemTable(bool wait) { FlushOptions fo; fo.wait = wait; return FlushMemTable(default_cf_handle_->cfd(), FlushOptions());
++Status DBImpl::TEST_FlushMemTable(bool wait) {
++  FlushOptions fo;
++  fo.wait = wait;
++  return FlushMemTable(default_cf_handle_->cfd(), fo);
+@@ -1400 +1404,3 @@ void DBImpl::BackgroundCallFlush() {
+-        uint64_t error_cnt = internal_stats_.BumpAndGetBackgroundErrorCount();
++        uint64_t error_cnt = default_cf_handle_->cfd()
++                                 ->internal_stats()
++                                 ->BumpAndGetBackgroundErrorCount();
+@@ -1448 +1454,3 @@ void DBImpl::BackgroundCallCompaction() {
+-        uint64_t error_cnt = internal_stats_.BumpAndGetBackgroundErrorCount();
++        uint64_t error_cnt = default_cf_handle_->cfd()
++                                 ->internal_stats()
++                                 ->BumpAndGetBackgroundErrorCount();
+@@ -2871 +2879,3 @@ bool DBImpl::GetProperty(ColumnFamilyHandle* column_family,
+-auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family); auto cfd = cfh->cfd();
++  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
++  auto cfd = cfh->cfd();
++  DBPropertyType property_type = GetPropertyType(property);

@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "struct ComputePartitionIndicesFunctor {",
+        "b_contents": "//===--------------------------------------------------------------------===//\n// Row Data Partitioning\n//===--------------------------------------------------------------------===//\ntemplate <idx_t radix_bits>\nstatic void InitPartitions(BufferManager &buffer_manager, vector<unique_ptr<RowDataCollection>> &partition_collections,\n                           RowDataBlock *partition_blocks[], vector<BufferHandle> &partition_handles,\n                           data_ptr_t partition_ptrs[], idx_t block_capacity, idx_t row_width) {\n\tusing CONSTANTS = RadixPartitioningConstants<radix_bits>;\n\n\tpartition_collections.reserve(CONSTANTS::NUM_PARTITIONS);\n\tpartition_handles.reserve(CONSTANTS::NUM_PARTITIONS);\n\tfor (idx_t i = 0; i < CONSTANTS::NUM_PARTITIONS; i++) {\n\t\tpartition_collections.push_back(make_uniq<RowDataCollection>(buffer_manager, block_capacity, row_width));\n\t\tpartition_blocks[i] = &partition_collections[i]->CreateBlock();\n\t\tpartition_handles.push_back(buffer_manager.Pin(partition_blocks[i]->block));\n\t\tif (partition_ptrs) {\n\t\t\tpartition_ptrs[i] = partition_handles[i].Ptr();\n\t\t}\n\t}\n}\n\nstruct PartitionFunctor {",
+        "base_contents": "//===--------------------------------------------------------------------===//\n// Row Data Partitioning\n//===--------------------------------------------------------------------===//\ntemplate <idx_t radix_bits>\nstatic void InitPartitions(BufferManager &buffer_manager, vector<unique_ptr<RowDataCollection>> &partition_collections,\n                           RowDataBlock *partition_blocks[], vector<BufferHandle> &partition_handles,\n                           data_ptr_t partition_ptrs[], idx_t block_capacity, idx_t row_width) {\n\tusing CONSTANTS = RadixPartitioningConstants<radix_bits>;\n\n\tpartition_collections.reserve(CONSTANTS::NUM_PARTITIONS);\n\tpartition_handles.reserve(CONSTANTS::NUM_PARTITIONS);\n\tfor (idx_t i = 0; i < CONSTANTS::NUM_PARTITIONS; i++) {\n\t\tpartition_collections.push_back(make_unique<RowDataCollection>(buffer_manager, block_capacity, row_width));\n\t\tpartition_blocks[i] = &partition_collections[i]->CreateBlock();\n\t\tpartition_handles.push_back(buffer_manager.Pin(partition_blocks[i]->block));\n\t\tif (partition_ptrs) {\n\t\t\tpartition_ptrs[i] = partition_handles[i].Ptr();\n\t\t}\n\t}\n}\n\nstruct PartitionFunctor {",
+        "res_region": "struct ComputePartitionIndicesFunctor {",
+        "lookback": "\treturn RadixBitsSwitch<SelectFunctor, idx_t>(radix_bits, hashes, sel, count, cutoff, true_sel, false_sel);\n}\n",
+        "lookahead": "\ttemplate <idx_t radix_bits>\n\tstatic void Operation(Vector &hashes, Vector &partition_indices, idx_t count) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 62,
+        "end_line": 110,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\tstate.partition_append_states.emplace_back(make_unique<ColumnDataAppendState>());",
+        "b_contents": "\t\t// TODO only initialize the append if partition idx > ...\n\t\tstate.partition_append_states.emplace_back(make_uniq<ColumnDataAppendState>());",
+        "base_contents": "\t\t// TODO only initialize the append if partition idx > ...\n\t\tstate.partition_append_states.emplace_back(make_unique<ColumnDataAppendState>());",
+        "res_region": "\t\tstate.partition_append_states.emplace_back(make_uniq<ColumnDataAppendState>());",
+        "lookback": "\tstate.partition_append_states.reserve(num_partitions);\n\tstate.partition_buffers.reserve(num_partitions);\n\tfor (idx_t i = 0; i < num_partitions; i++) {",
+        "lookahead": "\t\tpartitions[i]->InitializeAppend(*state.partition_append_states[i]);\n\t\tstate.partition_buffers.emplace_back(CreatePartitionBuffer());",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 151,
+        "end_line": 159,
+        "merge_gen_region": "for (idx_t i = 0; i < num_partitions; i++) {",
+        "resolved": false
+    }
+]

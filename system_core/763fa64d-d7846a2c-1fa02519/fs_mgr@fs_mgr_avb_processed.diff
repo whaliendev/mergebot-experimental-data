@@ -1,0 +1,48 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/fs_mgr@fs_mgr_avb.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/fs_mgr@fs_mgr_avb.no_comments_merged.cpp
+@@ -1,7 +0,0 @@
+-#include <errno.h>
+-#include <inttypes.h>
+-#include <stdio.h>
+-#include <sys/stat.h>
+-#include <utils/Compat.h>
+-#include "fs_mgr_avb_ops.h"
+-#include <unistd.h>
+@@ -11,2 +3,0 @@
+-#include <cutils/properties.h>
+-#include <openssl/sha.h>
+@@ -31,20 +21,0 @@
+-#define VERITY_TABLE_FORMAT \
+-    "%u %s %s %u %u " \
+-    "%" PRIu64 " %" PRIu64 " %s %s %s "
+-#define VERITY_TABLE_PARAMS(hashtree_desc,blk_device,digest,salt) \
+-    hashtree_desc.dm_verity_version, blk_device, blk_device, hashtree_desc.data_block_size, \
+-        hashtree_desc.hash_block_size, \
+-        hashtree_desc.image_size / hashtree_desc.data_block_size, \
+-        hashtree_desc.tree_offset / hashtree_desc.hash_block_size, \
+-        (char*)hashtree_desc.hash_algorithm, digest, salt
+-#define VERITY_TABLE_OPT_RESTART "restart_on_corruption"
+-#define VERITY_TABLE_OPT_IGNZERO "ignore_zero_blocks"
+-#define VERITY_TABLE_OPT_DEFAULT_FORMAT "2 %s %s"
+-#define VERITY_TABLE_OPT_DEFAULT_PARAMS VERITY_TABLE_OPT_IGNZERO, VERITY_TABLE_OPT_RESTART
+-#define VERITY_TABLE_OPT_FEC_FORMAT \
+-    "10 use_fec_from_device %s fec_roots %u fec_blocks %" PRIu64 " fec_start %" PRIu64 " %s %s"
+-#define VERITY_TABLE_OPT_FEC_PARAMS(hashtree_desc,blk_device) \
+-    blk_device, hashtree_desc.fec_num_roots, \
+-        hashtree_desc.fec_offset / hashtree_desc.data_block_size, \
+-        hashtree_desc.fec_offset / hashtree_desc.data_block_size, \
+-        VERITY_TABLE_OPT_IGNZERO, VERITY_TABLE_OPT_RESTART
+@@ -118,2 +89,3 @@ class FsManagerAvbVerifier {
+-    FsManagerAvbVerifier()
+-        private : enum HashAlgorithm {
++    FsManagerAvbVerifier() = default;
++  private:
++    enum HashAlgorithm {
+@@ -395,2 +367,5 @@ FsManagerAvbUniquePtr FsManagerAvbHandle::DoOpen(FsManagerAvbOps* avb_ops) {
+-    AvbSlotVerifyResult verify_result = avb_ops->AvbSlotVerify(
+-        fs_mgr_get_slot_suffix(), avb_verifier->IsDeviceUnlocked(), &avb_handle->avb_slot_data_);
++    AvbSlotVerifyFlags flags = avb_verifier->IsDeviceUnlocked()
++                                   ? AVB_SLOT_VERIFY_FLAGS_ALLOW_VERIFICATION_ERROR
++                                   : AVB_SLOT_VERIFY_FLAGS_NONE;
++    AvbSlotVerifyResult verify_result =
++        avb_ops->AvbSlotVerify(fs_mgr_get_slot_suffix(), flags, &avb_handle->avb_slot_data_);

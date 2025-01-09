@@ -1,0 +1,38 @@
+--- a/./output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_mergegen.cpp
++++ b/./output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_merged.cpp
+@@ -107 +107 @@ void FirstStageMount::InitRequiredDevices() {
+-            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;
++            if (uevent->path == dm_path) return COLDBOOT_STOP;
+@@ -115,0 +116,5 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
++    if (uevent->subsystem == "platform") {
++        return COLDBOOT_CREATE;
++    }
++    if (uevent->subsystem != "block") {
++        return COLDBOOT_CONTINUE;
+@@ -117,0 +123,8 @@ if (!uevent->partition_name.empty()) {
++        auto iter = required_devices_partition_names_.find(uevent->partition_name);
++        if (iter != required_devices_partition_names_.end()) {
++            LOG(VERBOSE) << __FUNCTION__ << "(): found partition: " << *iter;
++            required_devices_partition_names_.erase(iter);
++            if (required_devices_partition_names_.empty()) {
++                return COLDBOOT_STOP;
++            } else {
++                return COLDBOOT_CREATE;
+@@ -127 +140 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-if (uevent->device_name == device_name) { LOG(VERBOSE) << "Creating dm-verity device : " << verity_device;
++        if (uevent->device_name == device_name) {
+@@ -217,0 +231,14 @@ coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {
++    coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent);
++    if (parent_callback_ret != COLDBOOT_CONTINUE && !uevent->partition_name.empty()) {
++        std::vector<std::string> links = get_block_device_symlinks(uevent);
++        if (!links.empty()) {
++            auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]);
++            if (!inserted) {
++                LOG(ERROR) << "Partition '" << uevent->partition_name
++                           << "' already existed in the by-name symlink map with a value of '"
++                           << it->second << "', new value '" << links[0] << "' will be ignored.";
++            }
++        }
++    }
++    return parent_callback_ret;
++}

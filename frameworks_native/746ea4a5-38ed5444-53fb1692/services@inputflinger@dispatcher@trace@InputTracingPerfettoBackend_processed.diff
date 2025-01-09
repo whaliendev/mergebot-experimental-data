@@ -1,0 +1,22 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/746ea4a5-38ed5444-53fb1692/services@inputflinger@dispatcher@trace@InputTracingPerfettoBackend.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/746ea4a5-38ed5444-53fb1692/services@inputflinger@dispatcher@trace@InputTracingPerfettoBackend.no_comments_merged.cpp
+@@ -23,0 +24,14 @@ bool isPermanentlyAllowed(gui::Uid uid) {
++sp<content::pm::IPackageManagerNative> getPackageManager() {
++    sp<IServiceManager> serviceManager = defaultServiceManager();
++    if (!serviceManager) {
++        LOG(ERROR) << __func__ << ": unable to access native ServiceManager";
++        return nullptr;
++    }
++    sp<IBinder> binder = serviceManager->waitForService(String16("package_native"));
++    auto packageManager = interface_cast<content::pm::IPackageManagerNative>(binder);
++    if (!packageManager) {
++        LOG(ERROR) << ": unable to access native PackageManager";
++        return nullptr;
++    }
++    return packageManager;
++}
+@@ -117,0 +132,4 @@ bool PerfettoBackend::InputEventDataSource::ruleMatches(const TraceRule& rule,
++bool PerfettoBackend::sUseInProcessBackendForTest{false};
++std::function<sp<content::pm::IPackageManagerNative>()> PerfettoBackend::sPackageManagerProvider{
++        &getPackageManager};
++std::once_flag PerfettoBackend::sDataSourceRegistrationFlag{};

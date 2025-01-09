@@ -1,0 +1,113 @@
+--- a/./output/duckdb/5e67908d-58d5b727-1fc514d5/extension@core_functions@scalar@list@array_slice.no_comments_conflict.cpp
++++ b/./output/duckdb/5e67908d-58d5b727-1fc514d5/extension@core_functions@scalar@list@array_slice.no_comments_merged.cpp
+@@ -57 +57 @@ struct BlobSliceOperations {
+-  return SubstringFun::SubstringASCII(result, input, begin + 1, end - begin);
++  return SubstringASCII(result, input, begin + 1, end - begin);
+@@ -59,11 +58,0 @@ struct BlobSliceOperations {
+-<<<<<<< HEAD
+-template <>
+-int64_t ValueLength(const string_t &value) {
+- return Length<string_t, int64_t>(value);
+-}
+-||||||| 1fc514d508
+-template <>
+-int64_t ValueLength(const string_t &value) {
+- return LengthFun::Length<string_t, int64_t>(value);
+-}
+-=======
+@@ -77 +66 @@ struct StringSliceOperations {
+-  return LengthFun::Length<string_t, int64_t>(value);
++  return Length<string_t, int64_t>(value);
+@@ -80 +69 @@ struct StringSliceOperations {
+-  return SubstringFun::SubstringUnicode(result, input, begin + 1, end - begin);
++  return SubstringUnicode(result, input, begin + 1, end - begin);
+@@ -117 +105,0 @@ struct ListSliceOperations {
+->>>>>>> 58d5b727
+@@ -151,85 +138,0 @@ static bool ClampSlice(const INPUT_TYPE &value, INDEX_TYPE &begin, INDEX_TYPE &e
+-<<<<<<< HEAD
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-INPUT_TYPE SliceValue(Vector &result, INPUT_TYPE input, INDEX_TYPE begin, INDEX_TYPE end) {
+- return input;
+-}
+-template <>
+-list_entry_t SliceValue(Vector &result, list_entry_t input, int64_t begin, int64_t end) {
+- input.offset = UnsafeNumericCast<uint64_t>(UnsafeNumericCast<int64_t>(input.offset) + begin);
+- input.length = UnsafeNumericCast<uint64_t>(end - begin);
+- return input;
+-}
+-template <>
+-string_t SliceValue(Vector &result, string_t input, int64_t begin, int64_t end) {
+- return SubstringUnicode(result, input, begin + 1, end - begin);
+-}
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-INPUT_TYPE SliceValueWithSteps(Vector &result, SelectionVector &sel, INPUT_TYPE input, INDEX_TYPE begin, INDEX_TYPE end,
+-                               INDEX_TYPE step, idx_t &sel_idx) {
+- return input;
+-}
+-template <>
+-list_entry_t SliceValueWithSteps(Vector &result, SelectionVector &sel, list_entry_t input, int64_t begin, int64_t end,
+-                                 int64_t step, idx_t &sel_idx) {
+- if (end - begin == 0) {
+-  input.length = 0;
+-  input.offset = sel_idx;
+-  return input;
+- }
+- input.length = CalculateSliceLength(UnsafeNumericCast<idx_t>(begin), UnsafeNumericCast<idx_t>(end), step, true);
+- idx_t child_idx = input.offset + UnsafeNumericCast<idx_t>(begin);
+- if (step < 0) {
+-  child_idx = input.offset + UnsafeNumericCast<idx_t>(end) - 1;
+- }
+- input.offset = sel_idx;
+- for (idx_t i = 0; i < input.length; i++) {
+-  sel.set_index(sel_idx, child_idx);
+-  child_idx += static_cast<idx_t>(step);
+-  sel_idx++;
+- }
+- return input;
+-}
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-||||||| 1fc514d508
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-INPUT_TYPE SliceValue(Vector &result, INPUT_TYPE input, INDEX_TYPE begin, INDEX_TYPE end) {
+- return input;
+-}
+-template <>
+-list_entry_t SliceValue(Vector &result, list_entry_t input, int64_t begin, int64_t end) {
+- input.offset = UnsafeNumericCast<uint64_t>(UnsafeNumericCast<int64_t>(input.offset) + begin);
+- input.length = UnsafeNumericCast<uint64_t>(end - begin);
+- return input;
+-}
+-template <>
+-string_t SliceValue(Vector &result, string_t input, int64_t begin, int64_t end) {
+- return SubstringFun::SubstringUnicode(result, input, begin + 1, end - begin);
+-}
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-INPUT_TYPE SliceValueWithSteps(Vector &result, SelectionVector &sel, INPUT_TYPE input, INDEX_TYPE begin, INDEX_TYPE end,
+-                               INDEX_TYPE step, idx_t &sel_idx) {
+- return input;
+-}
+-template <>
+-list_entry_t SliceValueWithSteps(Vector &result, SelectionVector &sel, list_entry_t input, int64_t begin, int64_t end,
+-                                 int64_t step, idx_t &sel_idx) {
+- if (end - begin == 0) {
+-  input.length = 0;
+-  input.offset = sel_idx;
+-  return input;
+- }
+- input.length = CalculateSliceLength(UnsafeNumericCast<idx_t>(begin), UnsafeNumericCast<idx_t>(end), step, true);
+- idx_t child_idx = input.offset + UnsafeNumericCast<idx_t>(begin);
+- if (step < 0) {
+-  child_idx = input.offset + UnsafeNumericCast<idx_t>(end) - 1;
+- }
+- input.offset = sel_idx;
+- for (idx_t i = 0; i < input.length; i++) {
+-  sel.set_index(sel_idx, child_idx);
+-  child_idx += static_cast<idx_t>(step);
+-  sel_idx++;
+- }
+- return input;
+-}
+-template <typename INPUT_TYPE, typename INDEX_TYPE>
+-=======
+@@ -237 +139,0 @@ template <typename INPUT_TYPE, typename INDEX_TYPE, typename OP>
+->>>>>>> 58d5b727

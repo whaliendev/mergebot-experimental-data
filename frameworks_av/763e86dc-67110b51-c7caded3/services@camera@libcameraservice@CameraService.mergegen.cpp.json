@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "static const String16 sCameraPermission(\"android.permission.CAMERA\");\nstatic const String16 sSystemCameraPermission(\"android.permission.SYSTEM_CAMERA\");\nstatic const String16\n        sCameraSendSystemEventsPermission(\"android.permission.CAMERA_SEND_SYSTEM_EVENTS\");\nstatic const String16 sCameraOpenCloseListenerPermission(\n        \"android.permission.CAMERA_OPEN_CLOSE_LISTENER\");",
+        "b_contents": "static const String16 sCameraOpenCloseListenerPermission(\n        \"android.permission.CAMERA_OPEN_CLOSE_LISTENER\");",
+        "base_contents": "",
+        "res_region": "static const String16 sCameraPermission(\"android.permission.CAMERA\");\nstatic const String16 sSystemCameraPermission(\"android.permission.SYSTEM_CAMERA\");\nstatic const String16\n        sCameraSendSystemEventsPermission(\"android.permission.CAMERA_SEND_SYSTEM_EVENTS\");\nstatic const String16 sCameraOpenCloseListenerPermission(\n        \"android.permission.CAMERA_OPEN_CLOSE_LISTENER\");",
+        "lookback": "\nstatic const String16 sDumpPermission(\"android.permission.DUMP\");\nstatic const String16 sManageCameraPermission(\"android.permission.MANAGE_CAMERA\");",
+        "lookahead": "\n// Matches with PERCEPTIBLE_APP_ADJ in ProcessList.java",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 124,
+        "end_line": 135,
+        "merge_gen_region": "static const String16 sCameraPermission(\"android.permission.CAMERA\"); static const String16 sSystemCameraPermission(\"android.permission.SYSTEM_CAMERA\"); static const String16 sCameraSendSystemEventsPermission(\"android.permission.CAMERA_SEND_SYSTEM_EVENTS\"); static const String16 sCameraOpenCloseListenerPermission( \"android.permission.CAMERA_OPEN_CLOSE_LISTENER\");",
+        "resolved": true
+    },
+    {
+        "a_contents": "        sp<ServiceListener> serviceListener =\n                new ServiceListener(this, listener, clientUid, clientPid, isVendorListener,\n                        openCloseCallbackAllowed);",
+        "b_contents": "        auto clientUid = CameraThreadState::getCallingUid();\n        auto clientPid = CameraThreadState::getCallingPid();\n        bool openCloseCallbackAllowed = checkPermission(sCameraOpenCloseListenerPermission,\n                clientPid, clientUid);\n        sp<ServiceListener> serviceListener = new ServiceListener(this, listener,\n                clientUid, clientPid, openCloseCallbackAllowed);",
+        "base_contents": "        auto clientUid = CameraThreadState::getCallingUid();\n        sp<ServiceListener> serviceListener = new ServiceListener(this, listener, clientUid);",
+        "res_region": "        sp<ServiceListener> serviceListener =\n                new ServiceListener(this, listener, clientUid, clientPid, isVendorListener,\n                        openCloseCallbackAllowed);",
+        "lookback": "            }\n        }\n",
+        "lookahead": "        auto ret = serviceListener->initialize();\n        if (ret != NO_ERROR) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2171,
+        "end_line": 2185,
+        "merge_gen_region": "bool openCloseCallbackAllowed = checkPermission(sCameraOpenCloseListenerPermission, clientPid, clientUid); sp<ServiceListener> serviceListener = new ServiceListener(this, listener, clientUid, clientPid, isVendorListener, openCloseCallbackAllowed);",
+        "resolved": false
+    },
+    {
+        "a_contents": "void CameraService::updateOpenCloseStatus(const String8& cameraId, bool open,\n        const String16& clientPackageName) {\n    Mutex::Autolock lock(mStatusListenerLock);\n\n    for (const auto& it : mListenerList) {\n        if (!it->isOpenCloseCallbackAllowed()) {\n            continue;\n        }\n\n        binder::Status ret;\n        String16 cameraId64(cameraId);\n        if (open) {\n            ret = it->getListener()->onCameraOpened(cameraId64, clientPackageName);\n        } else {\n            ret = it->getListener()->onCameraClosed(cameraId64);\n        }\n        if (!ret.isOk()) {\n            ALOGE(\"%s: Failed to trigger onCameraOpened/onCameraClosed callback: %d\", __FUNCTION__,\n                    ret.exceptionCode());\n        }\n    }\n}\n",
+        "b_contents": "void CameraService::updateOpenCloseStatus(const String8& cameraId, bool open,\n        const String16& clientPackageName) {\n    Mutex::Autolock lock(mStatusListenerLock);\n\n    for (const auto& it : mListenerList) {\n        if (!it.second->isOpenCloseCallbackAllowed()) {\n            continue;\n        }\n\n        binder::Status ret;\n        String16 cameraId64(cameraId);\n        if (open) {\n            ret = it.second->getListener()->onCameraOpened(cameraId64, clientPackageName);\n        } else {\n            ret = it.second->getListener()->onCameraClosed(cameraId64);\n        }\n        if (!ret.isOk()) {\n            ALOGE(\"%s: Failed to trigger onCameraOpened/onCameraClosed callback: %d\", __FUNCTION__,\n                    ret.exceptionCode());\n        }\n    }\n}\n",
+        "base_contents": "",
+        "res_region": "void CameraService::updateOpenCloseStatus(const String8& cameraId, bool open,\n        const String16& clientPackageName) {\n    Mutex::Autolock lock(mStatusListenerLock);\n\n    for (const auto& it : mListenerList) {\n        if (!it->isOpenCloseCallbackAllowed()) {\n            continue;\n        }\n\n        binder::Status ret;\n        String16 cameraId64(cameraId);\n        if (open) {\n            ret = it->getListener()->onCameraOpened(cameraId64, clientPackageName);\n        } else {\n            ret = it->getListener()->onCameraClosed(cameraId64);\n        }\n        if (!ret.isOk()) {\n            ALOGE(\"%s: Failed to trigger onCameraOpened/onCameraClosed callback: %d\", __FUNCTION__,\n                    ret.exceptionCode());\n        }\n    }\n}\n",
+        "lookback": "        });\n}\n",
+        "lookahead": "template<class Func>\nvoid CameraService::CameraState::updateStatus(StatusInternal status,",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3790,
+        "end_line": 3839,
+        "merge_gen_region": "void CameraService::updateOpenCloseStatus(const String8& cameraId, bool open, const String16& clientPackageName) { Mutex::Autolock lock(mStatusListenerLock); for (const auto& it : mListenerList) { if (!it->isOpenCloseCallbackAllowed()) { continue; } binder::Status ret; String16 cameraId64(cameraId); if (open) { ret = it->getListener()->onCameraOpened(cameraId64, clientPackageName); } else { ret = it->getListener()->onCameraClosed(cameraId64); } if (!ret.isOk()) { ALOGE(\"%s: Failed to trigger onCameraOpened/onCameraClosed callback: %d\", __FUNCTION__, ret.exceptionCode()); } } }",
+        "resolved": true
+    }
+]

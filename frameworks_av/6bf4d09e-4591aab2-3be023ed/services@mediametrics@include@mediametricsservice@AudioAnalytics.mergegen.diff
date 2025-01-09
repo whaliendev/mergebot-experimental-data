@@ -1,0 +1,25 @@
+diff --git a/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@include@mediametricsservice@AudioAnalytics.no_comments_mergegen.h b/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@include@mediametricsservice@AudioAnalytics.no_comments_merged.h
+index 8cf7e23..e0b5c70 100644
+--- a/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@include@mediametricsservice@AudioAnalytics.no_comments_mergegen.h
++++ b/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@include@mediametricsservice@AudioAnalytics.no_comments_merged.h
+@@ -141,0 +142,20 @@ private:
++    class Spatializer {
++    public:
++        explicit Spatializer(AudioAnalytics &audioAnalytics)
++            : mAudioAnalytics(audioAnalytics) {}
++        void onEvent(const std::shared_ptr<const android::mediametrics::Item> &item);
++        std::pair<std::string, int32_t> dump(
++                int32_t lines = INT32_MAX, const char *prefix = nullptr) const;
++    private:
++        struct DeviceState {
++            std::string enabled;
++            std::string hasHeadTracker;
++            std::string headTrackerEnabled;
++        };
++        AudioAnalytics& mAudioAnalytics;
++        static constexpr int64_t kBootDurationThreshold = 120 * 1e9;
++        mutable std::mutex mLock;
++        int64_t mFirstCreateTimeNs GUARDED_BY(mLock) = 0;
++        std::map<std::string, DeviceState> mDeviceStateMap GUARDED_BY(mLock);
++        SimpleLog mSimpleLog GUARDED_BY(mLock) {64};
++    } mSpatializer{*this};

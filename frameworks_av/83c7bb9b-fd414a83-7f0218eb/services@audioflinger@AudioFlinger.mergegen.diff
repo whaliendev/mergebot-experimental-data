@@ -1,0 +1,31 @@
+diff --git a/./output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_mergegen.cpp b/./output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_merged.cpp
+index 52f7a5e..1c3c8f6 100644
+--- a/./output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/services@audioflinger@AudioFlinger.no_comments_merged.cpp
+@@ -4021 +4021,21 @@ status_t AudioFlinger::getAudioMixPort(const struct audio_port_v7 *devicePort,
+-status_t AudioFlinger::setTracksInternalMute( const std::vector<media::TrackInternalMuteInfo>& tracksInternalMute) { audio_utils::lock_guard _l(mutex()); ALOGV("%s", __func__); std::map<audio_port_handle_t, bool> tracksInternalMuteMap; for (const auto& trackInternalMute : tracksInternalMute) { audio_port_handle_t portId = VALUE_OR_RETURN_STATUS( aidl2legacy_int32_t_audio_port_handle_t(trackInternalMute.portId)); tracksInternalMuteMap.emplace(portId, trackInternalMute.muted); } for (size_t i = 0; i < mPlaybackThreads.size() && !tracksInternalMuteMap.empty(); i++) { mPlaybackThreads.valueAt(i)->setTracksInternalMute(&tracksInternalMuteMap); } return NO_ERROR; } status_t AudioFlinger::resetReferencesForTest() { mDeviceEffectManager.clear(); mPatchPanel.clear(); mMelReporter->resetReferencesForTest(); return NO_ERROR; }
++status_t AudioFlinger::setTracksInternalMute(
++        const std::vector<media::TrackInternalMuteInfo>& tracksInternalMute) {
++    audio_utils::lock_guard _l(mutex());
++    ALOGV("%s", __func__);
++    std::map<audio_port_handle_t, bool> tracksInternalMuteMap;
++    for (const auto& trackInternalMute : tracksInternalMute) {
++        audio_port_handle_t portId = VALUE_OR_RETURN_STATUS(
++                aidl2legacy_int32_t_audio_port_handle_t(trackInternalMute.portId));
++        tracksInternalMuteMap.emplace(portId, trackInternalMute.muted);
++    }
++    for (size_t i = 0; i < mPlaybackThreads.size() && !tracksInternalMuteMap.empty(); i++) {
++        mPlaybackThreads.valueAt(i)->setTracksInternalMute(&tracksInternalMuteMap);
++    }
++    return NO_ERROR;
++}
++status_t AudioFlinger::resetReferencesForTest() {
++    mDeviceEffectManager.clear();
++    mPatchPanel.clear();
++    mMelReporter->resetReferencesForTest();
++    return NO_ERROR;
++}
+@@ -4053 +4073,2 @@ status_t AudioFlinger::onTransactWrapper(TransactionCode code,
+-case TransactionCode::SET_TRACKS_INTERNAL_MUTE: case TransactionCode::RESET_REFERENCES_FOR_TEST:
++        case TransactionCode::SET_TRACKS_INTERNAL_MUTE:
++        case TransactionCode::RESET_REFERENCES_FOR_TEST:

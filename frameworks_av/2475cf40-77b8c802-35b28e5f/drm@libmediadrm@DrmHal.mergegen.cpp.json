@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient {\n    explicit DrmSessionClient(DrmHal* drm, const Vector<uint8_t>& sessionId)\n      : mSessionId(sessionId),\n        mDrm(drm) {}\n\n    ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;\n    ::ndk::ScopedAStatus getName(::std::string* _aidl_return) override;",
+        "b_contents": "bool DrmHal::DrmSessionClient::reclaimResource() {\n    sp<DrmHal> drm = mDrm.promote();\n    if (drm == NULL) {\n        return true;\n    }\n    status_t err = drm->closeSession(mSessionId);\n    if (err != OK) {\n        return false;\n    }\n    drm->sendEvent(EventType::SESSION_RECLAIMED,\n            toHidlVec(mSessionId), hidl_vec<uint8_t>());\n    return true;\n}",
+        "base_contents": "struct DrmSessionClient : public DrmSessionClientInterface {\n    explicit DrmSessionClient(DrmHal* drm) : mDrm(drm) {}\n\n    virtual bool reclaimSession(const Vector<uint8_t>& sessionId) {\n        sp<DrmHal> drm = mDrm.promote();\n        if (drm == NULL) {\n            return true;\n        }\n        status_t err = drm->closeSession(sessionId);\n        if (err != OK) {\n            return false;\n        }\n        drm->sendEvent(EventType::SESSION_RECLAIMED,\n                toHidlVec(sessionId), hidl_vec<uint8_t>());\n        return true;\n    }",
+        "res_region": "struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient {\n    explicit DrmSessionClient(DrmHal* drm, const Vector<uint8_t>& sessionId)\n      : mSessionId(sessionId),\n        mDrm(drm) {}",
+        "lookback": "\nMutex DrmHal::mLock;\n",
+        "lookahead": "\n    ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 291,
+        "end_line": 330,
+        "merge_gen_region": "struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient { explicit DrmHal* drm, const Vector<uint8_t>& sessionId) : mSessionId(sessionId), mDrm(drm) {} virtual bool reclaimSession(const Vector<uint8_t>& sessionId) { sp<DrmHal> drm = mDrm(drm) {} ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    const Vector<uint8_t> mSessionId;\n\n    virtual ~DrmSessionClient();",
+        "b_contents": "String8 DrmHal::DrmSessionClient::getName() {\n    String8 name;\n    sp<DrmHal> drm = mDrm.promote();\n    if (drm == NULL) {\n        name.append(\"<deleted>\");\n    } else if (drm->getPropertyStringInternal(String8(\"vendor\"), name) != OK\n        || name.isEmpty()) {\n      name.append(\"<Get vendor failed or is empty>\");\n    }\n    name.append(\"[\");\n    for (size_t i = 0; i < mSessionId.size(); ++i) {\n        name.appendFormat(\"%02x\", mSessionId[i]);\n    }\n    name.append(\"]\");\n    return name;\n}",
+        "base_contents": "protected:\n    virtual ~DrmSessionClient() {}",
+        "res_region": "    ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;\n    ::ndk::ScopedAStatus getName(::std::string* _aidl_return) override;\n\n    const Vector<uint8_t> mSessionId;\n\n    virtual ~DrmSessionClient();\n\nprivate:\n    wp<DrmHal> mDrm;\n\n    DISALLOW_EVIL_CONSTRUCTORS(DrmSessionClient);\n};\n\n::ndk::ScopedAStatus DrmHal::DrmSessionClient::reclaimResource(bool* _aidl_return) {\n    auto sessionId = mSessionId;\n    sp<DrmHal> drm = mDrm.promote();\n    if (drm == NULL) {\n        *_aidl_return = true;\n        return ::ndk::ScopedAStatus::ok();\n    }\n    status_t err = drm->closeSession(sessionId);\n    if (err != OK) {\n        *_aidl_return = false;\n        return ::ndk::ScopedAStatus::ok();\n    }\n    drm->sendEvent(EventType::SESSION_RECLAIMED,\n            toHidlVec(sessionId), hidl_vec<uint8_t>());\n    *_aidl_return = true;\n    return ::ndk::ScopedAStatus::ok();\n}\n\n::ndk::ScopedAStatus DrmHal::DrmSessionClient::getName(::std::string* _aidl_return) {\n    String8 name;\n    sp<DrmHal> drm = mDrm.promote();\n    if (drm == NULL) {\n        name.append(\"<deleted>\");\n    } else if (drm->getPropertyStringInternal(String8(\"vendor\"), name) != OK\n        || name.isEmpty()) {\n      name.append(\"<Get vendor failed or is empty>\");\n    }\n    name.append(\"[\");\n    for (size_t i = 0; i < mSessionId.size(); ++i) {\n        name.appendFormat(\"%02x\", mSessionId[i]);\n    }\n    name.append(\"]\");\n    *_aidl_return = name;\n    return ::ndk::ScopedAStatus::ok();\n}",
+        "lookback": "      : mSessionId(sessionId),\n        mDrm(drm) {}\n",
+        "lookahead": "\nDrmHal::DrmSessionClient::~DrmSessionClient() {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 332,
+        "end_line": 356,
+        "merge_gen_region": "const Vector<uint8_t> mSessionId; String8 DrmHal::DrmSessionClient();",
+        "resolved": false
+    },
+    {
+        "a_contents": "        std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId));\n        DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(),\n                std::static_pointer_cast<IResourceManagerClient>(client), sessionId);\n        mOpenSessions.push_back(client);",
+        "b_contents": "        sp<DrmSessionClient> client(new DrmSessionClient(this, sessionId));\n        DrmSessionManager::Instance()->addSession(getCallingPid(), client, sessionId);\n        mOpenSessions.push(client);",
+        "base_contents": "        DrmSessionManager::Instance()->addSession(getCallingPid(),\n                mDrmSessionClient, sessionId);\n        mOpenSessions.push(sessionId);",
+        "res_region": "        std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId));\n        DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(),\n                std::static_pointer_cast<IResourceManagerClient>(client), sessionId);\n        mOpenSessions.push_back(client);",
+        "lookback": "    } while (retry);\n\n    if (err == OK) {",
+        "lookahead": "        mMetrics.SetSessionStart(sessionId);\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 768,
+        "end_line": 781,
+        "merge_gen_region": "std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId)); DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(), std::static_pointer_cast<IResourceManagerClient>(client), sessionId);",
+        "resolved": false
+    },
+    {
+        "a_contents": "            for (auto i = mOpenSessions.begin(); i != mOpenSessions.end(); i++) {\n                if (isEqualSessionId((*i)->mSessionId, sessionId)) {\n                    mOpenSessions.erase(i);",
+        "b_contents": "            for (size_t i = 0; i < mOpenSessions.size(); i++) {\n                if (isEqualSessionId(mOpenSessions[i]->mSessionId, sessionId)) {\n                    mOpenSessions.removeAt(i);",
+        "base_contents": "            for (size_t i = 0; i < mOpenSessions.size(); i++) {\n                if (mOpenSessions[i] == sessionId) {\n                    mOpenSessions.removeAt(i);",
+        "res_region": "            for (auto i = mOpenSessions.begin(); i != mOpenSessions.end(); i++) {\n                if (isEqualSessionId((*i)->mSessionId, sessionId)) {\n                    mOpenSessions.erase(i);",
+        "lookback": "    if (status.isOk()) {\n        if (status == Status::OK) {\n            DrmSessionManager::Instance()->removeSession(sessionId);",
+        "lookahead": "                    break;\n                }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 797,
+        "end_line": 809,
+        "merge_gen_region": "if (isEqualSessionId((*i)->mSessionId, sessionId)) { mOpenSessions.erase(i);",
+        "resolved": false
+    }
+]

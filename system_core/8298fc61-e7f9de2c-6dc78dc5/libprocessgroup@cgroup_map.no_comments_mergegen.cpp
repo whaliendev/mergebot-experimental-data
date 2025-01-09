@@ -1,0 +1,105 @@
+#define LOG_TAG "libprocessgroup"
+#include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
+#include <sys/mman.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
+#include <regex>
+#include <android-base/file.h>
+#include <android-base/logging.h>
+#include <android-base/properties.h>
+#include <android-base/stringprintf.h>
+#include <android-base/unique_fd.h>
+#include <cgroup_map.h>
+#include <json/reader.h>
+#include <json/value.h>
+#include <processgroup/processgroup.h>
+using android::base::GetBoolProperty;
+using android::base::StringPrintf;
+using android::base::unique_fd;
+static constexpr const char* CGROUP_PROCS_FILE = "/cgroup.procs";
+static constexpr const char* CGROUP_TASKS_FILE = "/tasks";
+static constexpr const char* CGROUP_TASKS_FILE_V2 = "/cgroup.tasks";
+uint32_t CgroupController::version() const { CHECK(HasValue()); return ACgroupController_getVersion(controller_); } const char* CgroupController::name() const { CHECK(HasValue()); return ACgroupController_getName(controller_); } const char* CgroupController::path() const { CHECK(HasValue()); return AC
+                                               pid_t pid) const {
+    std::string proc_path(path());
+    proc_path.append("/").append(rel_path);
+    proc_path = regex_replace(proc_path, std::regex("<uid>"), std::to_string(uid));
+    proc_path = regex_replace(proc_path, std::regex("<pid>"), std::to_string(pid));
+    return proc_path.append(CGROUP_PROCS_FILE);
+}
+bool CgroupController::GetTaskGroup(int tid, std::string* group) const {
+    std::string file_name = StringPrintf("/proc/%d/cgroup", tid);
+    std::string content;
+    if (!android::base::ReadFileToString(file_name, &content)) {
+        PLOG(ERROR) << "Failed to read " << file_name;
+        return false;
+    }
+    if (group == nullptr) {
+        return true;
+    }
+    std::string cg_tag = StringPrintf(":%s:", name());
+    size_t start_pos = content.find(cg_tag);
+    if (start_pos == std::string::npos) {
+        return false;
+    }
+    start_pos += cg_tag.length() + 1;
+    size_t end_pos = content.find('\n', start_pos);
+    if (end_pos == std::string::npos) {
+        *group = content.substr(start_pos, std::string::npos);
+    } else {
+        *group = content.substr(start_pos, end_pos - start_pos);
+    }
+    return true;
+}
+CgroupMap::CgroupMap() { if (!LoadRcFile()) { LOG(ERROR) << "CgroupMap::LoadRcFile called for [" << getpid() << "] failed";
+    if (!LoadRcFile()) {
+        LOG(ERROR) << "CgroupMap::LoadRcFile called for [" << getpid() << "] failed";
+    }
+}
+CgroupMap& CgroupMap::GetInstance() {
+    static auto* instance = new CgroupMap;
+    return *instance;
+}
+bool CgroupMap::LoadRcFile() {
+    if (!loaded_) {
+        loaded_ = (ACgroupFile_getVersion() != 0);
+    }
+    return loaded_;
+}
+void CgroupMap::Print() const {
+    if (!loaded_) {
+        LOG(ERROR) << "CgroupMap::Print called for [" << getpid()
+                   << "] failed, RC file was not initialized properly";
+        return;
+    }
+    LOG(INFO) << "File version = " << ACgroupFile_getVersion();
+    LOG(INFO) << "File controller count = " << ACgroupFile_getControllerCount();
+    LOG(INFO) << "Mounted cgroups:";
+    auto controller_count = ACgroupFile_getControllerCount();
+    for (uint32_t i = 0; i < controller_count; ++i) {
+        const ACgroupController* controller = ACgroupFile_getController(i);
+        LOG(INFO) << "\t" << ACgroupController_getName(controller) << " ver "
+                  << ACgroupController_getVersion(controller) << " path "
+                  << ACgroupController_getPath(controller);
+    }
+}
+const CgroupController CgroupMap::FindController(const std::string& name) const { if (!loaded_) { LOG(ERROR) << "CgroupMap::FindController called for ["();
+        LOG(ERROR) << "CgroupMap::FindController called for [" << getpid()
+                   << "] failed, RC file was not initialized properly";
+        return CgroupController(nullptr);
+    }
+    auto controller_count = ACgroupFile_getControllerCount();
+    for (uint32_t i = 0; i < controller_count; ++i) {
+        const ACgroupController* controller = ACgroupFile_getController(i);
+        if (name == ACgroupController_getName(controller)) {
+            return CgroupController(controller);
+        }
+    }
+    return CgroupController(nullptr);
+}

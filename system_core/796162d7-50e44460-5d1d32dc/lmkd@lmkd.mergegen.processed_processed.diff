@@ -1,0 +1,32 @@
+--- a/./output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_mergegen.c
++++ b/./output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_merged.c
+@@ -980 +983,28 @@ static struct proc *proc_get_heaviest(int oomadj) {
+-static void set_process_group_and_prio(int pid, SchedPolicy sp, int prio) { DIR* d; char proc_path[PATH_MAX]; struct dirent* de; snprintf(proc_path, sizeof(proc_path), "/proc/%d/task", pid); if (!(d = opendir(proc_path))) { ALOGW("Failed to open %s; errno=%d: process pid(%d) might have died", proc_path, errno, pid); return; } while ((de = readdir(d))) { int t_pid; if (de->d_name[0] == '.') continue; t_pid = atoi(de->d_name); if (!t_pid) { ALOGW("Failed to get t_pid for '%s' of pid(%d)", de->d_name, pid); continue; } if (setpriority(PRIO_PROCESS, t_pid, prio) && errno != ESRCH) { ALOGW("Unable to raise priority of killing t_pid (%d): errno=%d", t_pid, errno); } if (set_cpuset_policy(t_pid, sp)) { ALOGW("Failed to set_cpuset_policy on pid(%d) t_pid(%d) to %d", pid, t_pid, (int)sp); continue; } } closedir(d);
++static void set_process_group_and_prio(int pid, SchedPolicy sp, int prio) {
++    DIR* d;
++    char proc_path[PATH_MAX];
++    struct dirent* de;
++    snprintf(proc_path, sizeof(proc_path), "/proc/%d/task", pid);
++    if (!(d = opendir(proc_path))) {
++        ALOGW("Failed to open %s; errno=%d: process pid(%d) might have died", proc_path, errno,
++              pid);
++        return;
++    }
++    while ((de = readdir(d))) {
++        int t_pid;
++        if (de->d_name[0] == '.') continue;
++        t_pid = atoi(de->d_name);
++        if (!t_pid) {
++            ALOGW("Failed to get t_pid for '%s' of pid(%d)", de->d_name, pid);
++            continue;
++        }
++        if (setpriority(PRIO_PROCESS, t_pid, prio) && errno != ESRCH) {
++            ALOGW("Unable to raise priority of killing t_pid (%d): errno=%d", t_pid, errno);
++        }
++        if (set_cpuset_policy(t_pid, sp)) {
++            ALOGW("Failed to set_cpuset_policy on pid(%d) t_pid(%d) to %d", pid, t_pid, (int)sp);
++            continue;
++        }
++    }
++    closedir(d);
++}

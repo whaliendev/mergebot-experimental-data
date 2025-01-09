@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "  // holds references to memtable, all immutable memtables and version\n  struct SuperVersion {\n    MemTable* mem;\n    MemTableListVersion* imm;\n    Version* current;\n    std::atomic<uint32_t> refs;\n    // We need to_delete because during Cleanup(), imm->Unref() returns\n    // all memtables that we need to free through this vector. We then\n    // delete all those memtables outside of mutex, during destruction\n    autovector<MemTable*> to_delete;\n\n    // should be called outside the mutex\n    SuperVersion() = default;\n    ~SuperVersion();\n    SuperVersion* Ref();\n    // Returns true if this was the last reference and caller should\n    // call Clenaup() and delete the object\n    bool Unref();\n\n    // call these two methods with db mutex held\n    // Cleanup unrefs mem, imm and current. Also, it stores all memtables\n    // that needs to be deleted in to_delete vector. Unrefing those\n    // objects needs to be done in the mutex\n    void Cleanup();\n    void Init(MemTable* new_mem, MemTableListVersion* new_imm,\n              Version* new_current);\n  };\n",
+        "base_contents": "  // holds references to memtable, all immutable memtables and version\n  struct SuperVersion {\n    MemTable* mem;\n    MemTableListVersion* imm;\n    Version* current;\n    std::atomic<uint32_t> refs;\n    // We need to_delete because during Cleanup(), imm->Unref() returns\n    // all memtables that we need to free through this vector. We then\n    // delete all those memtables outside of mutex, during destruction\n    std::vector<MemTable*> to_delete;\n\n    // should be called outside the mutex\n    explicit SuperVersion(const int num_memtables = 0);\n    ~SuperVersion();\n    SuperVersion* Ref();\n    // Returns true if this was the last reference and caller should\n    // call Clenaup() and delete the object\n    bool Unref();\n\n    // call these two methods with db mutex held\n    // Cleanup unrefs mem, imm and current. Also, it stores all memtables\n    // that needs to be deleted in to_delete vector. Unrefing those\n    // objects needs to be done in the mutex\n    void Cleanup();\n    void Init(MemTable* new_mem, MemTableListVersion* new_imm,\n              Version* new_current);\n  };\n",
+        "res_region": "",
+        "lookback": "    default_interval_to_delete_obsolete_WAL_ = default_interval_to_delete_obsolete_WAL;\n  }\n",
+        "lookahead": "  // needed for CleanupIteratorState\n  struct DeletionState {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 179,
+        "end_line": 238,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      new_superversion = create_superversion ? new SuperVersion() : nullptr;",
+        "b_contents": "      new_superversion =\n          create_superversion ? new SuperVersion() : nullptr;",
+        "base_contents": "      new_superversion =\n          create_superversion ? new SuperVersion(num_memtables) : nullptr;",
+        "res_region": "      new_superversion = create_superversion ? new SuperVersion() : nullptr;",
+        "lookback": "      log_number = 0;\n      prev_log_number = 0;\n      superversion_to_free = nullptr;",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 277,
+        "end_line": 285,
+        "merge_gen_region": "new_superversion = create_superversion ? new SuperVersion() : nullptr;",
+        "resolved": true
+    },
+    {
+        "a_contents": "  Status WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem,\n                                     VersionEdit* edit);\n  Status WriteLevel0Table(ColumnFamilyData* cfd, std::vector<MemTable*>& mems,\n                          VersionEdit* edit, uint64_t* filenumber);",
+        "b_contents": "  Status WriteLevel0TableForRecovery(MemTable* mem, VersionEdit* edit);\n  Status WriteLevel0Table(autovector<MemTable*>& mems, VersionEdit* edit,\n                                uint64_t* filenumber);",
+        "base_contents": "  Status WriteLevel0TableForRecovery(MemTable* mem, VersionEdit* edit);\n  Status WriteLevel0Table(std::vector<MemTable*> &mems, VersionEdit* edit,\n                                uint64_t* filenumber);",
+        "res_region": "  Status WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem,\n                                     VersionEdit* edit);\n  Status WriteLevel0Table(ColumnFamilyData* cfd, autovector<MemTable*>& mems,\n                          VersionEdit* edit, uint64_t* filenumber);",
+        "lookback": "  // database is opened) and is heavyweight because it holds the mutex\n  // for the entire period. The second method WriteLevel0Table supports\n  // concurrent flush memtables to storage.",
+        "lookahead": "\n  uint64_t SlowdownAmount(int n, double bottom, double top);",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 359,
+        "end_line": 372,
+        "merge_gen_region": "Status WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem, VersionEdit* edit); Status WriteLevel0Table(ColumnFamilyData* cfd, std::vector<MemTable*>& mems, VersionEdit* edit, uint64_t* filenumber);",
+        "resolved": false
+    }
+]

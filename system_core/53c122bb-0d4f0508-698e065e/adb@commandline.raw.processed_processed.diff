@@ -1,0 +1,52 @@
+--- a/./output/system_core/53c122bb-0d4f0508-698e065e/adb@commandline.no_comments_conflict.cpp
++++ b/./output/system_core/53c122bb-0d4f0508-698e065e/adb@commandline.no_comments_merged.cpp
+@@ -44 +43,0 @@ extern int gListenAll;
+-<<<<<<< HEAD
+@@ -47,4 +45,0 @@ static constexpr char BUGZ_FAIL_PREFIX[] = "FAIL:";
+-||||||| 698e065e1
+-=======
+-DefaultStandardStreamsCallback DEFAULT_STANDARD_STREAMS_CALLBACK(nullptr, nullptr);
+->>>>>>> 0d4f0508
+@@ -255,2 +250,2 @@ static void stdin_raw_restore() {
+-int read_and_dump(int fd, bool use_shell_protocol = false,
+-                  StandardStreamsCallbackInterface* callback = &DEFAULT_STANDARD_STREAMS_CALLBACK) {
++static int read_and_dump(int fd, bool use_shell_protocol=false, std::string* output=nullptr,
++                         std::string* err=nullptr) {
+@@ -260,0 +256,2 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
++    FILE* outfile = stdout;
++    std::string* outstring = output;
+@@ -276 +272,0 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
+-            length = protocol->data_length();
+@@ -279 +275,2 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
+-                    callback->OnStdout(buffer_ptr, length);
++                    outfile = stdout;
++                    outstring = output;
+@@ -282 +279,2 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
+-                    callback->OnStderr(buffer_ptr, length);
++                    outfile = stderr;
++                    outstring = err;
+@@ -298 +295,0 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
+-            callback->OnStdout(buffer_ptr, length);
+@@ -299,0 +297,5 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
++        if (outstring == nullptr) {
++            fwrite(buffer_ptr, 1, length, outfile);
++            fflush(outfile);
++        } else {
++            outstring->append(buffer_ptr, length);
+@@ -301 +303,2 @@ int read_and_dump(int fd, bool use_shell_protocol = false,
+-    return callback->Done(exit_code);
++    }
++    return exit_code;
+@@ -859 +861,0 @@ static bool adb_root(const char* command) {
+-<<<<<<< HEAD
+@@ -865,7 +866,0 @@ static int send_shell_command(TransportType transport_type, const char* serial,
+-||||||| 698e065e1
+-int send_shell_command(TransportType transport_type, const char* serial, const std::string& command,
+-                       bool disable_shell_protocol, std::string* output, std::string* err) {
+-=======
+-int send_shell_command(TransportType transport_type, const char* serial, const std::string& command,
+-                       bool disable_shell_protocol, StandardStreamsCallbackInterface* callback) {
+->>>>>>> 0d4f0508
+@@ -898 +893 @@ int send_shell_command(TransportType transport_type, const char* serial, const s
+-    int exit_code = read_and_dump(fd, use_shell_protocol, callback);
++    int exit_code = read_and_dump(fd, use_shell_protocol, output, err);

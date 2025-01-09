@@ -1,0 +1,75 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@ueventd.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@ueventd.no_comments_merged.cpp
+@@ -4,4 +3,0 @@
+-#include <grp.h>
+-#include <pwd.h>
+-#include <poll.h>
+-#include <sys/types.h>
+@@ -26,46 +21,0 @@
+-int ueventd_main(int argc, char** argv) {
+-    umask(000);
+-    InitKernelLogging(argv);
+-    LOG(INFO) << "ueventd started!";
+-    selinux_callback cb;
+-    cb.func_log = selinux_klog_callback;
+-    selinux_set_callback(SELINUX_CB_LOG, cb);
+-    DeviceHandler device_handler = CreateDeviceHandler();
+-    UeventListener uevent_listener;
+-<<<<<<< HEAD
+-    if (access(COLDBOOT_DONE, F_OK) != 0) {
+-        ColdBoot cold_boot(uevent_listener, device_handler);
+-        cold_boot.Run();
+-    }
+-|||||||
+-    std::string hardware = android::base::GetProperty("ro.hardware", "");
+-    ueventd_parse_config_file(
+-        android::base::StringPrintf("/ueventd.%s.rc", hardware.c_str()).c_str());
+-    device_init();
+-    pollfd ufd;
+-    ufd.events = POLLIN;
+-    ufd.fd = get_device_fd();
+-    while (true) {
+-        ufd.revents = 0;
+-        int nr = poll(&ufd, 1, -1);
+-        if (nr <= 0) {
+-            continue;
+-        }
+-        if (ufd.revents & POLLIN) {
+-            handle_device_fd();
+-        }
+-    }
+-=======
+-    std::string hardware = android::base::GetProperty("ro.hardware", "");
+-    ueventd_parse_config_file(
+-        android::base::StringPrintf("/ueventd.%s.rc", hardware.c_str()).c_str());
+-    device_init();
+-    device_poll();
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+-    uevent_listener.Poll([&device_handler](const Uevent& uevent) {
+-        HandleFirmwareEvent(uevent);
+-        device_handler.HandleDeviceEvent(uevent);
+-        return ListenerAction::kContinue;
+-    });
+-    return 0;
+-}
+@@ -171,0 +122,20 @@ DeviceHandler CreateDeviceHandler() {
++int ueventd_main(int argc, char** argv) {
++    umask(000);
++    InitKernelLogging(argv);
++    LOG(INFO) << "ueventd started!";
++    selinux_callback cb;
++    cb.func_log = selinux_klog_callback;
++    selinux_set_callback(SELINUX_CB_LOG, cb);
++    DeviceHandler device_handler = CreateDeviceHandler();
++    UeventListener uevent_listener;
++    if (access(COLDBOOT_DONE, F_OK) != 0) {
++        ColdBoot cold_boot(uevent_listener, device_handler);
++        cold_boot.Run();
++    }
++    uevent_listener.Poll([&device_handler](const Uevent& uevent) {
++        HandleFirmwareEvent(uevent);
++        device_handler.HandleDeviceEvent(uevent);
++        return ListenerAction::kContinue;
++    });
++    return 0;
++}

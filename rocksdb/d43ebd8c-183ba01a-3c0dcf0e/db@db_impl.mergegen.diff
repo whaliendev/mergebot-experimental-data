@@ -1,0 +1,53 @@
+diff --git a/./output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@db_impl.no_comments_mergegen.cc b/./output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@db_impl.no_comments_merged.cc
+index d720318..06b75a6 100644
+--- a/./output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/d43ebd8c-183ba01a-3c0dcf0e/db@db_impl.no_comments_merged.cc
+@@ -2030 +2030,10 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-bool need_cleanup = state->super_version->Unref(); if (need_cleanup) { state->mu->Lock(); state->super_version->Cleanup(); state->db->FindObsoleteFiles(deletion_state, false, true); state->mu->Unlock(); delete state->super_version; state->db->PurgeObsoleteFiles(deletion_state);
++  DBImpl::DeletionState deletion_state(state->db->GetOptions().
++                                       max_write_buffer_number);
++  bool need_cleanup = state->super_version->Unref();
++  if (need_cleanup) {
++    state->mu->Lock();
++    state->super_version->Cleanup();
++    state->db->FindObsoleteFiles(deletion_state, false, true);
++    state->mu->Unlock();
++    delete state->super_version;
++    state->db->PurgeObsoleteFiles(deletion_state);
+@@ -2047 +2056,2 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+-super_iter = NewMergingIterator( env_, &internal_comparator_, &iterator_list[0], iterator_list.size()); IterState* cleanup = new IterState(this, &mutex_, super_version);
++      env_, &internal_comparator_, &iterator_list[0], iterator_list.size());
++  IterState* cleanup = new IterState(this, &mutex_, super_version);
+@@ -2068 +2078,4 @@ std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(
+- super_version->imm->AddIterators(options, &list); super_version->current->AddIterators(options, storage_options_, &list); Iterator* immutable_iter = NewMergingIterator(env_, &internal_comparator_, &list[0], list.size());
++  super_version->imm->AddIterators(options, &list);
++  super_version->current->AddIterators(options, storage_options_, &list);
++  Iterator* immutable_iter =
++    NewMergingIterator(env_, &internal_comparator_, &list[0], list.size());
+@@ -2182 +2194,0 @@ std::vector<Status> DBImpl::MultiGet(const ReadOptions& options,
+-autovector<MemTable*> to_delete;
+@@ -2216 +2228,23 @@ autovector<MemTable*> to_delete;
+-bool delete_get_version = false; if (!options_.disable_seek_compaction && have_stat_update) { mutex_.Lock(); if (get_version->current->UpdateStats(stats)) { MaybeScheduleFlushOrCompaction(); } if (get_version->Unref()) { get_version->Cleanup(); delete_get_version = true; } mutex_.Unlock(); } else { if (get_version->Unref()) { mutex_.Lock(); get_version->Cleanup(); mutex_.Unlock(); delete_get_version = true; } } if (delete_get_version) {
++  StopWatchNano post_process_timer(env_, false);
++  StartPerfTimer(&post_process_timer);
++  bool delete_get_version = false;
++  if (!options_.disable_seek_compaction && have_stat_update) {
++    mutex_.Lock();
++    if (get_version->current->UpdateStats(stats)) {
++      MaybeScheduleFlushOrCompaction();
++    }
++    if (get_version->Unref()) {
++      get_version->Cleanup();
++      delete_get_version = true;
++    }
++    mutex_.Unlock();
++  } else {
++    if (get_version->Unref()) {
++      mutex_.Lock();
++      get_version->Cleanup();
++      mutex_.Unlock();
++      delete_get_version = true;
++    }
++  }
++  if (delete_get_version) {
++    delete get_version;

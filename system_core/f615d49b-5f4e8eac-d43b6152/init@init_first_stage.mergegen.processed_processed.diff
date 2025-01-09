@@ -1,0 +1,57 @@
+--- a/./output/system_core/f615d49b-5f4e8eac-d43b6152/init@init_first_stage.no_comments_mergegen.cpp
++++ b/./output/system_core/f615d49b-5f4e8eac-d43b6152/init@init_first_stage.no_comments_merged.cpp
+@@ -91 +91,3 @@ bool FirstStageMount::DoFirstStageMount() {
+-bool FirstStageMount::InitDevices() { return GetRequiredDevices() && InitRequiredDevices();
++bool FirstStageMount::InitDevices() {
++    return GetRequiredDevices() && InitRequiredDevices();
++}
+@@ -98 +100,22 @@ bool FirstStageMount::InitRequiredDevices() {
+-auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) { if (uevent.path == dm_path) { device_handler_.HandleDeviceEvent(uevent); found = true; } return ListenerAction::kStop; } return ListenerAction::kContinue; }; uevent_listener_.RegenerateUeventsForPath("/sys" + dm_path, dm_callback); if (!found) { uevent_listener_.Poll(dm_callback, 10s); } if (!found) { LOG(ERROR) << "device-mapper device not found"; return false; }
++        bool found = false;
++        auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) {
++            if (uevent.path == dm_path) {
++                device_handler_.HandleDeviceEvent(uevent);
++                found = true;
++                return ListenerAction::kStop;
++            }
++            return ListenerAction::kContinue;
++        };
++        uevent_listener_.RegenerateUeventsForPath("/sys" + dm_path, dm_callback);
++        if (!found) {
++            uevent_listener_.Poll(dm_callback, 10s);
++        }
++        if (!found) {
++            LOG(ERROR) << "device-mapper device not found";
++            return false;
++        }
++    }
++    auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); };
++    uevent_listener_.RegenerateUevents(uevent_callback);
++    if (!required_devices_partition_names_.empty()) {
++        uevent_listener_.Poll(uevent_callback, 10s);
+@@ -100 +123,6 @@ auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) { if (uevent.p
+-auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); }; device_init(nullptr, uevent_callback); if (!required_devices_partition_names_.empty()) { device_poll(uevent_callback, 10s); } if (!required_devices_partition_names_.empty()) { LOG(ERROR) << __PRETTY_FUNCTION__ << ": partition(s) not found: " << android::base::Join(required_devices_partition_names_, ", "); return false; }
++    if (!required_devices_partition_names_.empty()) {
++        LOG(ERROR) << __PRETTY_FUNCTION__ << ": partition(s) not found: "
++                   << android::base::Join(required_devices_partition_names_, ", ");
++        return false;
++    }
++    return true;
+@@ -127 +156,3 @@ auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent
+-LOG(VERBOSE) << "Creating dm-verity device : " << verity_device; device_handler_.HandleDeviceEvent(uevent); found = true;
++            device_handler_.HandleDeviceEvent(uevent);
++            found = true;
++            return ListenerAction::kStop;
+@@ -129 +160,11 @@ LOG(VERBOSE) << "Creating dm-verity device : " << verity_device; device_handler_
+-template uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback); if (!found) { uevent_listener_.Poll(verity_callback, 10s); } if (!found) { LOG(ERROR) << "dm-verity device not found"; return false; } return true;
++        return ListenerAction::kContinue;
++    };
++    uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback);
++    if (!found) {
++        uevent_listener_.Poll(verity_callback, 10s);
++    }
++    if (!found) {
++        LOG(ERROR) << "dm-verity device not found";
++        return false;
++    }
++    return true;

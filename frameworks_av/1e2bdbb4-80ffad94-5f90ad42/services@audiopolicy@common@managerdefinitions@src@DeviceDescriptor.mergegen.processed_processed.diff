@@ -1,0 +1,69 @@
+--- a/./output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/1e2bdbb4-80ffad94-5f90ad42/services@audiopolicy@common@managerdefinitions@src@DeviceDescriptor.no_comments_merged.cpp
+@@ -13 +13,17 @@ DeviceDescriptor::DeviceDescriptor(audio_devices_t type) :
+-DeviceDescriptor::DeviceDescriptor(audio_devices_t type, const std::string &tagName, const FormatVector &encodedFormats) : DeviceDescriptor(type, tagName, "" , encodedFormats) { } DeviceDescriptor::DeviceDescriptor(audio_devices_t type, const std::string &tagName, const std::string &address, const FormatVector &encodedFormats) : DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName, encodedFormats) { } DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr, const std::string &tagName, const FormatVector &encodedFormats) : DeviceDescriptorBase(deviceTypeAddr)
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(type, tagName, "" , encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(audio_devices_t type,
++                                   const std::string &tagName,
++                                   const std::string &address,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptor(AudioDeviceTypeAddr(type, address), tagName, encodedFormats)
++{
++}
++DeviceDescriptor::DeviceDescriptor(const AudioDeviceTypeAddr &deviceTypeAddr,
++                                   const std::string &tagName,
++                                   const FormatVector &encodedFormats) :
++        DeviceDescriptorBase(deviceTypeAddr), mTagName(tagName), mEncodedFormats(encodedFormats)
+@@ -67 +83,46 @@ bool DeviceDescriptor::supportsFormat(audio_format_t format)
+-status_t DeviceDescriptor::applyAudioPortConfig(const struct audio_port_config *config, audio_port_config *backupConfig) { struct audio_port_config localBackupConfig = { .config_mask = config->config_mask }; status_t status = NO_ERROR; toAudioPortConfig(&localBackupConfig); if ((status = validationBeforeApplyConfig(config)) == NO_ERROR) { AudioPortConfig::applyAudioPortConfig(config, backupConfig); applyPolicyAudioPortConfig(config); } if (backupConfig != NULL) { *backupConfig = localBackupConfig; } return status; } void DeviceDescriptor::toAudioPortConfig(struct audio_port_config *dstConfig, const struct audio_port_config *srcConfig) const { DeviceDescriptorBase::toAudioPortConfig(dstConfig, srcConfig); toPolicyAudioPortConfig(dstConfig, srcConfig); dstConfig->ext.device.hw_module = getModuleHandle(); } void DeviceDescriptor::toAudioPort(struct audio_port *port) const { ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId, mDeviceTypeAddr.mType); DeviceDescriptorBase::toAudioPort(port); port->ext.device.hw_module = getModuleHandle(); } void DeviceDescriptor::importAudioPort(policyPort->asAudioPort()); policyPort->pickAudioProfile(mSamplingRate, mChannelMask, mFormat); } void DeviceDescriptor::dump(String8 *dst, int spaces, int index, bool verbose) const { String8 extraInfo; if (!mTagName.empty()) { extraInfo.appendFormat("%*s- tag name: %s\n", spaces, "", mTagName.c_str()); } std::string descBaseDumpStr; DeviceDescriptorBase::dump(&descBaseDumpStr, spaces, index, extraInfo.empty
++status_t DeviceDescriptor::applyAudioPortConfig(const struct audio_port_config *config,
++                                                audio_port_config *backupConfig)
++{
++    struct audio_port_config localBackupConfig = { .config_mask = config->config_mask };
++    status_t status = NO_ERROR;
++    toAudioPortConfig(&localBackupConfig);
++    if ((status = validationBeforeApplyConfig(config)) == NO_ERROR) {
++        AudioPortConfig::applyAudioPortConfig(config, backupConfig);
++        applyPolicyAudioPortConfig(config);
++    }
++    if (backupConfig != NULL) {
++        *backupConfig = localBackupConfig;
++    }
++    return status;
++}
++void DeviceDescriptor::toAudioPortConfig(struct audio_port_config *dstConfig,
++                                         const struct audio_port_config *srcConfig) const
++{
++    DeviceDescriptorBase::toAudioPortConfig(dstConfig, srcConfig);
++    toPolicyAudioPortConfig(dstConfig, srcConfig);
++    dstConfig->ext.device.hw_module = getModuleHandle();
++}
++void DeviceDescriptor::toAudioPort(struct audio_port *port) const
++{
++    ALOGV("DeviceDescriptor::toAudioPort() handle %d type %08x", mId, mDeviceTypeAddr.mType);
++    DeviceDescriptorBase::toAudioPort(port);
++    port->ext.device.hw_module = getModuleHandle();
++}
++void DeviceDescriptor::importAudioPortAndPickAudioProfile(
++        const sp<PolicyAudioPort>& policyPort, bool force) {
++    if (!force && !policyPort->asAudioPort()->hasDynamicAudioProfile()) {
++        return;
++    }
++    AudioPort::importAudioPort(policyPort->asAudioPort());
++    policyPort->pickAudioProfile(mSamplingRate, mChannelMask, mFormat);
++}
++void DeviceDescriptor::dump(String8 *dst, int spaces, int index, bool verbose) const
++{
++    String8 extraInfo;
++    if (!mTagName.empty()) {
++        extraInfo.appendFormat("%*s- tag name: %s\n", spaces, "", mTagName.c_str());
++    }
++    std::string descBaseDumpStr;
++    DeviceDescriptorBase::dump(&descBaseDumpStr, spaces, index, extraInfo.string(), verbose);
++    dst->append(descBaseDumpStr.c_str());
++}

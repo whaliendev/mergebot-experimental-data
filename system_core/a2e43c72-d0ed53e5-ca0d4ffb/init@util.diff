@@ -1,0 +1,90 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@util.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@util.no_comments_merged.cpp
+index 1ce4e2a..2639646 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@util.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@util.no_comments_merged.cpp
+@@ -24,11 +23,0 @@
+-#include "selinux.h"
+-#else
+-#include "host_init_stubs.h"
+-#endif
+-#if defined(__ANDROID__)
+-#include "selinux.h"
+-#else
+-#include "host_init_stubs.h"
+-#endif
+-#if defined(__ANDROID__)
+-#include "reboot_utils.h"
+@@ -40,2 +29 @@
+-#error \
+-    "Do not include init.h in files used by ueventd; it will expose init's globals"
++#error "Do not include init.h in files used by ueventd; it will expose init's globals"
+@@ -59,2 +47,2 @@ Result<uid_t> DecodeUid(const std::string& name) {
+-int CreateSocket(const char* name, int type, bool passcred, mode_t perm,
+-                 uid_t uid, gid_t gid, const char* socketcon) {
++int CreateSocket(const char* name, int type, bool passcred, mode_t perm, uid_t uid, gid_t gid,
++                 const char* socketcon) {
+@@ -83,2 +71 @@ int CreateSocket(const char* name, int type, bool passcred, mode_t perm,
+-  if (SelabelLookupFileContext(addr.sun_path, S_IFSOCK, &secontext) &&
+-      !secontext.empty()) {
++    if (SelabelLookupFileContext(addr.sun_path, S_IFSOCK, &secontext) && !secontext.empty()) {
+@@ -113 +100,2 @@ int CreateSocket(const char* name, int type, bool passcred, mode_t perm,
+-            << ", mode " << std::oct << perm << std::dec << ", user " << uid
++              << ", mode " << std::oct << perm << std::dec
++              << ", user " << uid
+@@ -121,2 +109,2 @@ Result<std::string> ReadFile(const std::string& path) {
+-  android::base::unique_fd fd(TEMP_FAILURE_RETRY(
+-      open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC)));
++    android::base::unique_fd fd(
++        TEMP_FAILURE_RETRY(open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC)));
+@@ -153,2 +141,2 @@ Result<Success> WriteFile(const std::string& path, const std::string& content) {
+-  android::base::unique_fd fd(TEMP_FAILURE_RETRY(OpenFile(
+-      path, O_WRONLY | O_CREAT | O_NOFOLLOW | O_TRUNC | O_CLOEXEC, 0600)));
++    android::base::unique_fd fd(TEMP_FAILURE_RETRY(
++        OpenFile(path, O_WRONLY | O_CREAT | O_NOFOLLOW | O_TRUNC | O_CLOEXEC, 0600)));
+@@ -190,4 +178,2 @@ int wait_for_file(const char* filename, std::chrono::nanoseconds timeout) {
+-void import_kernel_cmdline(
+-    bool in_qemu,
+-    const std::function<void(const std::string&, const std::string&, bool)>&
+-        fn) {
++void import_kernel_cmdline(bool in_qemu,
++                           const std::function<void(const std::string&, const std::string&, bool)>& fn) {
+@@ -196,2 +182 @@ void import_kernel_cmdline(
+-  for (const auto& entry :
+-       android::base::Split(android::base::Trim(cmdline), " ")) {
++    for (const auto& entry : android::base::Split(android::base::Trim(cmdline), " ")) {
+@@ -251,2 +236 @@ bool expand_props(const std::string& src, std::string* dst) {
+-        LOG(ERROR) << "unexpected end of string in '" << src
+-                   << "', looking for }";
++                LOG(ERROR) << "unexpected end of string in '" << src << "', looking for }";
+@@ -264,2 +248 @@ bool expand_props(const std::string& src, std::string* dst) {
+-      LOG(ERROR) << "using deprecated syntax for specifying property '" << c
+-                 << "', use ${name} instead";
++            LOG(ERROR) << "using deprecated syntax for specifying property '" << c << "', use ${name} instead";
+@@ -275,2 +258 @@ bool expand_props(const std::string& src, std::string* dst) {
+-        LOG(ERROR) << "property '" << prop_name
+-                   << "' doesn't exist while expanding '" << src << "'";
++                LOG(ERROR) << "property '" << prop_name << "' doesn't exist while expanding '" << src << "'";
+@@ -288,2 +270,2 @@ static std::string init_android_dt_dir() {
+-  import_kernel_cmdline(false, [&](const std::string& key,
+-                                   const std::string& value, bool in_qemu) {
++    import_kernel_cmdline(false,
++                          [&](const std::string& key, const std::string& value, bool in_qemu) {
+@@ -301,2 +283 @@ const std::string& get_android_dt_dir() {
+-bool read_android_dt_file(const std::string& sub_path,
+-                          std::string* dt_content) {
++bool read_android_dt_file(const std::string& sub_path, std::string* dt_content) {
+@@ -312,2 +293 @@ bool read_android_dt_file(const std::string& sub_path,
+-bool is_android_dt_value_expected(const std::string& sub_path,
+-                                  const std::string& expected_content) {
++bool is_android_dt_value_expected(const std::string& sub_path, const std::string& expected_content) {
+@@ -332,2 +312 @@ bool IsLegalPropertyName(const std::string& name) {
+-    if (name[i] == '_' || name[i] == '-' || name[i] == '@' || name[i] == ':')
+-      continue;
++        if (name[i] == '_' || name[i] == '-' || name[i] == '@' || name[i] == ':') continue;
+@@ -361,0 +341 @@ void InitKernelLogging(char** argv) {
++    SetFatalRebootTarget();
+@@ -364 +344,3 @@ void InitKernelLogging(char** argv) {
+-bool IsRecoveryMode() { return access("/system/bin/recovery", F_OK) == 0; }
++bool IsRecoveryMode() {
++    return access("/system/bin/recovery", F_OK) == 0;
++}

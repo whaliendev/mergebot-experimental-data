@@ -1,0 +1,347 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/8e0660dc-8b1d65e8-8bf4487a/libs@binder@ndk@include_cpp@android@persistable_bundle_aidl.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/8e0660dc-8b1d65e8-8bf4487a/libs@binder@ndk@include_cpp@android@persistable_bundle_aidl.no_comments_merged.h
+index 005e391..bac0a7d 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/8e0660dc-8b1d65e8-8bf4487a/libs@binder@ndk@include_cpp@android@persistable_bundle_aidl.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/8e0660dc-8b1d65e8-8bf4487a/libs@binder@ndk@include_cpp@android@persistable_bundle_aidl.no_comments_merged.h
+@@ -17,3 +17,10 @@ namespace aidl::android::os {
+-PersistableBundle& operator=(const PersistableBundle& other) {
+-    if AT_LEAST_V_OR_202404 {
+-        mPBundle = APersistableBundle_dup(other.mPBundle);
++#if defined(__ANDROID_VENDOR__)
++#define AT_LEAST_V_OR_202404 constexpr(__ANDROID_VENDOR_API__ >= 202404)
++#else
++#define AT_LEAST_V_OR_202404 (__builtin_available(android __ANDROID_API_FUTURE__, *))
++#endif
++class PersistableBundle {
++   public:
++    PersistableBundle() noexcept {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
++            mPBundle = APersistableBundle_new();
+@@ -21,3 +27,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    const() {
+-        if (!mPBundle) {
+-            return STATUS_BAD_VALUE;
+@@ -24,0 +29,3 @@ PersistableBundle& operator=(const PersistableBundle& other) {
++    PersistableBundle(APersistableBundle* _Nonnull bundle) noexcept : mPBundle(bundle) {}
++    PersistableBundle(PersistableBundle&& other) noexcept : mPBundle(other.release()) {}
++    PersistableBundle(const PersistableBundle& other) {
+@@ -26 +33 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-            return APersistableBundle_writeToParcel(mPBundle, parcel);
++            mPBundle = APersistableBundle_dup(other.mPBundle);
+@@ -29,2 +36,5 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    ~PersistableBundle() {
+-        reset();
++    PersistableBundle& operator=(const PersistableBundle& other) {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
++            mPBundle = APersistableBundle_dup(other.mPBundle);
++        }
++        return *this;
+@@ -31,0 +42 @@ PersistableBundle& operator=(const PersistableBundle& other) {
++    ~PersistableBundle() { reset(); }
+@@ -34 +45 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -40 +51 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    const() {
++    binder_status_t writeToParcel(AParcel* _Nonnull parcel) const {
+@@ -44 +55 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -50,2 +61 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    noexcept
+-    () {
++    void reset(APersistableBundle* _Nullable pBundle = nullptr) noexcept {
+@@ -53 +63 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-            if AT_LEAST_V_OR_202404 {
++            if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -61 +71 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -67,18 +77,6 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    inline bool operator==(const PersistableBundle& rhs) const {
+-        return get() == rhs.get();
+-    }
+-    inline bool operator!=(const PersistableBundle& rhs) const {
+-        return get() != rhs.get();
+-    }
+-    inline bool operator<(const PersistableBundle& rhs) const {
+-        return get() < rhs.get();
+-    }
+-    inline bool operator>(const PersistableBundle& rhs) const {
+-        return get() > rhs.get();
+-    }
+-    inline bool operator>=(const PersistableBundle& rhs) const {
+-        return !(*this < rhs);
+-    }
+-    inline bool operator<=(const PersistableBundle& rhs) const {
+-        return !(*this > rhs);
+-    }
++    inline bool operator==(const PersistableBundle& rhs) const { return get() == rhs.get(); }
++    inline bool operator!=(const PersistableBundle& rhs) const { return get() != rhs.get(); }
++    inline bool operator<(const PersistableBundle& rhs) const { return get() < rhs.get(); }
++    inline bool operator>(const PersistableBundle& rhs) const { return get() > rhs.get(); }
++    inline bool operator>=(const PersistableBundle& rhs) const { return !(*this < rhs); }
++    inline bool operator<=(const PersistableBundle& rhs) const { return !(*this > rhs); }
+@@ -88,0 +87,5 @@ PersistableBundle& operator=(const PersistableBundle& other) {
++    [[nodiscard]] APersistableBundle* _Nullable release() noexcept {
++        APersistableBundle* _Nullable ret = mPBundle;
++        mPBundle = nullptr;
++        return ret;
++    }
+@@ -92 +95 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        } else if AT_LEAST_V_OR_202404 {
++        } else if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -102 +105 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -109 +112 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -140,25 +142,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    void putBoolean(const std::string& key, bool val) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putBoolean(mPBundle, key.c_str(), val);
+-        }
+-    }
+-    void putInt(const std::string& key, int32_t val) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putInt(mPBundle, key.c_str(), val);
+-        }
+-    }
+-    void putLong(const std::string& key, int64_t val) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putLong(mPBundle, key.c_str(), val);
+-        }
+-    }
+-    void putDouble(const std::string& key, double val) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putDouble(mPBundle, key.c_str(), val);
+-        }
+-    }
+-    void putString(const std::string& key, const std::string& val) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putString(mPBundle, key.c_str(), val.c_str());
+-        }
+-    }
+@@ -166 +144 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -181 +159 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -189 +167 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -197 +175 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -205 +183 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -224,5 +201,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    void putPersistableBundle(const std::string& key, const PersistableBundle& pBundle) {
+-        if AT_LEAST_V_OR_202404 {
+-            APersistableBundle_putPersistableBundle(mPBundle, key.c_str(), pBundle.mPBundle);
+-        }
+-    }
+@@ -230 +203 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -237 +210 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -244 +217 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -251 +224 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -261 +234 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-        if AT_LEAST_V_OR_202404 {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -272,0 +246,24 @@ PersistableBundle& operator=(const PersistableBundle& other) {
++    template <typename T>
++    bool getVecInternal(int32_t (*_Nonnull getVec)(const APersistableBundle* _Nonnull,
++                                                   const char* _Nonnull, T* _Nullable, int32_t),
++                        const APersistableBundle* _Nonnull pBundle, const char* _Nonnull key,
++                        std::vector<T>* _Nonnull vec) {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
++            int32_t bytes = 0;
++            bytes = getVec(pBundle, key, nullptr, 0);
++            if (bytes > 0) {
++                T* newVec = (T*)malloc(bytes);
++                if (newVec) {
++                    bytes = getVec(pBundle, key, newVec, bytes);
++                    int32_t elements = bytes / sizeof(T);
++                    vec->clear();
++                    for (int32_t i = 0; i < elements; i++) {
++                        vec->push_back(newVec[i]);
++                    }
++                    free(newVec);
++                    return true;
++                }
++            }
++        }
++        return false;
++    }
+@@ -274 +270,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -276,5 +271,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -287 +277,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -289,5 +278,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -300 +284,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -302,5 +285,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -313 +291,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -315,5 +292,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -340 +312,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -342,5 +313,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -362 +328,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -364,5 +329,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -379,2 +340,2 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-    std::set<std::string>
+-    getKeys(int32_t(*_Nonnull getTypedKeys)(const APersistableBundle* _Nonnull pBundle,
++    std::set<std::string> getKeys(
++            int32_t (*_Nonnull getTypedKeys)(const APersistableBundle* _Nonnull pBundle,
+@@ -385,9 +346,13 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-            const APersistableBundle* _Nonnull pBundle) std::set<std::string>
+-            getBooleanKeys() {
+-<<<<<<< HEAD
+-        if API_LEVEL_AT_LEAST (__ANDROID_API_V__, 202404) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
++            const APersistableBundle* _Nonnull pBundle) {
++        int32_t bytes = getTypedKeys(pBundle, nullptr, 0, &stringAllocator, nullptr);
++        if (bytes > 0) {
++            char** keys = (char**)malloc(bytes);
++            if (keys) {
++                bytes = getTypedKeys(pBundle, keys, bytes, &stringAllocator, nullptr);
++                return moveStringsInternal<std::set<std::string>>(keys, bytes);
++            }
++        }
++        return {};
++    }
++    std::set<std::string> getBooleanKeys() {
++        if API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404) {
+@@ -400 +364,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -402,5 +365,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -413 +371,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -415,5 +372,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -426 +378,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -428,5 +379,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -439 +385,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -441,5 +386,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -452 +392,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -454,5 +393,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -465 +399,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -467,5 +400,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -478 +406,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -480,5 +407,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -491 +413,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -493,5 +414,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -504 +420,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -506,5 +421,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -517 +427,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-<<<<<<< HEAD
+@@ -519,5 +428,0 @@ PersistableBundle& operator=(const PersistableBundle& other) {
+-|||||||
+-        if (__builtin_available(android __ANDROID_API_V__, *)) {
+-=======
+-        if AT_LEAST_V_OR_202404 {
+->>>>>>> 8b1d65e89c6241d1aacfe65ae855f623cf9d4a2e
+@@ -531,0 +437,5 @@ PersistableBundle& operator=(const PersistableBundle& other) {
++   private:
++    inline APersistableBundle* _Nullable get() const { return mPBundle; }
++    APersistableBundle* _Nullable mPBundle = nullptr;
++};
++}

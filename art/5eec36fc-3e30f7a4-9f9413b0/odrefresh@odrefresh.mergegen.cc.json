@@ -1,0 +1,98 @@
+[
+    {
+        "a_contents": "#include \"fmt/format.h\"\n#include \"gc/collector/mark_compact.h\"",
+        "b_contents": "#include \"fmt/format.h\"",
+        "base_contents": "",
+        "res_region": "#include \"fmt/format.h\"\n#include \"gc/collector/mark_compact.h\"",
+        "lookback": "#include \"dex/art_dex_file_loader.h\"\n#include \"dexoptanalyzer.h\"\n#include \"exec_utils.h\"",
+        "lookahead": "#include \"log/log.h\"\n#include \"odr_artifacts.h\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 80,
+        "end_line": 86,
+        "merge_gen_region": "#include \"fmt/format.h\" #include \"gc/collector/mark_compact.h\"",
+        "resolved": true
+    },
+    {
+        "a_contents": "using ::android::base::ParseBool;\nusing ::android::base::ParseBoolResult;\nusing ::android::base::Result;\nusing ::android::modules::sdklevel::IsAtLeastU;",
+        "b_contents": "using ::android::base::ParseBool;\nusing ::android::base::ParseBoolResult;\nusing ::android::base::Result;",
+        "base_contents": "using android::base::Result;",
+        "res_region": "using ::android::base::ParseBool;\nusing ::android::base::ParseBoolResult;\nusing ::android::base::Result;\nusing ::android::modules::sdklevel::IsAtLeastU;",
+        "lookback": "namespace apex = com::android::apex;\nnamespace art_apex = com::android::art;\n",
+        "lookahead": "\nusing ::fmt::literals::operator\"\"_format;  // NOLINT",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 107,
+        "end_line": 118,
+        "merge_gen_region": "using ::android::base::ParseBool; using ::android::base::ParseBoolResult; using ::android::base::Result; using ::android::modules::sdklevel::IsAtLeastU;",
+        "resolved": true
+    },
+    {
+        "a_contents": "WARN_UNUSED bool OnDeviceRefresh::CheckBuildUserfaultFdGc() const {\n  auto it = config_.GetSystemProperties().find(\"ro.dalvik.vm.enable_uffd_gc\");\n  bool build_enable_uffd_gc = it != config_.GetSystemProperties().end() ?\n                                  ParseBool(it->second) == ParseBoolResult::kTrue :\n                                  false;\n  bool kernel_supports_uffd = KernelSupportsUffd();\n  if (build_enable_uffd_gc && !kernel_supports_uffd) {\n    // Normally, this should not happen. If this happens, the system image was probably built with a\n    // wrong PRODUCT_ENABLE_UFFD_GC flag.\n    LOG(WARNING) << \"Userfaultfd GC check failed (build-time: {}, runtime: {}).\"_format(\n        build_enable_uffd_gc, kernel_supports_uffd);",
+        "b_contents": "WARN_UNUSED bool OnDeviceRefresh::CheckBuildUserfaultFdGc() const {\n  auto it = config_.GetSystemProperties().find(\"ro.dalvik.vm.enable_uffd_gc\");\n  bool build_enable_uffd_gc = it != config_.GetSystemProperties().end() ?\n                                  ParseBool(it->second) == ParseBoolResult::kTrue :\n                                  false;\n  if (build_enable_uffd_gc != gUseUserfaultfd) {\n    // Normally, this should not happen. If this happens, the system image was probably built with a\n    // wrong PRODUCT_ENABLE_UFFD_GC flag.\n    LOG(WARNING) << \"Userfaultfd GC check failed (build-time: {}, runtime: {}).\"_format(\n        build_enable_uffd_gc, gUseUserfaultfd);\n    return false;\n  }\n  return true;\n}\n\nWARN_UNUSED bool OnDeviceRefresh::BootClasspathArtifactsOnSystemUsable(\n    const apex::ApexInfo& art_apex_info) const {\n  if (!art_apex_info.getIsFactory()) {\n    LOG(INFO) << \"Updated ART APEX mounted\";",
+        "base_contents": "WARN_UNUSED bool OnDeviceRefresh::BootClasspathArtifactsOnSystemUsable(\n    const apex::ApexInfo& art_apex_info) const {\n  if (!art_apex_info.getIsFactory()) {",
+        "res_region": "WARN_UNUSED bool OnDeviceRefresh::CheckBuildUserfaultFdGc() const {\n  auto it = config_.GetSystemProperties().find(\"ro.dalvik.vm.enable_uffd_gc\");\n  bool build_enable_uffd_gc = it != config_.GetSystemProperties().end() ?\n                                  ParseBool(it->second) == ParseBoolResult::kTrue :\n                                  false;\n  bool kernel_supports_uffd = KernelSupportsUffd();\n  if (build_enable_uffd_gc && !kernel_supports_uffd) {\n    // Normally, this should not happen. If this happens, the system image was probably built with a\n    // wrong PRODUCT_ENABLE_UFFD_GC flag.\n    LOG(WARNING) << \"Userfaultfd GC check failed (build-time: {}, runtime: {}).\"_format(\n        build_enable_uffd_gc, kernel_supports_uffd);",
+        "lookback": "  return true;\n}\n",
+        "lookahead": "    return false;\n  }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 962,
+        "end_line": 998,
+        "merge_gen_region": "bool OnDeviceRefresh::CheckBuildUserfaultFdGc() const { auto it = config_.GetSystemProperties().find(\"ro.dalvik.vm.enable_uffd_gc\"); bool build_enable_uffd_gc = it != config_.GetSystemProperties().end() ? ParseBool(it->second) == ParseBoolResult::kTrue : false; if (build_enable_uffd_gc != gUseUserfaultfd) { // Normally, this should not happen. If this happens, the system image was probably built with a // wrong PRODUCT_ENABLE_UFFD_GC flag. LOG(WARNING) << \"Userfaultfd GC check failed (build-time: {}, runtime: {}).\"_format( build_enable_uffd_gc, gUseUserfaultfd); return false; } return true; } WARN_UNUSED bool OnDeviceRefresh::BootClasspathArtifactsOnSystemProperties().find(\"ro.dalvik.vm.enable_uffd_gc\"); bool build_enable_uffd_gc = it != config_.GetSystemProperties().end() ? ParseBool(it->second) == ParseBoolResult::kTrue : false; bool kernel_supports_uffd = KernelSupportsUffd(); if (build_enable_uffd_gc && !kernel_supports_uffd) { // Normally, this should not happen. If this happens, the system image was probably built with a // wrong PRODUCT_ENABLE_UFFD_GC flag. LOG(WARNING) << \"Userfaultfd GC check failed (build-time: {}, runtime: {}).\"_format( build_enable_uffd_gc, kernel_supports_uffd);",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "\n  if (!CheckSystemPropertiesAreDefault()) {\n    return false;\n  }\n\n  if (!CheckBuildUserfaultFdGc()) {\n    return false;\n  }\n",
+        "base_contents": "  LOG(INFO) << \"Factory ART APEX mounted.\";\n\n  if (!CheckSystemPropertiesAreDefault()) {\n    return false;\n  }\n  LOG(INFO) << \"System properties are set to default values.\";\n",
+        "res_region": "",
+        "lookback": "        build_enable_uffd_gc, kernel_supports_uffd);\n    return false;\n  }",
+        "lookahead": "  return true;\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1001,
+        "end_line": 1020,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    LOG(INFO) << \"Updated APEXes mounted\";\n    return PreconditionCheckResult::SystemServerNotOk(OdrMetrics::Trigger::kApexVersionMismatch);",
+        "b_contents": "    LOG(INFO) << \"Updated APEXes mounted\";\n    return false;",
+        "base_contents": "    return false;",
+        "res_region": "    LOG(INFO) << \"Updated APEXes mounted\";\n    return PreconditionCheckResult::SystemServerNotOk(OdrMetrics::Trigger::kApexVersionMismatch);",
+        "lookback": "  if (std::any_of(apex_info_list.begin(),\n                  apex_info_list.end(),\n                  [](const apex::ApexInfo& apex_info) { return !apex_info.getIsFactory(); })) {",
+        "lookahead": "  }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1049,
+        "end_line": 1057,
+        "merge_gen_region": "LOGD { LOG(INFO) << \"Updated APEXes mounted\";",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "\n  if (!CheckBuildUserfaultFdGc()) {\n    return false;\n  }",
+        "base_contents": "  LOG(INFO) << \"System properties are set to default values.\";",
+        "res_region": "",
+        "lookback": "        current_info.getLastUpdateMillis());\n    return false;\n  }",
+        "lookahead": "\n  return true;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1089,
+        "end_line": 1097,
+        "merge_gen_region": "if (!CheckBuildUserfaultFdGc()) { return false; }",
+        "resolved": false
+    }
+]

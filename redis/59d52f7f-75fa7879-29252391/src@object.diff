@@ -1,0 +1,339 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/redis/59d52f7f-75fa7879-29252391/src@object.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/redis/59d52f7f-75fa7879-29252391/src@object.no_comments_merged.c
+index 2ea2f91..7a8d59c 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/redis/59d52f7f-75fa7879-29252391/src@object.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/redis/59d52f7f-75fa7879-29252391/src@object.no_comments_merged.c
+@@ -212,21 +212,7 @@ void decrRefCount(robj *o) {
+-      case OBJ_STRING:
+-        freeStringObject(o);
+-        break;
+-      case OBJ_LIST:
+-        freeListObject(o);
+-        break;
+-      case OBJ_SET:
+-        freeSetObject(o);
+-        break;
+-      case OBJ_ZSET:
+-        freeZsetObject(o);
+-        break;
+-      case OBJ_HASH:
+-        freeHashObject(o);
+-        break;
+-      case OBJ_MODULE:
+-        freeModuleObject(o);
+-        break;
+-      default:
+-        serverPanic("Unknown object type");
+-        break;
++        case OBJ_STRING: freeStringObject(o); break;
++        case OBJ_LIST: freeListObject(o); break;
++        case OBJ_SET: freeSetObject(o); break;
++        case OBJ_ZSET: freeZsetObject(o); break;
++        case OBJ_HASH: freeHashObject(o); break;
++        case OBJ_MODULE: freeModuleObject(o); break;
++        default: serverPanic("Unknown object type"); break;
+@@ -240 +226,3 @@ void decrRefCount(robj *o) {
+-void decrRefCountVoid(void *o) { decrRefCount(o); }
++void decrRefCountVoid(void *o) {
++    decrRefCount(o);
++}
+@@ -275 +263,3 @@ robj *tryObjectEncoding(robj *o) {
+-        value >= 0 && value < OBJ_SHARED_INTEGERS) {
++            value >= 0 &&
++            value < OBJ_SHARED_INTEGERS)
++        {
+@@ -293 +283,3 @@ robj *tryObjectEncoding(robj *o) {
+-  if (o->encoding == OBJ_ENCODING_RAW && sdsavail(s) > len / 10) {
++    if (o->encoding == OBJ_ENCODING_RAW &&
++        sdsavail(s) > len/10)
++    {
+@@ -351 +343,2 @@ int equalStringObjects(robj *a, robj *b) {
+-  if (a->encoding == OBJ_ENCODING_INT && b->encoding == OBJ_ENCODING_INT) {
++    if (a->encoding == OBJ_ENCODING_INT &&
++        b->encoding == OBJ_ENCODING_INT){
+@@ -375 +368,2 @@ int getDoubleFromObject(const robj *o, double *target) {
+-      if (sdslen(o->ptr) == 0 || isspace(((const char *)o->ptr)[0]) ||
++            if (sdslen(o->ptr) == 0 ||
++                isspace(((const char*)o->ptr)[0]) ||
+@@ -390,2 +384 @@ int getDoubleFromObject(const robj *o, double *target) {
+-int getDoubleFromObjectOrReply(client *c, robj *o, double *target,
+-                               const char *msg) {
++int getDoubleFromObjectOrReply(client *c, robj *o, double *target, const char *msg) {
+@@ -414 +407,2 @@ int getLongDoubleFromObject(robj *o, long double *target) {
+-      if (sdslen(o->ptr) == 0 || isspace(((const char *)o->ptr)[0]) ||
++            if (sdslen(o->ptr) == 0 ||
++                isspace(((const char*)o->ptr)[0]) ||
+@@ -429,2 +423 @@ int getLongDoubleFromObject(robj *o, long double *target) {
+-int getLongDoubleFromObjectOrReply(client *c, robj *o, long double *target,
+-                                   const char *msg) {
++int getLongDoubleFromObjectOrReply(client *c, robj *o, long double *target, const char *msg) {
+@@ -460,2 +453 @@ int getLongLongFromObject(robj *o, long long *target) {
+-int getLongLongFromObjectOrReply(client *c, robj *o, long long *target,
+-                                 const char *msg) {
++int getLongLongFromObjectOrReply(client *c, robj *o, long long *target, const char *msg) {
+@@ -474,2 +466 @@ int getLongLongFromObjectOrReply(client *c, robj *o, long long *target,
+-int getLongFromObjectOrReply(client *c, robj *o, long *target,
+-                             const char *msg) {
++int getLongFromObjectOrReply(client *c, robj *o, long *target, const char *msg) {
+@@ -491,18 +482,9 @@ char *strEncoding(int encoding) {
+-    case OBJ_ENCODING_RAW:
+-      return "raw";
+-    case OBJ_ENCODING_INT:
+-      return "int";
+-    case OBJ_ENCODING_HT:
+-      return "hashtable";
+-    case OBJ_ENCODING_QUICKLIST:
+-      return "quicklist";
+-    case OBJ_ENCODING_ZIPLIST:
+-      return "ziplist";
+-    case OBJ_ENCODING_INTSET:
+-      return "intset";
+-    case OBJ_ENCODING_SKIPLIST:
+-      return "skiplist";
+-    case OBJ_ENCODING_EMBSTR:
+-      return "embstr";
+-    default:
+-      return "unknown";
++    case OBJ_ENCODING_RAW: return "raw";
++    case OBJ_ENCODING_INT: return "int";
++    case OBJ_ENCODING_HT: return "hashtable";
++    case OBJ_ENCODING_QUICKLIST: return "quicklist";
++    case OBJ_ENCODING_ZIPLIST: return "ziplist";
++    case OBJ_ENCODING_INTSET: return "intset";
++    case OBJ_ENCODING_SKIPLIST: return "skiplist";
++    case OBJ_ENCODING_EMBSTR: return "embstr";
++    default: return "unknown";
+@@ -547,2 +529 @@ size_t objectComputeSize(robj *o, size_t sample_size) {
+-      asize = sizeof(*o) + sizeof(dict) +
+-              (sizeof(struct dictEntry *) * dictSlots(d));
++            asize = sizeof(*o)+sizeof(dict)+(sizeof(struct dictEntry*)*dictSlots(d));
+@@ -569,2 +550 @@ size_t objectComputeSize(robj *o, size_t sample_size) {
+-      asize = sizeof(*o) + sizeof(zset) +
+-              (sizeof(struct dictEntry *) * dictSlots(d));
++            asize = sizeof(*o)+sizeof(zset)+(sizeof(struct dictEntry*)*dictSlots(d));
+@@ -587,2 +567 @@ size_t objectComputeSize(robj *o, size_t sample_size) {
+-      asize = sizeof(*o) + sizeof(dict) +
+-              (sizeof(struct dictEntry *) * dictSlots(d));
++            asize = sizeof(*o)+sizeof(dict)+(sizeof(struct dictEntry*)*dictSlots(d));
+@@ -627 +606,2 @@ struct redisMemOverhead *getMemoryOverheadData(void) {
+-  mh->fragmentation = zmalloc_get_fragmentation_ratio(server.resident_set_size);
++    mh->fragmentation =
++        zmalloc_get_fragmentation_ratio(server.resident_set_size);
+@@ -630 +610,2 @@ struct redisMemOverhead *getMemoryOverheadData(void) {
+-  if (server.repl_backlog) mem += zmalloc_size(server.repl_backlog);
++    if (server.repl_backlog)
++        mem += zmalloc_size(server.repl_backlog);
+@@ -654 +635,2 @@ struct redisMemOverhead *getMemoryOverheadData(void) {
+-      if (c->flags & CLIENT_SLAVE) continue;
++            if (c->flags & CLIENT_SLAVE)
++                continue;
+@@ -745,3 +727 @@ sds getMemoryDoctorReport(void) {
+-    s = sdsnew(
+-        "Sam, I detected a few issues in this Redis instance memory "
+-        "implants:\n\n");
++        s = sdsnew("Sam, I detected a few issues in this Redis instance memory implants:\n\n");
+@@ -749,12 +729 @@ sds getMemoryDoctorReport(void) {
+-      s = sdscat(
+-          s,
+-          " * Peak memory: In the past this instance used more than 150% the "
+-          "memory that is currently using. The allocator is normally not able "
+-          "to release memory after a peak, so you can expect to see a big "
+-          "fragmentation ratio, however this is actually harmless and is only "
+-          "due to the memory peak, and if the Redis instance Resident Set Size "
+-          "(RSS) is currently bigger than expected, the memory will be used as "
+-          "soon as you fill the Redis instance with more data. If the memory "
+-          "peak was only occasional and you want to try to reclaim memory, "
+-          "please try the MEMORY PURGE command, otherwise the only other "
+-          "option is to shutdown and restart the instance.\n\n");
++            s = sdscat(s," * Peak memory: In the past this instance used more than 150% the memory that is currently using. The allocator is normally not able to release memory after a peak, so you can expect to see a big fragmentation ratio, however this is actually harmless and is only due to the memory peak, and if the Redis instance Resident Set Size (RSS) is currently bigger than expected, the memory will be used as soon as you fill the Redis instance with more data. If the memory peak was only occasional and you want to try to reclaim memory, please try the MEMORY PURGE command, otherwise the only other option is to shutdown and restart the instance.\n\n");
+@@ -763,13 +732 @@ sds getMemoryDoctorReport(void) {
+-      s = sdscatprintf(
+-          s,
+-          " * High fragmentation: This instance has a memory fragmentation "
+-          "greater than 1.4 (this means that the Resident Set Size of the "
+-          "Redis process is much larger than the sum of the logical "
+-          "allocations Redis performed). This problem is usually due either to "
+-          "a large peak memory (check if there is a peak memory entry above in "
+-          "the report) or may result from a workload that causes the allocator "
+-          "to fragment memory a lot. If the problem is a large peak memory, "
+-          "then there is no issue. Otherwise, make sure you are using the "
+-          "Jemalloc allocator and not the default libc malloc. Note: The "
+-          "currently used allocator is \"%s\".\n\n",
+-          ZMALLOC_LIB);
++            s = sdscatprintf(s," * High fragmentation: This instance has a memory fragmentation greater than 1.4 (this means that the Resident Set Size of the Redis process is much larger than the sum of the logical allocations Redis performed). This problem is usually due either to a large peak memory (check if there is a peak memory entry above in the report) or may result from a workload that causes the allocator to fragment memory a lot. If the problem is a large peak memory, then there is no issue. Otherwise, make sure you are using the Jemalloc allocator and not the default libc malloc. Note: The currently used allocator is \"%s\".\n\n", ZMALLOC_LIB);
+@@ -778,10 +735 @@ sds getMemoryDoctorReport(void) {
+-      s = sdscat(s,
+-                 " * Big slave buffers: The slave output buffers in this "
+-                 "instance are greater than 10MB for each slave (on average). "
+-                 "This likely means that there is some slave instance that is "
+-                 "struggling receiving data, either because it is too slow or "
+-                 "because of networking issues. As a result, data piles on the "
+-                 "master output buffers. Please try to identify what slave is "
+-                 "not receiving data correctly and why. You can use the INFO "
+-                 "output in order to check the slaves delays and the CLIENT "
+-                 "LIST command to check the output buffers of each slave.\n\n");
++            s = sdscat(s," * Big slave buffers: The slave output buffers in this instance are greater than 10MB for each slave (on average). This likely means that there is some slave instance that is struggling receiving data, either because it is too slow or because of networking issues. As a result, data piles on the master output buffers. Please try to identify what slave is not receiving data correctly and why. You can use the INFO output in order to check the slaves delays and the CLIENT LIST command to check the output buffers of each slave.\n\n");
+@@ -790,11 +738 @@ sds getMemoryDoctorReport(void) {
+-      s = sdscat(
+-          s,
+-          " * Big client buffers: The clients output buffers in this instance "
+-          "are greater than 200K per client (on average). This may result from "
+-          "different causes, like Pub/Sub clients subscribed to channels bot "
+-          "not receiving data fast enough, so that data piles on the Redis "
+-          "instance output buffer, or clients sending commands with large "
+-          "replies or very large sequences of commands in the same pipeline. "
+-          "Please use the CLIENT LIST command in order to investigate the "
+-          "issue if it causes problems in your instance, or to understand "
+-          "better why certain clients are using a big amount of memory.\n\n");
++            s = sdscat(s," * Big client buffers: The clients output buffers in this instance are greater than 200K per client (on average). This may result from different causes, like Pub/Sub clients subscribed to channels bot not receiving data fast enough, so that data piles on the Redis instance output buffer, or clients sending commands with large replies or very large sequences of commands in the same pipeline. Please use the CLIENT LIST command in order to investigate the issue if it causes problems in your instance, or to understand better why certain clients are using a big amount of memory.\n\n");
+@@ -819 +756,0 @@ void objectCommand(client *c) {
+-<<<<<<< HEAD
+@@ -822,11 +759,6 @@ void objectCommand(client *c) {
+-        "encoding <key> -- Return the kind of internal representation used in "
+-        "order to store the value associated with a key.",
+-        "freq <key> -- Return the access frequency index of the key. The "
+-        "returned integer is proportional to the logarithm of the recent "
+-        "access frequency of the key.",
+-        "idletime <key> -- Return the idle time of the key, that is the "
+-        "approximated number of seconds elapsed since the last access to the "
+-        "key.",
+-        "refcount <key> -- Return the number of references of the value "
+-        "associated with the specified key.",
+-        NULL};
++            "encoding <key> -- Return the kind of internal representation used in order to store the value associated with a key.",
++            "freq <key> -- Return the access frequency index of the key. The returned integer is proportional to the logarithm of the recent access frequency of the key.",
++            "idletime <key> -- Return the idle time of the key, that is the approximated number of seconds elapsed since the last access to the key.",
++            "refcount <key> -- Return the number of references of the value associated with the specified key.",
++            NULL
++        };
+@@ -834,49 +765,0 @@ void objectCommand(client *c) {
+-|||||||
+-  if (!strcasecmp(c->argv[1]->ptr, "help") && c->argc == 2) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "OBJECT <subcommand> key. Subcommands:");
+-    blen++;
+-    addReplyStatus(c,
+-                   "refcount -- Return the number of references of the value "
+-                   "associated with the specified key.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "encoding -- Return the kind of internal representation "
+-                   "used in order to store the value associated with a key.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "idletime -- Return the number of seconds since the object "
+-                   "stored at the specified key is idle.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "freq -- Return the inverse logarithmic access frequency "
+-                   "counter of the object stored at the specified key.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+-=======
+-  if (!strcasecmp(c->argv[1]->ptr, "help") && c->argc == 2) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "OBJECT <subcommand> key. Subcommands:");
+-    blen++;
+-    addReplyStatus(c,
+-                   "refcount -- Return the number of references of the value "
+-                   "associated with the specified key.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "encoding -- Return the kind of internal representation "
+-                   "used in order to store the value associated with a key.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "idletime -- Return the idle time of the key, that is the approximated "
+-        "number of seconds elapsed since the last access to the key.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "freq -- Return the access frequency index of the key. The "
+-                   "returned integer is proportional to the logarithm of the "
+-                   "recent access frequency of the key.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+->>>>>>> 75fa7879e6b4408247db6b7eba3def64c00d4f9a
+@@ -884,3 +767,2 @@ void objectCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nullbulk)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nullbulk))
++                == NULL) return;
+@@ -889,3 +771,2 @@ void objectCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nullbulk)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nullbulk))
++                == NULL) return;
+@@ -894,3 +775,2 @@ void objectCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nullbulk)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nullbulk))
++                == NULL) return;
+@@ -898,5 +778 @@ void objectCommand(client *c) {
+-      addReplyError(
+-          c,
+-          "An LFU maxmemory policy is selected, idle time not tracked. Please "
+-          "note that when switching between policies at runtime LRU and LFU "
+-          "data will take some time to adjust.");
++            addReplyError(c,"An LFU maxmemory policy is selected, idle time not tracked. Please note that when switching between policies at runtime LRU and LFU data will take some time to adjust.");
+@@ -907,3 +783,2 @@ void objectCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nullbulk)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nullbulk))
++                == NULL) return;
+@@ -911,5 +786 @@ void objectCommand(client *c) {
+-      addReplyError(
+-          c,
+-          "A non-LFU maxmemory policy is selected, access frequency not "
+-          "tracked. Please note that when switching between policies at "
+-          "runtime LRU and LFU data will take some time to adjust.");
++            addReplyError(c,"A non-LFU maxmemory policy is selected, access frequency not tracked. Please note that when switching between policies at runtime LRU and LFU data will take some time to adjust.");
+@@ -920,3 +791 @@ void objectCommand(client *c) {
+-    addReplyErrorFormat(c,
+-                        "Unknown subcommand or wrong number of arguments for "
+-                        "'%s'. Try OBJECT help",
++        addReplyErrorFormat(c, "Unknown subcommand or wrong number of arguments for '%s'. Try OBJECT help",
+@@ -932,4 +801,5 @@ void memoryCommand(client *c) {
+-      if (!strcasecmp(c->argv[j]->ptr, "samples") && j + 1 < c->argc) {
+-        if (getLongLongFromObjectOrReply(c, c->argv[j + 1], &samples, NULL) ==
+-            C_ERR)
+-          return;
++            if (!strcasecmp(c->argv[j]->ptr,"samples") &&
++                j+1 < c->argc)
++            {
++                if (getLongLongFromObjectOrReply(c,c->argv[j+1],&samples,NULL)
++                     == C_ERR) return;
+@@ -940,2 +810 @@ void memoryCommand(client *c) {
+-        if (samples == 0) samples = LLONG_MAX;
+-        ;
++                if (samples == 0) samples = LLONG_MAX;;
+@@ -948,3 +817,2 @@ void memoryCommand(client *c) {
+-    if ((o = objectCommandLookupOrReply(c, c->argv[2], shared.nullbulk)) ==
+-        NULL)
+-      return;
++        if ((o = objectCommandLookupOrReply(c,c->argv[2],shared.nullbulk))
++                == NULL) return;
+@@ -1027,4 +895,2 @@ void memoryCommand(client *c) {
+-                        "MEMORY DOCTOR                        - Outputs memory "
+-                        "problems report");
+-    addReplyBulkCString(
+-        c,
++"MEMORY DOCTOR                        - Outputs memory problems report");
++        addReplyBulkCString(c,
+@@ -1032,2 +897,0 @@ void memoryCommand(client *c) {
+-    addReplyBulkCString(
+-        c, "MEMORY STATS                         - Show memory usage details");
+@@ -1035,4 +899,4 @@ void memoryCommand(client *c) {
+-                        "MEMORY PURGE                         - Ask the "
+-                        "allocator to release memory");
+-    addReplyBulkCString(
+-        c,
++"MEMORY STATS                         - Show memory usage details");
++        addReplyBulkCString(c,
++"MEMORY PURGE                         - Ask the allocator to release memory");
++        addReplyBulkCString(c,

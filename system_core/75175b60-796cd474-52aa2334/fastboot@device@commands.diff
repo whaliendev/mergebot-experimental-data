@@ -1,0 +1,207 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_merged.cpp
+index fa48559..8142af1 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_merged.cpp
+@@ -36,5 +36,2 @@ struct VariableHandlers {
+-  std::function<bool(FastbootDevice*, const std::vector<std::string>&,
+-                     std::string*)>
+-      get;
+-  std::function<std::vector<std::vector<std::string>>(FastbootDevice*)>
+-      get_all_args;
++    std::function<bool(FastbootDevice*, const std::vector<std::string>&, std::string*)> get;
++    std::function<std::vector<std::vector<std::string>>(FastbootDevice*)> get_all_args;
+@@ -48,2 +45 @@ static bool IsSnapshotUpdateInProgress(FastbootDevice* device) {
+-  return merge_status == MergeStatus::SNAPSHOTTED ||
+-         merge_status == MergeStatus::MERGING;
++    return merge_status == MergeStatus::SNAPSHOTTED || merge_status == MergeStatus::MERGING;
+@@ -51,4 +47,3 @@ static bool IsSnapshotUpdateInProgress(FastbootDevice* device) {
+-static bool IsProtectedPartitionDuringMerge(FastbootDevice* device,
+-                                            const std::string& name) {
+-  static const std::unordered_set<std::string> ProtectedPartitionsDuringMerge =
+-      {"userdata", "metadata", "misc"};
++static bool IsProtectedPartitionDuringMerge(FastbootDevice* device, const std::string& name) {
++    static const std::unordered_set<std::string> ProtectedPartitionsDuringMerge = {
++            "userdata", "metadata", "misc"};
+@@ -67,2 +62 @@ static void GetAllVars(FastbootDevice* device, const std::string& name,
+-    device->WriteInfo(
+-        android::base::StringPrintf("%s:%s", name.c_str(), message.c_str()));
++        device->WriteInfo(android::base::StringPrintf("%s:%s", name.c_str(), message.c_str()));
+@@ -78,2 +72,2 @@ static void GetAllVars(FastbootDevice* device, const std::string& name,
+-    device->WriteInfo(android::base::StringPrintf(
+-        "%s:%s:%s", name.c_str(), arg_string.c_str(), message.c_str()));
++        device->WriteInfo(android::base::StringPrintf("%s:%s:%s", name.c_str(), arg_string.c_str(),
++                                                      message.c_str()));
+@@ -82,2 +76 @@ static void GetAllVars(FastbootDevice* device, const std::string& name,
+-bool GetVarHandler(FastbootDevice* device,
+-                   const std::vector<std::string>& args) {
++bool GetVarHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -144,12 +137 @@ bool OemPostWipeData(FastbootDevice* device) {
+-  const std::string checkPostWipeDataCmd("oem postwipedata support");
+-  auto check_cmd_ret_val = fastboot_hal->doOemCommand(
+-      checkPostWipeDataCmd, [&](Result result) { ret = result; });
+-  if (!check_cmd_ret_val.isOk()) {
+-    return false;
+-  }
+-  if (ret.status != Status::SUCCESS) {
+-    return false;
+-  }
+-  const std::string postWipeDataCmd("oem postwipedata userdata");
+-  auto ret_val = fastboot_hal->doOemCommand(
+-      postWipeDataCmd, [&](Result result) { ret = result; });
++    auto ret_val = fastboot_hal->doOemSpecificErase([&](Result result) { ret = result; });
+@@ -159 +141,3 @@ bool OemPostWipeData(FastbootDevice* device) {
+-  if (ret.status != Status::SUCCESS) {
++    if (ret.status == Status::NOT_SUPPORTED) {
++        return false;
++    } else if (ret.status != Status::SUCCESS) {
+@@ -166,2 +150 @@ bool OemPostWipeData(FastbootDevice* device) {
+-bool EraseHandler(FastbootDevice* device,
+-                  const std::vector<std::string>& args) {
++bool EraseHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -172,2 +155 @@ bool EraseHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Erase is not allowed on locked devices");
++        return device->WriteStatus(FastbootResult::FAIL, "Erase is not allowed on locked devices");
+@@ -177,2 +159 @@ bool EraseHandler(FastbootDevice* device,
+-    auto message = "Cannot erase " + partition_name +
+-                   " while a snapshot update is in progress";
++        auto message = "Cannot erase " + partition_name + " while a snapshot update is in progress";
+@@ -198,2 +179 @@ bool EraseHandler(FastbootDevice* device,
+-bool OemCmdHandler(FastbootDevice* device,
+-                   const std::vector<std::string>& args) {
++bool OemCmdHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -202,2 +182 @@ bool OemCmdHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Unable to open fastboot HAL");
++        return device->WriteStatus(FastbootResult::FAIL, "Unable to open fastboot HAL");
+@@ -206,2 +185 @@ bool OemCmdHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Unable to do oem postwipedata userdata");
++        return device->WriteStatus(FastbootResult::FAIL, "Unable to do oem postwipedata userdata");
+@@ -210,2 +188 @@ bool OemCmdHandler(FastbootDevice* device,
+-  auto ret_val =
+-      fastboot_hal->doOemCommand(args[0], [&](Result result) { ret = result; });
++    auto ret_val = fastboot_hal->doOemCommand(args[0], [&](Result result) { ret = result; });
+@@ -213,2 +190 @@ bool OemCmdHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Unable to do OEM command");
++        return device->WriteStatus(FastbootResult::FAIL, "Unable to do OEM command");
+@@ -221,2 +197 @@ bool OemCmdHandler(FastbootDevice* device,
+-bool DownloadHandler(FastbootDevice* device,
+-                     const std::vector<std::string>& args) {
++bool DownloadHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -224,2 +199 @@ bool DownloadHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "size argument unspecified");
++        return device->WriteStatus(FastbootResult::FAIL, "size argument unspecified");
+@@ -232,2 +206 @@ bool DownloadHandler(FastbootDevice* device,
+-  if (!android::base::ParseUint("0x" + args[1], &size,
+-                                kMaxDownloadSizeDefault)) {
++    if (!android::base::ParseUint("0x" + args[1], &size, kMaxDownloadSizeDefault)) {
+@@ -237,2 +210 @@ bool DownloadHandler(FastbootDevice* device,
+-  if (!device->WriteStatus(FastbootResult::DATA,
+-                           android::base::StringPrintf("%08x", size))) {
++    if (!device->WriteStatus(FastbootResult::DATA, android::base::StringPrintf("%08x", size))) {
+@@ -247,2 +219 @@ bool DownloadHandler(FastbootDevice* device,
+-bool SetActiveHandler(FastbootDevice* device,
+-                      const std::vector<std::string>& args) {
++bool SetActiveHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -253,2 +224 @@ bool SetActiveHandler(FastbootDevice* device,
+-    return device->WriteStatus(
+-        FastbootResult::FAIL,
++        return device->WriteStatus(FastbootResult::FAIL,
+@@ -275,2 +245 @@ bool SetActiveHandler(FastbootDevice* device,
+-      return device->WriteFail(
+-          "Cannot change slots while a snapshot update is in progress");
++            return device->WriteFail("Cannot change slots while a snapshot update is in progress");
+@@ -294,2 +263 @@ bool SetActiveHandler(FastbootDevice* device,
+-bool ShutDownHandler(FastbootDevice* device,
+-                     const std::vector<std::string>& ) {
++bool ShutDownHandler(FastbootDevice* device, const std::vector<std::string>& ) {
+@@ -302,2 +270 @@ bool ShutDownHandler(FastbootDevice* device,
+-bool RebootHandler(FastbootDevice* device,
+-                   const std::vector<std::string>& ) {
++bool RebootHandler(FastbootDevice* device, const std::vector<std::string>& ) {
+@@ -310,4 +277,2 @@ bool RebootHandler(FastbootDevice* device,
+-bool RebootBootloaderHandler(FastbootDevice* device,
+-                             const std::vector<std::string>& ) {
+-  auto result =
+-      device->WriteStatus(FastbootResult::OKAY, "Rebooting bootloader");
++bool RebootBootloaderHandler(FastbootDevice* device, const std::vector<std::string>& ) {
++    auto result = device->WriteStatus(FastbootResult::OKAY, "Rebooting bootloader");
+@@ -319,2 +284 @@ bool RebootBootloaderHandler(FastbootDevice* device,
+-bool RebootFastbootHandler(FastbootDevice* device,
+-                           const std::vector<std::string>& ) {
++bool RebootFastbootHandler(FastbootDevice* device, const std::vector<std::string>& ) {
+@@ -340,2 +304 @@ static bool EnterRecovery() {
+-  auto ret =
+-      write(sock, &msg_switch_to_recovery, sizeof(msg_switch_to_recovery));
++    auto ret = write(sock, &msg_switch_to_recovery, sizeof(msg_switch_to_recovery));
+@@ -348,2 +311 @@ static bool EnterRecovery() {
+-bool RebootRecoveryHandler(FastbootDevice* device,
+-                           const std::vector<std::string>& ) {
++bool RebootRecoveryHandler(FastbootDevice* device, const std::vector<std::string>& ) {
+@@ -354,2 +316 @@ bool RebootRecoveryHandler(FastbootDevice* device,
+-    status = device->WriteStatus(FastbootResult::FAIL,
+-                                 "Unable to reboot to recovery");
++        status = device->WriteStatus(FastbootResult::FAIL, "Unable to reboot to recovery");
+@@ -363,2 +324 @@ class PartitionBuilder {
+-  explicit PartitionBuilder(FastbootDevice* device,
+-                            const std::string& partition_name);
++    explicit PartitionBuilder(FastbootDevice* device, const std::string& partition_name);
+@@ -374,2 +334 @@ class PartitionBuilder {
+-PartitionBuilder::PartitionBuilder(FastbootDevice* device,
+-                                   const std::string& partition_name)
++PartitionBuilder::PartitionBuilder(FastbootDevice* device, const std::string& partition_name)
+@@ -379,2 +338 @@ PartitionBuilder::PartitionBuilder(FastbootDevice* device,
+-  auto super_device =
+-      FindPhysicalPartition(fs_mgr_get_super_partition_name(slot_number_));
++    auto super_device = FindPhysicalPartition(fs_mgr_get_super_partition_name(slot_number_));
+@@ -394,2 +352 @@ bool PartitionBuilder::Write() {
+-bool CreatePartitionHandler(FastbootDevice* device,
+-                            const std::vector<std::string>& args) {
++bool CreatePartitionHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -400,2 +357 @@ bool CreatePartitionHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Command not available on locked devices");
++        return device->WriteStatus(FastbootResult::FAIL, "Command not available on locked devices");
+@@ -428,2 +384 @@ bool CreatePartitionHandler(FastbootDevice* device,
+-bool DeletePartitionHandler(FastbootDevice* device,
+-                            const std::vector<std::string>& args) {
++bool DeletePartitionHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -434,2 +389 @@ bool DeletePartitionHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Command not available on locked devices");
++        return device->WriteStatus(FastbootResult::FAIL, "Command not available on locked devices");
+@@ -448,2 +402 @@ bool DeletePartitionHandler(FastbootDevice* device,
+-bool ResizePartitionHandler(FastbootDevice* device,
+-                            const std::vector<std::string>& args) {
++bool ResizePartitionHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -454,2 +407 @@ bool ResizePartitionHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Command not available on locked devices");
++        return device->WriteStatus(FastbootResult::FAIL, "Command not available on locked devices");
+@@ -480,2 +432 @@ bool ResizePartitionHandler(FastbootDevice* device,
+-void CancelPartitionSnapshot(FastbootDevice* device,
+-                             const std::string& partition_name) {
++void CancelPartitionSnapshot(FastbootDevice* device, const std::string& partition_name) {
+@@ -490,2 +441 @@ void CancelPartitionSnapshot(FastbootDevice* device,
+-bool FlashHandler(FastbootDevice* device,
+-                  const std::vector<std::string>& args) {
++bool FlashHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -501,2 +451 @@ bool FlashHandler(FastbootDevice* device,
+-    auto message = "Cannot flash " + partition_name +
+-                   " while a snapshot update is in progress";
++        auto message = "Cannot flash " + partition_name + " while a snapshot update is in progress";
+@@ -514,2 +463 @@ bool FlashHandler(FastbootDevice* device,
+-bool UpdateSuperHandler(FastbootDevice* device,
+-                        const std::vector<std::string>& args) {
++bool UpdateSuperHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+@@ -520,2 +468 @@ bool UpdateSuperHandler(FastbootDevice* device,
+-    return device->WriteStatus(FastbootResult::FAIL,
+-                               "Command not available on locked devices");
++        return device->WriteStatus(FastbootResult::FAIL, "Command not available on locked devices");
+@@ -548,2 +495 @@ bool GsiHandler(FastbootDevice* device, const std::vector<std::string>& args) {
+-bool SnapshotUpdateHandler(FastbootDevice* device,
+-                           const std::vector<std::string>& args) {
++bool SnapshotUpdateHandler(FastbootDevice* device, const std::vector<std::string>& args) {

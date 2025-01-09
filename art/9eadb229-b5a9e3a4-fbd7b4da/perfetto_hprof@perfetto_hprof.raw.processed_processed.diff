@@ -1,0 +1,209 @@
+--- a/./output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_conflict.cc
++++ b/./output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_merged.cc
+@@ -18 +17,0 @@
+-<<<<<<< HEAD
+@@ -24,7 +22,0 @@
+-||||||| fbd7b4da9f
+-=======
+-#include "android-base/logging.h"
+-#include "android-base/properties.h"
+-#include "base/fast_exit.h"
+-#include "base/systrace.h"
+->>>>>>> b5a9e3a4
+@@ -65 +56,0 @@ static State g_state = State::kUninitialized;
+-<<<<<<< HEAD
+@@ -68,4 +58,0 @@ static uint32_t g_oome_sessions_pending = 0;
+-||||||| fbd7b4da9f
+-=======
+-static bool g_oome_triggered = false;
+->>>>>>> b5a9e3a4
+@@ -117 +103,0 @@ bool ShouldSampleSmapsEntry(const perfetto::profiling::SmapsEntry& e) {
+-<<<<<<< HEAD
+@@ -140,10 +125,0 @@ bool IsOomeHeapDumpAllowed(const perfetto::DataSourceConfig& ds_config) {
+-||||||| fbd7b4da9f
+-=======
+-uint64_t GetCurrentBootClockNs() {
+-  struct timespec ts = {};
+-  if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {
+-    LOG(FATAL) << "Failed to get boottime.";
+-  }
+-  return ts.tv_sec * 1000000000LL + ts.tv_nsec;
+-}
+->>>>>>> b5a9e3a4
+@@ -154 +129,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-<<<<<<< HEAD
+@@ -156,4 +130,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-||||||| fbd7b4da9f
+-=======
+-  explicit JavaHprofDataSource(bool verify_session_id) : verify_session_id_(verify_session_id) {}
+->>>>>>> b5a9e3a4
+@@ -161 +131,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-<<<<<<< HEAD
+@@ -172,21 +141,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-||||||| fbd7b4da9f
+-    uint64_t normalized_cfg_tracing_session_id =
+-      args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();
+-    if (requested_tracing_session_id < 0) {
+-      LOG(ERROR) << "invalid requested tracing session id " << requested_tracing_session_id;
+-      return;
+-    }
+-    if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_cfg_tracing_session_id) {
+-      return;
+-=======
+-    if (verify_session_id_) {
+-      uint64_t normalized_tracing_session_id =
+-        args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();
+-      if (requested_tracing_session_id < 0) {
+-        LOG(ERROR) << "invalid requested tracing session id " << requested_tracing_session_id;
+-        return;
+-      }
+-      if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_tracing_session_id) {
+-        return;
+-      }
+->>>>>>> b5a9e3a4
+@@ -240 +188,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-<<<<<<< HEAD
+@@ -256,4 +203,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-||||||| fbd7b4da9f
+-=======
+-  bool verify_session_id_ = false;
+->>>>>>> b5a9e3a4
+@@ -268 +211,0 @@ class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {
+-<<<<<<< HEAD
+@@ -270,6 +212,0 @@ void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {
+-||||||| fbd7b4da9f
+-art::Thread* JavaHprofDataSource::self_ = nullptr;
+-void WaitForDataSource(art::Thread* self) {
+-=======
+-void SetupDataSource(const std::string& ds_name, bool verify_session_id) {
+->>>>>>> b5a9e3a4
+@@ -282 +218,0 @@ void SetupDataSource(const std::string& ds_name, bool verify_session_id) {
+-<<<<<<< HEAD
+@@ -286,8 +221,0 @@ void SetupDataSource(const std::string& ds_name, bool verify_session_id) {
+-||||||| fbd7b4da9f
+-  JavaHprofDataSource::Register(dsd);
+-  LOG(INFO) << "waiting for data source";
+-=======
+-  JavaHprofDataSource::Register(dsd, verify_session_id);
+-  LOG(INFO) << "registered data source " << ds_name;
+-}
+->>>>>>> b5a9e3a4
+@@ -762 +689,0 @@ class HeapGraphDumper {
+-<<<<<<< HEAD
+@@ -793,37 +719,0 @@ void ForkAndRun(art::Thread* self,
+-||||||| fbd7b4da9f
+-void DumpPerfetto(art::Thread* self) {
+-  pid_t parent_pid = getpid();
+-  LOG(INFO) << "preparing to dump heap for " << parent_pid;
+-=======
+-void BusyWaitpid(pid_t pid, uint32_t timeout_ms) {
+-  for (size_t i = 0;; ++i) {
+-    if (i == timeout_ms) {
+-      LOG(ERROR) << "perfetto_hprof child timed out. Sending SIGKILL.";
+-      kill(pid, SIGKILL);
+-    }
+-    int stat_loc;
+-    pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG);
+-    if (wait_result == -1 && errno != EINTR) {
+-      if (errno != ECHILD) {
+-        PLOG(FATAL_WITHOUT_ABORT) << "waitpid";
+-      }
+-      break;
+-    } else if (wait_result > 0) {
+-      break;
+-    } else {
+-      usleep(1000);
+-    }
+-  }
+-}
+-enum class ResumeParentPolicy {
+-  IMMEDIATELY,
+-  DEFERRED
+-};
+-void ForkAndRun(
+-    art::Thread* self,
+-    ResumeParentPolicy resume_parent_policy,
+-    std::function<void(pid_t child)> parent_runnable,
+-    std::function<void(pid_t parent, uint64_t timestamp)> child_runnable) {
+-  pid_t parent_pid = getpid();
+-  LOG(INFO) << "preparing to dump heap for " << parent_pid;
+->>>>>>> b5a9e3a4
+@@ -906 +795,0 @@ void WriteHeapPackets(pid_t parent_pid, uint64_t timestamp) {
+-<<<<<<< HEAD
+@@ -963,58 +851,0 @@ void DumpPerfettoOutOfMemory() REQUIRES_SHARED(art::Locks::mutator_lock_) {
+-||||||| fbd7b4da9f
+-  LOG(INFO) << "finished dumping heap for " << parent_pid;
+-  art::FastExit(0);
+-=======
+-void DumpPerfetto(art::Thread* self) {
+-  ForkAndRun(
+-    self,
+-    ResumeParentPolicy::IMMEDIATELY,
+-    [](pid_t child) {
+-      BusyWaitpid(child, 1000);
+-    },
+-    [self](pid_t dumped_pid, uint64_t timestamp) {
+-      if (daemon(0, 0) == -1) {
+-        PLOG(FATAL) << "daemon";
+-      }
+-      ArmWatchdogOrDie();
+-      SetupDataSource("android.java_hprof", true);
+-      WaitForDataSource(self);
+-      WriteHeapPackets(dumped_pid, timestamp);
+-      LOG(INFO) << "finished dumping heap for " << dumped_pid;
+-    });
+-}
+-void DumpPerfettoOutOfMemory() {
+-  art::Thread* self = art::Thread::Current();
+-  if (!self) {
+-    LOG(FATAL_WITHOUT_ABORT) << "no thread in DumpPerfettoOutOfMemory";
+-    return;
+-  }
+-  {
+-    art::MutexLock lk(self, GetStateMutex());
+-    if (g_oome_triggered) {
+-      return;
+-    }
+-    g_oome_triggered = true;
+-  }
+-  ForkAndRun(
+-    self,
+-    ResumeParentPolicy::DEFERRED,
+-    [](pid_t child) {
+-      BusyWaitpid(child, kWatchdogTimeoutSec * 1000);
+-    },
+-    [self](pid_t dumped_pid, uint64_t timestamp) {
+-      ArmWatchdogOrDie();
+-      art::ScopedTrace trace("perfetto_hprof oome");
+-      SetupDataSource("android.java_hprof.oom", false);
+-      perfetto::Tracing::ActivateTriggers({"com.android.telemetry.art-outofmemory"}, 500);
+-      if (!TimedWaitForDataSource(self, 500)) {
+-        LOG(INFO) << "timeout waiting for data source start (no active session?)";
+-        return;
+-      }
+-      WriteHeapPackets(dumped_pid, timestamp);
+-      LOG(INFO) << "finished dumping heap for OOME " << dumped_pid;
+-    });
+-}
+-bool CanProfile() {
+-  std::string build_type = android::base::GetProperty("ro.build.type", "");
+-  return !build_type.empty() && build_type != "user";
+->>>>>>> b5a9e3a4
+@@ -1098,5 +928,0 @@ extern "C" bool ArtPlugin_Initialize() {
+-<<<<<<< HEAD
+-  art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);
+-||||||| fbd7b4da9f
+-=======
+-  if (CanProfile()) {
+@@ -1104,2 +929,0 @@ extern "C" bool ArtPlugin_Initialize() {
+-  }
+->>>>>>> b5a9e3a4
+@@ -1109,5 +932,0 @@ extern "C" bool ArtPlugin_Deinitialize() {
+-<<<<<<< HEAD
+-  art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);
+-||||||| fbd7b4da9f
+-=======
+-  if (CanProfile()) {
+@@ -1115,2 +933,0 @@ extern "C" bool ArtPlugin_Deinitialize() {
+-  }
+->>>>>>> b5a9e3a4

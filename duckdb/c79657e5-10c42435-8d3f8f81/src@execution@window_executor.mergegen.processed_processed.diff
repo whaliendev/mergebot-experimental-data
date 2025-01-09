@@ -1,0 +1,16 @@
+--- a/./output/duckdb/c79657e5-10c42435-8d3f8f81/src@execution@window_executor.no_comments_mergegen.cpp
++++ b/./output/duckdb/c79657e5-10c42435-8d3f8f81/src@execution@window_executor.no_comments_merged.cpp
+@@ -1290 +1290,12 @@ void WindowLeadLagExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate,
+-const auto width = MinValue(source_limit, target_limit);
++    auto width = MinValue(source_limit, target_limit);
++    const idx_t col_idx = 0;
++    while (width) {
++     const auto source_offset = cursor.Seek(index);
++     auto &source = cursor.chunk.data[col_idx];
++     const auto copied = MinValue<idx_t>(cursor.chunk.size() - source_offset, width);
++     VectorOperations::Copy(source, result, source_offset + copied, source_offset, i);
++     i += copied;
++     row_idx += copied;
++     index += copied;
++     width -= copied;
++    }

@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "static bool _is_valid_os_fd(int fd) {\n    // Disallow invalid FDs and stdin/out/err as well.\n    if (fd < 3) {\n        return false;\n    }\n#ifdef _WIN32\n    auto handle = (HANDLE)fd;\n    DWORD info = 0;\n    if (GetHandleInformation(handle, &info) == 0) {\n        return false;\n    }\n#else\n    int flags = fcntl(fd, F_GETFD);\n    if (flags == -1) {\n        return false;\n    }\n#endif\n    return true;\n}\n",
+        "b_contents": "static bool _is_valid_fd(int fd) {\n    // Disallow invalid FDs and stdin/out/err as well.\n    if (fd < 3) {\n        return false;\n    }\n#ifdef _WIN32\n    HANDLE handle = adb_get_os_handle(fd);\n    DWORD info = 0;\n    if (GetHandleInformation(handle, &info) == 0) {\n        return false;\n    }\n#else\n    int flags = fcntl(fd, F_GETFD);\n    if (flags == -1) {\n        return false;\n    }\n#endif\n    return true;\n}\n",
+        "base_contents": "",
+        "res_region": "static bool _is_valid_os_fd(int fd) {\n    // Disallow invalid FDs and stdin/out/err as well.\n    if (fd < 3) {\n        return false;\n    }\n#ifdef _WIN32\n    auto handle = (HANDLE)fd;\n    DWORD info = 0;\n    if (GetHandleInformation(handle, &info) == 0) {\n        return false;\n    }\n#else\n    int flags = fcntl(fd, F_GETFD);\n    if (flags == -1) {\n        return false;\n    }\n#endif\n    return true;\n}\n",
+        "lookback": "#endif\n}\n",
+        "lookahead": "int adb_commandline(int argc, const char** argv) {\n    bool no_daemon = false;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1445,
+        "end_line": 1488,
+        "merge_gen_region": "static bool _is_valid_os_fd(int fd) { // Disallow invalid FDs and stdin/out/err as well. if (fd < 3) { return false; } #ifdef _WIN32 auto handle = (HANDLE)fd; DWORD info = 0; if (GetHandleInformation(handle, &info) == 0) { return false; } #else int flags = fcntl(fd, F_GETFD); if (flags == -1) { return false; } #endif return true; }",
+        "resolved": true
+    },
+    {
+        "a_contents": "        int connection_fd = atoi(argv[1]);\n        if (!_is_valid_os_fd(connection_fd)) {\n            error_exit(\"Invalid connection_fd number given: %d\", connection_fd);",
+        "b_contents": "        int connection_fd = atoi(argv[1]);\n        if (!_is_valid_fd(connection_fd)) {\n            error_exit(\"Invalid connection_fd number given: %d\", connection_fd);",
+        "base_contents": "        int fd = atoi(argv[1]);\n        if (fd < 3) {\n            // Disallow invalid FDs and stdin/out/err as well.\n            error_exit(\"Invalid fd number given: %d\", fd);",
+        "res_region": "        int connection_fd = atoi(argv[1]);\n        if (!_is_valid_os_fd(connection_fd)) {\n            error_exit(\"Invalid connection_fd number given: %d\", connection_fd);",
+        "lookback": "            error_exit(\"usage: adb inc-server CONNECTION_FD OUTPUT_FD FILE1 FILE2 ...\");\n#endif\n        }",
+        "lookahead": "        }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2062,
+        "end_line": 2075,
+        "merge_gen_region": "int connection_fd = atoi(argv[1]); if (!_is_valid_os_fd(connection_fd)) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "\n        connection_fd = adb_register_socket(connection_fd);\n        close_on_exec(connection_fd);\n\n        int output_fd = atoi(argv[2]);\n        if (!_is_valid_os_fd(output_fd)) {\n            error_exit(\"Invalid output_fd number given: %d\", output_fd);\n        }\n        output_fd = adb_register_socket(output_fd);\n        close_on_exec(output_fd);\n        return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);",
+        "b_contents": "\n        connection_fd = adb_register_socket(connection_fd);\n        close_on_exec(connection_fd);\n\n        int output_fd = atoi(argv[2]);\n        if (!_is_valid_fd(output_fd)) {\n            error_exit(\"Invalid output_fd number given: %d\", output_fd);\n        }\n        output_fd = adb_register_socket(output_fd);\n        close_on_exec(output_fd);\n        return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);",
+        "base_contents": "        fd = adb_register_socket(fd);\n        close_on_exec(fd);\n        return incremental::serve(fd, argc - 2, argv + 2);",
+        "res_region": "\n        connection_fd = adb_register_socket(connection_fd);\n        close_on_exec(connection_fd);\n\n        int output_fd = atoi(argv[2]);\n        if (!_is_valid_os_fd(output_fd)) {\n            error_exit(\"Invalid output_fd number given: %d\", output_fd);\n        }\n        output_fd = adb_register_socket(output_fd);\n        close_on_exec(output_fd);\n        return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);",
+        "lookback": "        if (!_is_valid_os_fd(connection_fd)) {\n            error_exit(\"Invalid connection_fd number given: %d\", connection_fd);\n        }",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2077,
+        "end_line": 2105,
+        "merge_gen_region": "connection_fd = adb_register_socket(connection_fd); close_on_exec(connection_fd); int output_fd = atoi(argv[2]); if (!_is_valid_os_fd(output_fd)) { error_exit(\"Invalid output_fd number given: %d\", output_fd); } output_fd = adb_register_socket(output_fd); close_on_exec(output_fd);",
+        "resolved": false
+    }
+]

@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "\t\t\t// keep a reference\n\t\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\t\tdependencies.push_back(make_shared<PythonDependencies>(make_unique<RegisteredObject>(python_object),\n\t\t\t                                                       make_unique<RegisteredObject>(new_df)));\n\t\t\tconnection->context->external_dependencies[name] = std::move(dependencies);\n\t\t}",
+        "b_contents": "\t\t// keep a reference\n\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\tdependencies.push_back(make_shared<PythonDependencies>(make_uniq<RegisteredObject>(python_object),\n\t\t                                                       make_uniq<RegisteredObject>(new_df)));\n\t\tconnection->context->external_dependencies[name] = std::move(dependencies);",
+        "base_contents": "\t\t// keep a reference\n\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\tdependencies.push_back(make_shared<PythonDependencies>(make_unique<RegisteredObject>(python_object),\n\t\t                                                       make_unique<RegisteredObject>(new_df)));\n\t\tconnection->context->external_dependencies[name] = std::move(dependencies);",
+        "res_region": "\t\t\t// keep a reference\n\t\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\t\tdependencies.push_back(make_shared<PythonDependencies>(make_uniq<RegisteredObject>(python_object),\n\t\t\t                                                       make_uniq<RegisteredObject>(new_df)));\n\t\t\tconnection->context->external_dependencies[name] = std::move(dependencies);\n\t\t}",
+        "lookback": "\t\t\t\t        ->CreateView(name, true, true);\n\t\t\t}\n",
+        "lookahead": "\t} else if (IsAcceptedArrowObject(python_object) || IsPolarsDataframe(python_object)) {\n\t\tpy::object arrow_object;",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 490,
+        "end_line": 509,
+        "merge_gen_region": "(python_object), make_uniq<RegisteredObject>(new_df))); connection->context->external_dependencies[name] = std::move(dependencies); } } else if (IsAcceptedArrowObject(python_object) || IsPolarsDataframe(python_object)) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\tRegisterArrowObject(arrow_object, name);",
+        "b_contents": "\t\tauto stream_factory =\n\t\t    make_uniq<PythonTableArrowArrayStreamFactory>(arrow_object.ptr(), connection->context->config);\n\t\tauto stream_factory_produce = PythonTableArrowArrayStreamFactory::Produce;\n\t\tauto stream_factory_get_schema = PythonTableArrowArrayStreamFactory::GetSchema;\n\t\t{\n\t\t\tpy::gil_scoped_release release;\n\t\t\ttemporary_views[name] =\n\t\t\t    connection\n\t\t\t        ->TableFunction(\"arrow_scan\", {Value::POINTER((uintptr_t)stream_factory.get()),\n\t\t\t                                       Value::POINTER((uintptr_t)stream_factory_produce),\n\t\t\t                                       Value::POINTER((uintptr_t)stream_factory_get_schema)})\n\t\t\t        ->CreateView(name, true, true);\n\t\t}\n\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\tdependencies.push_back(\n\t\t    make_shared<PythonDependencies>(make_uniq<RegisteredArrow>(std::move(stream_factory), arrow_object)));\n\t\tconnection->context->external_dependencies[name] = std::move(dependencies);",
+        "base_contents": "\t\tauto stream_factory =\n\t\t    make_unique<PythonTableArrowArrayStreamFactory>(arrow_object.ptr(), connection->context->config);\n\t\tauto stream_factory_produce = PythonTableArrowArrayStreamFactory::Produce;\n\t\tauto stream_factory_get_schema = PythonTableArrowArrayStreamFactory::GetSchema;\n\t\t{\n\t\t\tpy::gil_scoped_release release;\n\t\t\ttemporary_views[name] =\n\t\t\t    connection\n\t\t\t        ->TableFunction(\"arrow_scan\", {Value::POINTER((uintptr_t)stream_factory.get()),\n\t\t\t                                       Value::POINTER((uintptr_t)stream_factory_produce),\n\t\t\t                                       Value::POINTER((uintptr_t)stream_factory_get_schema)})\n\t\t\t        ->CreateView(name, true, true);\n\t\t}\n\t\tvector<shared_ptr<ExternalDependency>> dependencies;\n\t\tdependencies.push_back(\n\t\t    make_shared<PythonDependencies>(make_unique<RegisteredArrow>(std::move(stream_factory), arrow_object)));\n\t\tconnection->context->external_dependencies[name] = std::move(dependencies);",
+        "res_region": "\t\tRegisterArrowObject(arrow_object, name);",
+        "lookback": "\t\t} else {\n\t\t\tarrow_object = python_object;\n\t\t}",
+        "lookahead": "\t} else if (DuckDBPyRelation::IsRelation(python_object)) {\n\t\tauto pyrel = py::cast<DuckDBPyRelation *>(python_object);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 524,
+        "end_line": 562,
+        "merge_gen_region": "shapeArrowObject(arrow_object, name); } else if (DuckDBPyRelation::IsRelation(python_object)) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\tif (IsArrowBackedDataFrame(entry)) {\n\t\t\tauto table = ArrowTableFromDataframe(entry);\n\t\t\tCreateArrowScan(table, *table_function, children, config);\n\t\t} else {\n\t\t\tstring name = \"df_\" + StringUtil::GenerateRandomName();\n\t\t\tauto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry);\n\t\t\tchildren.push_back(make_unique<ConstantExpression>(Value::POINTER((uintptr_t)new_df.ptr())));\n\t\t\ttable_function->function = make_unique<FunctionExpression>(\"pandas_scan\", std::move(children));\n\t\t\ttable_function->external_dependency = make_unique<PythonDependencies>(\n\t\t\t    make_unique<RegisteredObject>(entry), make_unique<RegisteredObject>(new_df));\n\t\t}\n",
+        "b_contents": "\t\tstring name = \"df_\" + StringUtil::GenerateRandomName();\n\t\tauto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry);\n\t\tchildren.push_back(make_uniq<ConstantExpression>(Value::POINTER((uintptr_t)new_df.ptr())));\n\t\ttable_function->function = make_uniq<FunctionExpression>(\"pandas_scan\", std::move(children));\n\t\ttable_function->external_dependency =\n\t\t    make_uniq<PythonDependencies>(make_uniq<RegisteredObject>(entry), make_uniq<RegisteredObject>(new_df));",
+        "base_contents": "\t\tstring name = \"df_\" + StringUtil::GenerateRandomName();\n\t\tauto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry);\n\t\tchildren.push_back(make_unique<ConstantExpression>(Value::POINTER((uintptr_t)new_df.ptr())));\n\t\ttable_function->function = make_unique<FunctionExpression>(\"pandas_scan\", std::move(children));\n\t\ttable_function->external_dependency = make_unique<PythonDependencies>(make_unique<RegisteredObject>(entry),\n\t\t                                                                      make_unique<RegisteredObject>(new_df));",
+        "res_region": "\t\tif (IsArrowBackedDataFrame(entry)) {\n\t\t\tauto table = ArrowTableFromDataframe(entry);\n\t\t\tCreateArrowScan(table, *table_function, children, config);\n\t\t} else {\n\t\t\tstring name = \"df_\" + StringUtil::GenerateRandomName();\n\t\t\tauto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry);\n\t\t\tchildren.push_back(make_uniq<ConstantExpression>(Value::POINTER((uintptr_t)new_df.ptr())));\n\t\t\ttable_function->function = make_uniq<FunctionExpression>(\"pandas_scan\", std::move(children));\n\t\t\ttable_function->external_dependency =\n\t\t\t    make_uniq<PythonDependencies>(make_uniq<RegisteredObject>(entry), make_uniq<RegisteredObject>(new_df));\n\t\t}\n",
+        "lookback": "\tauto table_function = make_uniq<TableFunctionRef>();\n\tvector<unique_ptr<ParsedExpression>> children;\n\tif (DuckDBPyConnection::IsPandasDataframe(entry)) {",
+        "lookahead": "\t} else if (DuckDBPyConnection::IsAcceptedArrowObject(entry)) {\n\t\tCreateArrowScan(entry, *table_function, children, config);",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1255,
+        "end_line": 1282,
+        "merge_gen_region": "if (DuckDBPyConnection::IsPandasDataframe(entry)) { if (IsArrowBackedDataFrame(entry)) { auto table = ArrowTableFromDataframe(entry); CreateArrowScan(table, *table_function, children, config); } else { string name = \"df_\" + StringUtil::GenerateRandomName(); auto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry); children.push_back(make_uniq<ConstantExpression>(Value::POINTER((uintptr_t)new_df.ptr()))); table_function->function = make_uniq<FunctionExpression>(\"pandas_scan\", std::move(children)); table_function->external_dependency = make_uniq<PythonDependencies>( make_uniq<RegisteredObject>(entry), make_uniq<RegisteredObject>(new_df)); }",
+        "resolved": false
+    }
+]

@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "#include <sys/stat.h>\n#include <sys/types.h>\n\n#include <algorithm>\n#include <string>\n#include <vector>",
+        "b_contents": "#include <functional>\n#include <sys/stat.h>",
+        "base_contents": "#include <sys/stat.h>\n\n#include <chrono>\n#include <functional>\n#include <optional>",
+        "res_region": "#include <sys/stat.h>\n#include <sys/types.h>\n\n#include <algorithm>\n#include <string>\n#include <vector>",
+        "lookback": "#ifndef _INIT_DEVICES_H\n#define _INIT_DEVICES_H\n",
+        "lookahead": "\n#include <android-base/file.h>",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 19,
+        "end_line": 35,
+        "merge_gen_region": "#include <sys/stat.h> #include <sys/types.h> #include <algorithm> #include <string> #include <vector>",
+        "resolved": true
+    },
+    {
+        "a_contents": "    Subsystem() {}",
+        "b_contents": "extern int add_dev_perms(const char *name, const char *attr,\n                         mode_t perm, unsigned int uid,\n                         unsigned int gid, unsigned short prefix,\n                         unsigned short wildcard);\nint get_device_fd();",
+        "base_contents": "extern int add_dev_perms(const char *name, const char *attr,\n                         mode_t perm, unsigned int uid,\n                         unsigned int gid, unsigned short prefix,\n                         unsigned short wildcard);",
+        "res_region": "    Subsystem() {}",
+        "lookback": "  public:\n    friend class SubsystemParser;\n",
+        "lookahead": "\n    // Returns the full path for a uevent of a device that is a member of this subsystem,",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 81,
+        "end_line": 94,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "        return dir_name_ + \"/\" + devname;\n    }\n\n    bool operator==(const std::string& string_name) const { return name_ == string_name; }\n\n  private:\n    enum class DevnameSource {\n        DEVNAME_UEVENT_DEVNAME,\n        DEVNAME_UEVENT_DEVPATH,\n    };\n\n    std::string name_;\n    std::string dir_name_ = \"/dev\";\n    DevnameSource devname_source_;\n};\n\nclass DeviceHandler {\n  public:\n    friend class DeviceHandlerTester;\n\n    DeviceHandler();\n    DeviceHandler(std::vector<Permissions> dev_permissions,\n                  std::vector<SysfsPermissions> sysfs_permissions,\n                  std::vector<Subsystem> subsystems, bool skip_restorecon);\n    ~DeviceHandler(){};\n\n    void HandleDeviceEvent(const Uevent& uevent);\n\n    std::vector<std::string> GetBlockDeviceSymlinks(const Uevent& uevent) const;\n    void set_skip_restorecon(bool value) { skip_restorecon_ = value; }\n\n  private:\n    bool FindPlatformDevice(std::string path, std::string* platform_device_path) const;\n    std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions(\n        const std::string& path, const std::vector<std::string>& links) const;\n    void MakeDevice(const std::string& path, int block, int major, int minor,\n                    const std::vector<std::string>& links) const;\n    std::vector<std::string> GetCharacterDeviceSymlinks(const Uevent& uevent) const;\n    void HandleDevice(const std::string& action, const std::string& devpath, int block, int major,\n                      int minor, const std::vector<std::string>& links) const;\n    void FixupSysPermissions(const std::string& upath, const std::string& subsystem) const;\n\n    void HandleBlockDeviceEvent(const Uevent& uevent) const;\n    void HandleGenericDeviceEvent(const Uevent& uevent) const;\n\n    std::vector<Permissions> dev_permissions_;\n    std::vector<SysfsPermissions> sysfs_permissions_;\n    std::vector<Subsystem> subsystems_;\n    selabel_handle* sehandle_;\n    bool skip_restorecon_;\n    std::string sysfs_mount_point_;\n};\n\n// Exposed for testing\nvoid SanitizePartitionName(std::string* string);\n\n#endif",
+        "b_contents": "#endif\t/* _INIT_DEVICES_H */",
+        "base_contents": "void device_poll(const coldboot_callback& callback = nullptr,\n                 const std::optional<std::chrono::milliseconds> relative_timeout = {});\n\n#endif\t/* _INIT_DEVICES_H */",
+        "res_region": "        return dir_name_ + \"/\" + devname;\n    }\n\n    bool operator==(const std::string& string_name) const { return name_ == string_name; }\n\n  private:\n    enum class DevnameSource {\n        DEVNAME_UEVENT_DEVNAME,\n        DEVNAME_UEVENT_DEVPATH,\n    };\n\n    std::string name_;\n    std::string dir_name_ = \"/dev\";\n    DevnameSource devname_source_;\n};\n\nclass DeviceHandler {\n  public:\n    friend class DeviceHandlerTester;\n\n    DeviceHandler();\n    DeviceHandler(std::vector<Permissions> dev_permissions,\n                  std::vector<SysfsPermissions> sysfs_permissions,\n                  std::vector<Subsystem> subsystems, bool skip_restorecon);\n    ~DeviceHandler(){};\n\n    void HandleDeviceEvent(const Uevent& uevent);\n\n    std::vector<std::string> GetBlockDeviceSymlinks(const Uevent& uevent) const;\n    void set_skip_restorecon(bool value) { skip_restorecon_ = value; }\n\n  private:\n    bool FindPlatformDevice(std::string path, std::string* platform_device_path) const;\n    std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions(\n        const std::string& path, const std::vector<std::string>& links) const;\n    void MakeDevice(const std::string& path, int block, int major, int minor,\n                    const std::vector<std::string>& links) const;\n    std::vector<std::string> GetCharacterDeviceSymlinks(const Uevent& uevent) const;\n    void HandleDevice(const std::string& action, const std::string& devpath, int block, int major,\n                      int minor, const std::vector<std::string>& links) const;\n    void FixupSysPermissions(const std::string& upath, const std::string& subsystem) const;\n\n    void HandleBlockDeviceEvent(const Uevent& uevent) const;\n    void HandleGenericDeviceEvent(const Uevent& uevent) const;\n\n    std::vector<Permissions> dev_permissions_;\n    std::vector<SysfsPermissions> sysfs_permissions_;\n    std::vector<Subsystem> subsystems_;\n    selabel_handle* sehandle_;\n    bool skip_restorecon_;\n    std::string sysfs_mount_point_;\n};\n\n// Exposed for testing\nvoid SanitizePartitionName(std::string* string);\n\n#endif",
+        "lookback": "                                  ? uevent.device_name\n                                  : android::base::Basename(uevent.path);\n",
+        "lookahead": "",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 103,
+        "end_line": 168,
+        "merge_gen_region": "return dir_name_ + \"/\" + devname; } bool operator==(const std::string& string_name) const { return name_ == string_name; } private: enum class DevnameSource { DEVNAME_UEVENT_DEVNAME, DEVNAME_UEVENT_DEVPATH, }; std::string name_; std::string dir_name_ = \"/dev\"; DevnameSource devname_source_; }; class DeviceHandler { public: friend class DeviceHandlerTester; DeviceHandler(); DeviceHandler(std::vector<Permissions> dev_permissions, std::vector<SysfsPermissions> sysfs_permissions, std::vector<Subsystem> subsystems, bool skip_restorecon); ~DeviceHandler(){}; void HandleDeviceEvent(const Uevent& uevent); std::vector<std::string> GetBlockDeviceSymlinks(const Uevent& uevent) const; void set_skip_restorecon(bool value) { skip_restorecon_ = value; } private: bool FindPlatformDevice(std::string path, std::string* platform_device_path) const; std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions( const std::string& path, const std::vector<std::string>& links) const; void MakeDevice(const std::string& path, const std::vector<std::string>& links) const; void MakeDevice(const std::string& path, int block, int major, int minor, const std::vector<std::string>& links) const; std::tuple<mode_t, uid_t, gid_t> GetDevicePermissions( const std::string& path, const std::string* platform_device_path) const; std::tuple<mode_t, gid_t> GetDevicePermissions( const std::string& path, const std::string& path, const std::string&",
+        "resolved": false
+    }
+]

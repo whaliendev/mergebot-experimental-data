@@ -1,0 +1,168 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/91dfd997-43915f77-47af5d30/services@audiopolicy@service@AudioPolicyEffects.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/91dfd997-43915f77-47af5d30/services@audiopolicy@service@AudioPolicyEffects.no_comments_merged.h
+index a501f85..7b2201c 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/91dfd997-43915f77-47af5d30/services@audiopolicy@service@AudioPolicyEffects.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/91dfd997-43915f77-47af5d30/services@audiopolicy@service@AudioPolicyEffects.no_comments_merged.h
+@@ -1,2 +1 @@
+-#ifndef ANDROID_AUDIOPOLICYEFFECTS_H
+-#define ANDROID_AUDIOPOLICYEFFECTS_H 
++       
+@@ -16 +15,2 @@ namespace android {
+-class AudioPolicyEffects : public RefBase {
++class AudioPolicyEffects : public RefBase
++{
+@@ -20,24 +20,32 @@ class AudioPolicyEffects : public RefBase {
+-                                      effect_descriptor_t* descriptors, uint32_t* count)
+-            status_t addInputEffects(audio_io_handle_t input, audio_source_t inputSource,
+-                                     audio_session_t audioSession)
+-            status_t releaseInputEffects(audio_io_handle_t input, audio_session_t audioSession)
+-            status_t
+-            queryDefaultOutputSessionEffects(audio_session_t audioSession,
+-                                             effect_descriptor_t* descriptors, uint32_t* count)
+-            status_t addOutputSessionEffects(audio_io_handle_t output, audio_stream_type_t stream,
+-                                             audio_session_t audioSession)
+-            status_t
+-            releaseOutputSessionEffects(audio_io_handle_t output, audio_stream_type_t stream,
+-                                        audio_session_t audioSession)
+-            status_t
+-            addSourceDefaultEffect(const effect_uuid_t* type, const String16& opPackageName,
+-                                   const effect_uuid_t* uuid, int32_t priority,
+-                                   audio_source_t source, audio_unique_id_t* id)
+-            status_t
+-            addStreamDefaultEffect(const effect_uuid_t* type, const String16& opPackageName,
+-                                   const effect_uuid_t* uuid, int32_t priority, audio_usage_t usage,
+-                                   audio_unique_id_t* id)
+-            status_t removeSourceDefaultEffect(audio_unique_id_t id)
+-            status_t removeStreamDefaultEffect(audio_unique_id_t id)
+-                    private : EXCLUDES_EffectHandle_Mutex;
+-    std::mutex mDeviceEffectsMutex;
++                             effect_descriptor_t *descriptors,
++                             uint32_t* count) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t addInputEffects(audio_io_handle_t input,
++                             audio_source_t inputSource,
++                             audio_session_t audioSession) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t releaseInputEffects(audio_io_handle_t input,
++                                 audio_session_t audioSession) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t queryDefaultOutputSessionEffects(audio_session_t audioSession,
++                             effect_descriptor_t *descriptors,
++                             uint32_t* count) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t addOutputSessionEffects(audio_io_handle_t output,
++                             audio_stream_type_t stream,
++                             audio_session_t audioSession) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t releaseOutputSessionEffects(audio_io_handle_t output,
++                             audio_stream_type_t stream,
++                             audio_session_t audioSession) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t addSourceDefaultEffect(const effect_uuid_t *type,
++                                    const String16& opPackageName,
++                                    const effect_uuid_t *uuid,
++                                    int32_t priority,
++                                    audio_source_t source,
++                                    audio_unique_id_t* id) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t addStreamDefaultEffect(const effect_uuid_t *type,
++                                    const String16& opPackageName,
++                                    const effect_uuid_t *uuid,
++                                    int32_t priority,
++                                    audio_usage_t usage,
++                                    audio_unique_id_t* id) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t removeSourceDefaultEffect(audio_unique_id_t id) EXCLUDES_AudioPolicyEffects_Mutex;
++    status_t removeStreamDefaultEffect(audio_unique_id_t id) EXCLUDES_AudioPolicyEffects_Mutex;
++    void initDefaultDeviceEffects() EXCLUDES(mDeviceEffectsMutex) EXCLUDES_EffectHandle_Mutex;
++private:
+@@ -46,4 +54,7 @@ class AudioPolicyEffects : public RefBase {
+-        EffectDesc(std::string_view name, const effect_uuid_t& typeUuid,
+-                   const String16& opPackageName, const effect_uuid_t& uuid, uint32_t priority,
+-                   audio_unique_id_t id)
+-            : mName(name),
++        EffectDesc(std::string_view name,
++                   const effect_uuid_t& typeUuid,
++                   const String16& opPackageName,
++                   const effect_uuid_t& uuid,
++                   uint32_t priority,
++                   audio_unique_id_t id) :
++                        mName(name),
+@@ -55,5 +66,9 @@ class AudioPolicyEffects : public RefBase {
+-        EffectDesc(std::string_view name, const effect_uuid_t& uuid)
+-            : EffectDesc(name, *EFFECT_UUID_NULL, String16(""), uuid, 0, AUDIO_UNIQUE_ID_ALLOCATE) {
+-        }
+-        EffectDesc(const EffectDesc& orig)
+-            : mName(orig.mName),
++        EffectDesc(std::string_view name, const effect_uuid_t& uuid) :
++                        EffectDesc(name,
++                                   *EFFECT_UUID_NULL,
++                                   String16(""),
++                                   uuid,
++                                   0,
++                                   AUDIO_UNIQUE_ID_ALLOCATE) { }
++        EffectDesc(const EffectDesc& orig) :
++                        mName(orig.mName),
+@@ -80 +94,0 @@ class AudioPolicyEffects : public RefBase {
+-<<<<<<< HEAD
+@@ -83,7 +96,0 @@ class AudioPolicyEffects : public RefBase {
+-||||||| 47af5d30a6
+-        int mRefCount;
+-        Vector<sp<AudioEffect>> mEffects;
+-=======
+-        int mRefCount;
+-        Vector<sp<AudioEffect>> mEffects;
+->>>>>>> 43915f776988367ca9317b75225cd0291c0fd430
+@@ -93,5 +100,4 @@ class AudioPolicyEffects : public RefBase {
+-        DeviceEffects(std::unique_ptr<EffectDescVector> effectDescriptors, audio_devices_t device,
+-                      std::string_view address)
+-            : mEffectDescriptors(std::move(effectDescriptors)),
+-              mDeviceType(device),
+-              mDeviceAddress(address) {}
++        DeviceEffects(std::unique_ptr<EffectDescVector> effectDescriptors,
++                               audio_devices_t device, std::string_view address) :
++            mEffectDescriptors(std::move(effectDescriptors)),
++            mDeviceType(device), mDeviceAddress(address) {}
+@@ -105,0 +112 @@ class AudioPolicyEffects : public RefBase {
++    status_t loadAudioEffectConfig_ll(const sp<EffectsFactoryHalInterface>& effectsFactoryHal)
+@@ -107,3 +114,5 @@ class AudioPolicyEffects : public RefBase {
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
++    status_t loadAudioEffectConfigLegacy_l(const char* path) REQUIRES(mMutex);
++    status_t loadInputEffectConfigurations_l(cnode* root,
++            const EffectDescVector& effects) REQUIRES(mMutex);
++    status_t loadStreamEffectConfigurations_l(cnode* root,
++            const EffectDescVector& effects) REQUIRES(mMutex);
+@@ -116,2 +125,2 @@ class AudioPolicyEffects : public RefBase {
+-    static void loadEffectParameters(cnode* root,
+-                                     std::vector<std::shared_ptr<const effect_param_t>>& params);
++    static void loadEffectParameters(
++            cnode* root, std::vector<std::shared_ptr<const effect_param_t>>& params);
+@@ -119,2 +128,8 @@ class AudioPolicyEffects : public RefBase {
+-    static size_t readParamValue(cnode* node, char** param, size_t* curSize, size_t* totSize);
+-    static size_t growParamSize(char** param, size_t size, size_t* curSize, size_t* totSize);
++    static size_t readParamValue(cnode* node,
++                          char **param,
++                          size_t *curSize,
++                          size_t *totSize);
++    static size_t growParamSize(char** param,
++                         size_t size,
++                         size_t *curSize,
++                         size_t *totSize);
+@@ -123,12 +138,10 @@ class AudioPolicyEffects : public RefBase {
+-            std::map<audio_session_t, std::shared_ptr<EffectVector>>
+-                    mInputSessions
+-                            std::map<audio_stream_type_t, std::shared_ptr<EffectDescVector>>
+-                                    mOutputStreams
+-                                                    std::map<audio_session_t,
+-                                                             std::shared_ptr<EffectVector>>
+-                                                            mOutputSessions
+-                                                                    std::map<std::string,
+-                                                                             std::unique_ptr<
+-                                                                                     DeviceEffects>>
+-                                                                            mDeviceEffectsGUARDED_BY(
+-                                                                                    mDeviceEffectsMutex);
++            GUARDED_BY(mMutex);
++    std::map<audio_session_t, std::shared_ptr<EffectVector>> mInputSessions
++            GUARDED_BY(mMutex);
++    std::map<audio_stream_type_t, std::shared_ptr<EffectDescVector>> mOutputStreams
++            GUARDED_BY(mMutex);
++    std::map<audio_session_t, std::shared_ptr<EffectVector>> mOutputSessions
++            GUARDED_BY(mMutex);
++    std::mutex mDeviceEffectsMutex;
++    std::map<std::string, std::unique_ptr<DeviceEffects>> mDeviceEffects
++            GUARDED_BY(mDeviceEffectsMutex);
+@@ -137 +149,0 @@ class AudioPolicyEffects : public RefBase {
+-#endif

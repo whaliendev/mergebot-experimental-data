@@ -1,0 +1,15 @@
+--- a/./output/system_core/a4f14d91-caf7750f-9cadfde2/libnativebridge@native_bridge.no_comments_mergegen.cc
++++ b/./output/system_core/a4f14d91-caf7750f-9cadfde2/libnativebridge@native_bridge.no_comments_merged.cc
+@@ -435 +442,11 @@ native_bridge_namespace_t* NativeBridgeCreateNamespace(const char* name,
+-bool NativeBridgeLinkNamespaces(native_bridge_namespace_t* from, native_bridge_namespace_t* to, const char* shared_libs_sonames) {
++bool NativeBridgeLinkNamespaces(native_bridge_namespace_t* from, native_bridge_namespace_t* to,
++                                const char* shared_libs_sonames) {
++  if (NativeBridgeInitialized()) {
++    if (isCompatibleWith(NAMESPACE_VERSION)) {
++      return callbacks->linkNamespaces(from, to, shared_libs_sonames);
++    } else {
++      ALOGE("not compatible with version %d, cannot init namespace", NAMESPACE_VERSION);
++    }
++  }
++  return false;
++}

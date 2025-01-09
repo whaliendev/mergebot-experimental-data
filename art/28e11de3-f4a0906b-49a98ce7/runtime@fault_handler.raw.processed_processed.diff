@@ -1,0 +1,183 @@
+--- a/./output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_conflict.cc
++++ b/./output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_merged.cc
+@@ -12 +11,0 @@
+-<<<<<<< HEAD
+@@ -14,6 +12,0 @@
+-||||||| 49a98ce7de
+-#include "gc/space/bump_pointer_space.h"
+-=======
+-#include "gc/heap.h"
+-#include "gc/space/bump_pointer_space.h"
+->>>>>>> f4a0906b
+@@ -34,7 +26,0 @@ extern "C" NO_INLINE __attribute__((visibility("default"))) void art_sigsegv_fau
+-<<<<<<< HEAD
+-static bool art_sigsegv_handler(int sig, siginfo_t* info, void* context) {
+-  return fault_manager.HandleSigsegvFault(sig, info, context);
+-||||||| 49a98ce7de
+-static bool art_fault_handler(int sig, siginfo_t* info, void* context) {
+-  return fault_manager.HandleFault(sig, info, context);
+-=======
+@@ -44,4 +29,0 @@ static bool art_sigsegv_handler(int sig, siginfo_t* info, void* context) {
+-static bool art_sigbus_handler(int sig, siginfo_t* info, void* context) {
+-  return fault_manager.HandleSigbusFault(sig, info, context);
+->>>>>>> f4a0906b
+-}
+@@ -51 +32,0 @@ static bool art_sigbus_handler(int sig, siginfo_t* info, void* context) {
+-<<<<<<< HEAD
+@@ -56,69 +37 @@ FaultManager::FaultManager()
+-||||||| 49a98ce7de
+-static mirror::Class* SafeGetClass(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  if (gUseUserfaultfd) {
+-    gc::Heap* heap = Runtime::Current()->GetHeap();
+-    DCHECK_NE(heap->MarkCompactCollector(), nullptr);
+-    if (heap->GetBumpPointerSpace()->Contains(obj)) {
+-      return obj->GetClass();
+-    }
+-  }
+-  char* obj_cls = reinterpret_cast<char*>(obj) + mirror::Object::ClassOffset().SizeValue();
+-  mirror::HeapReference<mirror::Class> cls;
+-  ssize_t rc = SafeCopy(&cls, obj_cls, sizeof(cls));
+-  CHECK_NE(-1, rc);
+-  if (kVerifySafeImpls) {
+-    mirror::Class* actual_class = obj->GetClass<kVerifyNone>();
+-    CHECK_EQ(actual_class, cls.AsMirrorPtr());
+-  }
+-  if (rc != sizeof(cls)) {
+-    return nullptr;
+-  }
+-  return cls.AsMirrorPtr();
+-}
+-static bool SafeVerifyClassClass(mirror::Class* cls) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  mirror::Class* c_c = SafeGetClass(cls);
+-  bool result = c_c != nullptr && c_c == SafeGetClass(c_c);
+-  if (kVerifySafeImpls) {
+-    CHECK_EQ(VerifyClassClass(cls), result);
+-  }
+-  return result;
+-}
+-#else
+-static mirror::Class* SafeGetDeclaringClass(ArtMethod* method_obj)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  return method_obj->GetDeclaringClassUnchecked<kWithoutReadBarrier>().Ptr();
+-}
+-static bool SafeVerifyClassClass(mirror::Class* cls) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  return VerifyClassClass(cls);
+-}
+-#endif
+-FaultManager::FaultManager() : initialized_(false) {
+-  sigaction(SIGSEGV, nullptr, &oldaction_);
+-}
+-=======
+-static mirror::Class* SafeGetClass(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  if (gUseUserfaultfd) {
+-    gc::Heap* heap = Runtime::Current()->GetHeap();
+-    DCHECK_NE(heap->MarkCompactCollector(), nullptr);
+-    if (heap->GetBumpPointerSpace()->Contains(obj)) {
+-      return obj->GetClass();
+-    }
+-  }
+-  char* obj_cls = reinterpret_cast<char*>(obj) + mirror::Object::ClassOffset().SizeValue();
+-  mirror::HeapReference<mirror::Class> cls;
+-  ssize_t rc = SafeCopy(&cls, obj_cls, sizeof(cls));
+-  CHECK_NE(-1, rc);
+-  if (kVerifySafeImpls) {
+-    mirror::Class* actual_class = obj->GetClass<kVerifyNone>();
+-    CHECK_EQ(actual_class, cls.AsMirrorPtr());
+-  }
+-  if (rc != sizeof(cls)) {
+-    return nullptr;
+-  }
+-  return cls.AsMirrorPtr();
+-}
+-static bool SafeVerifyClassClass(mirror::Class* cls) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  mirror::Class* c_c = SafeGetClass(cls);
+-  bool result = c_c != nullptr && c_c == SafeGetClass(c_c);
+-  if (kVerifySafeImpls) {
+-    CHECK_EQ(VerifyClassClass(cls), result);
++FaultManager::~FaultManager() {
+@@ -126,44 +38,0 @@ static bool SafeVerifyClassClass(mirror::Class* cls) REQUIRES_SHARED(Locks::muta
+-  return result;
+-}
+-#else
+-static mirror::Class* SafeGetDeclaringClass(ArtMethod* method_obj)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  return method_obj->GetDeclaringClassUnchecked<kWithoutReadBarrier>().Ptr();
+-}
+-static bool SafeVerifyClassClass(mirror::Class* cls) REQUIRES_SHARED(Locks::mutator_lock_) {
+-  return VerifyClassClass(cls);
+-}
+-#endif
+-FaultManager::FaultManager() : initialized_(false) {}
+-FaultManager::~FaultManager() {}
+-static const char* SignalCodeName(int sig, int code) {
+-  if (sig == SIGSEGV) {
+-    switch (code) {
+-      case SEGV_MAPERR: return "SEGV_MAPERR";
+-      case SEGV_ACCERR: return "SEGV_ACCERR";
+-      case 8: return "SEGV_MTEAERR";
+-      case 9: return "SEGV_MTESERR";
+-      default: return "SEGV_UNKNOWN";
+-    }
+-  } else if (sig == SIGBUS) {
+-    switch (code) {
+-      case BUS_ADRALN: return "BUS_ADRALN";
+-      case BUS_ADRERR: return "BUS_ADRERR";
+-      case BUS_OBJERR: return "BUS_OBJERR";
+-      default: return "BUS_UNKNOWN";
+-    }
+-  } else {
+-    return "UNKNOWN";
+-  }
+-}
+->>>>>>> f4a0906b
+-static std::ostream& PrintSignalInfo(std::ostream& os, siginfo_t* info) {
+-  os << "  si_signo: " << info->si_signo << " (" << strsignal(info->si_signo) << ")\n"
+-     << "  si_code: " << info->si_code
+-     << " (" << SignalCodeName(info->si_signo, info->si_code) << ")";
+-  if (info->si_signo == SIGSEGV || info->si_signo == SIGBUS) {
+-    os << "\n" << "  si_addr: " << info->si_addr;
+-  }
+-  return os;
+-}
+-<<<<<<< HEAD
+@@ -204,9 +72,0 @@ void FaultManager::Init(bool use_sig_chain) {
+-||||||| 49a98ce7de
+-void FaultManager::Init() {
+-=======
+-static bool InstallSigbusHandler() {
+-  return gUseUserfaultfd &&
+-         Runtime::Current()->GetHeap()->MarkCompactCollector()->IsUsingSigbusFeature();
+-}
+-void FaultManager::Init(bool use_sig_chain) {
+->>>>>>> f4a0906b
+@@ -227 +86,0 @@ void FaultManager::Init(bool use_sig_chain) {
+-<<<<<<< HEAD
+@@ -268,28 +126,0 @@ void FaultManager::Init(bool use_sig_chain) {
+-||||||| 49a98ce7de
+-  AddSpecialSignalHandlerFn(SIGSEGV, &sa);
+-  initialized_ = true;
+-=======
+-    AddSpecialSignalHandlerFn(SIGSEGV, &sa);
+-    if (InstallSigbusHandler()) {
+-      sa.sc_sigaction = art_sigbus_handler;
+-      AddSpecialSignalHandlerFn(SIGBUS, &sa);
+-    }
+-    initialized_ = true;
+-  } else if (InstallSigbusHandler()) {
+-    struct sigaction act;
+-    std::memset(&act, '\0', sizeof(act));
+-    act.sa_flags = SA_SIGINFO | SA_RESTART;
+-    act.sa_sigaction = [](int sig, siginfo_t* info, void* context) {
+-      if (!art_sigbus_handler(sig, info, context)) {
+-        std::ostringstream oss;
+-        PrintSignalInfo(oss, info);
+-        LOG(FATAL) << "Couldn't handle SIGBUS fault:"
+-                   << "\n"
+-                   << oss.str();
+-      }
+-    };
+-    if (sigaction(SIGBUS, &act, nullptr)) {
+-      LOG(FATAL) << "Fault handler for SIGBUS couldn't be setup: " << strerror(errno);
+-    }
+-  }
+->>>>>>> f4a0906b

@@ -1,0 +1,59 @@
+diff --git a/./output/art/1bc767f0-37c19554-c7c9497d/libartbase@base@metrics@metrics_test.no_comments_mergegen.cc b/./output/art/1bc767f0-37c19554-c7c9497d/libartbase@base@metrics@metrics_test.no_comments_merged.cc
+index a530cce..c4e702f 100644
+--- a/./output/art/1bc767f0-37c19554-c7c9497d/libartbase@base@metrics@metrics_test.no_comments_mergegen.cc
++++ b/./output/art/1bc767f0-37c19554-c7c9497d/libartbase@base@metrics@metrics_test.no_comments_merged.cc
+@@ -214 +214,53 @@ TEST_F(MetricsTest, ResetMetrics) {
+-TEST_F(MetricsTest, KeepEventMetricsResetValueMetricsAfterReporting) { ArtMetrics metrics;
++  metrics.ReportAllMetricsAndResetValueMetrics({&zero_backend});
++}
++TEST_F(MetricsTest, KeepEventMetricsResetValueMetricsAfterReporting) {
++  ArtMetrics metrics;
++#define METRIC(name,type,...) metrics.name()->Add(42);
++  ART_METRICS(METRIC)
++#undef METRIC
++  class FirstBackend : public TestBackendBase {
++   public:
++    void ReportCounter(DatumId counter_type [[gnu::unused]], uint64_t value) override {
++      EXPECT_NE(value, 0u);
++    }
++    void ReportHistogram(DatumId histogram_type [[gnu::unused]],
++                         int64_t minimum_value [[gnu::unused]],
++                         int64_t maximum_value [[gnu::unused]],
++                         const std::vector<uint32_t>& buckets) override {
++      EXPECT_NE(buckets[0], 0u) << "Bucket 0 should have a non-zero value";
++      for (size_t i = 1; i < buckets.size(); i++) {
++        EXPECT_EQ(buckets[i], 0u) << "Bucket " << i << " should have a zero value";
++      }
++    }
++  } first_backend;
++  metrics.ReportAllMetricsAndResetValueMetrics({&first_backend, &first_backend});
++  class SecondBackend : public TestBackendBase {
++   public:
++    void ReportCounter(DatumId datum_id, uint64_t value) override {
++      switch (datum_id) {
++#define CHECK_METRIC(name,...) case DatumId::k ##name:
++        ART_VALUE_METRICS(CHECK_METRIC)
++#undef CHECK_METRIC
++        EXPECT_EQ(value, 0u);
++        return;
++#define CHECK_METRIC(name,...) case DatumId::k ##name:
++        ART_EVENT_METRICS(CHECK_METRIC)
++#undef CHECK_METRIC
++        EXPECT_NE(value, 0u);
++        return;
++        default:
++          FAIL();
++          UNREACHABLE();
++      }
++    }
++    void ReportHistogram(DatumId histogram_type [[gnu::unused]],
++                         int64_t minimum_value [[gnu::unused]],
++                         int64_t maximum_value [[gnu::unused]],
++                         const std::vector<uint32_t>& buckets) override {
++      EXPECT_NE(buckets[0], 0u) << "Bucket 0 should have a non-zero value";
++      for (size_t i = 1; i < buckets.size(); i++) {
++        EXPECT_EQ(buckets[i], 0u) << "Bucket " << i << " should have a zero value";
++      }
++    }
++  } second_backend;
++  metrics.ReportAllMetricsAndResetValueMetrics({&second_backend});

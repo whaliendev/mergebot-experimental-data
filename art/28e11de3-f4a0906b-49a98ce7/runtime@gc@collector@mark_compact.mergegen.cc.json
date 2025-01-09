@@ -1,0 +1,130 @@
+[
+    {
+        "a_contents": "      uffd_ = kFallbackMode;",
+        "b_contents": "      DCHECK(IsValidFd(uffd_));\n      // Initialize uffd with the features which are required and available.\n      struct uffdio_api api = {.api = UFFD_API, .features = gUffdFeatures, .ioctls = 0};\n      api.features &= use_uffd_sigbus_ ? kUffdFeaturesRequired : kUffdFeaturesForMinorFault;\n      CHECK_EQ(ioctl(uffd_, UFFDIO_API, &api), 0) << \"ioctl_userfaultfd: API: \" << strerror(errno);",
+        "base_contents": "      DCHECK(IsValidFd(uffd_));\n      // Initialize uffd with the features which are required and available.\n      struct uffdio_api api = {\n          .api = UFFD_API, .features = gUffdFeatures & kUffdFeaturesForMinorFault, .ioctls = 0};\n      CHECK_EQ(ioctl(uffd_, UFFDIO_API, &api), 0) << \"ioctl_userfaultfd: API: \" << strerror(errno);",
+        "res_region": "      uffd_ = kFallbackMode;",
+        "lookback": "            << \"ioctl_userfaultfd: API: \" << strerror(errno);\n      }\n    } else {",
+        "lookahead": "    }\n  }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 298,
+        "end_line": 312,
+        "merge_gen_region": "End_ = kFallbackMode;",
+        "resolved": false
+    },
+    {
+        "a_contents": "      lock_(\"mark compact lock\", kGenericBottomLock),",
+        "b_contents": "      lock_(\"mark compact lock\", kMarkSweepMarkStackLock),",
+        "base_contents": "      mark_stack_lock_(\"mark compact mark stack lock\", kMarkSweepMarkStackLock),",
+        "res_region": "      lock_(\"mark compact lock\", kGenericBottomLock),",
+        "lookback": "MarkCompact::MarkCompact(Heap* heap)\n    : GarbageCollector(heap, \"concurrent mark compact\"),\n      gc_barrier_(0),",
+        "lookahead": "      bump_pointer_space_(heap->GetBumpPointerSpace()),\n      moving_space_bitmap_(bump_pointer_space_->GetMarkBitmap()),",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 334,
+        "end_line": 340,
+        "merge_gen_region": " bump_pointer_space_(heap->GetBumpPointerSpace()),",
+        "resolved": false
+    },
+    {
+        "a_contents": "  const size_t num_pages =\n      1 + (use_uffd_sigbus_ ? kMutatorCompactionBufferCount :\n                              std::min(heap_->GetParallelGCThreadCount(), kMaxNumUffdWorkers));",
+        "b_contents": "  const size_t num_pages = 1 + (use_uffd_sigbus_ ?\n                                kMutatorCompactionBufferCount :\n                                std::min(heap_->GetParallelGCThreadCount(), kMaxNumUffdWorkers));",
+        "base_contents": "  const size_t num_pages = 1 + std::min(heap_->GetParallelGCThreadCount(), kMaxNumUffdWorkers);",
+        "res_region": "  const size_t num_pages =\n      1 + (use_uffd_sigbus_ ? kMutatorCompactionBufferCount :\n                              std::min(heap_->GetParallelGCThreadCount(), kMaxNumUffdWorkers));",
+        "lookback": "      LOG(WARNING) << \"Failed to allocate concurrent mark-compact moving-space shadow: \" << err_msg;\n    }\n  }",
+        "lookahead": "  compaction_buffers_map_ = MemMap::MapAnonymous(\"Concurrent mark-compact compaction buffers\",\n                                                 kPageSize * num_pages,",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 447,
+        "end_line": 457,
+        "merge_gen_region": "const size_t num_pages = 1 + (use_uffd_sigbus_ ? kMutatorCompactionBufferCount : std::min(heap_->GetParallelGCThreadCount(), kMaxNumUffdWorkers));",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  // This store is visible to mutator (or uffd worker threads) as the mutator\n  // lock's unlock guarantees that.\n  compacting_ = true;",
+        "base_contents": "\n  compacting_ = true;\n",
+        "res_region": "",
+        "lookback": "    stack_high_addr_ =\n        reinterpret_cast<char*>(stack_low_addr_) + thread_running_gc_->GetStackSize();\n  }",
+        "lookahead": "  {\n    TimingLogger::ScopedTiming t2(\"(Paused)UpdateCompactionDataStructures\", GetTimings());",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2600,
+        "end_line": 2609,
+        "merge_gen_region": "// This store is visible to mutator (or uffd worker threads) as the mutator // lock's unlock guarantees that. compacting_ = true;",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "\n  {\n    // Thread roots must be updated first (before space mremap and native root\n    // updation) to ensure that pre-update content is accessible.\n    TimingLogger::ScopedTiming t2(\"(Paused)UpdateThreadRoots\", GetTimings());\n    MutexLock mu1(thread_running_gc_, *Locks::runtime_shutdown_lock_);\n    MutexLock mu2(thread_running_gc_, *Locks::thread_list_lock_);\n    std::list<Thread*> thread_list = runtime->GetThreadList()->GetList();\n    for (Thread* thread : thread_list) {\n      thread->VisitRoots(this, kVisitRootFlagAllRoots);\n      // Interpreter cache is thread-local so it needs to be swept either in a\n      // checkpoint, or a stop-the-world pause.\n      thread->SweepInterpreterCache(this);\n      thread->AdjustTlab(black_objs_slide_diff_);\n      thread->SetThreadLocalGcBuffer(nullptr);\n    }\n  }",
+        "base_contents": "\n  {\n    // Thread roots must be updated first (before space mremap and native root\n    // updation) to ensure that pre-update content is accessible.\n    TimingLogger::ScopedTiming t2(\"(Paused)UpdateThreadRoots\", GetTimings());\n    MutexLock mu1(thread_running_gc_, *Locks::runtime_shutdown_lock_);\n    MutexLock mu2(thread_running_gc_, *Locks::thread_list_lock_);\n    std::list<Thread*> thread_list = runtime->GetThreadList()->GetList();\n    for (Thread* thread : thread_list) {\n      thread->VisitRoots(this, kVisitRootFlagAllRoots);\n      // Interpreter cache is thread-local so it needs to be swept either in a\n      // checkpoint, or a stop-the-world pause.\n      thread->SweepInterpreterCache(this);\n      thread->AdjustTlab(black_objs_slide_diff_);\n    }\n  }",
+        "res_region": "",
+        "lookback": "    // Start updating roots and system weaks now.\n    heap_->GetReferenceProcessor()->UpdateRoots(this);\n  }",
+        "lookahead": "  {\n    TimingLogger::ScopedTiming t2(\"(Paused)UpdateClassLoaderRoots\", GetTimings());",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2652,
+        "end_line": 2688,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "void MarkCompact::MapUpdatedLinearAllocPage(uint8_t* page,\n                                            uint8_t* shadow_page,\n                                            Atomic<PageState>& state,\n                                            bool page_touched) {\n  DCHECK(!minor_fault_initialized_);\n  if (page_touched) {\n    CopyIoctl(page, shadow_page);\n  } else {\n    // If the page wasn't touched, then it means it is empty and\n    // is most likely not present on the shadow-side. Furthermore,\n    // since the shadow is also userfaultfd registered doing copy\n    // ioctl fail as the copy-from-user in the kernel will cause\n    // userfault. Instead, just map a zeropage, which is not only\n    // correct but also efficient as it avoids unnecessary memcpy\n    // in the kernel.\n    ZeropageIoctl(page, /*tolerate_eexist=*/false, /*tolerate_enoent=*/false);\n  }\n  if (use_uffd_sigbus_) {\n    // Store is sufficient as no other thread can modify the\n    // status of this page at this point.\n    state.store(PageState::kProcessedAndMapped, std::memory_order_release);\n  }\n}\n\ntemplate <int kMode>\nvoid MarkCompact::ConcurrentlyProcessLinearAllocPage(uint8_t* fault_page, bool is_minor_fault) {",
+        "b_contents": "template <int kMode>\nvoid MarkCompact::ConcurrentlyProcessLinearAllocPage(uint8_t* fault_page, bool is_minor_fault) {",
+        "base_contents": "template <int kMode, typename ZeropageType, typename CopyType>\nvoid MarkCompact::ConcurrentlyProcessLinearAllocPage(ZeropageType& zeropage_ioctl,\n                                                     CopyType& copy_ioctl,\n                                                     uint8_t* fault_page,\n                                                     bool is_minor_fault) {",
+        "res_region": "void MarkCompact::MapUpdatedLinearAllocPage(uint8_t* page,\n                                            uint8_t* shadow_page,\n                                            Atomic<PageState>& state,\n                                            bool page_touched) {\n  DCHECK(!minor_fault_initialized_);\n  if (page_touched) {\n    CopyIoctl(page, shadow_page);\n  } else {\n    // If the page wasn't touched, then it means it is empty and\n    // is most likely not present on the shadow-side. Furthermore,\n    // since the shadow is also userfaultfd registered doing copy\n    // ioctl fail as the copy-from-user in the kernel will cause\n    // userfault. Instead, just map a zeropage, which is not only\n    // correct but also efficient as it avoids unnecessary memcpy\n    // in the kernel.\n    ZeropageIoctl(page, /*tolerate_eexist=*/false, /*tolerate_enoent=*/false);\n  }\n  if (use_uffd_sigbus_) {\n    // Store is sufficient as no other thread can modify the\n    // status of this page at this point.\n    state.store(PageState::kProcessedAndMapped, std::memory_order_release);\n  }\n}\n\ntemplate <int kMode>\nvoid MarkCompact::ConcurrentlyProcessLinearAllocPage(uint8_t* fault_page, bool is_minor_fault) {",
+        "lookback": "  }\n}\n",
+        "lookahead": "  DCHECK(!is_minor_fault || kMode == kMinorFaultMode);\n  auto arena_iter = linear_alloc_arenas_.end();",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3227,
+        "end_line": 3263,
+        "merge_gen_region": "void MarkCompact::MapUpdatedLinearAllocPage(uint8_t* page, uint8_t* shadow_page, Atomic<PageState>& state, bool page_touched) { DCHECK(!minor_fault_initialized_); if (page_touched) { CopyIoctl(page, shadow_page); } else { // If the page wasn't touched, then it means it is empty and // is most likely not present on the shadow-side. Furthermore, // since the shadow is also userfaultfd registered doing copy // ioctl fail as the copy-from-user in the kernel will cause // userfault. Instead, just map a zeropage, which is not only // correct but also efficient as it avoids unnecessary memcpy // in the kernel. ZeropageIoctl(page, /*tolerate_eexist=*/false, /*tolerate_enoent=*/false); } if (use_uffd_sigbus_) { // Store is sufficient as no other thread can modify the // status of this page at this point. state.store(PageState::kProcessedAndMapped, std::memory_order_release); } } template <int kMode> void MarkCompact::ConcurrentlyProcessLinearAllocPage(uint8_t* fault_page, bool is_minor_fault) { DCHECK(!is_minor_fault || kMode == kMinorFaultMode);",
+        "resolved": false
+    },
+    {
+        "a_contents": "                MapUpdatedLinearAllocPage(fault_page,\n                                          fault_page + diff,\n                                          state_arr[page_idx],\n                                          updater.WasLastPageTouched());",
+        "b_contents": "                CopyIoctl(fault_page, fault_page + diff);\n                if (use_uffd_sigbus_) {\n                  // Store is sufficient as no other thread can modify the\n                  // status of this page at this point.\n                  state_arr[page_idx].store(PageState::kProcessedAndMapped,\n                                            std::memory_order_release);\n                }",
+        "base_contents": "                copy_ioctl(fault_page, fault_page + diff);",
+        "res_region": "                MapUpdatedLinearAllocPage(fault_page,\n                                          fault_page + diff,\n                                          state_arr[page_idx],\n                                          updater.WasLastPageTouched());",
+        "lookback": "              LinearAllocPageUpdater updater(this);\n              updater(fault_page + diff, first_obj + diff);\n              if (kMode == kCopyMode) {",
+        "lookahead": "                return;\n              }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3309,
+        "end_line": 3324,
+        "merge_gen_region": "if (kMode == kCopyMode) { MapUpdatedLinearAllocPage(fault_page, fault_page + diff, state_arr[page_idx], updater.WasLastPageTouched());",
+        "resolved": false
+    },
+    {
+        "a_contents": "          MapUpdatedLinearAllocPage(\n              page_begin, page_begin + diff, state_arr[page_idx], updater.WasLastPageTouched());",
+        "b_contents": "          CopyIoctl(page_begin, page_begin + diff);\n          if (use_uffd_sigbus_) {\n            // Store is sufficient as no other thread could be modifying this page's\n            // status at this point.\n            state_arr[page_idx].store(PageState::kProcessedAndMapped, std::memory_order_release);\n          }",
+        "base_contents": "          struct uffdio_copy uffd_copy;\n          uffd_copy.src = reinterpret_cast<uintptr_t>(page_begin + diff);\n          uffd_copy.dst = reinterpret_cast<uintptr_t>(page_begin);\n          uffd_copy.len = kPageSize;\n          uffd_copy.mode = 0;\n          CHECK_EQ(ioctl(uffd_, UFFDIO_COPY, &uffd_copy), 0)\n              << \"ioctl_userfaultfd: linear-alloc copy failed:\" << strerror(errno)\n              << \". dst:\" << static_cast<void*>(page_begin);\n          DCHECK_EQ(uffd_copy.copy, static_cast<ssize_t>(kPageSize));",
+        "res_region": "          MapUpdatedLinearAllocPage(\n              page_begin, page_begin + diff, state_arr[page_idx], updater.WasLastPageTouched());",
+        "lookback": "        updater(page_begin + diff, first_obj + diff);\n        expected_state = PageState::kProcessing;\n        if (!minor_fault_initialized_) {",
+        "lookahead": "        } else if (!state_arr[page_idx].compare_exchange_strong(\n                       expected_state, PageState::kProcessed, std::memory_order_release)) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3425,
+        "end_line": 3445,
+        "merge_gen_region": "if (!minor_fault_initialized_) { MapUpdatedLinearAllocPage( page_begin, page_begin + diff, state_arr[page_idx], updater.WasLastPageTouched());:\" << strerror(errno) << \". dst:\" << static_cast<void*>(page_begin); DCHECK_EQ(uffd_copy.copy, static_cast<ssize_t>(kPageSize));",
+        "resolved": false
+    }
+]

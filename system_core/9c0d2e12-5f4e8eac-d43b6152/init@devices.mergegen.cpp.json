@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "#include <sys/sysmacros.h>",
+        "b_contents": "#include <libgen.h>\n#include <poll.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/sendfile.h>\n#include <sys/socket.h>\n#include <sys/stat.h>\n#include <sys/time.h>\n#include <sys/types.h>\n#include <sys/un.h>\n#include <sys/wait.h>",
+        "base_contents": "#include <libgen.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/sendfile.h>\n#include <sys/socket.h>\n#include <sys/stat.h>\n#include <sys/time.h>\n#include <sys/types.h>\n#include <sys/un.h>\n#include <sys/wait.h>",
+        "res_region": "#include <sys/sysmacros.h>",
+        "lookback": "\n#include <errno.h>\n#include <fnmatch.h>",
+        "lookahead": "#include <unistd.h>\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 20,
+        "end_line": 49,
+        "merge_gen_region": "#include <sys/sysmacros.h>",
+        "resolved": true
+    },
+    {
+        "a_contents": "DeviceHandler::DeviceHandler()\n    : DeviceHandler(std::vector<Permissions>{}, std::vector<SysfsPermissions>{},\n                    std::vector<Subsystem>{}, false) {}",
+        "b_contents": "void device_poll(const coldboot_callback& callback,\n                 const std::optional<std::chrono::milliseconds> relative_timeout) {\n    using namespace std::chrono;\n\n    pollfd ufd;\n    ufd.events = POLLIN;\n    ufd.fd = device_fd;\n\n    auto start_time = steady_clock::now();\n\n    while (true) {\n        ufd.revents = 0;\n\n        int timeout_ms = -1;\n        if (relative_timeout) {\n            auto now = steady_clock::now();\n            auto time_elapsed = duration_cast<milliseconds>(now - start_time);\n            if (time_elapsed > *relative_timeout) return;\n\n            auto remaining_timeout = *relative_timeout - time_elapsed;\n            timeout_ms = remaining_timeout.count();\n        }\n\n        int nr = poll(&ufd, 1, timeout_ms);\n        if (nr == 0) return;\n        if (nr < 0) {\n            continue;\n        }\n        if (ufd.revents & POLLIN) {\n            auto ret = handle_device_fd(callback);\n            if (should_stop_coldboot(ret)) return;\n        }\n    }\n}",
+        "base_contents": "int get_device_fd() {\n    return device_fd;\n}",
+        "res_region": "DeviceHandler::DeviceHandler()\n    : DeviceHandler(std::vector<Permissions>{}, std::vector<SysfsPermissions>{},\n                    std::vector<Subsystem>{}, false) {}",
+        "lookback": "      skip_restorecon_(skip_restorecon),\n      sysfs_mount_point_(\"/sys\") {}\n",
+        "lookahead": "",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 509,
+        "end_line": 552,
+        "merge_gen_region": "DeviceHandler::DeviceHandler() : DeviceHandler(std::vector<Permissions>{}, std::vector<SysfsPermissions>{}, std::vector<Subsystem>{}, false) {} void device_poll(const coldboot_callback& callback, const std::optional<std::chrono::milliseconds> relative_timeout) { using namespace std::chrono; pollfd ufd; ufd.events = POLLIN; ufd.fd = device_fd; auto start_time = steady_clock::now(); while (true) { ufd.revents = 0; int timeout_ms = -1; if (relative_timeout) { auto now = steady_clock::now(); auto time_elapsed = duration_cast<milliseconds>(now - start_time); if (time_elapsed > *relative_timeout) return; auto remaining_timeout = *relative_timeout - time_elapsed; timeout_ms = remaining_timeout.count(); } int nr = poll(&ufd, 1, timeout_ms); if (nr == 0) return; if (nr < 0) { continue; } if (ufd.revents & POLLIN) { auto ret = handle_device_fd(callback); if (should_stop_coldboot(ret)) return; } } }",
+        "resolved": false
+    }
+]

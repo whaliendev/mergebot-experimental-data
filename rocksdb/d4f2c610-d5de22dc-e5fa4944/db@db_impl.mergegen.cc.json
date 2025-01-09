@@ -1,0 +1,162 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "  if (result.block_cache == nullptr && !result.no_block_cache) {\n    result.block_cache = NewLRUCache(8 << 20);\n  }\n  result.compression_per_level = src.compression_per_level;\n  if (result.block_size_deviation < 0 || result.block_size_deviation > 100) {\n    result.block_size_deviation = 0;\n  }\n  if (result.max_mem_compaction_level >= result.num_levels) {\n    result.max_mem_compaction_level = result.num_levels - 1;\n  }\n  if (result.soft_rate_limit > result.hard_rate_limit) {\n    result.soft_rate_limit = result.hard_rate_limit;\n  }\n  if (result.compaction_filter) {\n    Log(result.info_log, \"Compaction filter specified, ignore factory\");\n  }\n  if (result.prefix_extractor) {\n    Log(result.info_log, \"prefix extractor %s in use.\",\n        result.prefix_extractor->Name());\n  } else {\n    assert(result.memtable_factory);\n    Slice name = result.memtable_factory->Name();\n    if (name.compare(\"HashSkipListRepFactory\") == 0 ||\n        name.compare(\"HashLinkListRepFactory\") == 0) {\n      Log(result.info_log, \"prefix extractor is not provided while using %s. \"\n          \"fallback to skiplist\", name.ToString().c_str());\n      result.memtable_factory = std::make_shared<SkipListFactory>();\n    }\n  }",
+        "base_contents": "  if (result.block_cache == nullptr && !result.no_block_cache) {\n    result.block_cache = NewLRUCache(8 << 20);\n  }\n  result.compression_per_level = src.compression_per_level;\n  if (result.block_size_deviation < 0 || result.block_size_deviation > 100) {\n    result.block_size_deviation = 0;\n  }\n  if (result.max_mem_compaction_level >= result.num_levels) {\n    result.max_mem_compaction_level = result.num_levels - 1;\n  }\n  if (result.soft_rate_limit > result.hard_rate_limit) {\n    result.soft_rate_limit = result.hard_rate_limit;\n  }\n  if (result.compaction_filter) {\n    Log(result.info_log, \"Compaction filter specified, ignore factory\");\n  }\n  if (result.prefix_extractor) {\n    // If a prefix extractor has been supplied and a HashSkipListRepFactory is\n    // being used, make sure that the latter uses the former as its transform\n    // function.\n    auto factory = dynamic_cast<HashSkipListRepFactory*>(\n      result.memtable_factory.get());\n    if (factory &&\n        factory->GetTransform() != result.prefix_extractor) {\n      Log(result.info_log, \"A prefix hash representation factory was supplied \"\n          \"whose prefix extractor does not match options.prefix_extractor. \"\n          \"Falling back to skip list representation factory\");\n      result.memtable_factory = std::make_shared<SkipListFactory>();\n    } else if (factory) {\n      Log(result.info_log, \"Prefix hash memtable rep is in use.\");\n    }\n  }",
+        "res_region": "",
+        "lookback": "      result.info_log = nullptr;\n    }\n  }",
+        "lookahead": "\n  if (result.wal_dir.empty()) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 165,
+        "end_line": 229,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "// DBImpl::SuperVersion methods\nDBImpl::SuperVersion::~SuperVersion() {\n  for (auto td : to_delete) {\n    delete td;\n  }\n}\n\nDBImpl::SuperVersion* DBImpl::SuperVersion::Ref() {\n  refs.fetch_add(1, std::memory_order_relaxed);\n  return this;\n}\n\nbool DBImpl::SuperVersion::Unref() {\n  assert(refs > 0);\n  // fetch_sub returns the previous value of yoeref\n  return refs.fetch_sub(1, std::memory_order_relaxed) == 1;\n}\n\nvoid DBImpl::SuperVersion::Cleanup() {\n  db->mutex_.AssertHeld();\n  assert(refs.load(std::memory_order_relaxed) == 0);\n  imm->Unref(&to_delete);\n  MemTable* m = mem->Unref();\n  if (m != nullptr) {\n    to_delete.push_back(m);\n  }\n  current->Unref();\n}\n\nvoid DBImpl::SuperVersion::Init(MemTable* new_mem, MemTableListVersion* new_imm,\n                                Version* new_current) {\n  db->mutex_.AssertHeld();\n  mem = new_mem;\n  imm = new_imm;\n  current = new_current;\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n  refs.store(1, std::memory_order_relaxed);\n}\n",
+        "base_contents": "// DBImpl::SuperVersion methods\nDBImpl::SuperVersion::~SuperVersion() {\n  for (auto td : to_delete) {\n    delete td;\n  }\n}\n\nDBImpl::SuperVersion* DBImpl::SuperVersion::Ref() {\n  refs.fetch_add(1, std::memory_order_relaxed);\n  return this;\n}\n\nbool DBImpl::SuperVersion::Unref() {\n  assert(refs > 0);\n  // fetch_sub returns the previous value of yoeref\n  return refs.fetch_sub(1, std::memory_order_relaxed) == 1;\n}\n\nvoid DBImpl::SuperVersion::Cleanup() {\n  assert(refs.load(std::memory_order_relaxed) == 0);\n  imm->Unref(&to_delete);\n  MemTable* m = mem->Unref();\n  if (m != nullptr) {\n    to_delete.push_back(m);\n  }\n  current->Unref();\n}\n\nvoid DBImpl::SuperVersion::Init(MemTable* new_mem, MemTableListVersion* new_imm,\n                                Version* new_current) {\n  mem = new_mem;\n  imm = new_imm;\n  current = new_current;\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n  refs.store(1, std::memory_order_relaxed);\n}\n",
+        "res_region": "",
+        "lookback": "  }\n}\n",
+        "lookahead": "// Returns the list of live files in 'sst_live' and the list\n// of all files in the filesystem in 'candidate_files'.",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 530,
+        "end_line": 613,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd,\n                                autovector<MemTable*>& mems, VersionEdit* edit,\n                                uint64_t* filenumber) {",
+        "b_contents": "\nStatus DBImpl::WriteLevel0Table(autovector<MemTable*>& mems, VersionEdit* edit,\n                                uint64_t* filenumber,\n                                LogBuffer* log_buffer) {",
+        "base_contents": "\nStatus DBImpl::WriteLevel0Table(autovector<MemTable*>& mems, VersionEdit* edit,\n                                uint64_t* filenumber) {",
+        "res_region": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd,\n                                autovector<MemTable*>& mems, VersionEdit* edit,\n                                uint64_t* filenumber, LogBuffer* log_buffer) {",
+        "lookback": "  return s;\n}\n",
+        "lookahead": "  mutex_.AssertHeld();\n  const uint64_t start_micros = env_->NowMicros();",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1281,
+        "end_line": 1294,
+        "merge_gen_region": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd, autovector<MemTable*>& mems, VersionEdit* edit, uint64_t* filenumber, LogBuffer* log_buffer) { mutex_.AssertHeld();",
+        "resolved": false
+    },
+    {
+        "a_contents": "Status DBImpl::FlushMemTableToOutputFile(ColumnFamilyData* cfd,\n                                         bool* madeProgress,\n                                         DeletionState& deletion_state) {",
+        "b_contents": "Status DBImpl::FlushMemTableToOutputFile(bool* madeProgress,\n                                         DeletionState& deletion_state,\n                                         LogBuffer* log_buffer) {",
+        "base_contents": "Status DBImpl::FlushMemTableToOutputFile(bool* madeProgress,\n                                         DeletionState& deletion_state) {",
+        "res_region": "Status DBImpl::FlushMemTableToOutputFile(ColumnFamilyData* cfd,\n                                         bool* madeProgress,\n                                         DeletionState& deletion_state,\n                                         LogBuffer* log_buffer) {",
+        "lookback": "  return s;\n}\n",
+        "lookahead": "  mutex_.AssertHeld();\n  assert(cfd->imm()->size() != 0);",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 1379,
+        "end_line": 1390,
+        "merge_gen_region": "Status DBImpl::FlushMemTableToOutputFile(ColumnFamilyData* cfd, bool* madeProgress, DeletionState& deletion_state, LogBuffer* log_buffer) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "  Status s = WriteLevel0Table(cfd, mems, edit, &file_number);",
+        "b_contents": "  Status s = WriteLevel0Table(mems, edit, &file_number, log_buffer);",
+        "base_contents": "  Status s = WriteLevel0Table(mems, edit, &file_number);",
+        "res_region": "  Status s = WriteLevel0Table(cfd, mems, edit, &file_number, log_buffer);",
+        "lookback": "  edit->SetColumnFamily(cfd->GetID());\n\n  // This will release and re-acquire the mutex.",
+        "lookahead": "\n  if (s.ok() && shutting_down_.Acquire_Load() && cfd->IsDropped()) {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1417,
+        "end_line": 1423,
+        "merge_gen_region": "Status s = WriteLevel0Table(cfd, mems, edit, &file_number, log_buffer);",
+        "resolved": true
+    },
+    {
+        "a_contents": "                               DeletionState& deletion_state) {\n  mutex_.AssertHeld();\n  // call_status is failure if at least one flush was a failure. even if\n  // flushing one column family reports a failure, we will continue flushing\n  // other column families. however, call_status will be a failure in that case.\n  Status call_status;\n  autovector<ColumnFamilyData*> to_delete;\n  // refcounting in iteration\n  for (auto cfd : *versions_->GetColumnFamilySet()) {\n    if (cfd->IsDropped()) {\n      continue;\n    }\n    cfd->Ref();\n    Status flush_status;\n    while (flush_status.ok() && cfd->imm()->IsFlushPending()) {\n      Log(options_.info_log,\n          \"BackgroundCallFlush doing FlushMemTableToOutputFile with column \"\n          \"family %u, flush slots available %d\",\n          cfd->GetID(), options_.max_background_flushes - bg_flush_scheduled_);\n      flush_status =\n          FlushMemTableToOutputFile(cfd, madeProgress, deletion_state);\n    }\n    if (call_status.ok() && !flush_status.ok()) {\n      call_status = flush_status;\n    }\n    if (cfd->Unref()) {\n      to_delete.push_back(cfd);\n    }",
+        "b_contents": "                               DeletionState& deletion_state,\n                               LogBuffer* log_buffer) {\n  Status stat;\n  while (stat.ok() && imm_.IsFlushPending()) {\n    Log(options_.info_log,\n        \"BackgroundCallFlush doing FlushMemTableToOutputFile, flush slots available %d\",\n        options_.max_background_flushes - bg_flush_scheduled_);\n    stat = FlushMemTableToOutputFile(madeProgress, deletion_state, log_buffer);",
+        "base_contents": "                               DeletionState& deletion_state) {\n  Status stat;\n  while (stat.ok() && imm_.IsFlushPending()) {\n    Log(options_.info_log,\n        \"BackgroundCallFlush doing FlushMemTableToOutputFile, flush slots available %d\",\n        options_.max_background_flushes - bg_flush_scheduled_);\n    stat = FlushMemTableToOutputFile(madeProgress, deletion_state);",
+        "res_region": "                               DeletionState& deletion_state,\n                               LogBuffer* log_buffer) {\n  mutex_.AssertHeld();\n  // call_status is failure if at least one flush was a failure. even if\n  // flushing one column family reports a failure, we will continue flushing\n  // other column families. however, call_status will be a failure in that case.\n  Status call_status;\n  autovector<ColumnFamilyData*> to_delete;\n  // refcounting in iteration\n  for (auto cfd : *versions_->GetColumnFamilySet()) {\n    if (cfd->IsDropped()) {\n      continue;\n    }\n    cfd->Ref();\n    Status flush_status;\n    while (flush_status.ok() && cfd->imm()->IsFlushPending()) {\n      Log(options_.info_log,\n          \"BackgroundCallFlush doing FlushMemTableToOutputFile with column \"\n          \"family %u, flush slots available %d\",\n          cfd->GetID(), options_.max_background_flushes - bg_flush_scheduled_);\n      flush_status = FlushMemTableToOutputFile(cfd, madeProgress,\n                                               deletion_state, log_buffer);\n    }\n    if (call_status.ok() && !flush_status.ok()) {\n      call_status = flush_status;\n    }\n    if (cfd->Unref()) {\n      to_delete.push_back(cfd);\n    }",
+        "lookback": "}\n\nStatus DBImpl::BackgroundFlush(bool* madeProgress,",
+        "lookahead": "  }\n  for (auto cfd : to_delete) {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2016,
+        "end_line": 2062,
+        "merge_gen_region": "<<<<<<< HEAD #ifBackgroundFlush(bool* madeProgress, DeletionState& deletion_state, LogBuffer* log_buffer) { mutex_.AssertHeld(); // call_status is failure if at least one flush was a failure. even if // flushing one column family reports a failure, we will continue flushing // other column families. however, call_status will be a failure in that case. Status call_status; autovector<ColumnFamilyData*> to_delete; // refcounting in iteration for (auto cfd : *versions_->GetColumnFamilySet()) { if (cfd->IsDropped()) { continue; } cfd->Ref(); Status flush_status; while (flush_status.ok() && cfd->imm()->IsFlushPending()) { Log(options_.info_log, \"BackgroundCallFlush doing FlushMemTableToOutputFile with column \" \"family %u, flush slots available %d\", cfd->GetID(), options_.max_background_flushes - bg_flush_scheduled_); flush_status = FlushMemTableToOutputFile(cfd, madeProgress, deletion_state, log_buffer); } if (call_status.ok() && !flush_status.ok()) { call_status = flush_status; } if (cfd->Unref()) { to_delete.push_back(cfd); }",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  if (is_manual) {\n    // another thread cannot pick up the same work\n    manual_compaction_->in_progress = true;\n  }\n\n  // TODO: remove memtable flush from formal compaction\n  while (imm_.IsFlushPending()) {\n    LogToBuffer(log_buffer,\n                \"BackgroundCompaction doing FlushMemTableToOutputFile, \"\n                \"compaction slots \"\n                \"available %d\",\n                options_.max_background_compactions - bg_compaction_scheduled_);\n    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state,\n                                            log_buffer);\n    if (!stat.ok()) {\n      if (is_manual) {\n        manual_compaction_->status = stat;\n        manual_compaction_->done = true;\n        manual_compaction_->in_progress = false;\n        manual_compaction_ = nullptr;\n      }\n      return stat;\n    }\n  }\n\n  unique_ptr<Compaction> c;",
+        "base_contents": "  if (is_manual) {\n    // another thread cannot pick up the same work\n    manual_compaction_->in_progress = true;\n  }\n\n  // TODO: remove memtable flush from formal compaction\n  while (imm_.IsFlushPending()) {\n    LogToBuffer(log_buffer,\n                \"BackgroundCompaction doing FlushMemTableToOutputFile, \"\n                \"compaction slots \"\n                \"available %d\",\n                options_.max_background_compactions - bg_compaction_scheduled_);\n    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state);\n    if (!stat.ok()) {\n      if (is_manual) {\n        manual_compaction_->status = stat;\n        manual_compaction_->done = true;\n        manual_compaction_->in_progress = false;\n        manual_compaction_ = nullptr;\n      }\n      return stat;\n    }\n  }\n\n  unique_ptr<Compaction> c;",
+        "res_region": "",
+        "lookback": "  unique_ptr<Compaction> c;\n  bool is_manual = (manual_compaction_ != nullptr) &&\n                   (manual_compaction_->in_progress == false);",
+        "lookahead": "  InternalKey manual_end_storage;\n  InternalKey* manual_end = &manual_end_storage;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2196,
+        "end_line": 2250,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  while (input->Valid() && !shutting_down_.Acquire_Load() &&\n         !cfd->IsDropped()) {",
+        "b_contents": "  for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {\n    // Prioritize immutable compaction work\n    // TODO: remove memtable flush from normal compaction work\n    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {\n      const uint64_t imm_start = env_->NowMicros();\n      LogFlush(options_.info_log);\n      mutex_.Lock();\n      if (imm_.IsFlushPending()) {\n        FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);\n        bg_cv_.SignalAll();  // Wakeup MakeRoomForWrite() if necessary\n      }\n      mutex_.Unlock();\n      log_buffer->FlushBufferToLog();\n      imm_micros += (env_->NowMicros() - imm_start);\n    }\n",
+        "base_contents": "  for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {\n    // Prioritize immutable compaction work\n    // TODO: remove memtable flush from normal compaction work\n    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {\n      const uint64_t imm_start = env_->NowMicros();\n      LogFlush(options_.info_log);\n      mutex_.Lock();\n      if (imm_.IsFlushPending()) {\n        FlushMemTableToOutputFile(nullptr, deletion_state);\n        bg_cv_.SignalAll();  // Wakeup MakeRoomForWrite() if necessary\n      }\n      mutex_.Unlock();\n      imm_micros += (env_->NowMicros() - imm_start);\n    }\n",
+        "res_region": "  while (input->Valid() && !shutting_down_.Acquire_Load() &&\n         !cfd->IsDropped()) {",
+        "lookback": "    compaction_filter = compaction_filter_from_factory.get();\n  }\n",
+        "lookahead": "    Slice key = input->key();\n    Slice value = input->value();",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2660,
+        "end_line": 2696,
+        "merge_gen_region": "while (input->Valid() && !shutting_down_.Acquire_Load() && !cfd->IsDropped()) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    // SuperVersion can become stale. It will eventually get refreshed either\n    // on the next GetImpl() call or next SuperVersion installation.\n    thread_local_sv = cfd->GetThreadLocalSuperVersion();\n    void* ptr = thread_local_sv->Swap(SuperVersion::kSVInUse);",
+        "b_contents": "    // SuperVersion can become stale. In that case, the background thread would\n    // have swapped in kSVObsolete. We re-check the value at the end of\n    // Get, with an atomic compare and swap. The superversion will be released\n    // if detected to be stale.\n    void* ptr = local_sv_->Swap(SuperVersion::kSVInUse);",
+        "base_contents": "    // SuperVersion can become stale. It will eventually get refreshed either\n    // on the next GetImpl() call or next SuperVersion installation.\n    void* ptr = local_sv_->Swap(SuperVersion::kSVInUse);",
+        "res_region": "    // SuperVersion can become stale. In that case, the background thread would\n    // have swapped in kSVObsolete. We re-check the value at the end of\n    // Get, with an atomic compare and swap. The superversion will be released\n    // if detected to be stale.\n    thread_local_sv = cfd->GetThreadLocalSuperVersion();\n    void* ptr = thread_local_sv->Swap(SuperVersion::kSVInUse);",
+        "lookback": "    // acquiring mutex for this operation, we use atomic Swap() on the thread\n    // local pointer to guarantee exclusive access. If the thread local pointer\n    // is being used while a new SuperVersion is installed, the cached",
+        "lookahead": "    // Invariant:\n    // (1) Scrape (always) installs kSVObsolete in ThreadLocal storage",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 3208,
+        "end_line": 3223,
+        "merge_gen_region": "// is being used while a new SuperVersion is installed, the cached // SuperVersion can become stale. In that case, the background thread would // have swapped in kSVObsolete. We re-check the value at the end of // Get, with an atomic compare and swap. The superversion will be released // if detected to be stale. thread_local_sv = cfd->GetThreadLocalSuperVersion(); void* ptr = thread_local_sv->Swap(SuperVersion::kSVInUse);",
+        "resolved": false
+    },
+    {
+        "a_contents": "                                    cfd->options()->prefix_extractor);",
+        "b_contents": "                                    options_.prefix_extractor.get());",
+        "base_contents": "                                    options_.prefix_extractor);",
+        "res_region": "                                    cfd->options()->prefix_extractor.get());",
+        "lookback": "    // use extra wrapper to exclude any keys from the results which\n    // don't begin with the prefix\n    iter = new PrefixFilterIterator(iter, *options.prefix,",
+        "lookahead": "  }\n  return iter;",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 3576,
+        "end_line": 3582,
+        "merge_gen_region": "new PrefixFilterIterator(iter, *options.prefix, cfd->options()->prefix_extractor.get());",
+        "resolved": false
+    }
+]

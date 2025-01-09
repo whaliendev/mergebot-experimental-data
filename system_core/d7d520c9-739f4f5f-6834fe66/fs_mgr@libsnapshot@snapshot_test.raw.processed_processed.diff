@@ -1,0 +1,59 @@
+--- a/./output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@snapshot_test.no_comments_conflict.cpp
++++ b/./output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@snapshot_test.no_comments_merged.cpp
+@@ -1064 +1063,0 @@ TEST_F(SnapshotUpdateTest, SpaceSwapUpdate) {
+-<<<<<<< HEAD
+@@ -1117,54 +1115,0 @@ TEST_F(SnapshotUpdateTest, ConsistencyCheckResume) {
+-||||||| 6834fe66d
+-=======
+-TEST_F(SnapshotUpdateTest, ConsistencyCheckResume) {
+-    if (!IsCompressionEnabled()) {
+-        GTEST_SKIP() << "Skipping Virtual A/B Compression test";
+-    }
+-    auto old_sys_size = GetSize(sys_);
+-    auto old_prd_size = GetSize(prd_);
+-    SetSize(sys_, old_sys_size * 2);
+-    sys_->set_estimate_cow_size(8_MiB);
+-    SetSize(prd_, old_prd_size / 2);
+-    prd_->set_estimate_cow_size(1_MiB);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    ASSERT_TRUE(WriteSnapshotAndHash("sys_b"));
+-    ASSERT_TRUE(WriteSnapshotAndHash("vnd_b"));
+-    ASSERT_TRUE(ShiftAllSnapshotBlocks("prd_b", old_prd_size));
+-    sync();
+-    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
+-        ASSERT_TRUE(IsPartitionUnchanged(name));
+-    }
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    auto init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
+-        ASSERT_TRUE(IsPartitionUnchanged(name));
+-    }
+-    auto old_checker = init->merge_consistency_checker();
+-    init->set_merge_consistency_checker(
+-            [](const std::string&, const SnapshotStatus&) -> MergeFailureCode {
+-                return MergeFailureCode::WrongMergeCountConsistencyCheck;
+-            });
+-    ASSERT_TRUE(init->InitiateMerge());
+-    {
+-        ASSERT_TRUE(AcquireLock());
+-        auto local_lock = std::move(lock_);
+-        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
+-        ASSERT_EQ(status.merge_phase(), MergePhase::FIRST_PHASE);
+-    }
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    ASSERT_TRUE(UnmapAll());
+-    init->set_merge_consistency_checker(std::move(old_checker));
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
+-        ASSERT_TRUE(IsPartitionUnchanged(name))
+-                << "Content of " << name << " changes after the merge";
+-    }
+-}
+->>>>>>> 739f4f5f

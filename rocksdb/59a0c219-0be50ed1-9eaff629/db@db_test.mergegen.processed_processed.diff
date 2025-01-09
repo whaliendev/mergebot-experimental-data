@@ -1,0 +1,213 @@
+--- a/./output/rocksdb/59a0c219-0be50ed1-9eaff629/db@db_test.no_comments_mergegen.cc
++++ b/./output/rocksdb/59a0c219-0be50ed1-9eaff629/db@db_test.no_comments_merged.cc
+@@ -7698 +7698,209 @@ TEST_F(DBTest, PauseBackgroundWorkTest) {
+-TEST_F(DBTest, WalFilterTest) { class TestWALFilter : public WALFilter { private:
++TEST_F(DBTest, WalFilterTest) {
++  class TestWALFilter : public WALFilter {
++  private:
++    WALFilter::WALProcessingOption m_walProcessingOption;
++    size_t m_applyOptionAtRecordIndex;
++    size_t m_currentRecordIndex;
++  public:
++    TestWALFilter(WALFilter::WALProcessingOption walProcessingOption,
++      size_t applyOptionForRecordIndex) :
++      m_walProcessingOption(walProcessingOption),
++      m_applyOptionAtRecordIndex(applyOptionForRecordIndex),
++      m_currentRecordIndex(0) { }
++    virtual WALProcessingOption LogRecord(const WriteBatch & batch) const override {
++      WALFilter::WALProcessingOption optionToReturn;
++      if (m_currentRecordIndex == m_applyOptionAtRecordIndex) {
++        optionToReturn = m_walProcessingOption;
++      }
++      else {
++        optionToReturn = WALProcessingOption::kContinueProcessing;
++      }
++      (const_cast<TestWALFilter*>(this)->m_currentRecordIndex)++;
++      return optionToReturn;
++    }
++    virtual const char* Name() const override {
++      return "TestWALFilter";
++    }
++  };
++  std::vector<std::vector<std::string>> batchKeys(3);
++  batchKeys[0].push_back("key1");
++  batchKeys[0].push_back("key2");
++  batchKeys[1].push_back("key3");
++  batchKeys[1].push_back("key4");
++  batchKeys[2].push_back("key5");
++  batchKeys[2].push_back("key6");
++  for (char option = 0;
++    option < static_cast<char>(WALFilter::WALProcessingOption::kWALProcessingOptionMax);
++    option++) {
++    Options options = OptionsForLogIterTest();
++    DestroyAndReopen(options);
++    CreateAndReopenWithCF({ "pikachu" }, options);
++    {
++      for (size_t i = 0; i < batchKeys.size(); i++) {
++        WriteBatch batch;
++        for (size_t j = 0; j < batchKeys[i].size(); j++) {
++          batch.Put(handles_[0], batchKeys[i][j], DummyString(1024));
++        }
++        dbfull()->Write(WriteOptions(), &batch);
++      }
++      WALFilter::WALProcessingOption walProcessingOption =
++        static_cast<WALFilter::WALProcessingOption>(option);
++      size_t applyOptionForRecordIndex = 1;
++      TestWALFilter testWalFilter(walProcessingOption,
++        applyOptionForRecordIndex);
++      options = OptionsForLogIterTest();
++      options.wal_filter = &testWalFilter;
++      ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++      std::vector<Slice> keysMustExist;
++      std::vector<Slice> keysMustNotExist;
++      switch (walProcessingOption) {
++        case WALFilter::WALProcessingOption::kContinueProcessing: {
++          fprintf(stderr, "Testing with complete WAL processing,"
++            " i.e. the default case\n");
++          for (size_t i = 0; i < batchKeys.size(); i++) {
++            for (size_t j = 0; j < batchKeys[i].size(); j++) {
++              keysMustExist.push_back(Slice(batchKeys[i][j]));
++            }
++          }
++          break;
++        }
++        case WALFilter::WALProcessingOption::kIgnoreCurrentRecord: {
++          fprintf(stderr, "Testing with ignoring record %d only\n",
++            applyOptionForRecordIndex);
++          for (size_t i = 0; i < batchKeys.size(); i++) {
++            for (size_t j = 0; j < batchKeys[i].size(); j++) {
++              if (i == applyOptionForRecordIndex) {
++                keysMustNotExist.push_back(Slice(batchKeys[i][j]));
++              }
++              else {
++                keysMustExist.push_back(Slice(batchKeys[i][j]));
++              }
++            }
++          }
++          break;
++        }
++        case WALFilter::WALProcessingOption::kStopReplay: {
++          fprintf(stderr, "Testing with stopping replay from record %d\n",
++            applyOptionForRecordIndex);
++          for (size_t i = 0; i < batchKeys.size(); i++) {
++            for (size_t j = 0; j < batchKeys[i].size(); j++) {
++              if (i >= applyOptionForRecordIndex) {
++                keysMustNotExist.push_back(Slice(batchKeys[i][j]));
++              }
++              else {
++                keysMustExist.push_back(Slice(batchKeys[i][j]));
++              }
++            }
++          }
++          break;
++        }
++        default:
++          assert(false);
++      }
++      bool checkedAfterReopen = false;
++      while (true)
++      {
++        std::vector<std::string> values;
++        if (keysMustExist.size() > 0) {
++          std::vector<Status> status_list = dbfull()->MultiGet(ReadOptions(),
++            keysMustExist,
++            &values);
++          for (size_t i = 0; i < keysMustExist.size(); i++) {
++            ASSERT_OK(status_list[i]);
++          }
++        }
++        if (keysMustNotExist.size() > 0) {
++          std::vector<Status> status_list = dbfull()->MultiGet(ReadOptions(),
++            keysMustNotExist,
++            &values);
++          for (size_t i = 0; i < keysMustNotExist.size(); i++) {
++            ASSERT_TRUE(status_list[i].IsNotFound());
++          }
++        }
++        if (checkedAfterReopen) {
++          break;
++        }
++        options = OptionsForLogIterTest();
++        ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++        checkedAfterReopen = true;
++      }
++    }
++  }
++}
++TEST_P(BloomStatsTestWithParam, BloomStatsTest) {
++  std::string key1("AAAA");
++  std::string key2("RXDB");
++  std::string key3("ZBRA");
++  std::string value1("Value1");
++  std::string value3("Value3");
++  ASSERT_OK(Put(key1, value1, WriteOptions()));
++  ASSERT_OK(Put(key3, value3, WriteOptions()));
++  ASSERT_EQ(value1, Get(key1));
++  ASSERT_EQ(1, perf_context.bloom_memtable_hit_count);
++  ASSERT_EQ(value3, Get(key3));
++  ASSERT_EQ(2, perf_context.bloom_memtable_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_memtable_miss_count);
++  ASSERT_EQ("NOT_FOUND", Get(key2));
++  ASSERT_EQ(1, perf_context.bloom_memtable_miss_count);
++  ASSERT_EQ(2, perf_context.bloom_memtable_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_sst_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_sst_miss_count);
++  Flush();
++  ASSERT_EQ(0, perf_context.bloom_sst_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_sst_miss_count);
++  int hits_per_get = use_block_table_ && !use_block_based_builder_ ? 2 : 1;
++  ASSERT_EQ(value1, Get(key1));
++  ASSERT_EQ(hits_per_get, perf_context.bloom_sst_hit_count);
++  ASSERT_EQ(value3, Get(key3));
++  ASSERT_EQ(2 * hits_per_get, perf_context.bloom_sst_hit_count);
++  ASSERT_EQ("NOT_FOUND", Get(key2));
++  ASSERT_EQ(1, perf_context.bloom_sst_miss_count);
++}
++TEST_P(BloomStatsTestWithParam, BloomStatsTestWithIter) {
++  std::string key1("AAAA");
++  std::string key2("RXDB");
++  std::string key3("ZBRA");
++  std::string value1("Value1");
++  std::string value3("Value3");
++  ASSERT_OK(Put(key1, value1, WriteOptions()));
++  ASSERT_OK(Put(key3, value3, WriteOptions()));
++  unique_ptr<Iterator> iter(dbfull()->NewIterator(ReadOptions()));
++  iter->Seek(key1);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(iter->Valid());
++  ASSERT_EQ(value1, iter->value().ToString());
++  ASSERT_EQ(1, perf_context.bloom_memtable_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_memtable_miss_count);
++  iter->Seek(key3);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(iter->Valid());
++  ASSERT_EQ(value3, iter->value().ToString());
++  ASSERT_EQ(2, perf_context.bloom_memtable_hit_count);
++  ASSERT_EQ(0, perf_context.bloom_memtable_miss_count);
++  iter->Seek(key2);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(!iter->Valid());
++  ASSERT_EQ(1, perf_context.bloom_memtable_miss_count);
++  ASSERT_EQ(2, perf_context.bloom_memtable_hit_count);
++  Flush();
++  iter.reset(dbfull()->NewIterator(ReadOptions()));
++  iter->Seek(key1);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(iter->Valid());
++  ASSERT_EQ(value1, iter->value().ToString());
++  ASSERT_EQ(1, perf_context.bloom_sst_hit_count);
++  iter->Seek(key3);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(iter->Valid());
++  ASSERT_EQ(value3, iter->value().ToString());
++  ASSERT_EQ(2, perf_context.bloom_sst_hit_count);
++  iter->Seek(key2);
++  ASSERT_OK(iter->status());
++  ASSERT_TRUE(!iter->Valid());
++  ASSERT_EQ(1, perf_context.bloom_sst_miss_count);
++  ASSERT_EQ(2, perf_context.bloom_sst_hit_count);
++}
++INSTANTIATE_TEST_CASE_P(BloomStatsTestWithParam, BloomStatsTestWithParam,
++                        ::testing::Values(std::make_tuple(true, true),
++                                          std::make_tuple(true, false),
++                                          std::make_tuple(false, false)));

@@ -1,0 +1,16 @@
+--- a/./output/duckdb/32158ec8-39f4ff41-c0e7b60d/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_mergegen.cpp
++++ b/./output/duckdb/32158ec8-39f4ff41-c0e7b60d/src@execution@operator@csv_scanner@scanner@string_value_scanner.no_comments_merged.cpp
+@@ -1329 +1329,2 @@ bool StringValueScanner::IsRowValid(CSVIterator &current_iterator) const {
+-auto &tuples = scan_finder->ParseChunk(); current_iterator.pos = scan_finder->GetIteratorPosition(); return (tuples.number_of_rows == 1 || tuples.first_line_is_comment) && tuples.borked_rows.empty() && !tuples.current_errors.HasError();
++ current_iterator.pos = scan_finder->GetIteratorPosition();
++ return (tuples.number_of_rows == 1 || tuples.first_line_is_comment) && tuples.borked_rows.empty() && !tuples.current_errors.HasError();;
+@@ -1383,0 +1385,9 @@ void StringValueScanner::SetStart() {
++ if (!best_row.is_valid && state_machine->dialect_options.state_machine_options.escape.GetValue() != '\0'&& state_machine->dialect_options.state_machine_options.quote.GetValue() != '\0') {
++  auto escape_row = TryRow(CSVState::ESCAPE, iterator.pos.buffer_pos, iterator.GetEndPos());
++  if (escape_row.is_valid) {
++   best_row = escape_row;
++  } else {
++   if (best_row.start_pos < escape_row.start_pos) {
++    best_row = escape_row;
++   }
++  }

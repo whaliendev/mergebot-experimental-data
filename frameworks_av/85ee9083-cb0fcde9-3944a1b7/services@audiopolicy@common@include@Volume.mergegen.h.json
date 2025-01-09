@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "        if (deviceTypes.empty()) {",
+        "b_contents": "        audio_devices_t deviceType = AUDIO_DEVICE_NONE;\n        if (deviceTypes.empty()) {",
+        "base_contents": "        if (device == AUDIO_DEVICE_NONE) {",
+        "res_region": "        if (deviceTypes.empty()) {",
+        "lookback": "     */\n    static audio_devices_t getDeviceForVolume(const android::DeviceTypeSet& deviceTypes)\n    {",
+        "lookahead": "            // this happens when forcing a route update and no track is active on an output.\n            // In this case the returned category is not important.",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 89,
+        "end_line": 96,
+        "merge_gen_region": "audio_devices_t deviceType = AUDIO_DEVICE_NONE; if (deviceTypes.empty()) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "            return AUDIO_DEVICE_OUT_SPEAKER;",
+        "b_contents": "            deviceType = AUDIO_DEVICE_OUT_SPEAKER;\n        } else if (deviceTypes.size() > 1) {\n            // Multiple device selection is either:\n            //  - speaker + one other device: give priority to speaker in this case.\n            //  - one A2DP device + another device: happens with duplicated output. In this case\n            // retain the device on the A2DP output as the other must not correspond to an active\n            // selection if not the speaker.\n            //  - HDMI-CEC system audio mode only output: give priority to available item in order.\n            if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER) != 0) {\n                deviceType = AUDIO_DEVICE_OUT_SPEAKER;\n            } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER_SAFE) != 0) {\n                deviceType = AUDIO_DEVICE_OUT_SPEAKER_SAFE;\n            } else if (deviceTypes.count(AUDIO_DEVICE_OUT_HDMI_ARC) != 0) {\n                deviceType = AUDIO_DEVICE_OUT_HDMI_ARC;\n            } else if (deviceTypes.count(AUDIO_DEVICE_OUT_AUX_LINE) != 0) {\n                deviceType = AUDIO_DEVICE_OUT_AUX_LINE;\n            } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPDIF) != 0) {\n                deviceType = AUDIO_DEVICE_OUT_SPDIF;\n            } else {\n                std::vector<audio_devices_t> a2dpDevices = android::Intersection(\n                        deviceTypes, android::getAudioDeviceOutAllA2dpSet());\n                if (a2dpDevices.size() > 1) {\n                    ALOGW(\"getDeviceForVolume() invalid device combination: %s\",\n                          android::dumpDeviceTypes(deviceTypes).c_str());\n                }\n                if (!a2dpDevices.empty()) {\n                    deviceType = a2dpDevices[0];\n                }\n            }\n        } else {\n            deviceType = *(deviceTypes.begin());",
+        "base_contents": "            device =  AUDIO_DEVICE_OUT_SPEAKER;\n        } else if (popcount(device) > 1) {\n            // Multiple device selection is either:\n            //  - speaker + one other device: give priority to speaker in this case.\n            //  - one A2DP device + another device: happens with duplicated output. In this case\n            // retain the device on the A2DP output as the other must not correspond to an active\n            // selection if not the speaker.\n            //  - HDMI-CEC system audio mode only output: give priority to available item in order.\n            if (device & AUDIO_DEVICE_OUT_SPEAKER) {\n                device = AUDIO_DEVICE_OUT_SPEAKER;\n            } else if (device & AUDIO_DEVICE_OUT_SPEAKER_SAFE) {\n                device = AUDIO_DEVICE_OUT_SPEAKER_SAFE;\n            } else if (device & AUDIO_DEVICE_OUT_HDMI_ARC) {\n                device = AUDIO_DEVICE_OUT_HDMI_ARC;\n            } else if (device & AUDIO_DEVICE_OUT_AUX_LINE) {\n                device = AUDIO_DEVICE_OUT_AUX_LINE;\n            } else if (device & AUDIO_DEVICE_OUT_SPDIF) {\n                device = AUDIO_DEVICE_OUT_SPDIF;\n            } else {\n                device = (audio_devices_t)(device & AUDIO_DEVICE_OUT_ALL_A2DP);\n            }",
+        "res_region": "            return AUDIO_DEVICE_OUT_SPEAKER;",
+        "lookback": "        if (deviceTypes.empty()) {\n            // this happens when forcing a route update and no track is active on an output.\n            // In this case the returned category is not important.",
+        "lookahead": "        }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 99,
+        "end_line": 155,
+        "merge_gen_region": "return AUDIO_DEVICE_OUT_SPEAKER;",
+        "resolved": true
+    }
+]

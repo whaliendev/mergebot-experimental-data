@@ -1,0 +1,30 @@
+diff --git a/./output/frameworks_av/4376579d-083f262d-b6e50060/media@module@libmediatranscoding@TranscodingResourcePolicy.no_comments_mergegen.cpp b/./output/frameworks_av/4376579d-083f262d-b6e50060/media@module@libmediatranscoding@TranscodingResourcePolicy.no_comments_merged.cpp
+index 44d266e..98bf18d 100644
+--- a/./output/frameworks_av/4376579d-083f262d-b6e50060/media@module@libmediatranscoding@TranscodingResourcePolicy.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/4376579d-083f262d-b6e50060/media@module@libmediatranscoding@TranscodingResourcePolicy.no_comments_merged.cpp
+@@ -69 +69,12 @@ TranscodingResourcePolicy::~TranscodingResourcePolicy() {
+-{ std::lock_guard<std::mutex> guard(sCookiesMutex);
++    {
++        std::lock_guard<std::mutex> guard(sCookiesMutex);
++        std::erase_if(sCookies, [this](const auto& cookieEntry) {
++            auto const& [key, cookie] = cookieEntry;
++            std::lock_guard guard(mCookieKeysLock);
++            if (const auto& it = mCookieKeys.find(key); it != mCookieKeys.end()) {
++                mCookieKeys.erase(key);
++                return true;
++            }
++            return false;
++        });
++    }
+@@ -95 +106,10 @@ void TranscodingResourcePolicy::registerSelf() {
+-std::unique_ptr<TranscodingResourcePolicyCookie> cookie = std::make_unique<TranscodingResourcePolicyCookie>(this); void* cookiePtr = static_cast<void*>(cookie.get()); uintptr_t cookieKey = sCookieKeyCounter++; sCookies.emplace(cookieKey, std::move(cookie)); { std::lock_guard guard(mCookieKeysLock); mCookieKeys.insert(cookieKey); }
++    std::unique_ptr<TranscodingResourcePolicyCookie> cookie =
++            std::make_unique<TranscodingResourcePolicyCookie>(this);
++    void* cookiePtr = static_cast<void*>(cookie.get());
++    uintptr_t cookieKey = sCookieKeyCounter++;
++    sCookies.emplace(cookieKey, std::move(cookie));
++    {
++        std::lock_guard guard(mCookieKeysLock);
++        mCookieKeys.insert(cookieKey);
++    }
++    AIBinder_linkToDeath(binder.get(), mDeathRecipient.get(), reinterpret_cast<void*>(cookieKey));

@@ -1,0 +1,29 @@
+--- a/./output/art/183ef2e9-9f9413b0-4e97dd87/runtime@thread.no_comments_mergegen.cc
++++ b/./output/art/183ef2e9-9f9413b0-4e97dd87/runtime@thread.no_comments_merged.cc
+@@ -3523,4 +3523,2 @@ void Thread::VisitRoots(RootVisitor* visitor) {
+-static void SweepCacheEntry(IsMarkedVisitor* visitor,
+-                            const Instruction* inst,
+-                            size_t* value,
+-                            bool only_update_class) REQUIRES_SHARED(Locks::mutator_lock_) {
++static void SweepCacheEntry(IsMarkedVisitor* visitor, const Instruction* inst, size_t* value)
++    REQUIRES_SHARED(Locks::mutator_lock_) {
+@@ -3537,0 +3536,2 @@ static void SweepCacheEntry(IsMarkedVisitor* visitor,
++      mirror::Class* klass = reinterpret_cast<mirror::Class*>(*value);
++      if (klass == nullptr || klass == Runtime::GetWeakClassSentinel()) {
+@@ -3540 +3540,7 @@ static void SweepCacheEntry(IsMarkedVisitor* visitor,
+-ctx::Class* new_klass = down_cast<mirror::Class*>(visitor->IsMarked(klass)); if (new_klass == nullptr) { *value = reinterpret_cast<size_t>(Runtime::GetWeakClassSentinel()); } else if (new_klass != klass) { *value = reinterpret_cast<size_t>(new_klass); } return;
++      mirror::Class* new_klass = down_cast<mirror::Class*>(visitor->IsMarked(klass));
++      if (new_klass == nullptr) {
++        *value = reinterpret_cast<size_t>(Runtime::GetWeakClassSentinel());
++      } else if (new_klass != klass) {
++        *value = reinterpret_cast<size_t>(new_klass);
++      }
++      return;
+@@ -3564 +3569,0 @@ void Thread::SweepInterpreterCache(IsMarkedVisitor* visitor) {
+-  bool only_update_class = Runtime::Current()->GetHeap()->IsPerformingUffdCompaction();
+@@ -3566,4 +3571 @@ void Thread::SweepInterpreterCache(IsMarkedVisitor* visitor) {
+-    SweepCacheEntry(visitor,
+-                    reinterpret_cast<const Instruction*>(entry.first),
+-                    &entry.second,
+-                    only_update_class);
++    SweepCacheEntry(visitor, reinterpret_cast<const Instruction*>(entry.first), &entry.second);

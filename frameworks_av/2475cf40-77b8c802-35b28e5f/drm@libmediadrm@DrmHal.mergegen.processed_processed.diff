@@ -1,0 +1,31 @@
+--- a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_merged.cpp
+@@ -239,5 +239,12 @@ Mutex DrmHal::mLock;
+-struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient { explicit DrmHal* drm, const Vector<uint8_t>& sessionId) : mSessionId(sessionId), mDrm(drm) {} virtual bool reclaimSession(const Vector<uint8_t>& sessionId) { sp<DrmHal> drm = mDrm(drm) {} ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;
+-const Vector<uint8_t> mSessionId; String8 DrmHal::DrmSessionClient();
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
++struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManagerClient {
++    explicit DrmSessionClient(DrmHal* drm, const Vector<uint8_t>& sessionId)
++      : mSessionId(sessionId),
++        mDrm(drm) {}
++    ::ndk::ScopedAStatus reclaimResource(bool* _aidl_return) override;
++    ::ndk::ScopedAStatus getName(::std::string* _aidl_return) override;
++    const Vector<uint8_t> mSessionId;
++    virtual ~DrmSessionClient();
++private:
++    wp<DrmHal> mDrm;
++    DISALLOW_EVIL_CONSTRUCTORS(DrmSessionClient);
++};
+@@ -593 +600,4 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId)); DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(), std::static_pointer_cast<IResourceManagerClient>(client), sessionId);
++        std::shared_ptr<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
++        DrmSessionManager::Instance()->addSession(AIBinder_getCallingPid(),
++                std::static_pointer_cast<IResourceManagerClient>(client), sessionId);
++        mOpenSessions.push_back(client);
+@@ -606 +616,3 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-if (isEqualSessionId((*i)->mSessionId, sessionId)) { mOpenSessions.erase(i);
++            for (auto i = mOpenSessions.begin(); i != mOpenSessions.end(); i++) {
++                if (isEqualSessionId((*i)->mSessionId, sessionId)) {
++                    mOpenSessions.erase(i);

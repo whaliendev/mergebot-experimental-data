@@ -1,0 +1,34 @@
+--- a/./output/system_core/8298fc61-e7f9de2c-6dc78dc5/libprocessgroup@cgroup_map.no_comments_mergegen.cpp
++++ b/./output/system_core/8298fc61-e7f9de2c-6dc78dc5/libprocessgroup@cgroup_map.no_comments_merged.cpp
+@@ -28 +28,23 @@ static constexpr const char* CGROUP_TASKS_FILE_V2 = "/cgroup.tasks";
+-uint32_t CgroupController::version() const { CHECK(HasValue()); return ACgroupController_getVersion(controller_); } const char* CgroupController::name() const { CHECK(HasValue()); return ACgroupController_getName(controller_); } const char* CgroupController::path() const { CHECK(HasValue()); return AC
++uint32_t CgroupController::version() const {
++    CHECK(HasValue());
++    return ACgroupController_getVersion(controller_);
++}
++const char* CgroupController::name() const {
++    CHECK(HasValue());
++    return ACgroupController_getName(controller_);
++}
++const char* CgroupController::path() const {
++    CHECK(HasValue());
++    return ACgroupController_getPath(controller_);
++}
++bool CgroupController::HasValue() const {
++    return controller_ != nullptr;
++}
++std::string CgroupController::GetTasksFilePath(const std::string& rel_path) const {
++    std::string tasks_path = path();
++    if (!rel_path.empty()) {
++        tasks_path += "/" + rel_path;
++    }
++    return (version() == 1) ? tasks_path + CGROUP_TASKS_FILE : tasks_path + CGROUP_TASKS_FILE_V2;
++}
++std::string CgroupController::GetProcsFilePath(const std::string& rel_path, uid_t uid,
+@@ -60 +82 @@ bool CgroupController::GetTaskGroup(int tid, std::string* group) const {
+-CgroupMap::CgroupMap() { if (!LoadRcFile()) { LOG(ERROR) << "CgroupMap::LoadRcFile called for [" << getpid() << "] failed";
++CgroupMap::CgroupMap() {
+@@ -92 +114,2 @@ void CgroupMap::Print() const {
+-const CgroupController CgroupMap::FindController(const std::string& name) const { if (!loaded_) { LOG(ERROR) << "CgroupMap::FindController called for ["();
++CgroupController CgroupMap::FindController(const std::string& name) const {
++    if (!loaded_) {

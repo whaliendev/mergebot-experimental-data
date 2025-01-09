@@ -1,0 +1,66 @@
+--- a/./output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/services@audiopolicy@service@AudioPolicyInterfaceImpl.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/services@audiopolicy@service@AudioPolicyInterfaceImpl.no_comments_merged.cpp
+@@ -1314,0 +1315,13 @@ Status AudioPolicyService::isDirectOutputSupported(
++template <typename Port>
++void anonymizePortBluetoothAddress(Port *port) {
++    if (port->type != AUDIO_PORT_TYPE_DEVICE) {
++        return;
++    }
++    if (!(audio_is_a2dp_device(port->ext.device.type)
++            || audio_is_ble_device(port->ext.device.type)
++            || audio_is_bluetooth_sco_device(port->ext.device.type)
++            || audio_is_hearing_aid_out_device(port->ext.device.type))) {
++        return;
++    }
++    anonymizeBluetoothAddress(port->ext.device.address);
++}
+@@ -1333 +1346,15 @@ const AttributionSourceState attributionSource = getCallingAttributionSource();
+-{ audio_utils::lock_guard _l(mMutex); if (mAudioPolicyManager == NULL) { return binderStatusFromStatusT(NO_INIT); }
++    {
++        audio_utils::lock_guard _l(mMutex);
++        if (mAudioPolicyManager == NULL) {
++            return binderStatusFromStatusT(NO_INIT);
++        }
++        RETURN_IF_BINDER_ERROR(binderStatusFromStatusT(
++                mAudioPolicyManager->listAudioPorts(
++                        role, type, &num_ports, ports.get(), &generation)));
++        numPortsReq = std::min(numPortsReq, num_ports);
++    }
++    if (mustAnonymizeBluetoothAddress(attributionSource, String16(__func__))) {
++        for (size_t i = 0; i < numPortsReq; ++i) {
++            anonymizePortBluetoothAddress(&ports[i]);
++        }
++    }
+@@ -1356 +1383,10 @@ const AttributionSourceState attributionSource = getCallingAttributionSource();
+-audio_utils::lock_guard _l(mMutex); if (mAudioPolicyManager == NULL) { return binderStatusFromStatusT(NO_INIT); }
++    {
++        audio_utils::lock_guard _l(mMutex);
++        if (mAudioPolicyManager == NULL) {
++            return binderStatusFromStatusT(NO_INIT);
++        }
++        RETURN_IF_BINDER_ERROR(binderStatusFromStatusT(mAudioPolicyManager->getAudioPort(&port)));
++    }
++    if (mustAnonymizeBluetoothAddress(attributionSource, String16(__func__))) {
++        anonymizePortBluetoothAddress(&port);
++    }
+@@ -1411 +1447,19 @@ const AttributionSourceState attributionSource = getCallingAttributionSource();
+-{ audio_utils::lock_guard _l(mMutex); if (mAudioPolicyManager == NULL) { return binderStatusFromStatusT(NO_INIT); }
++    {
++        audio_utils::lock_guard _l(mMutex);
++        if (mAudioPolicyManager == NULL) {
++            return binderStatusFromStatusT(NO_INIT);
++        }
++        RETURN_IF_BINDER_ERROR(binderStatusFromStatusT(
++                mAudioPolicyManager->listAudioPatches(&num_patches, patches.get(), &generation)));
++        numPatchesReq = std::min(numPatchesReq, num_patches);
++    }
++    if (mustAnonymizeBluetoothAddress(attributionSource, String16(__func__))) {
++        for (size_t i = 0; i < numPatchesReq; ++i) {
++            for (size_t j = 0; j < patches[i].num_sources; ++j) {
++                anonymizePortBluetoothAddress(&patches[i].sources[j]);
++            }
++            for (size_t j = 0; j < patches[i].num_sinks; ++j) {
++                anonymizePortBluetoothAddress(&patches[i].sinks[j]);
++            }
++        }
++    }

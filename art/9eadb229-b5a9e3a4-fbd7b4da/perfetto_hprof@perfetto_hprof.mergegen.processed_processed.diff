@@ -1,0 +1,142 @@
+--- a/./output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_mergegen.cc
++++ b/./output/art/9eadb229-b5a9e3a4-fbd7b4da/perfetto_hprof@perfetto_hprof.no_comments_merged.cc
+@@ -99 +104,22 @@ bool ShouldSampleSmapsEntry(const perfetto::profiling::SmapsEntry& e) {
+-uint64_t GetCurrentBootClockNs() { struct timespec ts = {}; if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) { LOG(FATAL) << "Failed to get boottime."; } return ts.tv_sec * 1000000000LL + ts.tv_nsec; } bool IsDebugBuild() { std::string build_type = android::base::GetProperty("ro.build.type", ""); return !build_type.empty() && build_type != "user"; }
++uint64_t GetCurrentBootClockNs() {
++  struct timespec ts = {};
++  if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {
++    LOG(FATAL) << "Failed to get boottime.";
++  }
++  return ts.tv_sec * 1000000000LL + ts.tv_nsec;
++}
++bool IsDebugBuild() {
++  std::string build_type = android::base::GetProperty("ro.build.type", "");
++  return !build_type.empty() && build_type != "user";
++}
++bool IsOomeHeapDumpAllowed(const perfetto::DataSourceConfig& ds_config) {
++  if (art::Runtime::Current()->IsJavaDebuggable() || IsDebugBuild()) {
++    return true;
++  }
++  if (ds_config.session_initiator() ==
++      perfetto::DataSourceConfig::SESSION_INITIATOR_TRUSTED_SYSTEM) {
++    return art::Runtime::Current()->IsProfileable() || art::Runtime::Current()->IsSystemServer();
++  } else {
++    return art::Runtime::Current()->IsProfileableFromShell();
++  }
++}
+@@ -154 +189,15 @@ if (!is_oome_heap_) { uint64_t normalized_tracing_session_id = args.config->trac
+-static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) { std::string cmdline; if (!android::base::ReadFileToString("/proc/self/cmdline", &cmdline)) { return false; } const char* argv0 = cmdline.c_str(); for (auto it = cfg.process_cmdline(); it; ++it) { std::string pattern = (*it).ToStdString(); if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) { return true; } } return false; } bool is_oome_heap_ = false; bool verify_session_id_ = false; bool enabled_ = false;
++  static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) {
++    std::string cmdline;
++    if (!android::base::ReadFileToString("/proc/self/cmdline", &cmdline)) {
++      return false;
++    }
++    const char* argv0 = cmdline.c_str();
++    for (auto it = cfg.process_cmdline(); it; ++it) {
++      std::string pattern = (*it).ToStdString();
++      if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) {
++        return true;
++      }
++    }
++    return false;
++  }
++  bool is_oome_heap_ = false;
+@@ -170 +219,3 @@ void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {
+- JavaHprofDataSource::Register(dsd, verify_session_id); LOG(INFO) << "registered data source " << ds_name;
++  JavaHprofDataSource::Register(dsd, is_oome_heap);
++  LOG(INFO) << "registered data source " << ds_name;
++}
+@@ -638,0 +690,30 @@ class HeapGraphDumper {
++void BusyWaitpid(pid_t pid, uint32_t timeout_ms) {
++  for (size_t i = 0;; ++i) {
++    if (i == timeout_ms) {
++      LOG(ERROR) << "perfetto_hprof child timed out. Sending SIGKILL.";
++      kill(pid, SIGKILL);
++    }
++    int stat_loc;
++    pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG);
++    if (wait_result == -1 && errno != EINTR) {
++      if (errno != ECHILD) {
++        PLOG(FATAL_WITHOUT_ABORT) << "waitpid";
++      }
++      break;
++    } else if (wait_result > 0) {
++      break;
++    } else {
++      usleep(1000);
++    }
++  }
++}
++enum class ResumeParentPolicy {
++  IMMEDIATELY,
++  DEFERRED
++};
++void ForkAndRun(art::Thread* self,
++                ResumeParentPolicy resume_parent_policy,
++                const std::function<void(pid_t child)>& parent_runnable,
++                const std::function<void(pid_t parent, uint64_t timestamp)>& child_runnable) {
++  pid_t parent_pid = getpid();
++  LOG(INFO) << "forking for " << parent_pid;
+@@ -715 +796,56 @@ void WriteHeapPackets(pid_t parent_pid, uint64_t timestamp) {
+-void DumpPerfetto(art::Thread* self) { ForkAndRun( self, ResumeParentPolicy::IMMEDIATELY,
++void DumpPerfetto(art::Thread* self) {
++  ForkAndRun(
++    self,
++    ResumeParentPolicy::IMMEDIATELY,
++    [](pid_t child) {
++      BusyWaitpid(child, 1000);
++    },
++    [self](pid_t dumped_pid, uint64_t timestamp) {
++      if (daemon(0, 0) == -1) {
++        PLOG(FATAL) << "daemon";
++      }
++      ArmWatchdogOrDie();
++      SetupDataSource("android.java_hprof", false);
++      WaitForDataSource(self);
++      WriteHeapPackets(dumped_pid, timestamp);
++      LOG(INFO) << "finished dumping heap for " << dumped_pid;
++    });
++}
++void DumpPerfettoOutOfMemory() REQUIRES_SHARED(art::Locks::mutator_lock_) {
++  art::Thread* self = art::Thread::Current();
++  if (!self) {
++    LOG(FATAL_WITHOUT_ABORT) << "no thread in DumpPerfettoOutOfMemory";
++    return;
++  }
++  uint32_t session_cnt =
++      android::base::GetUintProperty<uint32_t>("traced.oome_heap_session.count", 0);
++  if (session_cnt == 0) {
++    return;
++  }
++  {
++    art::MutexLock lk(self, GetStateMutex());
++    if (g_oome_triggered) {
++      return;
++    }
++    g_oome_triggered = true;
++    g_oome_sessions_pending = session_cnt;
++  }
++  art::ScopedThreadSuspension sts(self, art::ThreadState::kSuspended);
++  ForkAndRun(
++    self,
++    ResumeParentPolicy::DEFERRED,
++    [](pid_t child) {
++      BusyWaitpid(child, kWatchdogTimeoutSec * 1000);
++    },
++    [self](pid_t dumped_pid, uint64_t timestamp) {
++      ArmWatchdogOrDie();
++      art::ScopedTrace trace("perfetto_hprof oome");
++      SetupDataSource("android.java_hprof.oom", true);
++      perfetto::Tracing::ActivateTriggers({"com.android.telemetry.art-outofmemory"}, 500);
++      if (!TimedWaitForDataSource(self, 1000)) {
++        LOG(INFO) << "OOME hprof timeout (state " << g_state << ")";
++        return;
++      }
++      WriteHeapPackets(dumped_pid, timestamp);
++      LOG(INFO) << "OOME hprof complete for " << dumped_pid;
++    });
+@@ -792,0 +929 @@ extern "C" bool ArtPlugin_Initialize() {
++  art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);
+@@ -796 +933 @@ extern "C" bool ArtPlugin_Deinitialize() {
+-bool ArtPlugin_Deinitialize() { art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr); if (CanProfile()) { art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr); }
++  art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);

@@ -1,0 +1,28 @@
+diff --git a/./output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_mergegen.cpp b/./output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_merged.cpp
+index 8848429..149d733 100644
+--- a/./output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/9468f951-e23cbd26-faafe298/media@libstagefright@MediaCodec.no_comments_merged.cpp
+@@ -566 +566,20 @@ void MediaCodec::updateEphemeralMediametrics(mediametrics_handle_t item) {
+-void MediaCodec::flushMediametrics() { updateMediametrics(); if (mMetricsHandle != 0) { if (mediametrics_count(mMetricsHandle) > 0) { mediametrics_selfRecord(mMetricsHandle); } mediametrics_delete(mMetricsHandle); mMetricsHandle = 0; } } void MediaCodec::updateLowLatency(const sp<AMessage> &msg) { int32_t lowLatency = 0; if (msg->findInt32("low-latency", &lowLatency)) { Mutex::Autolock al(mLatencyLock); if (lowLatency > 0) { ++mNumLowLatencyEnables;
++void MediaCodec::flushMediametrics() {
++    updateMediametrics();
++    if (mMetricsHandle != 0) {
++        if (mediametrics_count(mMetricsHandle) > 0) {
++            mediametrics_selfRecord(mMetricsHandle);
++        }
++        mediametrics_delete(mMetricsHandle);
++        mMetricsHandle = 0;
++    }
++}
++void MediaCodec::updateLowLatency(const sp<AMessage> &msg) {
++    int32_t lowLatency = 0;
++    if (msg->findInt32("low-latency", &lowLatency)) {
++        Mutex::Autolock al(mLatencyLock);
++        if (lowLatency > 0) {
++            ++mNumLowLatencyEnables;
++            mIsLowLatencyModeOn = true;
++        } else if (lowLatency == 0) {
++            ++mNumLowLatencyDisables;
++            mIsLowLatencyModeOn = false;
+@@ -568 +586,0 @@ void MediaCodec::flushMediametrics() { updateMediametrics(); if (mMetricsHandle
+-mediametrics_delete(mMetricsHandle); mMetricsHandle = 0;

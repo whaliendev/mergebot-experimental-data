@@ -1,0 +1,23 @@
+diff --git a/./output/rocksdb/3615f534-dbbffbd7-3c0dcf0e/db@db_impl.no_comments_mergegen.cc b/./output/rocksdb/3615f534-dbbffbd7-3c0dcf0e/db@db_impl.no_comments_merged.cc
+index 7aba31f..f7527b4 100644
+--- a/./output/rocksdb/3615f534-dbbffbd7-3c0dcf0e/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/3615f534-dbbffbd7-3c0dcf0e/db@db_impl.no_comments_merged.cc
+@@ -765,0 +766,18 @@ if (cfd->GetLogNumber() > log_number) {
++        assert(cfd->mem()->GetFirstSequenceNumber() == 0);
++        assert(edit->NumEntries() == 0);
++        continue;
++      }
++      if (cfd->mem()->GetFirstSequenceNumber() != 0) {
++        status = WriteLevel0TableForRecovery(cfd->mem(), edit);
++      }
++      cfd->CreateNewMemtable();
++      if (!status.ok()) {
++        return status;
++      }
++      edit->SetLogNumber(log_number + 1);
++      versions_->MarkFileNumberUsed(log_number + 1);
++      status = versions_->LogAndApply(cfd, edit, &mutex_);
++      if (!status.ok()) {
++        return status;
++      }
++    }

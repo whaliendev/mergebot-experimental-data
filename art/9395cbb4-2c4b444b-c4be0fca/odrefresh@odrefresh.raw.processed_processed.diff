@@ -1,0 +1,498 @@
+--- a/./output/art/9395cbb4-2c4b444b-c4be0fca/odrefresh@odrefresh.no_comments_conflict.cc
++++ b/./output/art/9395cbb4-2c4b444b-c4be0fca/odrefresh@odrefresh.no_comments_merged.cc
+@@ -27 +26,0 @@
+-<<<<<<< HEAD
+@@ -29,4 +27,0 @@
+-||||||| c4be0fcab2
+-=======
+-#include <regex>
+->>>>>>> 2c4b444b
+@@ -47 +41,0 @@
+-<<<<<<< HEAD
+@@ -50,4 +43,0 @@
+-||||||| c4be0fcab2
+-=======
+-#include "android-base/result.h"
+->>>>>>> 2c4b444b
+@@ -77 +66,0 @@
+-<<<<<<< HEAD
+@@ -81,5 +69,0 @@
+-||||||| c4be0fcab2
+-=======
+-#include "palette/palette.h"
+-#include "palette/palette_types.h"
+->>>>>>> 2c4b444b
+@@ -93 +76,0 @@ constexpr const char* kCacheInfoFile = "cache-info.xml";
+-<<<<<<< HEAD
+@@ -95,22 +77,0 @@ constexpr time_t kMaximumExecutionSeconds = 300;
+-||||||| c4be0fcab2
+-static void UsageErrorV(const char* fmt, va_list ap) {
+-  std::string error;
+-  android::base::StringAppendV(&error, fmt, ap);
+-  if (isatty(fileno(stderr))) {
+-    std::cerr << error << std::endl;
+-  } else {
+-    LOG(ERROR) << error;
+-  }
+-}
+-=======
+-using ::android::base::Result;
+-static void UsageErrorV(const char* fmt, va_list ap) {
+-  std::string error;
+-  android::base::StringAppendV(&error, fmt, ap);
+-  if (isatty(fileno(stderr))) {
+-    std::cerr << error << std::endl;
+-  } else {
+-    LOG(ERROR) << error;
+-  }
+-}
+->>>>>>> 2c4b444b
+@@ -170 +130,0 @@ bool MoveOrEraseFiles(const std::vector<std::unique_ptr<File>>& files,
+-<<<<<<< HEAD
+@@ -176,58 +135,0 @@ std::optional<apex::ApexInfo> GetArtApexInfo(const std::vector<apex::ApexInfo>&
+-||||||| c4be0fcab2
+-}
+-bool ParseZygoteKind(const char* input, ZygoteKind* zygote_kind) {
+-  std::string_view z(input);
+-  if (z == "zygote32") {
+-    *zygote_kind = ZygoteKind::kZygote32;
+-    return true;
+-  } else if (z == "zygote32_64") {
+-    *zygote_kind = ZygoteKind::kZygote32_64;
+-    return true;
+-  } else if (z == "zygote64_32") {
+-    *zygote_kind = ZygoteKind::kZygote64_32;
+-    return true;
+-  } else if (z == "zygote64") {
+-    *zygote_kind = ZygoteKind::kZygote64;
+-    return true;
+-  }
+-  return false;
+-=======
+-Result<int> ParseSecurityPatchStr(const std::string& security_patch_str) {
+-  std::regex security_patch_regex(R"re((\d{4})-(\d{2})-(\d{2}))re");
+-  std::smatch m;
+-  if (!std::regex_match(security_patch_str, m, security_patch_regex)) {
+-    return Errorf("Invalid security patch string \"{}\"", security_patch_str);
+-  }
+-  int year = 0, month = 0, day = 0;
+-  if (!android::base::ParseInt(m[1], &year) || !android::base::ParseInt(m[2], &month) ||
+-      !android::base::ParseInt(m[3], &day)) {
+-    return Errorf("Unknown error when parsing security patch string \"{}\"", security_patch_str);
+-  }
+-  return year * 10000 + month * 100 + day;
+-}
+-bool ShouldDisablePartialCompilation(const std::string& security_patch_str) {
+-  Result<int> security_patch_value = ParseSecurityPatchStr(security_patch_str);
+-  if (!security_patch_value.ok()) {
+-    LOG(ERROR) << security_patch_value.error();
+-    return false;
+-  }
+-  return security_patch_value.value() < ParseSecurityPatchStr("2022-03-05").value();
+-}
+-}
+-bool ParseZygoteKind(const char* input, ZygoteKind* zygote_kind) {
+-  std::string_view z(input);
+-  if (z == "zygote32") {
+-    *zygote_kind = ZygoteKind::kZygote32;
+-    return true;
+-  } else if (z == "zygote32_64") {
+-    *zygote_kind = ZygoteKind::kZygote32_64;
+-    return true;
+-  } else if (z == "zygote64_32") {
+-    *zygote_kind = ZygoteKind::kZygote64_32;
+-    return true;
+-  } else if (z == "zygote64") {
+-    *zygote_kind = ZygoteKind::kZygote64;
+-    return true;
+-  }
+-  return false;
+->>>>>>> 2c4b444b
+@@ -1371 +1272,0 @@ WARN_UNUSED ExitCode OnDeviceRefresh::Compile(OdrMetrics& metrics,
+-<<<<<<< HEAD
+@@ -1376,227 +1276,0 @@ WARN_UNUSED ExitCode OnDeviceRefresh::Compile(OdrMetrics& metrics,
+-||||||| c4be0fcab2
+-      AddDex2OatCommonOptions(&args);
+-      AddDex2OatConcurrencyArguments(&args);
+-      AddDex2OatDebugInfo(&args);
+-      AddDex2OatInstructionSet(&args, isa);
+-      const std::string jar_name(android::base::Basename(jar));
+-      const std::string profile = Concatenate({GetAndroidRoot(), "/framework/", jar_name, ".prof"});
+-      std::string compiler_filter =
+-          android::base::GetProperty("dalvik.vm.systemservercompilerfilter", "speed");
+-      if (compiler_filter == "speed-profile") {
+-        AddDex2OatProfileAndCompilerFilter(&args, profile);
+-      } else {
+-        args.emplace_back("--compiler-filter=" + compiler_filter);
+-      }
+-      const std::string image_location = GetSystemServerImagePath( false, jar);
+-      const std::string install_location = android::base::Dirname(image_location);
+-      if (classloader_context.empty()) {
+-        if (!EnsureDirectoryExists(install_location)) {
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          return false;
+-        }
+-      }
+-      OdrArtifacts artifacts = OdrArtifacts::ForSystemServer(image_location);
+-      CHECK_EQ(artifacts.OatPath(), GetApexDataOdexFilename(jar.c_str(), isa));
+-      const std::pair<const std::string, const char*> location_kind_pairs[] = {
+-          std::make_pair(artifacts.ImagePath(), "app-image"),
+-          std::make_pair(artifacts.OatPath(), "oat"),
+-          std::make_pair(artifacts.VdexPath(), "output-vdex")
+-      };
+-      std::vector<std::unique_ptr<File>> staging_files;
+-      for (const auto& location_kind_pair : location_kind_pairs) {
+-        auto& [location, kind] = location_kind_pair;
+-        const std::string staging_location = GetStagingLocation(staging_dir, location);
+-        std::unique_ptr<File> staging_file(OS::CreateEmptyFile(staging_location.c_str()));
+-        if (staging_file == nullptr) {
+-          PLOG(ERROR) << "Failed to create " << kind << " file: " << staging_location;
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          EraseFiles(staging_files);
+-          return false;
+-        }
+-        args.emplace_back(android::base::StringPrintf("--%s-fd=%d", kind, staging_file->Fd()));
+-        staging_files.emplace_back(std::move(staging_file));
+-      }
+-      args.emplace_back("--oat-location=" + artifacts.OatPath());
+-      if (!config_.GetUpdatableBcpPackagesFile().empty()) {
+-        const std::string& bcp_packages = config_.GetUpdatableBcpPackagesFile();
+-        if (!OS::FileExists(bcp_packages.c_str())) {
+-          *error_msg = "Cannot compile system_server JARs: missing " + QuotePath(bcp_packages);
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          EraseFiles(staging_files);
+-          return false;
+-        }
+-        args.emplace_back("--updatable-bcp-packages-file=" + bcp_packages);
+-      }
+-      args.emplace_back("--runtime-arg");
+-      args.emplace_back(Concatenate({"-Xbootclasspath:", config_.GetDex2oatBootClasspath()}));
+-      const std::string context_path = android::base::Join(classloader_context, ':');
+-      args.emplace_back(Concatenate({"--class-loader-context=PCL[", context_path, "]"}));
+-      const std::string extension_image = GetBootImageExtensionImage( false);
+-      args.emplace_back(Concatenate({"--boot-image=", GetBootImage(), ":", extension_image}));
+-      const time_t timeout = GetSubprocessTimeout();
+-      const std::string cmd_line = android::base::Join(args, ' ');
+-      LOG(INFO) << "Compiling " << jar << ": " << cmd_line << " [timeout " << timeout << "s]";
+-      if (config_.GetDryRun()) {
+-        LOG(INFO) << "Compilation skipped (dry-run).";
+-        return true;
+-      }
+-      bool timed_out = false;
+-      int dex2oat_exit_code = ExecAndReturnCode(args, timeout, &timed_out, error_msg);
+-      if (dex2oat_exit_code != 0) {
+-        if (timed_out) {
+-          metrics.SetStatus(OdrMetrics::Status::kTimeLimitExceeded);
+-        } else {
+-          metrics.SetStatus(OdrMetrics::Status::kDex2OatError);
+-        }
+-        EraseFiles(staging_files);
+-        return false;
+-      }
+-      if (!MoveOrEraseFiles(staging_files, install_location)) {
+-        metrics.SetStatus(OdrMetrics::Status::kInstallFailed);
+-        return false;
+-      }
+-      *dex2oat_invocation_count = *dex2oat_invocation_count + 1;
+-      ReportNextBootAnimationProgress(*dex2oat_invocation_count);
+-      classloader_context.emplace_back(jar);
+-    }
+-    return true;
+-  }
+-  void ReportNextBootAnimationProgress(uint32_t current_compilation) const {
+-    uint32_t number_of_compilations =
+-        config_.GetBootExtensionIsas().size() + systemserver_compilable_jars_.size();
+-    uint32_t value = (90 * current_compilation) / number_of_compilations;
+-    android::base::SetProperty("service.bootanim.progress", std::to_string(value));
+-  }
+-  WARN_UNUSED bool CheckCompilationSpace() const {
+-    static constexpr uint64_t kMinimumSpaceForCompilation = 3 * 16 * 1024 * 1024;
+-    uint64_t bytes_available;
+-    const std::string& art_apex_data_path = GetArtApexData();
+-    if (!GetFreeSpace(art_apex_data_path, &bytes_available)) {
+-      return false;
+-    }
+-    if (bytes_available < kMinimumSpaceForCompilation) {
+-      LOG(WARNING) << "Low space for " << QuotePath(art_apex_data_path) << " (" << bytes_available
+-                   << " bytes)";
+-      return false;
+-    }
+-    return true;
+-  }
+-  WARN_UNUSED ExitCode Compile(OdrMetrics& metrics, bool force_compile) const {
+-    const char* staging_dir = nullptr;
+-    metrics.SetStage(OdrMetrics::Stage::kPreparation);
+-    if (force_compile && !CleanApexdataDirectory()) {
+-      metrics.SetStatus(OdrMetrics::Status::kIoError);
+-=======
+-      AddDex2OatCommonOptions(&args);
+-      AddDex2OatConcurrencyArguments(&args);
+-      AddDex2OatDebugInfo(&args);
+-      AddDex2OatInstructionSet(&args, isa);
+-      const std::string jar_name(android::base::Basename(jar));
+-      const std::string profile = Concatenate({GetAndroidRoot(), "/framework/", jar_name, ".prof"});
+-      std::string compiler_filter =
+-          android::base::GetProperty("dalvik.vm.systemservercompilerfilter", "speed");
+-      if (compiler_filter == "speed-profile") {
+-        AddDex2OatProfileAndCompilerFilter(&args, profile);
+-      } else {
+-        args.emplace_back("--compiler-filter=" + compiler_filter);
+-      }
+-      const std::string image_location = GetSystemServerImagePath( false, jar);
+-      const std::string install_location = android::base::Dirname(image_location);
+-      if (classloader_context.empty()) {
+-        if (!EnsureDirectoryExists(install_location)) {
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          return false;
+-        }
+-      }
+-      OdrArtifacts artifacts = OdrArtifacts::ForSystemServer(image_location);
+-      CHECK_EQ(artifacts.OatPath(), GetApexDataOdexFilename(jar.c_str(), isa));
+-      const std::pair<const std::string, const char*> location_kind_pairs[] = {
+-          std::make_pair(artifacts.ImagePath(), "app-image"),
+-          std::make_pair(artifacts.OatPath(), "oat"),
+-          std::make_pair(artifacts.VdexPath(), "output-vdex")
+-      };
+-      std::vector<std::unique_ptr<File>> staging_files;
+-      for (const auto& location_kind_pair : location_kind_pairs) {
+-        auto& [location, kind] = location_kind_pair;
+-        const std::string staging_location = GetStagingLocation(staging_dir, location);
+-        std::unique_ptr<File> staging_file(OS::CreateEmptyFile(staging_location.c_str()));
+-        if (staging_file == nullptr) {
+-          PLOG(ERROR) << "Failed to create " << kind << " file: " << staging_location;
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          EraseFiles(staging_files);
+-          return false;
+-        }
+-        args.emplace_back(android::base::StringPrintf("--%s-fd=%d", kind, staging_file->Fd()));
+-        staging_files.emplace_back(std::move(staging_file));
+-      }
+-      args.emplace_back("--oat-location=" + artifacts.OatPath());
+-      if (!config_.GetUpdatableBcpPackagesFile().empty()) {
+-        const std::string& bcp_packages = config_.GetUpdatableBcpPackagesFile();
+-        if (!OS::FileExists(bcp_packages.c_str())) {
+-          *error_msg = "Cannot compile system_server JARs: missing " + QuotePath(bcp_packages);
+-          metrics.SetStatus(OdrMetrics::Status::kIoError);
+-          EraseFiles(staging_files);
+-          return false;
+-        }
+-        args.emplace_back("--updatable-bcp-packages-file=" + bcp_packages);
+-      }
+-      args.emplace_back("--runtime-arg");
+-      args.emplace_back(Concatenate({"-Xbootclasspath:", config_.GetDex2oatBootClasspath()}));
+-      const std::string context_path = android::base::Join(classloader_context, ':');
+-      args.emplace_back(Concatenate({"--class-loader-context=PCL[", context_path, "]"}));
+-      const std::string extension_image = GetBootImageExtensionImage( false);
+-      args.emplace_back(Concatenate({"--boot-image=", GetBootImage(), ":", extension_image}));
+-      const time_t timeout = GetSubprocessTimeout();
+-      const std::string cmd_line = android::base::Join(args, ' ');
+-      LOG(INFO) << "Compiling " << jar << ": " << cmd_line << " [timeout " << timeout << "s]";
+-      if (config_.GetDryRun()) {
+-        LOG(INFO) << "Compilation skipped (dry-run).";
+-        return true;
+-      }
+-      bool timed_out = false;
+-      int dex2oat_exit_code = ExecAndReturnCode(args, timeout, &timed_out, error_msg);
+-      if (dex2oat_exit_code != 0) {
+-        if (timed_out) {
+-          metrics.SetStatus(OdrMetrics::Status::kTimeLimitExceeded);
+-        } else {
+-          metrics.SetStatus(OdrMetrics::Status::kDex2OatError);
+-        }
+-        EraseFiles(staging_files);
+-        return false;
+-      }
+-      if (!MoveOrEraseFiles(staging_files, install_location)) {
+-        metrics.SetStatus(OdrMetrics::Status::kInstallFailed);
+-        return false;
+-      }
+-      *dex2oat_invocation_count = *dex2oat_invocation_count + 1;
+-      ReportNextBootAnimationProgress(*dex2oat_invocation_count);
+-      classloader_context.emplace_back(jar);
+-    }
+-    return true;
+-  }
+-  void ReportNextBootAnimationProgress(uint32_t current_compilation) const {
+-    uint32_t number_of_compilations =
+-        config_.GetBootExtensionIsas().size() + systemserver_compilable_jars_.size();
+-    uint32_t value = (90 * current_compilation) / number_of_compilations;
+-    android::base::SetProperty("service.bootanim.progress", std::to_string(value));
+-  }
+-  WARN_UNUSED bool CheckCompilationSpace() const {
+-    static constexpr uint64_t kMinimumSpaceForCompilation = 3 * 16 * 1024 * 1024;
+-    uint64_t bytes_available;
+-    const std::string& art_apex_data_path = GetArtApexData();
+-    if (!GetFreeSpace(art_apex_data_path, &bytes_available)) {
+-      return false;
+-    }
+-    if (bytes_available < kMinimumSpaceForCompilation) {
+-      LOG(WARNING) << "Low space for " << QuotePath(art_apex_data_path) << " (" << bytes_available
+-                   << " bytes)";
+-      return false;
+-    }
+-    return true;
+-  }
+-  WARN_UNUSED ExitCode Compile(OdrMetrics& metrics, bool force_compile) const {
+-    const char* staging_dir = nullptr;
+-    metrics.SetStage(OdrMetrics::Stage::kPreparation);
+-    if ((force_compile || !config_.GetPartialCompilation()) && !CleanApexdataDirectory()) {
+-      metrics.SetStatus(OdrMetrics::Status::kIoError);
+->>>>>>> 2c4b444b
+@@ -1650 +1323,0 @@ WARN_UNUSED ExitCode OnDeviceRefresh::Compile(OdrMetrics& metrics,
+-<<<<<<< HEAD
+@@ -1652,155 +1324,0 @@ WARN_UNUSED ExitCode OnDeviceRefresh::Compile(OdrMetrics& metrics,
+-||||||| c4be0fcab2
+-        config->SetZygoteKind(zygote_kind);
+-      } else if (!InitializeCommonConfig(arg, config)) {
+-        UsageError("Unrecognized argument: '%s'", arg);
+-      }
+-    }
+-    return n;
+-  }
+-  static int InitializeTargetConfig(int argc, const char** argv, OdrConfig* config) {
+-    config->SetApexInfoListFile("/apex/apex-info-list.xml");
+-    config->SetArtBinDir(GetArtBinDir());
+-    config->SetDex2oatBootclasspath(GetEnvironmentVariableOrDie("DEX2OATBOOTCLASSPATH"));
+-    config->SetSystemServerClasspath(GetEnvironmentVariableOrDie("SYSTEMSERVERCLASSPATH"));
+-    config->SetIsa(kRuntimeISA);
+-    const std::string zygote = android::base::GetProperty("ro.zygote", {});
+-    ZygoteKind zygote_kind;
+-    if (!ParseZygoteKind(zygote.c_str(), &zygote_kind)) {
+-      LOG(FATAL) << "Unknown zygote: " << QuotePath(zygote);
+-    }
+-    config->SetZygoteKind(zygote_kind);
+-    const std::string updatable_packages =
+-        android::base::GetProperty("dalvik.vm.dex2oat-updatable-bcp-packages-file", {});
+-    config->SetUpdatableBcpPackagesFile(updatable_packages);
+-    int n = 1;
+-    for (; n < argc - 1; ++n) {
+-      if (!InitializeCommonConfig(argv[n], config)) {
+-        UsageError("Unrecognized argument: '%s'", argv[n]);
+-      }
+-    }
+-    return n;
+-  }
+-  static int InitializeConfig(int argc, const char** argv, OdrConfig* config) {
+-    if (kIsTargetBuild) {
+-      return InitializeTargetConfig(argc, argv, config);
+-    } else {
+-      return InitializeHostConfig(argc, argv, config);
+-    }
+-  }
+-  static int main(int argc, const char** argv) {
+-    OdrConfig config(argv[0]);
+-    int n = InitializeConfig(argc, argv, &config);
+-    argv += n;
+-    argc -= n;
+-    if (argc != 1) {
+-      UsageError("Expected 1 argument, but have %d.", argc);
+-    }
+-    OdrMetrics metrics(kOdrefreshArtifactDirectory);
+-    OnDeviceRefresh odr(config);
+-    for (int i = 0; i < argc; ++i) {
+-      std::string_view action(argv[i]);
+-      if (action == "--check") {
+-        return odr.CheckArtifactsAreUpToDate(metrics);
+-      } else if (action == "--compile") {
+-        const ExitCode exit_code = odr.CheckArtifactsAreUpToDate(metrics);
+-        if (exit_code != ExitCode::kCompilationRequired) {
+-          return exit_code;
+-        }
+-        OdrCompilationLog compilation_log;
+-        if (!compilation_log.ShouldAttemptCompile(metrics.GetArtApexVersion(),
+-                                                  metrics.GetArtApexLastUpdateMillis(),
+-                                                  metrics.GetTrigger())) {
+-          return ExitCode::kOkay;
+-        }
+-        ExitCode compile_result = odr.Compile(metrics, false);
+-        compilation_log.Log(metrics.GetArtApexVersion(),
+-                            metrics.GetArtApexLastUpdateMillis(),
+-                            metrics.GetTrigger(),
+-                            compile_result);
+-        return compile_result;
+-      } else if (action == "--force-compile") {
+-        return odr.Compile(metrics, true);
+-      } else if (action == "--verify") {
+-        return odr.VerifyArtifactsAreUpToDate();
+-      } else if (action == "--help") {
+-        UsageHelp(argv[0]);
+-=======
+-        config->SetZygoteKind(zygote_kind);
+-      } else if (!InitializeCommonConfig(arg, config)) {
+-        UsageError("Unrecognized argument: '%s'", arg);
+-      }
+-    }
+-    return n;
+-  }
+-  static int InitializeTargetConfig(int argc, const char** argv, OdrConfig* config) {
+-    config->SetApexInfoListFile("/apex/apex-info-list.xml");
+-    config->SetArtBinDir(GetArtBinDir());
+-    config->SetDex2oatBootclasspath(GetEnvironmentVariableOrDie("DEX2OATBOOTCLASSPATH"));
+-    config->SetSystemServerClasspath(GetEnvironmentVariableOrDie("SYSTEMSERVERCLASSPATH"));
+-    config->SetIsa(kRuntimeISA);
+-    const std::string zygote = android::base::GetProperty("ro.zygote", {});
+-    ZygoteKind zygote_kind;
+-    if (!ParseZygoteKind(zygote.c_str(), &zygote_kind)) {
+-      LOG(FATAL) << "Unknown zygote: " << QuotePath(zygote);
+-    }
+-    config->SetZygoteKind(zygote_kind);
+-    const std::string updatable_packages =
+-        android::base::GetProperty("dalvik.vm.dex2oat-updatable-bcp-packages-file", {});
+-    config->SetUpdatableBcpPackagesFile(updatable_packages);
+-    if (ShouldDisablePartialCompilation(
+-            android::base::GetProperty("ro.build.version.security_patch", ""))) {
+-      config->SetPartialCompilation(false);
+-    }
+-    int n = 1;
+-    for (; n < argc - 1; ++n) {
+-      if (!InitializeCommonConfig(argv[n], config)) {
+-        UsageError("Unrecognized argument: '%s'", argv[n]);
+-      }
+-    }
+-    return n;
+-  }
+-  static int InitializeConfig(int argc, const char** argv, OdrConfig* config) {
+-    if (kIsTargetBuild) {
+-      return InitializeTargetConfig(argc, argv, config);
+-    } else {
+-      return InitializeHostConfig(argc, argv, config);
+-    }
+-  }
+-  static int main(int argc, const char** argv) {
+-    OdrConfig config(argv[0]);
+-    int n = InitializeConfig(argc, argv, &config);
+-    argv += n;
+-    argc -= n;
+-    if (argc != 1) {
+-      UsageError("Expected 1 argument, but have %d.", argc);
+-    }
+-    OdrMetrics metrics(kOdrefreshArtifactDirectory);
+-    OnDeviceRefresh odr(config);
+-    for (int i = 0; i < argc; ++i) {
+-      std::string_view action(argv[i]);
+-      if (action == "--check") {
+-        return odr.CheckArtifactsAreUpToDate(metrics);
+-      } else if (action == "--compile") {
+-        const ExitCode exit_code = odr.CheckArtifactsAreUpToDate(metrics);
+-        if (exit_code != ExitCode::kCompilationRequired) {
+-          return exit_code;
+-        }
+-        OdrCompilationLog compilation_log;
+-        if (!compilation_log.ShouldAttemptCompile(metrics.GetArtApexVersion(),
+-                                                  metrics.GetArtApexLastUpdateMillis(),
+-                                                  metrics.GetTrigger())) {
+-          return ExitCode::kOkay;
+-        }
+-        ExitCode compile_result = odr.Compile(metrics, false);
+-        compilation_log.Log(metrics.GetArtApexVersion(),
+-                            metrics.GetArtApexLastUpdateMillis(),
+-                            metrics.GetTrigger(),
+-                            compile_result);
+-        return compile_result;
+-      } else if (action == "--force-compile") {
+-        return odr.Compile(metrics, true);
+-      } else if (action == "--verify") {
+-        return odr.VerifyArtifactsAreUpToDate();
+-      } else if (action == "--help") {
+-        UsageHelp(argv[0]);
+->>>>>>> 2c4b444b

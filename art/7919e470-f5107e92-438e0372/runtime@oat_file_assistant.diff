@@ -1,0 +1,250 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/art/7919e470-f5107e92-438e0372/runtime@oat_file_assistant.no_comments_mergebot.cc b/home/whalien/codebase/python/mergebot-eva/output/art/7919e470-f5107e92-438e0372/runtime@oat_file_assistant.no_comments_merged.cc
+index 8b7628d..630eeeb 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/art/7919e470-f5107e92-438e0372/runtime@oat_file_assistant.no_comments_mergebot.cc
++++ b/home/whalien/codebase/python/mergebot-eva/output/art/7919e470-f5107e92-438e0372/runtime@oat_file_assistant.no_comments_merged.cc
+@@ -39,0 +40,3 @@ namespace art {
++using ::android::base::ConsumePrefix;
++using ::android::base::StringPrintf;
++using ::fmt::literals::operator""_format;
+@@ -245 +247,0 @@ int OatFileAssistant::GetDexOptNeeded(CompilerFilter::Filter target_compiler_fil
+-<<<<<<< HEAD
+@@ -254,8 +255,0 @@ int OatFileAssistant::GetDexOptNeeded(CompilerFilter::Filter target_compiler_fil
+-|||||||
+-  DexOptNeeded dexopt_needed = info.GetDexOptNeeded(target, profile_changed, downgrade);
+-=======
+-  if (info.CheckDisableCompactDexExperiment()) {
+-    return kDex2OatFromScratch;
+-  }
+-  DexOptNeeded dexopt_needed = info.GetDexOptNeeded(target, profile_changed, downgrade);
+->>>>>>> f5107e929fdc91891ef2f8a1c3956d73f3ca9b89
+@@ -569,0 +564,113 @@ bool OatFileAssistant::DexLocationToOatFilename(const std::string& location,
++const std::vector<uint32_t>* OatFileAssistant::GetRequiredDexChecksums(std::string* error_msg) {
++  if (!required_dex_checksums_attempted_) {
++    required_dex_checksums_attempted_ = true;
++    std::vector<uint32_t> checksums;
++    std::vector<std::string> dex_locations_ignored;
++    if (ArtDexFileLoader::GetMultiDexChecksums(dex_location_.c_str(),
++                                               &checksums,
++                                               &dex_locations_ignored,
++                                               &cached_required_dex_checksums_error_,
++                                               zip_fd_,
++                                               &zip_file_only_contains_uncompressed_dex_)) {
++      if (checksums.empty()) {
++        VLOG(oat) << "No dex file found in " << dex_location_;
++      }
++      cached_required_dex_checksums_ = std::move(checksums);
++    }
++  }
++  if (cached_required_dex_checksums_.has_value()) {
++    return &cached_required_dex_checksums_.value();
++  } else {
++    *error_msg = cached_required_dex_checksums_error_;
++    DCHECK(!error_msg->empty());
++    return nullptr;
++  }
++}
++bool OatFileAssistant::ValidateBootClassPathChecksums(OatFileAssistantContext* ofa_context,
++                                                      InstructionSet isa,
++                                                      std::string_view oat_checksums,
++                                                      std::string_view oat_boot_class_path,
++                                                              std::string* error_msg) {
++  const std::vector<std::string>& bcp_locations =
++      ofa_context->GetRuntimeOptions().boot_class_path_locations;
++  if (oat_checksums.empty() || oat_boot_class_path.empty()) {
++    *error_msg = oat_checksums.empty() ? "Empty checksums" : "Empty boot class path";
++    return false;
++  }
++  size_t oat_bcp_size = gc::space::ImageSpace::CheckAndCountBCPComponents(
++      oat_boot_class_path, ArrayRef<const std::string>(bcp_locations), error_msg);
++  if (oat_bcp_size == static_cast<size_t>(-1)) {
++    DCHECK(!error_msg->empty());
++    return false;
++  }
++  DCHECK_LE(oat_bcp_size, bcp_locations.size());
++  size_t bcp_index = 0;
++  size_t boot_image_index = 0;
++  bool found_d = false;
++  while (bcp_index < oat_bcp_size) {
++    static_assert(gc::space::ImageSpace::kImageChecksumPrefix == 'i', "Format prefix check");
++    static_assert(gc::space::ImageSpace::kDexFileChecksumPrefix == 'd', "Format prefix check");
++    if (StartsWith(oat_checksums, "i") && !found_d) {
++      const std::vector<OatFileAssistantContext::BootImageInfo>& boot_image_info_list =
++          ofa_context->GetBootImageInfoList(isa);
++      if (boot_image_index >= boot_image_info_list.size()) {
++        *error_msg = StringPrintf("Missing boot image for %s, remaining checksums: %s",
++                                  bcp_locations[bcp_index].c_str(),
++                                  std::string(oat_checksums).c_str());
++        return false;
++      }
++      const OatFileAssistantContext::BootImageInfo& boot_image_info =
++          boot_image_info_list[boot_image_index];
++      if (!ConsumePrefix(&oat_checksums, boot_image_info.checksum)) {
++        *error_msg = StringPrintf("Image checksum mismatch, expected %s to start with %s",
++                                  std::string(oat_checksums).c_str(),
++                                  boot_image_info.checksum.c_str());
++        return false;
++      }
++      bcp_index += boot_image_info.component_count;
++      boot_image_index++;
++    } else if (StartsWith(oat_checksums, "d")) {
++      found_d = true;
++      const std::vector<std::string>* bcp_checksums =
++          ofa_context->GetBcpChecksums(bcp_index, error_msg);
++      if (bcp_checksums == nullptr) {
++        return false;
++      }
++      oat_checksums.remove_prefix(1u);
++      for (const std::string& checksum : *bcp_checksums) {
++        if (!ConsumePrefix(&oat_checksums, checksum)) {
++          *error_msg = StringPrintf(
++              "Dex checksum mismatch for bootclasspath file %s, expected %s to start with %s",
++              bcp_locations[bcp_index].c_str(),
++              std::string(oat_checksums).c_str(),
++              checksum.c_str());
++          return false;
++        }
++      }
++      bcp_index++;
++    } else {
++      *error_msg = StringPrintf("Unexpected checksums, expected %s to start with %s",
++                                std::string(oat_checksums).c_str(),
++                                found_d ? "'d'" : "'i' or 'd'");
++      return false;
++    }
++    if (bcp_index < oat_bcp_size) {
++      if (!ConsumePrefix(&oat_checksums, ":")) {
++        if (oat_checksums.empty()) {
++          *error_msg =
++              StringPrintf("Checksum too short, missing %zu components", oat_bcp_size - bcp_index);
++        } else {
++          *error_msg = StringPrintf("Missing ':' separator at start of %s",
++                                    std::string(oat_checksums).c_str());
++        }
++        return false;
++      }
++    }
++  }
++  if (!oat_checksums.empty()) {
++    *error_msg =
++        StringPrintf("Checksum too long, unexpected tail: %s", std::string(oat_checksums).c_str());
++    return false;
++  }
++  return true;
++}
+@@ -1000,116 +1106,0 @@ bool OatFileAssistant::ZipFileOnlyContainsUncompressedDex() {
+-using ::android::base::ConsumePrefix;
+-using ::android::base::StringPrintf;
+-using ::fmt::literals::operator""_format;
+-const std::vector<uint32_t>* OatFileAssistant::GetRequiredDexChecksums(std::string* error_msg) {
+-  if (!required_dex_checksums_attempted_) {
+-    required_dex_checksums_attempted_ = true;
+-    std::vector<uint32_t> checksums;
+-    std::vector<std::string> dex_locations_ignored;
+-    if (ArtDexFileLoader::GetMultiDexChecksums(dex_location_.c_str(),
+-                                               &checksums,
+-                                               &dex_locations_ignored,
+-                                               &cached_required_dex_checksums_error_,
+-                                               zip_fd_,
+-                                               &zip_file_only_contains_uncompressed_dex_)) {
+-      if (checksums.empty()) {
+-        VLOG(oat) << "No dex file found in " << dex_location_;
+-      }
+-      cached_required_dex_checksums_ = std::move(checksums);
+-    }
+-  }
+-  if (cached_required_dex_checksums_.has_value()) {
+-    return &cached_required_dex_checksums_.value();
+-  } else {
+-    *error_msg = cached_required_dex_checksums_error_;
+-    DCHECK(!error_msg->empty());
+-    return nullptr;
+-  }
+-}
+-bool OatFileAssistant::ValidateBootClassPathChecksums(OatFileAssistantContext* ofa_context,
+-                                                      InstructionSet isa,
+-                                                      std::string_view oat_checksums,
+-                                                      std::string_view oat_boot_class_path,
+-                                                              std::string* error_msg) {
+-  const std::vector<std::string>& bcp_locations =
+-      ofa_context->GetRuntimeOptions().boot_class_path_locations;
+-  if (oat_checksums.empty() || oat_boot_class_path.empty()) {
+-    *error_msg = oat_checksums.empty() ? "Empty checksums" : "Empty boot class path";
+-    return false;
+-  }
+-  size_t oat_bcp_size = gc::space::ImageSpace::CheckAndCountBCPComponents(
+-      oat_boot_class_path, ArrayRef<const std::string>(bcp_locations), error_msg);
+-  if (oat_bcp_size == static_cast<size_t>(-1)) {
+-    DCHECK(!error_msg->empty());
+-    return false;
+-  }
+-  DCHECK_LE(oat_bcp_size, bcp_locations.size());
+-  size_t bcp_index = 0;
+-  size_t boot_image_index = 0;
+-  bool found_d = false;
+-  while (bcp_index < oat_bcp_size) {
+-    static_assert(gc::space::ImageSpace::kImageChecksumPrefix == 'i', "Format prefix check");
+-    static_assert(gc::space::ImageSpace::kDexFileChecksumPrefix == 'd', "Format prefix check");
+-    if (StartsWith(oat_checksums, "i") && !found_d) {
+-      const std::vector<OatFileAssistantContext::BootImageInfo>& boot_image_info_list =
+-          ofa_context->GetBootImageInfoList(isa);
+-      if (boot_image_index >= boot_image_info_list.size()) {
+-        *error_msg = StringPrintf("Missing boot image for %s, remaining checksums: %s",
+-                                  bcp_locations[bcp_index].c_str(),
+-                                  std::string(oat_checksums).c_str());
+-        return false;
+-      }
+-      const OatFileAssistantContext::BootImageInfo& boot_image_info =
+-          boot_image_info_list[boot_image_index];
+-      if (!ConsumePrefix(&oat_checksums, boot_image_info.checksum)) {
+-        *error_msg = StringPrintf("Image checksum mismatch, expected %s to start with %s",
+-                                  std::string(oat_checksums).c_str(),
+-                                  boot_image_info.checksum.c_str());
+-        return false;
+-      }
+-      bcp_index += boot_image_info.component_count;
+-      boot_image_index++;
+-    } else if (StartsWith(oat_checksums, "d")) {
+-      found_d = true;
+-      const std::vector<std::string>* bcp_checksums =
+-          ofa_context->GetBcpChecksums(bcp_index, error_msg);
+-      if (bcp_checksums == nullptr) {
+-        return false;
+-      }
+-      oat_checksums.remove_prefix(1u);
+-      for (const std::string& checksum : *bcp_checksums) {
+-        if (!ConsumePrefix(&oat_checksums, checksum)) {
+-          *error_msg = StringPrintf(
+-              "Dex checksum mismatch for bootclasspath file %s, expected %s to start with %s",
+-              bcp_locations[bcp_index].c_str(),
+-              std::string(oat_checksums).c_str(),
+-              checksum.c_str());
+-          return false;
+-        }
+-      }
+-      bcp_index++;
+-    } else {
+-      *error_msg = StringPrintf("Unexpected checksums, expected %s to start with %s",
+-                                std::string(oat_checksums).c_str(),
+-                                found_d ? "'d'" : "'i' or 'd'");
+-      return false;
+-    }
+-    if (bcp_index < oat_bcp_size) {
+-      if (!ConsumePrefix(&oat_checksums, ":")) {
+-        if (oat_checksums.empty()) {
+-          *error_msg =
+-              StringPrintf("Checksum too short, missing %zu components", oat_bcp_size - bcp_index);
+-        } else {
+-          *error_msg = StringPrintf("Missing ':' separator at start of %s",
+-                                    std::string(oat_checksums).c_str());
+-        }
+-        return false;
+-      }
+-    }
+-  }
+-  if (!oat_checksums.empty()) {
+-    *error_msg =
+-        StringPrintf("Checksum too long, unexpected tail: %s", std::string(oat_checksums).c_str());
+-    return false;
+-  }
+-  return true;
+-}

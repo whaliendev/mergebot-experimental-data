@@ -1,0 +1,88 @@
+--- a/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@AudioAnalytics.no_comments_conflict.cpp
++++ b/./output/frameworks_av/6bf4d09e-4591aab2-3be023ed/services@mediametrics@AudioAnalytics.no_comments_merged.cpp
+@@ -1288 +1287,0 @@ std::pair<std::string, int32_t> AudioAnalytics::Health::dump(
+-<<<<<<< HEAD
+@@ -1426,83 +1424,0 @@ std::pair<std::string, int32_t> AudioAnalytics::Spatializer::dump(
+-||||||| 3be023edb8
+-=======
+-void AudioAnalytics::Spatializer::onEvent(
+-        const std::shared_ptr<const android::mediametrics::Item> &item)
+-{
+-    const auto key = item->getKey();
+-    if (!startsWith(key, AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER)) return;
+-    const std::string suffix =
+-            key.substr(std::size(AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER) - 1);
+-    std::string eventStr;
+-    (void)item->get(AMEDIAMETRICS_PROP_EVENT, &eventStr);
+-    const size_t delim = suffix.find('.');
+-    if (delim == suffix.npos) {
+-        std::string headTrackingModes;
+-        (void)item->get(AMEDIAMETRICS_PROP_HEADTRACKINGMODES, &headTrackingModes);
+-        std::string levels;
+-        (void)item->get(AMEDIAMETRICS_PROP_LEVELS, &levels);
+-        std::string modes;
+-        (void)item->get(AMEDIAMETRICS_PROP_MODES, &modes);
+-        int32_t channelMask = 0;
+-        (void)item->get(AMEDIAMETRICS_PROP_CHANNELMASK, &channelMask);
+-        LOG(LOG_LEVEL) << "key:" << key
+-                << " headTrackingModes:" << headTrackingModes
+-                << " levels:" << levels
+-                << " modes:" << modes
+-                << " channelMask:" << channelMask
+-                ;
+-        const std::vector<int32_t> headTrackingModesVector =
+-                types::vectorFromMap(headTrackingModes, types::getHeadTrackingModeMap());
+-        const std::vector<int32_t> levelsVector =
+-                types::vectorFromMap(levels, types::getSpatializerLevelMap());
+-        const std::vector<int32_t> modesVector =
+-                types::vectorFromMap(modes, types::getSpatializerModeMap());
+-        std::lock_guard lg(mLock);
+-        mSimpleLog.log("%s suffix: %s item: %s",
+-                __func__, suffix.c_str(), item->toString().c_str());
+-    } else {
+-        std::string subtype = suffix.substr(0, delim);
+-        if (subtype != "device") return;
+-        std::string deviceType = suffix.substr(std::size("device.") - 1);
+-        std::string enabled;
+-        (void)item->get(AMEDIAMETRICS_PROP_ENABLED, &enabled);
+-        std::string hasHeadTracker;
+-        (void)item->get(AMEDIAMETRICS_PROP_HASHEADTRACKER, &hasHeadTracker);
+-        std::string headTrackerEnabled;
+-        (void)item->get(AMEDIAMETRICS_PROP_HEADTRACKERENABLED, &headTrackerEnabled);
+-        std::lock_guard lg(mLock);
+-        DeviceState& deviceState = mDeviceStateMap[deviceType];
+-        if (!enabled.empty()) {
+-            if (enabled != deviceState.enabled) {
+-                deviceState.enabled = enabled;
+-                const bool enabledStatsd = enabled == "true";
+-                (void)mAudioAnalytics;
+-                (void)enabledStatsd;
+-            }
+-        }
+-        if (!hasHeadTracker.empty()) {
+-            if (hasHeadTracker != deviceState.hasHeadTracker) {
+-                deviceState.hasHeadTracker = hasHeadTracker;
+-                const bool supportedStatsd = hasHeadTracker == "true";
+-                (void)supportedStatsd;
+-            }
+-        }
+-        if (!headTrackerEnabled.empty()) {
+-            if (headTrackerEnabled != deviceState.headTrackerEnabled) {
+-                deviceState.headTrackerEnabled = headTrackerEnabled;
+-                const bool enabledStatsd = headTrackerEnabled == "true";
+-                (void)enabledStatsd;
+-            }
+-        }
+-        mSimpleLog.log("%s deviceType: %s item: %s",
+-                __func__, deviceType.c_str(), item->toString().c_str());
+-    }
+-}
+-std::pair<std::string, int32_t> AudioAnalytics::Spatializer::dump(
+-        int32_t lines, const char *prefix) const
+-{
+-    std::lock_guard lg(mLock);
+-    std::string s = mSimpleLog.dumpToString(prefix == nullptr ? "" : prefix, lines);
+-    size_t n = std::count(s.begin(), s.end(), '\n');
+-    return { s, n };
+-}
+->>>>>>> 4591aab2

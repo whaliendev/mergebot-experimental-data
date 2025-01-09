@@ -1,0 +1,162 @@
+[
+    {
+        "a_contents": "void ResourceManagerService::mergeResources(\n        MediaResourceParcel& r1, const MediaResourceParcel& r2) {\n    // The resource entry on record is maintained to be in [0,INT64_MAX].\n    // Clamp if merging in the new resource value causes it to go out of bound.\n    // Note that the new resource value could be negative, eg.DrmSession, the\n    // value goes lower when the session is used more often. During reclaim\n    // the session with the highest value (lowest usage) would be closed.\n    if (r2.value < INT64_MAX - r1.value) {\n        r1.value += r2.value;\n        if (r1.value < 0) {\n            r1.value = 0;\n        }\n    } else {\n        r1.value = INT64_MAX;\n    }\n}\n\nStatus ResourceManagerService::addResource(\n        int32_t pid,\n        int32_t uid,",
+        "b_contents": "void ResourceManagerService::mergeResources(\n        MediaResource& r1, const MediaResource& r2) {\n    if (r1.mType == MediaResource::kDrmSession) {\n        // This means we are using a session. Each session's mValue is initialized to UINT64_MAX.\n        // The oftener a session is used the lower it's mValue. During reclaim the session with\n        // the highest mValue/lowest usage would be closed.\n        r1.mValue -= (r1.mValue == 0 ? 0 : 1);\n    } else {\n        r1.mValue += r2.mValue;\n    }\n}\n\nvoid ResourceManagerService::addResource(\n        int pid,\n        int uid,",
+        "base_contents": "void ResourceManagerService::addResource(\n        int pid,\n        int uid,",
+        "res_region": "void ResourceManagerService::mergeResources(\n        MediaResourceParcel& r1, const MediaResourceParcel& r2) {\n    // The resource entry on record is maintained to be in [0,INT64_MAX].\n    // Clamp if merging in the new resource value causes it to go out of bound.\n    // Note that the new resource value could be negative, eg.DrmSession, the\n    // value goes lower when the session is used more often. During reclaim\n    // the session with the highest value (lowest usage) would be closed.\n    if (r2.value < INT64_MAX - r1.value) {\n        r1.value += r2.value;\n        if (r1.value < 0) {\n            r1.value = 0;\n        }\n    } else {\n        r1.value = INT64_MAX;\n    }\n}\n\nStatus ResourceManagerService::addResource(\n        int32_t pid,\n        int32_t uid,",
+        "lookback": "    }\n}\n",
+        "lookahead": "        int64_t clientId,\n        const std::shared_ptr<IResourceManagerClient>& client,",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 313,
+        "end_line": 354,
+        "merge_gen_region": "void ResourceManagerService::mergeResources( MediaResourceParcel& r1, const MediaResourceParcel& r2) { // The resource entry on record is maintained to be in [0,INT64_MAX]. // Clamp if merging in the new resource value causes it to go out of bound. // Note that the new resource value could be negative, eg.DrmSession, the // value goes lower when the session is used more often. During reclaim // the session with the highest value (lowest usage) would be closed. if (r2.value < INT64_MAX - r1.value) { r1.value += r2.value; if (r1.value < 0) { r1.value = 0; } } else { r1.value = INT64_MAX; } } Status ResourceManagerService::addResource( int32_t pid, int32_t uid,",
+        "resolved": true
+    },
+    {
+        "a_contents": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.type, res.subType, res.id);\n\n        if (res.value < 0 && res.type != MediaResource::Type::kDrmSession) {\n            ALOGW(\"Ignoring request to remove negative value of non-drm resource\");\n            continue;\n        }",
+        "b_contents": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.mType, res.mSubType, res.mId);",
+        "base_contents": "        const auto resType = std::make_pair(resources[i].mType, resources[i].mSubType);",
+        "res_region": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.type, res.subType, res.id);\n\n        if (res.value < 0 && res.type != MediaResource::Type::kDrmSession) {\n            ALOGW(\"Ignoring request to remove negative value of non-drm resource\");\n            continue;\n        }",
+        "lookback": "    ResourceInfo& info = getResourceInfoForEdit(uid, clientId, client, infos);\n\n    for (size_t i = 0; i < resources.size(); ++i) {",
+        "lookahead": "        if (info.resources.find(resType) == info.resources.end()) {\n            if (res.value <= 0) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 371,
+        "end_line": 384,
+        "merge_gen_region": "const auto &res = resources[i]; const auto resType = std::tuple(res.type, res.subType, res.id); if (res.value < 0 && res.type != MediaResource::Type::kDrmSession) { ALOGW(\"Ignoring request to remove negative value of non-drm resource\"); continue; }",
+        "resolved": true
+    },
+    {
+        "a_contents": "            if (res.value <= 0) {\n                // We can't init a new entry with negative value, although it's allowed\n                // to merge in negative values after the initial add.\n                ALOGW(\"Ignoring request to add new resource entry with value <= 0\");\n                continue;\n            }\n            onFirstAdded(res, info);\n            info.resources[resType] = res;",
+        "b_contents": "            onFirstAdded(res, info);\n            info.resources[resType] = res;",
+        "base_contents": "            onFirstAdded(resources[i], info);\n            info.resources[resType] = resources[i];",
+        "res_region": "            if (res.value <= 0) {\n                // We can't init a new entry with negative value, although it's allowed\n                // to merge in negative values after the initial add.\n                ALOGW(\"Ignoring request to add new resource entry with value <= 0\");\n                continue;\n            }\n            onFirstAdded(res, info);\n            info.resources[resType] = res;",
+        "lookback": "            continue;\n        }\n        if (info.resources.find(resType) == info.resources.end()) {",
+        "lookahead": "        } else {\n            mergeResources(info.resources[resType], res);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 386,
+        "end_line": 401,
+        "merge_gen_region": "if (info.resources.find(resType) == info.resources.end()) { if (res.value <= 0) { // We can't init a new entry with negative value, although it's allowed // to merge in negative values after the initial add. ALOGW(\"Ignoring request to add new resource entry with value <= 0\"); continue; } onFirstAdded(res, info); info.resources[resType] = res;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    if (info.deathNotifier == nullptr && client != nullptr) {\n        info.deathNotifier = new DeathNotifier(ref<ResourceManagerService>(), pid, clientId);\n        AIBinder_linkToDeath(client->asBinder().get(),\n                mDeathRecipient.get(), info.deathNotifier.get());",
+        "b_contents": "    if (info.deathNotifier == nullptr && client != nullptr) {\n        info.deathNotifier = new DeathNotifier(this, pid, clientId);\n        IInterface::asBinder(client)->linkToDeath(info.deathNotifier);",
+        "base_contents": "    if (info.deathNotifier == nullptr) {\n        info.deathNotifier = new DeathNotifier(this, pid, clientId);\n        IInterface::asBinder(client)->linkToDeath(info.deathNotifier);",
+        "res_region": "    if (info.deathNotifier == nullptr && client != nullptr) {\n        info.deathNotifier = new DeathNotifier(ref<ResourceManagerService>(), pid, clientId);\n        AIBinder_linkToDeath(client->asBinder().get(),\n                mDeathRecipient.get(), info.deathNotifier.get());",
+        "lookback": "            mergeResources(info.resources[resType], res);\n        }\n    }",
+        "lookahead": "    }\n    notifyResourceGranted(pid, resources);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 406,
+        "end_line": 419,
+        "merge_gen_region": "if (info.deathNotifier == nullptr && client != nullptr) { info.deathNotifier = new DeathNotifier(ref<ResourceManagerService>(), pid, clientId); AIBinder_linkToDeath(client->asBinder().get(), mDeathRecipient.get(), info.deathNotifier.get()); }",
+        "resolved": false
+    },
+    {
+        "a_contents": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.type, res.subType, res.id);\n\n        if (res.value < 0) {\n            ALOGW(\"Ignoring request to remove negative value of resource\");\n            continue;\n        }",
+        "b_contents": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.mType, res.mSubType, res.mId);",
+        "base_contents": "        const auto resType = std::make_pair(resources[i].mType, resources[i].mSubType);",
+        "res_region": "        const auto &res = resources[i];\n        const auto resType = std::tuple(res.type, res.subType, res.id);\n\n        if (res.value < 0) {\n            ALOGW(\"Ignoring request to remove negative value of resource\");\n            continue;\n        }",
+        "lookback": "    ResourceInfo &info = infos.editValueAt(index);\n\n    for (size_t i = 0; i < resources.size(); ++i) {",
+        "lookahead": "        // ignore if we don't have it\n        if (info.resources.find(resType) != info.resources.end()) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 453,
+        "end_line": 466,
+        "merge_gen_region": "const auto &res = resources[i]; const auto resType = std::tuple(res.type, res.subType, res.id, res.id); if (res.value < 0) { ALOGW(\"Ignoring request to remove negative value of resource\"); continue; }",
+        "resolved": false
+    },
+    {
+        "a_contents": "            MediaResourceParcel &resource = info.resources[resType];\n            if (resource.value > res.value) {\n                resource.value -= res.value;",
+        "b_contents": "            MediaResource &resource = info.resources[resType];\n            if (resource.mValue > res.mValue) {\n                resource.mValue -= res.mValue;",
+        "base_contents": "            MediaResource &resource = info.resources[resType];\n            if (resource.mValue > resources[i].mValue) {\n                resource.mValue -= resources[i].mValue;",
+        "res_region": "            MediaResourceParcel &resource = info.resources[resType];\n            if (resource.value > res.value) {\n                resource.value -= res.value;",
+        "lookback": "        }\n        // ignore if we don't have it\n        if (info.resources.find(resType) != info.resources.end()) {",
+        "lookahead": "            } else {\n                onLastRemoved(res, info);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 469,
+        "end_line": 481,
+        "merge_gen_region": "if (info.resources.find(resType) != info.resources.end()) { MediaResourceParcel &resource = info.resources[resType]; if (resource.value > res.value) { resource.value -= res.value;",
+        "resolved": false
+    },
+    {
+        "a_contents": "                onLastRemoved(res, info);",
+        "b_contents": "                // drm sessions always take this branch because res.mValue is set\n                // to UINT64_MAX\n                onLastRemoved(res, info);",
+        "base_contents": "                onLastRemoved(resources[i], info);",
+        "res_region": "                onLastRemoved(res, info);",
+        "lookback": "            if (resource.value > res.value) {\n                resource.value -= res.value;\n            } else {",
+        "lookahead": "                info.resources.erase(resType);\n            }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 483,
+        "end_line": 491,
+        "merge_gen_region": "// drm sessions always take this branch because res.mValue is set // to UINT64_MAX onLastRemoved(res, info); info.resources.erase(resType);",
+        "resolved": false
+    },
+    {
+        "a_contents": "        const MediaResourceParcel *secureCodec = NULL;\n        const MediaResourceParcel *nonSecureCodec = NULL;\n        const MediaResourceParcel *graphicMemory = NULL;\n        const MediaResourceParcel *drmSession = NULL;",
+        "b_contents": "        const MediaResource *secureCodec = NULL;\n        const MediaResource *nonSecureCodec = NULL;\n        const MediaResource *graphicMemory = NULL;\n        const MediaResource *drmSession = NULL;",
+        "base_contents": "        const MediaResource *secureCodec = NULL;\n        const MediaResource *nonSecureCodec = NULL;\n        const MediaResource *graphicMemory = NULL;",
+        "res_region": "        const MediaResourceParcel *secureCodec = NULL;\n        const MediaResourceParcel *nonSecureCodec = NULL;\n        const MediaResourceParcel *graphicMemory = NULL;\n        const MediaResourceParcel *drmSession = NULL;",
+        "lookback": "            ALOGE(\"Rejected reclaimResource call with invalid callingPid.\");\n            return Status::fromServiceSpecificError(BAD_VALUE);\n        }",
+        "lookahead": "        for (size_t i = 0; i < resources.size(); ++i) {\n            MediaResource::Type type = resources[i].type;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 568,
+        "end_line": 582,
+        "merge_gen_region": "const MediaResourceParcel *secureCodec = NULL; const MediaResourceParcel *nonSecureCodec = NULL; const MediaResourceParcel *graphicMemory = NULL; const MediaResourceParcel *drmSession = NULL;",
+        "resolved": true
+    },
+    {
+        "a_contents": "            } else if (type == MediaResource::Type::kDrmSession) {\n                drmSession = &resources[i];",
+        "b_contents": "            } else if (type == MediaResource::kDrmSession) {\n                drmSession = &resources[i];",
+        "base_contents": "",
+        "res_region": "            } else if (type == MediaResource::Type::kDrmSession) {\n                drmSession = &resources[i];",
+        "lookback": "                nonSecureCodec = &resources[i];\n            } else if (type == MediaResource::Type::kGraphicMemory) {\n                graphicMemory = &resources[i];",
+        "lookahead": "            }\n        }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 591,
+        "end_line": 598,
+        "merge_gen_region": "} else if (type == MediaResource::Type::kDrmSession) { drmSession = &resources[i];",
+        "resolved": true
+    },
+    {
+        "a_contents": "        if (drmSession != NULL) {\n            getClientForResource_l(callingPid, drmSession, &clients);\n            if (clients.size() == 0) {\n                return Status::ok();\n            }\n        }",
+        "b_contents": "        if (drmSession != NULL) {\n            getClientForResource_l(callingPid, drmSession, &clients);\n            if (clients.size() == 0) {\n                return false;\n            }\n        }",
+        "base_contents": "",
+        "res_region": "        if (drmSession != NULL) {\n            getClientForResource_l(callingPid, drmSession, &clients);\n            if (clients.size() == 0) {\n                return Status::ok();\n            }\n        }",
+        "lookback": "                }\n            }\n        }",
+        "lookahead": "\n        if (clients.size() == 0) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 622,
+        "end_line": 637,
+        "merge_gen_region": "if (drmSession != NULL) { getClientForResource_l(callingPid, drmSession, &clients); if (clients.size() == 0) { return Status::ok(); }",
+        "resolved": false
+    }
+]

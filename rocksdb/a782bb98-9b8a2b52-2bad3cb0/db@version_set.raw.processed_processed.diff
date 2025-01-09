@@ -1,0 +1,72 @@
+--- a/./output/rocksdb/a782bb98-9b8a2b52-2bad3cb0/db@version_set.no_comments_conflict.cc
++++ b/./output/rocksdb/a782bb98-9b8a2b52-2bad3cb0/db@version_set.no_comments_merged.cc
+@@ -1183 +1182,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+@@ -1201,16 +1199,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 2bad3cb0d
+-  for (const auto& writer : manifest_writers_) {
+-    last_writer = writer;
+-    LogAndApplyHelper(&builder, v, writer->edit, mu);
+-    batch_edits.push_back(writer->edit);
+-=======
+-  uint64_t max_log_number_in_batch = 0;
+-  for (const auto& writer : manifest_writers_) {
+-    last_writer = writer;
+-    LogAndApplyHelper(&builder, v, writer->edit, mu);
+-    if (writer->edit->has_log_number_) {
+-      max_log_number_in_batch =
+-        std::max(max_log_number_in_batch, writer->edit->log_number_);
+-    }
+-    batch_edits.push_back(writer->edit);
+->>>>>>> 9b8a2b52
+@@ -1318 +1300,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+@@ -1343,14 +1324,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 2bad3cb0d
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+-    log_number_ = edit->log_number_;
+-    prev_log_number_ = edit->prev_log_number_;
+-=======
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+-    if (max_log_number_in_batch != 0) {
+-      assert(log_number_ < max_log_number_in_batch);
+-      log_number_ = max_log_number_in_batch;
+-    }
+-    prev_log_number_ = edit->prev_log_number_;
+->>>>>>> 9b8a2b52
+@@ -1536 +1503,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1553,29 +1519,0 @@ Status VersionSet::Recover(
+-||||||| 2bad3cb0d
+-      if (edit.has_comparator_ &&
+-          edit.comparator_ != icmp_.user_comparator()->Name()) {
+-        s = Status::InvalidArgument(icmp_.user_comparator()->Name(),
+-            "does not match existing comparator " +
+-            edit.comparator_);
+-        break;
+-      }
+-      builder.Apply(&edit);
+-      if (edit.has_log_number_) {
+-        log_number = edit.log_number_;
+-        have_log_number = true;
+-=======
+-      if (edit.has_comparator_ &&
+-          edit.comparator_ != icmp_.user_comparator()->Name()) {
+-        s = Status::InvalidArgument(icmp_.user_comparator()->Name(),
+-            "does not match existing comparator " +
+-            edit.comparator_);
+-        break;
+-      }
+-      builder.Apply(&edit);
+-      if (edit.has_log_number_) {
+-        if (have_log_number && log_number > edit.log_number_) {
+-          s = Status::Corruption("log number decreases");
+-          break;
+-        }
+-        log_number = edit.log_number_;
+-        have_log_number = true;
+->>>>>>> 9b8a2b52
+@@ -1976 +1913,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-  edit.SetLogNumber(log_number_);

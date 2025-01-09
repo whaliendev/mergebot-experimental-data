@@ -1,0 +1,26 @@
+diff --git a/./output/art/52670375-d5a49147-bbe713b7/runtime@runtime.no_comments_mergegen.cc b/./output/art/52670375-d5a49147-bbe713b7/runtime@runtime.no_comments_merged.cc
+index 7fae8b7..0b5417d 100644
+--- a/./output/art/52670375-d5a49147-bbe713b7/runtime@runtime.no_comments_mergegen.cc
++++ b/./output/art/52670375-d5a49147-bbe713b7/runtime@runtime.no_comments_merged.cc
+@@ -580 +580,6 @@ static void WaitUntilSingleThreaded() {
+-static constexpr size_t BUF_SIZE = 500; static constexpr size_t BUF_PRINT_SIZE = 150;
++  static constexpr size_t BUF_SIZE = 500;
++  static constexpr size_t BUF_PRINT_SIZE = 150;
++  static_assert(BUF_SIZE > BUF_PRINT_SIZE);
++  char buf[BUF_SIZE];
++  size_t bytes_read = 0;
++  uint64_t millis = 0;
+@@ -582 +587,3 @@ static constexpr size_t BUF_SIZE = 500; static constexpr size_t BUF_PRINT_SIZE =
+-bytes_read = GetOsThreadStat(getpid(), buf, BUF_SIZE); CHECK_NE(bytes_read, 0u);
++    bytes_read = GetOsThreadStat(getpid(), buf, BUF_SIZE);
++    CHECK_NE(bytes_read, 0u);
++    size_t pos = 0;
+@@ -601,0 +609,8 @@ buf[std::min(BUF_PRINT_SIZE, bytes_read)] = '\0';
++  LOG(ERROR) << "Not single threaded: bytes_read = " << bytes_read << " stat contents = \"" << buf
++             << "...\"";
++  LOG(ERROR) << "Other threads' abbreviated stats: " << GetOtherThreadOsStats();
++  bytes_read = GetOsThreadStat(getpid(), buf, BUF_PRINT_SIZE);
++  CHECK_NE(bytes_read, 0u);
++  LOG(ERROR) << "After re-read: bytes_read = " << bytes_read << " stat contents = \"" << buf
++             << "...\"";
++  LOG(FATAL) << "Failed to reach single-threaded state: wait_time = " << MilliTime() - millis;

@@ -1,0 +1,53 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/70ff8cfe-09afc6c8-7e497c7f/utf8.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/70ff8cfe-09afc6c8-7e497c7f/utf8.no_comments_merged.c
+@@ -6 +5,0 @@
+-#include <vis.h>
+@@ -10,4 +9 @@ struct utf8_item {
+-  data_entry;
+-  data_entry;
+-  index_entry;
+-  data_entry;
++ RB_ENTRY(utf8_item) index_entry;
+@@ -15,2 +11 @@ struct utf8_item {
+-  data_entry;
+-  data_entry;
++ RB_ENTRY(utf8_item) data_entry;
+@@ -24,0 +24,2 @@ static int utf8_data_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
++RB_HEAD(utf8_data_tree, utf8_item);
++RB_GENERATE_STATIC(utf8_data_tree, utf8_item, data_entry, utf8_data_cmp);
+@@ -30,0 +36,2 @@ static int utf8_index_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
++RB_HEAD(utf8_index_tree, utf8_item);
++RB_GENERATE_STATIC(utf8_index_tree, utf8_item, index_entry, utf8_index_cmp);
+@@ -33 +40,7 @@ static u_int utf8_next_index;
+-static struct utf8_item *utf8_item_by_data(const char *data, size_t size) {
++#define UTF8_GET_SIZE(uc) (((uc) >> 24) & 0x1f)
++#define UTF8_GET_WIDTH(uc) (((uc) >> 29) - 1)
++#define UTF8_SET_SIZE(size) (((utf8_char)(size)) << 24)
++#define UTF8_SET_WIDTH(width) ((((utf8_char)(width)) + 1) << 29)
++static struct utf8_item *
++utf8_item_by_data(const char *data, size_t size)
++{
+@@ -136,2 +172,2 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-<<<<<<< HEAD
+-#endif
++ log_debug("UTF-8 %.*s %#x, wcwidth() %d", (int)ud->size, ud->data,
++     (u_int)wc, *width);
+@@ -139,10 +174,0 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-|||||||
+-if (*width < 0 || *width > 0xff) {
+-  log_debug("UTF-8 %.*s, wcwidth() %d", (int)ud->size, ud->data, *width);
+-  return (UTF8_ERROR);
+-}
+-=======
+-log_debug("UTF-8 %.*s %#x, wcwidth() %d", (int)ud->size, ud->data, (u_int)wc,
+-          *width);
+-if (*width >= 0 && *width <= 0xff)
+->>>>>>> 09afc6c8ee971918d925c441c41a9de7f598efb7
+@@ -150,2 +175,0 @@ if (*width >= 0 && *width <= 0xff)
+-<<<<<<< HEAD
+-  log_debug("UTF-8 %.*s, wcwidth() %d", (int)ud->size, ud->data, *width);
+@@ -153,4 +176,0 @@ if (*width >= 0 && *width <= 0xff)
+-|||||||
+-=======
+-return (UTF8_ERROR);
+->>>>>>> 09afc6c8ee971918d925c441c41a9de7f598efb7

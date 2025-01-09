@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "      mirror::Class* klass = reinterpret_cast<mirror::Class*>(*value);\n      if (klass == nullptr || klass == Runtime::GetWeakClassSentinel()) {",
+        "b_contents": "      // TODO: There is no reason to process weak-class differently from strings\n      // (below). Streamline the logic here and jit-code-cache.\n      if (!only_update_class) {\n        mirror::Class* cls = reinterpret_cast<mirror::Class*>(*value);\n        if (cls == nullptr || cls == Runtime::GetWeakClassSentinel()) {\n          // Entry got deleted in a previous sweep.\n          return;\n        }\n        // Need to fetch from-space pointer for class in case of userfaultfd GC.\n        Runtime::ProcessWeakClass(reinterpret_cast<GcRoot<mirror::Class>*>(value),\n                                  visitor,\n                                  Runtime::GetWeakClassSentinel());\n        return;\n      } else if (reinterpret_cast<mirror::Class*>(*value) == Runtime::GetWeakClassSentinel()) {",
+        "base_contents": "      mirror::Class* cls = reinterpret_cast<mirror::Class*>(*value);\n      if (cls == nullptr || cls == Runtime::GetWeakClassSentinel()) {\n        // Entry got deleted in a previous sweep.",
+        "res_region": "      mirror::Class* klass = reinterpret_cast<mirror::Class*>(*value);\n      if (klass == nullptr || klass == Runtime::GetWeakClassSentinel()) {",
+        "lookback": "    case Opcode::INSTANCE_OF:\n    case Opcode::NEW_ARRAY:\n    case Opcode::CONST_CLASS: {",
+        "lookahead": "        return;\n      }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 4471,
+        "end_line": 4493,
+        "merge_gen_region": "// TODO: There is no reason to process weak-class differently from strings // (below). Streamline the logic here and jit-code-cache. if (!only_update_class) { mirror::Class* klass = reinterpret_cast<mirror::Class*>(*value); if (klass == nullptr || klass == Runtime::GetWeakClassSentinel()) { return; } // Need to fetch from-space pointer for class in case of userfaultfd GC. Runtime::ProcessWeakClass(reinterpret_cast<GcRoot<mirror::Class>*>(value), visitor, Runtime::GetWeakClassSentinel()); return; } else if (reinterpret_cast<mirror::Class*>(*value) == Runtime::GetWeakClassSentinel()) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "      mirror::Class* new_klass = down_cast<mirror::Class*>(visitor->IsMarked(klass));\n      if (new_klass == nullptr) {\n        *value = reinterpret_cast<size_t>(Runtime::GetWeakClassSentinel());\n      } else if (new_klass != klass) {\n        *value = reinterpret_cast<size_t>(new_klass);\n      }\n      return;",
+        "b_contents": "      FALLTHROUGH_INTENDED;",
+        "base_contents": "      Runtime::ProcessWeakClass(\n          reinterpret_cast<GcRoot<mirror::Class>*>(value),\n          visitor,\n          Runtime::GetWeakClassSentinel());\n      return;",
+        "res_region": "      mirror::Class* new_klass = down_cast<mirror::Class*>(visitor->IsMarked(klass));\n      if (new_klass == nullptr) {\n        *value = reinterpret_cast<size_t>(Runtime::GetWeakClassSentinel());\n      } else if (new_klass != klass) {\n        *value = reinterpret_cast<size_t>(new_klass);\n      }\n      return;",
+        "lookback": "      if (klass == nullptr || klass == Runtime::GetWeakClassSentinel()) {\n        return;\n      }",
+        "lookahead": "    }\n    case Opcode::CONST_STRING:",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 4496,
+        "end_line": 4512,
+        "merge_gen_region": "ctx::Class* new_klass = down_cast<mirror::Class*>(visitor->IsMarked(klass)); if (new_klass == nullptr) { *value = reinterpret_cast<size_t>(Runtime::GetWeakClassSentinel()); } else if (new_klass != klass) { *value = reinterpret_cast<size_t>(new_klass); } return;",
+        "resolved": false
+    }
+]

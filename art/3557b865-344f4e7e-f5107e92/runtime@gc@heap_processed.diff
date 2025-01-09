@@ -1,0 +1,269 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/art/3557b865-344f4e7e-f5107e92/runtime@gc@heap.no_comments_mergebot.cc
++++ b/home/whalien/codebase/python/mergebot-eva/output/art/3557b865-344f4e7e-f5107e92/runtime@gc@heap.no_comments_merged.cc
+@@ -110,0 +111 @@ namespace gc {
++DEFINE_RUNTIME_DEBUG_FLAG(Heap, kStressCollectorTransition);
+@@ -136,0 +138,10 @@ static constexpr size_t kPostForkMaxHeapDurationMS = 2000;
++#if defined(__LP64__) || !defined(ADDRESS_SANITIZER)
++uint8_t* const Heap::kPreferredAllocSpaceBegin =
++    reinterpret_cast<uint8_t*>(300 * MB - kDefaultNonMovingSpaceCapacity);
++#else
++#ifdef __ANDROID__
++uint8_t* const Heap::kPreferredAllocSpaceBegin = reinterpret_cast<uint8_t*>(0x20000000);
++#else
++uint8_t* const Heap::kPreferredAllocSpaceBegin = reinterpret_cast<uint8_t*>(0x40000000);
++#endif
++#endif
+@@ -1112,4 +1131,4 @@ uint64_t Heap::GetPreOomeGcCount() const {
+-public:
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++ALWAYS_INLINE
++static inline AllocationListener* GetAndOverwriteAllocationListener(
++    Atomic<AllocationListener*>* storage, AllocationListener* new_value) {
++  return storage->exchange(new_value);
+@@ -1117,4 +1136,25 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-explicit TrimIndirectReferenceTableClosure(Barrier* barrier) : barrier_(barrier) {}
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++Heap::~Heap() {
++  VLOG(heap) << "Starting ~Heap()";
++  STLDeleteElements(&garbage_collectors_);
++  allocation_stack_->Reset();
++  allocation_records_.reset();
++  live_stack_->Reset();
++  STLDeleteValues(&mod_union_tables_);
++  STLDeleteValues(&remembered_sets_);
++  STLDeleteElements(&continuous_spaces_);
++  STLDeleteElements(&discontinuous_spaces_);
++  delete gc_complete_lock_;
++  delete thread_flip_lock_;
++  delete pending_task_lock_;
++  delete backtrace_lock_;
++  uint64_t unique_count = unique_backtrace_count_.load();
++  uint64_t seen_count = seen_backtrace_count_.load();
++  if (unique_count != 0 || seen_count != 0) {
++    LOG(INFO) << "gc stress unique=" << unique_count << " total=" << (unique_count + seen_count);
++  }
++  VLOG(heap) << "Finished ~Heap()";
++}
++space::ContinuousSpace* Heap::FindContinuousSpaceFromAddress(const mirror::Object* addr) const {
++  for (const auto& space : continuous_spaces_) {
++    if (space->Contains(addr)) {
++      return space;
+@@ -1122,3 +1161,0 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
+@@ -1126,3 +1163 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++  return nullptr;
+@@ -1130,3 +1165,5 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++space::ContinuousSpace* Heap::FindContinuousSpaceFromObject(ObjPtr<mirror::Object> obj,
++                                                            bool fail_ok) const {
++  space::ContinuousSpace* space = FindContinuousSpaceFromAddress(obj.Ptr());
++  if (space != nullptr) {
++    return space;
+@@ -1134,3 +1171,2 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++  if (!fail_ok) {
++    LOG(FATAL) << "object " << obj << " not inside any spaces!";
+@@ -1138,3 +1174 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++  return nullptr;
+@@ -1142,3 +1176,5 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++space::DiscontinuousSpace* Heap::FindDiscontinuousSpaceFromObject(ObjPtr<mirror::Object> obj,
++                                                                  bool fail_ok) const {
++  for (const auto& space : discontinuous_spaces_) {
++    if (space->Contains(obj.Ptr())) {
++      return space;
+@@ -1146,3 +1181,0 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
+@@ -1150,3 +1183,116 @@ void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-void Run(Thread* thread) override NO_THREAD_SAFETY_ANALYSIS {
+-  thread->GetJniEnv()->TrimLocals();
+-  barrier_->Pass(Thread::Current());
++  if (!fail_ok) {
++    LOG(FATAL) << "object " << obj << " not inside any spaces!";
++  }
++  return nullptr;
++}
++space::Space* Heap::FindSpaceFromObject(ObjPtr<mirror::Object> obj, bool fail_ok) const {
++  space::Space* result = FindContinuousSpaceFromObject(obj, true);
++  if (result != nullptr) {
++    return result;
++  }
++  return FindDiscontinuousSpaceFromObject(obj, fail_ok);
++}
++space::Space* Heap::FindSpaceFromAddress(const void* addr) const {
++  for (const auto& space : continuous_spaces_) {
++    if (space->Contains(reinterpret_cast<const mirror::Object*>(addr))) {
++      return space;
++    }
++  }
++  for (const auto& space : discontinuous_spaces_) {
++    if (space->Contains(reinterpret_cast<const mirror::Object*>(addr))) {
++      return space;
++    }
++  }
++  return nullptr;
++}
++std::string Heap::DumpSpaceNameFromAddress(const void* addr) const {
++  space::Space* space = FindSpaceFromAddress(addr);
++  return (space != nullptr) ? space->GetName() : "no space";
++}
++void Heap::ThrowOutOfMemoryError(Thread* self, size_t byte_count, AllocatorType allocator_type) {
++  if (self->IsHandlingStackOverflow()) {
++    self->SetException(
++        Runtime::Current()->GetPreAllocatedOutOfMemoryErrorWhenHandlingStackOverflow());
++    return;
++  }
++  Runtime::Current()->OutOfMemoryErrorHook();
++  std::ostringstream oss;
++  size_t total_bytes_free = GetFreeMemory();
++  oss << "Failed to allocate a " << byte_count << " byte allocation with " << total_bytes_free
++      << " free bytes and " << PrettySize(GetFreeMemoryUntilOOME()) << " until OOM,"
++      << " target footprint " << target_footprint_.load(std::memory_order_relaxed)
++      << ", growth limit "
++      << growth_limit_;
++  if (total_bytes_free >= byte_count) {
++    space::AllocSpace* space = nullptr;
++    if (allocator_type == kAllocatorTypeNonMoving) {
++      space = non_moving_space_;
++    } else if (allocator_type == kAllocatorTypeRosAlloc ||
++               allocator_type == kAllocatorTypeDlMalloc) {
++      space = main_space_;
++    } else if (allocator_type == kAllocatorTypeBumpPointer ||
++               allocator_type == kAllocatorTypeTLAB) {
++      space = bump_pointer_space_;
++    } else if (allocator_type == kAllocatorTypeRegion ||
++               allocator_type == kAllocatorTypeRegionTLAB) {
++      space = region_space_;
++    }
++    if (allocator_type != kAllocatorTypeLOS) {
++      CHECK(space != nullptr) << "allocator_type:" << allocator_type
++                              << " byte_count:" << byte_count
++                              << " total_bytes_free:" << total_bytes_free;
++      if (!space->LogFragmentationAllocFailure(oss, byte_count)) {
++        oss << "; giving up on allocation because <"
++            << kMinFreeHeapAfterGcForAlloc * 100
++            << "% of heap free after GC.";
++      }
++    }
++  }
++  self->ThrowOutOfMemoryError(oss.str().c_str());
++}
++void Heap::DoPendingCollectorTransition() {
++  CollectorType desired_collector_type = desired_collector_type_;
++  if (collector_type_ == kCollectorTypeCC || collector_type_ == kCollectorTypeCMC) {
++    size_t num_bytes_allocated_since_gc =
++        UnsignedDifference(GetBytesAllocated(), num_bytes_alive_after_gc_);
++    if (num_bytes_allocated_since_gc <
++        (UnsignedDifference(target_footprint_.load(std::memory_order_relaxed),
++                            num_bytes_alive_after_gc_)/4)
++        && !kStressCollectorTransition
++        && !IsLowMemoryMode()) {
++      return;
++    }
++  }
++  if (desired_collector_type == kCollectorTypeHomogeneousSpaceCompact) {
++    if (!CareAboutPauseTimes()) {
++      PerformHomogeneousSpaceCompact();
++    } else {
++      VLOG(gc) << "Homogeneous compaction ignored due to jank perceptible process state";
++    }
++  } else if (desired_collector_type == kCollectorTypeCCBackground ||
++             desired_collector_type == kCollectorTypeCMC) {
++    if (!CareAboutPauseTimes()) {
++      CollectGarbageInternal(collector::kGcTypeFull,
++                             kGcCauseCollectorTransition,
++                                                       false, GetCurrentGcNum() + 1);
++    } else {
++      VLOG(gc) << "background compaction ignored due to jank perceptible process state";
++    }
++  } else {
++    CHECK_EQ(desired_collector_type, collector_type_) << "Unsupported collector transition";
++  }
++}
++void Heap::Trim(Thread* self) {
++  Runtime* const runtime = Runtime::Current();
++  if (!CareAboutPauseTimes()) {
++    ScopedTrace trace("Deflating monitors");
++    ScopedGCCriticalSection gcs(self, kGcCauseTrim, kCollectorTypeHeapTrim);
++    ScopedSuspendAll ssa(__FUNCTION__);
++    uint64_t start_time = NanoTime();
++    size_t count = runtime->GetMonitorList()->DeflateMonitors();
++    VLOG(heap) << "Deflating " << count << " monitors took "
++        << PrettyDuration(NanoTime() - start_time);
++  }
++  TrimIndirectReferenceTables(self);
++  TrimSpaces(self);
++  runtime->GetArenaPool()->TrimMaps();
+@@ -1816,0 +1964,5 @@ void Heap::IncrementFreedEver() {
++#pragma clang diagnostic push
++#if !ART_USE_FUTEXES
++#pragma clang diagnostic ignored "-Wframe-larger-than="
++#endif
++#pragma clang diagnostic ignored "-Wframe-larger-than="
+@@ -1933,0 +2087 @@ void Heap::PreZygoteFork() {
++#pragma clang diagnostic pop
+@@ -1978 +2132,8 @@ collector::GarbageCollector* Heap::Compact(space::ContinuousMemMapAllocSpace* ta
+-void Heap::TraceHeapSize(size_t heap_size) { ATraceIntegerValue("Heap size (KB)", heap_size / KB); }
++void Heap::TraceHeapSize(size_t heap_size) {
++  ATraceIntegerValue("Heap size (KB)", heap_size / KB);
++}
++#if defined(__GLIBC__)
++#define IF_GLIBC(x) x
++#else
++#define IF_GLIBC(x) 
++#endif
+@@ -2369,2 +2527 @@ class VerifyObjectVisitor {
+-  REQUIRES_SHARED(Locks::mutator_lock_)
+-  REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::heap_bitmap_lock_) {
++  void VerifyRoots() REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(!Locks::heap_bitmap_lock_) {
+@@ -2932 +3102,6 @@ class Heap::ConcurrentGCTask : public HeapTask {
+-static bool CanAddHeapTask(Thread* self) bool Heap::RequestConcurrentGC(Thread* self,
++static bool CanAddHeapTask(Thread* self) REQUIRES(!Locks::runtime_shutdown_lock_) {
++  Runtime* runtime = Runtime::Current();
++  return runtime != nullptr && runtime->IsFinishedStarting() && !runtime->IsShuttingDown(self) &&
++      !self->IsHandlingStackOverflow();
++}
++bool Heap::RequestConcurrentGC(Thread* self,
+@@ -2998,22 +3171,0 @@ void Heap::RequestCollectorTransition(CollectorType desired_collector_type, uint
+-<<<<<<< HEAD
+-|||||||
+-    size_t num_bytes_allocated_since_gc = GetBytesAllocated() - num_bytes_alive_after_gc_;
+-    if (num_bytes_allocated_since_gc <
+-            (UnsignedDifference(target_footprint_.load(std::memory_order_relaxed),
+-                                num_bytes_alive_after_gc_) /
+-             4) &&
+-        !kStressCollectorTransition && !IsLowMemoryMode()) {
+-      return;
+-    }
+-=======
+-  }
+-  if (collector_type_ == kCollectorTypeCC || collector_type_ == kCollectorTypeCMC) {
+-    size_t num_bytes_allocated_since_gc = GetBytesAllocated() - num_bytes_alive_after_gc_;
+-    if (num_bytes_allocated_since_gc <
+-            (UnsignedDifference(target_footprint_.load(std::memory_order_relaxed),
+-                                num_bytes_alive_after_gc_) /
+-             4) &&
+-        !kStressCollectorTransition && !IsLowMemoryMode()) {
+-      return;
+-    }
+->>>>>>> 344f4e7e2c182c7b31bf176ec317ababb60e598e

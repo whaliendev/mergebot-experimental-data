@@ -1,0 +1,178 @@
+[
+    {
+        "a_contents": "#include <aidl/android/media/BnResourceManagerClient.h>\n#include <aidl/android/media/BnResourceManagerService.h>\n",
+        "b_contents": "#include <media/IResourceManagerService.h>\n#include <media/IResourceManagerClient.h>",
+        "base_contents": "",
+        "res_region": "#include <aidl/android/media/BnResourceManagerClient.h>\n#include <aidl/android/media/BnResourceManagerService.h>\n",
+        "lookback": "\n#include <gtest/gtest.h>\n",
+        "lookahead": "#include <media/stagefright/foundation/ADebug.h>\n#include <media/stagefright/ProcessInfoInterface.h>",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 23,
+        "end_line": 31,
+        "merge_gen_region": "#include <media/IResourceManagerService.h> #include <media/IResourceManagerClient.h>",
+        "resolved": false
+    },
+    {
+        "a_contents": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\n#include \"ResourceManagerService.h\"\n",
+        "b_contents": "#include <algorithm>\n#include <vector>\n\n#include \"ResourceManagerService.h\"\n",
+        "base_contents": "",
+        "res_region": "#include <algorithm>\n#include <iostream>\n#include <vector>\n\n#include \"ResourceManagerService.h\"\n",
+        "lookback": "#include <media/stagefright/ProcessInfoInterface.h>\n#include <mediadrm/DrmSessionManager.h>\n",
+        "lookahead": "namespace android {\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 36,
+        "end_line": 50,
+        "merge_gen_region": "#include <algorithm> #include <iostream> #include <vector> #include \"ResourceManagerService.h\"",
+        "resolved": true
+    },
+    {
+        "a_contents": "using Status = ::ndk::ScopedAStatus;\nusing ::aidl::android::media::BnResourceManagerClient;\nusing ::aidl::android::media::BnResourceManagerService;\nusing ::aidl::android::media::MediaResourceParcel;\nusing ::aidl::android::media::IResourceManagerClient;\n\nstatic Vector<uint8_t> toAndroidVector(const std::vector<uint8_t> &vec) {\n    Vector<uint8_t> aVec;\n    for (auto b : vec) {\n        aVec.push_back(b);\n    }\n    return aVec;\n}\n",
+        "b_contents": "static Vector<uint8_t> toAndroidVector(const std::vector<uint8_t> &vec) {\n    Vector<uint8_t> aVec;\n    for (auto b : vec) {\n        aVec.push_back(b);\n    }\n    return aVec;\n}\n",
+        "base_contents": "",
+        "res_region": "using Status = ::ndk::ScopedAStatus;\nusing ::aidl::android::media::BnResourceManagerClient;\nusing ::aidl::android::media::BnResourceManagerService;\nusing ::aidl::android::media::MediaResourceParcel;\nusing ::aidl::android::media::IResourceManagerClient;\n\nstatic Vector<uint8_t> toAndroidVector(const std::vector<uint8_t> &vec) {\n    Vector<uint8_t> aVec;\n    for (auto b : vec) {\n        aVec.push_back(b);\n    }\n    return aVec;\n}\n",
+        "lookback": "\nnamespace android {\n",
+        "lookahead": "struct FakeProcessInfo : public ProcessInfoInterface {\n    FakeProcessInfo() {}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 53,
+        "end_line": 78,
+        "merge_gen_region": "using Status = ::ndk::ScopedAStatus; using ::aidl::android::media::BnResourceManagerClient; using ::aidl::android::media::BnResourceManagerService; using ::aidl::android::media::MediaResourceParcel; using ::aidl::android::media::IResourceManagerClient;",
+        "resolved": false
+    },
+    {
+        "a_contents": "struct FakeDrm : public BnResourceManagerClient {\n    FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager)\n        : mSessionId(toAndroidVector(sessionId)),\n          mReclaimed(false),\n          mDrmSessionManager(manager) {}",
+        "b_contents": "struct FakeDrm : public BnResourceManagerClient {\n    FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager)\n        : mSessionId(toAndroidVector(sessionId)),\n          mReclaimed(false),\n          mDrmSessionManager(manager) {}\n\n    virtual ~FakeDrm() {}",
+        "base_contents": "struct FakeDrm : public DrmSessionClientInterface {\n    FakeDrm() {}\n    virtual ~FakeDrm() {}",
+        "res_region": "struct FakeDrm : public BnResourceManagerClient {\n    FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager)\n        : mSessionId(toAndroidVector(sessionId)),\n          mReclaimed(false),\n          mDrmSessionManager(manager) {}",
+        "lookback": "    DISALLOW_EVIL_CONSTRUCTORS(FakeProcessInfo);\n};\n",
+        "lookahead": "\n    Status reclaimResource(bool* _aidl_return) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 98,
+        "end_line": 116,
+        "merge_gen_region": "struct FakeDrm : public BnResourceManagerClient { FakeDrm(const std::vector<uint8_t>& sessionId, const sp<DrmSessionManager>& manager) : mSessionId(toAndroidVector(sessionId)), mReclaimed(false), mDrmSessionManager(manager) {}",
+        "resolved": true
+    },
+    {
+        "a_contents": "    Status reclaimResource(bool* _aidl_return) {\n        mReclaimed = true;\n        mDrmSessionManager->removeSession(mSessionId);\n        *_aidl_return = true;\n        return Status::ok();",
+        "b_contents": "    virtual bool reclaimResource() {\n        mReclaimed = true;\n        mDrmSessionManager->removeSession(mSessionId);\n        return true;",
+        "base_contents": "    virtual bool reclaimSession(const Vector<uint8_t>& sessionId) {\n        mReclaimedSessions.push_back(sessionId);\n        return true;",
+        "res_region": "    Status reclaimResource(bool* _aidl_return) {\n        mReclaimed = true;\n        mDrmSessionManager->removeSession(mSessionId);\n        *_aidl_return = true;\n        return Status::ok();",
+        "lookback": "          mReclaimed(false),\n          mDrmSessionManager(manager) {}\n",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 118,
+        "end_line": 133,
+        "merge_gen_region": "Status reclaimResource(bool* _aidl_return) { mReclaimed = true; mDrmSessionManager->removeSession(mSessionId); *_aidl_return = true;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    Status getName(::std::string* _aidl_return) {\n        String8 name(\"FakeDrm[\");\n        for (size_t i = 0; i < mSessionId.size(); ++i) {\n            name.appendFormat(\"%02x\", mSessionId[i]);\n        }\n        name.append(\"]\");\n        *_aidl_return = name;\n        return Status::ok();",
+        "b_contents": "    virtual String8 getName() {\n        String8 name(\"FakeDrm[\");\n        for (size_t i = 0; i < mSessionId.size(); ++i) {\n            name.appendFormat(\"%02x\", mSessionId[i]);\n        }\n        name.append(\"]\");\n        return name;",
+        "base_contents": "    const Vector<Vector<uint8_t> >& reclaimedSessions() const {\n        return mReclaimedSessions;",
+        "res_region": "    Status getName(::std::string* _aidl_return) {\n        String8 name(\"FakeDrm[\");\n        for (size_t i = 0; i < mSessionId.size(); ++i) {\n            name.appendFormat(\"%02x\", mSessionId[i]);\n        }\n        name.append(\"]\");\n        *_aidl_return = name;\n        return Status::ok();",
+        "lookback": "        return Status::ok();\n    }\n",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 136,
+        "end_line": 156,
+        "merge_gen_region": "Status getName(::std::string* _aidl_return) { String8 name(\"FakeDrm[\"); for (size_t i = 0; i < mSessionId.size(); ++i) { name.appendFormat(\"%02x\", mSessionId[i]); } name.append(\"]\"); *_aidl_return = name;",
+        "resolved": false
+    },
+    {
+        "a_contents": "struct FakeSystemCallback :\n        public ResourceManagerService::SystemCallbackInterface {\n    FakeSystemCallback() {}\n\n    virtual void noteStartVideo(int /*uid*/) override {}\n\n    virtual void noteStopVideo(int /*uid*/) override {}\n\n    virtual void noteResetVideo() override {}\n\n    virtual bool requestCpusetBoost(bool /*enable*/) override {\n        return true;\n    }\n\nprotected:\n    virtual ~FakeSystemCallback() {}\n\nprivate:\n\n    DISALLOW_EVIL_CONSTRUCTORS(FakeSystemCallback);\n};\n",
+        "b_contents": "struct FakeSystemCallback :\n        public ResourceManagerService::SystemCallbackInterface {\n    FakeSystemCallback() {}\n\n    virtual void noteStartVideo(int /*uid*/) override {}\n\n    virtual void noteStopVideo(int /*uid*/) override {}\n\n    virtual void noteResetVideo() override {}\n\n    virtual bool requestCpusetBoost(\n            bool /*enable*/, const sp<IInterface> &/*client*/) override {\n        return true;\n    }\n\nprotected:\n    virtual ~FakeSystemCallback() {}\n\nprivate:\n\n    DISALLOW_EVIL_CONSTRUCTORS(FakeSystemCallback);\n};\n",
+        "base_contents": "",
+        "res_region": "struct FakeSystemCallback :\n        public ResourceManagerService::SystemCallbackInterface {\n    FakeSystemCallback() {}\n\n    virtual void noteStartVideo(int /*uid*/) override {}\n\n    virtual void noteStopVideo(int /*uid*/) override {}\n\n    virtual void noteResetVideo() override {}\n\n    virtual bool requestCpusetBoost(bool /*enable*/) override {\n        return true;\n    }\n\nprotected:\n    virtual ~FakeSystemCallback() {}\n\nprivate:\n\n    DISALLOW_EVIL_CONSTRUCTORS(FakeSystemCallback);\n};\n",
+        "lookback": "    DISALLOW_EVIL_CONSTRUCTORS(FakeDrm);\n};\n",
+        "lookahead": "static const int kTestPid1 = 30;\nstatic const int kTestPid2 = 20;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 172,
+        "end_line": 220,
+        "merge_gen_region": "struct FakeSystemCallback : public ResourceManagerService::SystemCallbackInterface { FakeSystemCallback() {} virtual void noteStartVideo(int /*uid*/) override {} virtual void noteStopVideo(int /*uid*/) override {} virtual void noteResetVideo() override {} virtual bool requestCpusetBoost(bool /*enable*/) override { return true; } protected: virtual ~FakeSystemCallback() {} private: DISALLOW_EVIL_CONSTRUCTORS(FakeSystemCallback); };",
+        "resolved": true
+    },
+    {
+        "a_contents": "        : mService(::ndk::SharedRefBase::make<ResourceManagerService>\n            (new FakeProcessInfo(), new FakeSystemCallback())),\n          mDrmSessionManager(new DrmSessionManager(mService)),\n          mTestDrm1(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId1, mDrmSessionManager)),\n          mTestDrm2(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId2, mDrmSessionManager)),\n          mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId3, mDrmSessionManager)) {",
+        "b_contents": "        : mService(new ResourceManagerService(new FakeProcessInfo(), new FakeSystemCallback())),\n          mDrmSessionManager(new DrmSessionManager(mService)),\n          mTestDrm1(new FakeDrm(kTestSessionId1, mDrmSessionManager)),\n          mTestDrm2(new FakeDrm(kTestSessionId2, mDrmSessionManager)),\n          mTestDrm3(new FakeDrm(kTestSessionId3, mDrmSessionManager)) {\n        DrmSessionManager *ptr = new DrmSessionManager(mService);\n        EXPECT_NE(ptr, nullptr);\n        /* mDrmSessionManager = ptr; */",
+        "base_contents": "        : mDrmSessionManager(new DrmSessionManager(new FakeProcessInfo())),\n          mTestDrm1(new FakeDrm()),\n          mTestDrm2(new FakeDrm()) {\n        GetSessionId(kTestSessionId1, ARRAY_SIZE(kTestSessionId1), &mSessionId1);\n        GetSessionId(kTestSessionId2, ARRAY_SIZE(kTestSessionId2), &mSessionId2);\n        GetSessionId(kTestSessionId3, ARRAY_SIZE(kTestSessionId3), &mSessionId3);",
+        "res_region": "        : mService(::ndk::SharedRefBase::make<ResourceManagerService>\n            (new FakeProcessInfo(), new FakeSystemCallback())),\n          mDrmSessionManager(new DrmSessionManager(mService)),\n          mTestDrm1(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId1, mDrmSessionManager)),\n          mTestDrm2(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId2, mDrmSessionManager)),\n          mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>(\n                  kTestSessionId3, mDrmSessionManager)) {",
+        "lookback": "class DrmSessionManagerTest : public ::testing::Test {\npublic:\n    DrmSessionManagerTest()",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 230,
+        "end_line": 256,
+        "merge_gen_region": "DrmSessionManagerTest() : mService(::ndk::SharedRefBase::make<ResourceManagerService> (new FakeProcessInfo(), new FakeSystemCallback())), mDrmSessionManager(new DrmSessionManager(mService)), mTestDrm1(::ndk::SharedRefBase::make<FakeDrm>( kTestSessionId1, mDrmSessionManager)), mTestDrm2(::ndk::SharedRefBase::make<FakeDrm>( kTestSessionId3, mDrmSessionManager)), mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>( kTestSessionId3, mDrmSessionManager)), mTestDrm3(::ndk::SharedRefBase::make<FakeDrm>( kTestSessionId3, mDrmSessionManager)) { DrmSessionManager *ptr = new DrmSessionManager(mService); EXPECT_NE(ptr, nullptr); /* mDrmSessionManager = ptr; */",
+        "resolved": false
+    },
+    {
+        "a_contents": "    std::shared_ptr<ResourceManagerService> mService;",
+        "b_contents": "    sp<IResourceManagerService> mService;",
+        "base_contents": "",
+        "res_region": "    std::shared_ptr<ResourceManagerService> mService;",
+        "lookback": "        mDrmSessionManager->addSession(kTestPid2, mTestDrm3, mTestDrm3->mSessionId);\n    }\n",
+        "lookahead": "    sp<DrmSessionManager> mDrmSessionManager;\n    std::shared_ptr<FakeDrm> mTestDrm1;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 266,
+        "end_line": 271,
+        "merge_gen_region": "std::shared_ptr<ResourceManagerService> mService; sp<IResourceManagerService> mService;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    std::shared_ptr<FakeDrm> mTestDrm1;\n    std::shared_ptr<FakeDrm> mTestDrm2;\n    std::shared_ptr<FakeDrm> mTestDrm3;",
+        "b_contents": "    sp<FakeDrm> mTestDrm1;\n    sp<FakeDrm> mTestDrm2;\n    sp<FakeDrm> mTestDrm3;",
+        "base_contents": "    sp<FakeDrm> mTestDrm1;\n    sp<FakeDrm> mTestDrm2;\n    Vector<uint8_t> mSessionId1;\n    Vector<uint8_t> mSessionId2;\n    Vector<uint8_t> mSessionId3;",
+        "res_region": "    std::shared_ptr<FakeDrm> mTestDrm1;\n    std::shared_ptr<FakeDrm> mTestDrm2;\n    std::shared_ptr<FakeDrm> mTestDrm3;",
+        "lookback": "\n    std::shared_ptr<ResourceManagerService> mService;\n    sp<DrmSessionManager> mDrmSessionManager;",
+        "lookahead": "};\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 273,
+        "end_line": 287,
+        "merge_gen_region": "std::shared_ptr<FakeDrm> mTestDrm1; std::shared_ptr<FakeDrm> mTestDrm2; std::shared_ptr<FakeDrm> mTestDrm3;",
+        "resolved": true
+    },
+    {
+        "a_contents": "    const std::vector<uint8_t> sid{1, 3, 5};\n    std::shared_ptr<FakeDrm> drm =\n            ::ndk::SharedRefBase::make<FakeDrm>(sid, mDrmSessionManager);\n    mDrmSessionManager->addSession(15, drm, drm->mSessionId);",
+        "b_contents": "    const std::vector<uint8_t> sid{1, 3, 5};\n    sp<FakeDrm> drm = new FakeDrm(sid, mDrmSessionManager);\n    mDrmSessionManager->addSession(15, drm, drm->mSessionId);",
+        "base_contents": "    sp<FakeDrm> drm = new FakeDrm;\n    const uint8_t ids[] = {1, 3, 5};\n    Vector<uint8_t> sessionId;\n    GetSessionId(ids, ARRAY_SIZE(ids), &sessionId);\n    mDrmSessionManager->addSession(15, drm, sessionId);",
+        "res_region": "    const std::vector<uint8_t> sid{1, 3, 5};\n    std::shared_ptr<FakeDrm> drm =\n            ::ndk::SharedRefBase::make<FakeDrm>(sid, mDrmSessionManager);\n    mDrmSessionManager->addSession(15, drm, drm->mSessionId);",
+        "lookback": "    EXPECT_TRUE(mTestDrm1->isReclaimed());\n\n    // add a session from a higher priority process.",
+        "lookahead": "\n    // make sure mTestDrm2 is reclaimed next instead of mTestDrm3",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 333,
+        "end_line": 348,
+        "merge_gen_region": "std::shared_ptr<FakeDrm> drm = ::ndk::SharedRefBase::make<FakeDrm>(sid, mDrmSessionManager); mDrmSessionManager->addSession(15, drm, drm->mSessionId);",
+        "resolved": false
+    }
+]

@@ -1,0 +1,26 @@
+diff --git a/./output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_mergegen.cpp b/./output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_merged.cpp
+index f2bd542..4f79a19 100644
+--- a/./output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_mergegen.cpp
++++ b/./output/duckdb/1a69272b-6255d307-fc797c18/src@execution@operator@persistent@physical_batch_insert.no_comments_merged.cpp
+@@ -255 +255,20 @@ unique_ptr<LocalSinkState> PhysicalBatchInsert::GetLocalSinkState(ExecutionConte
+-void PhysicalBatchInsert::NextBatch(ExecutionContext &context, GlobalSinkState &state, LocalSinkState &lstate_p) const { auto &gstate = state.Cast<BatchInsertGlobalState>(); auto &lstate = lstate_p.Cast<BatchInsertLocalState>(); auto &table = gstate.table; auto batch_index = lstate.partition_info.batch_index.GetIndex(); if (lstate.current_collection) { if (lstate.current_index == batch_index) { throw InternalException("NextBatch called with the same batch index?"); }
++void PhysicalBatchInsert::NextBatch(ExecutionContext &context, GlobalSinkState &state, LocalSinkState &lstate_p) const {
++ auto &gstate = state.Cast<BatchInsertGlobalState>();
++ auto &lstate = lstate_p.Cast<BatchInsertLocalState>();
++ auto &table = gstate.table;
++ auto batch_index = lstate.partition_info.batch_index.GetIndex();
++ if (lstate.current_collection) {
++  if (lstate.current_index == batch_index) {
++   throw InternalException("NextBatch called with the same batch index?");
++  }
++  TransactionData tdata(0, 0);
++  lstate.current_collection->FinalizeAppend(tdata, lstate.current_append_state);
++  gstate.AddCollection(context.client, lstate.current_index, lstate.partition_info.min_batch_index.GetIndex(),
++                       std::move(lstate.current_collection), lstate.writer, &lstate.written_to_disk);
++  lstate.CreateNewCollection(table, insert_types);
++ }
++ lstate.current_index = batch_index;
++}
++SinkResultType PhysicalBatchInsert::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const {
++ auto &gstate = input.global_state.Cast<BatchInsertGlobalState>();
++ auto &lstate = input.local_state.Cast<BatchInsertLocalState>();

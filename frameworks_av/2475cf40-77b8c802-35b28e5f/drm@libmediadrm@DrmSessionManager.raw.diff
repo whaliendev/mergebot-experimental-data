@@ -1,0 +1,233 @@
+diff --git a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_conflict.cpp b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_merged.cpp
+index feb98c3..3e1c3c4 100644
+--- a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_conflict.cpp
++++ b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_merged.cpp
+@@ -3 +2,0 @@
+-<<<<<<< HEAD
+@@ -11,14 +9,0 @@
+-||||||| 35b28e5f80
+-#include <binder/IPCThreadState.h>
+-#include <binder/IProcessInfoService.h>
+-#include <binder/IServiceManager.h>
+-#include <media/stagefright/ProcessInfo.h>
+-#include <mediadrm/DrmSessionClientInterface.h>
+-=======
+-#include <binder/IPCThreadState.h>
+-#include <binder/IProcessInfoService.h>
+-#include <binder/IServiceManager.h>
+-#include <cutils/properties.h>
+-#include <media/IResourceManagerClient.h>
+-#include <media/MediaResource.h>
+->>>>>>> 77b8c802
+@@ -28,4 +12,0 @@
+-<<<<<<< HEAD
+-#include <vector>
+-||||||| 35b28e5f80
+-=======
+@@ -33,2 +13,0 @@
+-#include "ResourceManagerService.h"
+->>>>>>> 77b8c802
+@@ -51 +29,0 @@ static String8 GetSessionIdString(const Vector<uint8_t> &sessionId) {
+-<<<<<<< HEAD
+@@ -73,27 +50,0 @@ static std::shared_ptr<IResourceManagerService> getResourceManagerService() {
+-||||||| 35b28e5f80
+-=======
+-static std::vector<uint8_t> toStdVec(const Vector<uint8_t> &vector) {
+-    const uint8_t *v = vector.array();
+-    std::vector<uint8_t> vec(v, v + vector.size());
+-    return vec;
+-}
+-static uint64_t toClientId(const sp<IResourceManagerClient>& drm) {
+-    return reinterpret_cast<int64_t>(drm.get());
+-}
+-static Vector<MediaResource> toResourceVec(const Vector<uint8_t> &sessionId) {
+-    Vector<MediaResource> resources;
+-    resources.push_back(MediaResource(MediaResource::kDrmSession, toStdVec(sessionId), UINT64_MAX));
+-    return resources;
+-}
+-static sp<IResourceManagerService> getResourceManagerService() {
+-    if (property_get_bool("persist.device_config.media_native.mediadrmserver", 1)) {
+-        return new ResourceManagerService();
+-    }
+-    sp<IServiceManager> sm = defaultServiceManager();
+-    if (sm == NULL) {
+-        return NULL;
+-    }
+-    sp<IBinder> binder = sm->getService(String16("media.resource_manager"));
+-    return interface_cast<IResourceManagerService>(binder);
+-}
+->>>>>>> 77b8c802
+@@ -112 +62,0 @@ sp<DrmSessionManager> DrmSessionManager::Instance() {
+-<<<<<<< HEAD
+@@ -115,6 +64,0 @@ sp<DrmSessionManager> DrmSessionManager::Instance() {
+-||||||| 35b28e5f80
+-    static sp<DrmSessionManager> drmSessionManager = new DrmSessionManager();
+-=======
+-    static sp<DrmSessionManager> drmSessionManager = new DrmSessionManager();
+-    drmSessionManager->init();
+->>>>>>> 77b8c802
+@@ -126 +69,0 @@ DrmSessionManager::DrmSessionManager()
+-<<<<<<< HEAD
+@@ -135,14 +77,0 @@ DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerServi
+-||||||| 35b28e5f80
+-DrmSessionManager::DrmSessionManager(sp<ProcessInfoInterface> processInfo)
+-    : mProcessInfo(processInfo),
+-      mTime(0) {}
+-=======
+-DrmSessionManager::DrmSessionManager(const sp<IResourceManagerService> &service)
+-    : mService(service),
+-      mInitialized(false) {
+-    if (mService == NULL) {
+-        ALOGE("Failed to init ResourceManagerService");
+-    }
+-}
+->>>>>>> 77b8c802
+-<<<<<<< HEAD
+@@ -154,10 +82,0 @@ DrmSessionManager::~DrmSessionManager() {
+-||||||| 35b28e5f80
+-DrmSessionManager::~DrmSessionManager() {}
+-=======
+-DrmSessionManager::~DrmSessionManager() {
+-    if (mService != NULL) {
+-        IInterface::asBinder(mService)->unlinkToDeath(this);
+-    }
+-}
+->>>>>>> 77b8c802
+-<<<<<<< HEAD
+@@ -178,20 +96,0 @@ void DrmSessionManager::addSession(int pid,
+-||||||| 35b28e5f80
+-void DrmSessionManager::addSession(
+-        int pid, const sp<DrmSessionClientInterface>& drm, const Vector<uint8_t> &sessionId) {
+-    ALOGV("addSession(pid %d, drm %p, sessionId %s)", pid, drm.get(),
+-=======
+-void DrmSessionManager::init() {
+-    Mutex::Autolock lock(mLock);
+-    if (mInitialized) {
+-        return;
+-    }
+-    mInitialized = true;
+-    if (mService != NULL) {
+-        IInterface::asBinder(mService)->linkToDeath(this);
+-    }
+-}
+-void DrmSessionManager::addSession(int pid,
+-        const sp<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {
+-    uid_t uid = IPCThreadState::self()->getCallingUid();
+-    ALOGV("addSession(pid %d, uid %d, drm %p, sessionId %s)", pid, uid, drm.get(),
+->>>>>>> 77b8c802
+@@ -203 +101,0 @@ void DrmSessionManager::addSession(int pid,
+-<<<<<<< HEAD
+@@ -207,6 +104,0 @@ void DrmSessionManager::addSession(int pid,
+-||||||| 35b28e5f80
+-=======
+-    int64_t clientId = toClientId(drm);
+-    mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId};
+-    mService->addResource(pid, uid, clientId, drm, toResourceVec(sessionId));
+->>>>>>> 77b8c802
+@@ -221 +112,0 @@ void DrmSessionManager::useSession(const Vector<uint8_t> &sessionId) {
+-<<<<<<< HEAD
+@@ -224,5 +114,0 @@ void DrmSessionManager::useSession(const Vector<uint8_t> &sessionId) {
+-||||||| 35b28e5f80
+-=======
+-    auto info = it->second;
+-    mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId));
+->>>>>>> 77b8c802
+@@ -237 +122,0 @@ void DrmSessionManager::removeSession(const Vector<uint8_t> &sessionId) {
+-<<<<<<< HEAD
+@@ -241,25 +125,0 @@ void DrmSessionManager::removeSession(const Vector<uint8_t> &sessionId) {
+-||||||| 35b28e5f80
+-void DrmSessionManager::removeDrm(const sp<DrmSessionClientInterface>& drm) {
+-    ALOGV("removeDrm(%p)", drm.get());
+-    Mutex::Autolock lock(mLock);
+-    bool found = false;
+-    for (size_t i = 0; i < mSessionMap.size(); ++i) {
+-        SessionInfos& infos = mSessionMap.editValueAt(i);
+-        for (size_t j = 0; j < infos.size();) {
+-            if (infos[j].drm == drm) {
+-                ALOGV("removed session (%s)", GetSessionIdString(infos[j].sessionId).string());
+-                j = infos.removeAt(j);
+-                found = true;
+-            } else {
+-                ++j;
+-            }
+-        }
+-        if (found) {
+-            break;
+-        }
+-    }
+-=======
+-    auto info = it->second;
+-    mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId));
+-    mSessionMap.erase(it);
+->>>>>>> 77b8c802
+@@ -269 +128,0 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
+-<<<<<<< HEAD
+@@ -273,22 +131,0 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
+-||||||| 35b28e5f80
+-    sp<DrmSessionClientInterface> drm;
+-    Vector<uint8_t> sessionId;
+-    int lowestPriorityPid;
+-    int lowestPriority;
+-    {
+-        Mutex::Autolock lock(mLock);
+-        int callingPriority;
+-        if (!mProcessInfo->getPriority(callingPid, &callingPriority)) {
+-            return false;
+-        }
+-        if (!getLowestPriority_l(&lowestPriorityPid, &lowestPriority)) {
+-            return false;
+-        }
+-        if (lowestPriority <= callingPriority) {
+-            return false;
+-        }
+-=======
+-    mLock.lock();
+-    sp<IResourceManagerService> service(mService);
+-    mLock.unlock();
+->>>>>>> 77b8c802
+@@ -298 +134,0 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
+-<<<<<<< HEAD
+@@ -303,8 +138,0 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
+-||||||| 35b28e5f80
+-    ALOGV("reclaim session(%s) opened by pid %d",
+-            GetSessionIdString(sessionId).string(), lowestPriorityPid);
+-    return drm->reclaimSession(sessionId);
+-=======
+-    Vector<uint8_t> dummy;
+-    return service->reclaimResource(callingPid, toResourceVec(dummy));
+->>>>>>> 77b8c802
+@@ -320 +147,0 @@ bool DrmSessionManager::containsSession(const Vector<uint8_t>& sessionId) const
+-<<<<<<< HEAD
+@@ -325,32 +151,0 @@ void DrmSessionManager::binderDied() {
+-||||||| 35b28e5f80
+-bool DrmSessionManager::getLeastUsedSession_l(
+-        int pid, sp<DrmSessionClientInterface>* drm, Vector<uint8_t>* sessionId) {
+-    ssize_t index = mSessionMap.indexOfKey(pid);
+-    if (index < 0) {
+-        return false;
+-    }
+-    int leastUsedIndex = -1;
+-    int64_t minTs = LLONG_MAX;
+-    const SessionInfos& infos = mSessionMap.valueAt(index);
+-    for (size_t j = 0; j < infos.size(); ++j) {
+-        if (leastUsedIndex == -1) {
+-            leastUsedIndex = j;
+-            minTs = infos[j].timeStamp;
+-        } else {
+-            if (infos[j].timeStamp < minTs) {
+-                leastUsedIndex = j;
+-                minTs = infos[j].timeStamp;
+-            }
+-        }
+-    }
+-    if (leastUsedIndex != -1) {
+-        *drm = infos[leastUsedIndex].drm;
+-        *sessionId = infos[leastUsedIndex].sessionId;
+-    }
+-    return (leastUsedIndex != -1);
+-=======
+-void DrmSessionManager::binderDied(const wp<IBinder>& ) {
+-    ALOGW("ResourceManagerService died.");
+-    Mutex::Autolock lock(mLock);
+-    mService.clear();
+->>>>>>> 77b8c802

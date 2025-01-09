@@ -1,0 +1,160 @@
+diff --git a/./output/grpc/8776c85f-7f36ff03-615cd251/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_conflict.cc b/./output/grpc/8776c85f-7f36ff03-615cd251/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_merged.cc
+index 0c0d689..3141334 100644
+--- a/./output/grpc/8776c85f-7f36ff03-615cd251/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_conflict.cc
++++ b/./output/grpc/8776c85f-7f36ff03-615cd251/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_merged.cc
+@@ -108,18 +107,0 @@ class EdsLb : public LoadBalancingPolicy {
+-<<<<<<< HEAD
+-  void MaybeCancelFallbackAtStartupChecks();
+-  static void OnFallbackTimer(void* arg, grpc_error* error);
+-  void OnFallbackTimerLocked(grpc_error* error);
+-  void UpdateFallbackPolicyLocked();
+-  OrphanablePtr<LoadBalancingPolicy> CreateFallbackPolicyLocked(
+-      const grpc_channel_args* args);
+-  void MaybeExitFallbackMode();
+-||||||| 615cd251b8
+-  void MaybeCancelFallbackAtStartupChecks();
+-  static void OnFallbackTimer(void* arg, grpc_error* error);
+-  static void OnFallbackTimerLocked(void* arg, grpc_error* error);
+-  void UpdateFallbackPolicyLocked();
+-  OrphanablePtr<LoadBalancingPolicy> CreateFallbackPolicyLocked(
+-      const grpc_channel_args* args);
+-  void MaybeExitFallbackMode();
+-=======
+->>>>>>> 7f36ff03
+@@ -587,136 +568,0 @@ void EdsLb::MaybeUpdateDropPickerLocked() {
+-<<<<<<< HEAD
+-void EdsLb::MaybeCancelFallbackAtStartupChecks() {
+-  if (!fallback_at_startup_checks_pending_) return;
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Cancelling fallback timer", this);
+-  }
+-  grpc_timer_cancel(&lb_fallback_timer_);
+-  fallback_at_startup_checks_pending_ = false;
+-}
+-void EdsLb::OnFallbackTimer(void* arg, grpc_error* error) {
+-  EdsLb* edslb_policy = static_cast<EdsLb*>(arg);
+-  GRPC_ERROR_REF(error);
+-  edslb_policy->work_serializer()->Run(
+-      [edslb_policy, error]() { edslb_policy->OnFallbackTimerLocked(error); },
+-      DEBUG_LOCATION);
+-}
+-void EdsLb::OnFallbackTimerLocked(grpc_error* error) {
+-  if (fallback_at_startup_checks_pending_ && !shutting_down_ &&
+-      error == GRPC_ERROR_NONE) {
+-    gpr_log(GPR_INFO,
+-            "[edslb %p] Child policy not ready after fallback timeout; "
+-            "entering fallback mode",
+-            this);
+-    fallback_at_startup_checks_pending_ = false;
+-    UpdateFallbackPolicyLocked();
+-  }
+-  Unref(DEBUG_LOCATION, "on_fallback_timer");
+-  GRPC_ERROR_UNREF(error);
+-}
+-void EdsLb::UpdateFallbackPolicyLocked() {
+-  if (shutting_down_) return;
+-  if (fallback_policy_ == nullptr) {
+-    fallback_policy_ = CreateFallbackPolicyLocked(args_);
+-  }
+-  UpdateArgs update_args;
+-  update_args.addresses = fallback_backend_addresses_;
+-  update_args.config = config_->fallback_policy();
+-  update_args.args = grpc_channel_args_copy(args_);
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Updating fallback child policy handler %p",
+-            this, fallback_policy_.get());
+-  }
+-  fallback_policy_->UpdateLocked(std::move(update_args));
+-}
+-OrphanablePtr<LoadBalancingPolicy> EdsLb::CreateFallbackPolicyLocked(
+-    const grpc_channel_args* args) {
+-  LoadBalancingPolicy::Args lb_policy_args;
+-  lb_policy_args.work_serializer = work_serializer();
+-  lb_policy_args.args = args;
+-  lb_policy_args.channel_control_helper =
+-      absl::make_unique<FallbackHelper>(Ref(DEBUG_LOCATION, "FallbackHelper"));
+-  OrphanablePtr<LoadBalancingPolicy> lb_policy =
+-      MakeOrphanable<ChildPolicyHandler>(std::move(lb_policy_args),
+-                                         &grpc_lb_eds_trace);
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Created new fallback child policy handler %p",
+-            this, lb_policy.get());
+-  }
+-  grpc_pollset_set_add_pollset_set(lb_policy->interested_parties(),
+-                                   interested_parties());
+-  return lb_policy;
+-}
+-void EdsLb::MaybeExitFallbackMode() {
+-  if (fallback_policy_ == nullptr) return;
+-  gpr_log(GPR_INFO, "[edslb %p] Exiting fallback mode", this);
+-  fallback_policy_.reset();
+-}
+-||||||| 615cd251b8
+-void EdsLb::MaybeCancelFallbackAtStartupChecks() {
+-  if (!fallback_at_startup_checks_pending_) return;
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Cancelling fallback timer", this);
+-  }
+-  grpc_timer_cancel(&lb_fallback_timer_);
+-  fallback_at_startup_checks_pending_ = false;
+-}
+-void EdsLb::OnFallbackTimer(void* arg, grpc_error* error) {
+-  EdsLb* edslb_policy = static_cast<EdsLb*>(arg);
+-  edslb_policy->combiner()->Run(
+-      GRPC_CLOSURE_INIT(&edslb_policy->lb_on_fallback_,
+-                        &EdsLb::OnFallbackTimerLocked, edslb_policy, nullptr),
+-      GRPC_ERROR_REF(error));
+-}
+-void EdsLb::OnFallbackTimerLocked(void* arg, grpc_error* error) {
+-  EdsLb* edslb_policy = static_cast<EdsLb*>(arg);
+-  if (edslb_policy->fallback_at_startup_checks_pending_ &&
+-      !edslb_policy->shutting_down_ && error == GRPC_ERROR_NONE) {
+-    gpr_log(GPR_INFO,
+-            "[edslb %p] Child policy not ready after fallback timeout; "
+-            "entering fallback mode",
+-            edslb_policy);
+-    edslb_policy->fallback_at_startup_checks_pending_ = false;
+-    edslb_policy->UpdateFallbackPolicyLocked();
+-  }
+-  edslb_policy->Unref(DEBUG_LOCATION, "on_fallback_timer");
+-}
+-void EdsLb::UpdateFallbackPolicyLocked() {
+-  if (shutting_down_) return;
+-  if (fallback_policy_ == nullptr) {
+-    fallback_policy_ = CreateFallbackPolicyLocked(args_);
+-  }
+-  UpdateArgs update_args;
+-  update_args.addresses = fallback_backend_addresses_;
+-  update_args.config = config_->fallback_policy();
+-  update_args.args = grpc_channel_args_copy(args_);
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Updating fallback child policy handler %p",
+-            this, fallback_policy_.get());
+-  }
+-  fallback_policy_->UpdateLocked(std::move(update_args));
+-}
+-OrphanablePtr<LoadBalancingPolicy> EdsLb::CreateFallbackPolicyLocked(
+-    const grpc_channel_args* args) {
+-  LoadBalancingPolicy::Args lb_policy_args;
+-  lb_policy_args.combiner = combiner();
+-  lb_policy_args.args = args;
+-  lb_policy_args.channel_control_helper =
+-      absl::make_unique<FallbackHelper>(Ref(DEBUG_LOCATION, "FallbackHelper"));
+-  OrphanablePtr<LoadBalancingPolicy> lb_policy =
+-      MakeOrphanable<ChildPolicyHandler>(std::move(lb_policy_args),
+-                                         &grpc_lb_eds_trace);
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] Created new fallback child policy handler %p",
+-            this, lb_policy.get());
+-  }
+-  grpc_pollset_set_add_pollset_set(lb_policy->interested_parties(),
+-                                   interested_parties());
+-  return lb_policy;
+-}
+-void EdsLb::MaybeExitFallbackMode() {
+-  if (fallback_policy_ == nullptr) return;
+-  gpr_log(GPR_INFO, "[edslb %p] Exiting fallback mode", this);
+-  fallback_policy_.reset();
+-}
+-=======
+->>>>>>> 7f36ff03

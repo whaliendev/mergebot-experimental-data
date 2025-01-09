@@ -1,0 +1,89 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_merged.cpp
+@@ -206,0 +206,18 @@ static void help() {
++#if defined(_WIN32)
++void stdin_raw_init();
++void stdin_raw_restore();
++#else
++static termios g_saved_terminal_state;
++static void stdin_raw_init() {
++    if (tcgetattr(STDIN_FILENO, &g_saved_terminal_state)) return;
++    termios tio;
++    if (tcgetattr(STDIN_FILENO, &tio)) return;
++    cfmakeraw(&tio);
++    tio.c_cc[VTIME] = 0;
++    tio.c_cc[VMIN] = 1;
++    tcsetattr(STDIN_FILENO, TCSAFLUSH, &tio);
++}
++static void stdin_raw_restore() {
++    tcsetattr(STDIN_FILENO, TCSAFLUSH, &g_saved_terminal_state);
++}
++#endif
+@@ -949,3 +935 @@ static int backup(int argc, const char** argv) {
+-  fprintf(stdout,
+-          "WARNING: adb backup is deprecated and may be removed in a future "
+-          "release\n");
++    fprintf(stdout, "WARNING: adb backup is deprecated and may be removed in a future release\n");
+@@ -993,3 +974 @@ static int restore(int argc, const char** argv) {
+-  fprintf(stdout,
+-          "WARNING: adb restore is deprecated and may be removed in a future "
+-          "release\n");
++    fprintf(stdout, "WARNING: adb restore is deprecated and may be removed in a future release\n");
+@@ -1157,18 +1126,0 @@ static bool _is_valid_os_fd(int fd) {
+-static bool _is_valid_fd(int fd) {
+-  if (fd < 3) {
+-    return false;
+-  }
+-#ifdef _WIN32
+-  HANDLE handle = adb_get_os_handle(fd);
+-  DWORD info = 0;
+-  if (GetHandleInformation(handle, &info) == 0) {
+-    return false;
+-  }
+-#else
+-  int flags = fcntl(fd, F_GETFD);
+-  if (flags == -1) {
+-    return false;
+-  }
+-#endif
+-  return true;
+-}
+@@ -1280,2 +1229 @@ int adb_commandline(int argc, const char** argv) {
+-            "$ANDROID_ADB_SERVER_PORT must be a positive number less than "
+-            "65535: "
++                        "$ANDROID_ADB_SERVER_PORT must be a positive number less than 65535: "
+@@ -1680,3 +1624 @@ int adb_commandline(int argc, const char** argv) {
+-      error_exit(
+-          "usage: adb inc-server CONNECTION_HANDLE OUTPUT_HANDLE FILE1 FILE2 "
+-          "...");
++            error_exit("usage: adb inc-server CONNECTION_HANDLE OUTPUT_HANDLE FILE1 FILE2 ...");
+@@ -1688 +1628,0 @@ int adb_commandline(int argc, const char** argv) {
+-<<<<<<< HEAD
+@@ -1692,9 +1631,0 @@ int adb_commandline(int argc, const char** argv) {
+-|||||||
+-    int fd = atoi(argv[1]);
+-    if (fd < 3) {
+-      error_exit("Invalid fd number given: %d", fd);
+-=======
+-    int connection_fd = atoi(argv[1]);
+-    if (!_is_valid_fd(connection_fd)) {
+-      error_exit("Invalid connection_fd number given: %d", connection_fd);
+->>>>>>> f24e4b3ae4d5a391a1f86136589b59a27dde55d0
+@@ -1702 +1632,0 @@ int adb_commandline(int argc, const char** argv) {
+-<<<<<<< HEAD
+@@ -1712,15 +1641,0 @@ int adb_commandline(int argc, const char** argv) {
+-|||||||
+-    fd = adb_register_socket(fd);
+-    close_on_exec(fd);
+-    return incremental::serve(fd, argc - 2, argv + 2);
+-=======
+-    connection_fd = adb_register_socket(connection_fd);
+-    close_on_exec(connection_fd);
+-    int output_fd = atoi(argv[2]);
+-    if (!_is_valid_fd(output_fd)) {
+-      error_exit("Invalid output_fd number given: %d", output_fd);
+-    }
+-    output_fd = adb_register_socket(output_fd);
+-    close_on_exec(output_fd);
+-    return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);
+->>>>>>> f24e4b3ae4d5a391a1f86136589b59a27dde55d0

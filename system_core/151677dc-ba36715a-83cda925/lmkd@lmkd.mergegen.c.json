@@ -1,0 +1,114 @@
+[
+    {
+        "a_contents": "static bool per_app_memcg;\nstatic int swap_free_low_percentage;\nstatic bool use_psi_monitors = false;\nstatic struct psi_threshold psi_thresholds[VMPRESS_LEVEL_COUNT] = {\n    { PSI_SOME, 70 },    /* 70ms out of 1sec for partial stall */\n    { PSI_SOME, 100 },   /* 100ms out of 1sec for partial stall */\n    { PSI_FULL, 70 },    /* 70ms out of 1sec for complete stall */\n};\n\nstatic android_log_context ctx;",
+        "b_contents": "static bool per_app_memcg;",
+        "base_contents": "",
+        "res_region": "static bool per_app_memcg;\nstatic int swap_free_low_percentage;\nstatic bool use_psi_monitors = false;\nstatic struct psi_threshold psi_thresholds[VMPRESS_LEVEL_COUNT] = {\n    { PSI_SOME, 70 },    /* 70ms out of 1sec for partial stall */\n    { PSI_SOME, 100 },   /* 100ms out of 1sec for partial stall */\n    { PSI_FULL, 70 },    /* 70ms out of 1sec for complete stall */\n};\n\nstatic android_log_context ctx;",
+        "lookback": "static bool kill_heaviest_task;\nstatic unsigned long kill_timeout_ms;\nstatic bool use_minfree_levels;",
+        "lookahead": "\n/* data required to handle events */",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 158,
+        "end_line": 172,
+        "merge_gen_region": "static bool per_app_memcg; static int swap_free_low_percentage; static bool use_psi_monitors = false; static struct psi_threshold psi_thresholds[VMPRESS_LEVEL_COUNT] = { { PSI_SOME, 70 }, /* 70ms out of 1sec for partial stall */ { PSI_SOME, 100 }, /* 100ms out of 1sec for partial stall */ { PSI_FULL, 70 }, /* 70ms out of 1sec for complete stall */ }; static android_log_context ctx;",
+        "resolved": true
+    },
+    {
+        "a_contents": "static void cmd_procpurge() {\n    int i;\n    struct proc *procp;\n    struct proc *next;\n\n    if (use_inkernel_interface) {\n        return;\n    }\n\n    for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) {\n        procadjslot_list[i].next = &procadjslot_list[i];\n        procadjslot_list[i].prev = &procadjslot_list[i];\n    }\n\n    for (i = 0; i < PIDHASH_SZ; i++) {\n        procp = pidhash[i];\n        while (procp) {\n            next = procp->pidhash_next;\n            free(procp);\n            procp = next;\n        }\n    }\n    memset(&pidhash[0], 0, sizeof(pidhash));\n}\n\nstatic void inc_killcnt(int oomadj) {\n    int slot = ADJTOSLOT(oomadj);\n    uint8_t idx = killcnt_idx[slot];\n\n    if (idx == KILLCNT_INVALID_IDX) {\n        /* index is not assigned for this oomadj */\n        if (killcnt_free_idx < MAX_DISTINCT_OOM_ADJ) {\n            killcnt_idx[slot] = killcnt_free_idx;\n            killcnt[killcnt_free_idx] = 1;\n            killcnt_free_idx++;\n        } else {\n            ALOGW(\"Number of distinct oomadj levels exceeds %d\",\n                MAX_DISTINCT_OOM_ADJ);\n        }\n    } else {\n        /*\n         * wraparound is highly unlikely and is detectable using total\n         * counter because it has to be equal to the sum of all counters\n         */\n        killcnt[idx]++;\n    }\n    /* increment total kill counter */\n    killcnt_total++;\n}\n\nstatic int get_killcnt(int min_oomadj, int max_oomadj) {\n    int slot;\n    int count = 0;\n\n    if (min_oomadj > max_oomadj)\n        return 0;\n\n    /* special case to get total kill count */\n    if (min_oomadj > OOM_SCORE_ADJ_MAX)\n        return killcnt_total;\n\n    while (min_oomadj <= max_oomadj &&\n           (slot = ADJTOSLOT(min_oomadj)) < ADJTOSLOT_COUNT) {\n        uint8_t idx = killcnt_idx[slot];\n        if (idx != KILLCNT_INVALID_IDX) {\n            count += killcnt[idx];\n        }\n        min_oomadj++;\n    }\n\n    return count;\n}\n\nstatic int cmd_getkillcnt(LMKD_CTRL_PACKET packet) {\n    struct lmk_getkillcnt params;\n\n    if (use_inkernel_interface) {\n        /* kernel driver does not expose this information */\n        return 0;\n    }\n\n    lmkd_pack_get_getkillcnt(packet, &params);\n\n    return get_killcnt(params.min_oomadj, params.max_oomadj);\n}\n",
+        "b_contents": "static void cmd_procpurge() {\n    int i;\n    struct proc *procp;\n    struct proc *next;\n\n    if (use_inkernel_interface) {\n        return;\n    }\n\n    for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) {\n        procadjslot_list[i].next = &procadjslot_list[i];\n        procadjslot_list[i].prev = &procadjslot_list[i];\n    }\n\n    for (i = 0; i < PIDHASH_SZ; i++) {\n        procp = pidhash[i];\n        while (procp) {\n            next = procp->pidhash_next;\n            free(procp);\n            procp = next;\n        }\n    }\n    memset(&pidhash[0], 0, sizeof(pidhash));\n}\n",
+        "base_contents": "",
+        "res_region": "static void cmd_procpurge() {\n    int i;\n    struct proc *procp;\n    struct proc *next;\n\n    if (use_inkernel_interface) {\n        return;\n    }\n\n    for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) {\n        procadjslot_list[i].next = &procadjslot_list[i];\n        procadjslot_list[i].prev = &procadjslot_list[i];\n    }\n\n    for (i = 0; i < PIDHASH_SZ; i++) {\n        procp = pidhash[i];\n        while (procp) {\n            next = procp->pidhash_next;\n            free(procp);\n            procp = next;\n        }\n    }\n    memset(&pidhash[0], 0, sizeof(pidhash));\n}\n\nstatic void inc_killcnt(int oomadj) {\n    int slot = ADJTOSLOT(oomadj);\n    uint8_t idx = killcnt_idx[slot];\n\n    if (idx == KILLCNT_INVALID_IDX) {\n        /* index is not assigned for this oomadj */\n        if (killcnt_free_idx < MAX_DISTINCT_OOM_ADJ) {\n            killcnt_idx[slot] = killcnt_free_idx;\n            killcnt[killcnt_free_idx] = 1;\n            killcnt_free_idx++;\n        } else {\n            ALOGW(\"Number of distinct oomadj levels exceeds %d\",\n                MAX_DISTINCT_OOM_ADJ);\n        }\n    } else {\n        /*\n         * wraparound is highly unlikely and is detectable using total\n         * counter because it has to be equal to the sum of all counters\n         */\n        killcnt[idx]++;\n    }\n    /* increment total kill counter */\n    killcnt_total++;\n}\n\nstatic int get_killcnt(int min_oomadj, int max_oomadj) {\n    int slot;\n    int count = 0;\n\n    if (min_oomadj > max_oomadj)\n        return 0;\n\n    /* special case to get total kill count */\n    if (min_oomadj > OOM_SCORE_ADJ_MAX)\n        return killcnt_total;\n\n    while (min_oomadj <= max_oomadj &&\n           (slot = ADJTOSLOT(min_oomadj)) < ADJTOSLOT_COUNT) {\n        uint8_t idx = killcnt_idx[slot];\n        if (idx != KILLCNT_INVALID_IDX) {\n            count += killcnt[idx];\n        }\n        min_oomadj++;\n    }\n\n    return count;\n}\n\nstatic int cmd_getkillcnt(LMKD_CTRL_PACKET packet) {\n    struct lmk_getkillcnt params;\n\n    if (use_inkernel_interface) {\n        /* kernel driver does not expose this information */\n        return 0;\n    }\n\n    lmkd_pack_get_getkillcnt(packet, &params);\n\n    return get_killcnt(params.min_oomadj, params.max_oomadj);\n}\n",
+        "lookback": "    pid_remove(params.pid);\n}\n",
+        "lookahead": "static void cmd_target(int ntargets, LMKD_CTRL_PACKET packet) {\n    int i;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 669,
+        "end_line": 783,
+        "merge_gen_region": "static void cmd_procpurge() { int i; struct proc *procp; struct proc *next; if (use_inkernel_interface) { return; } for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) { procadjslot_list[i].next = &procadjslot_list[i]; procadjslot_list[i].prev = &procadjslot_list[i]; } for (i = 0; i < PIDHASH_SZ; i++) { procp = pidhash[i]; while (procp) { next = procp->pidhash_next; free(procp); procp = next; } } memset(&pidhash[0], 0, sizeof(pidhash)); } static void inc_killcnt(int oomadj) { int slot = ADJTOSLOT(oomadj); uint8_t idx = killcnt_idx[slot]; if (idx == KILLCNT_INVALID_IDX) { /* index is not assigned for this oomadj */ if (killcnt_free_idx < MAX_DISTINCT_OOM_ADJ) { killcnt_idx[slot] = killcnt_free_idx; killcnt[killcnt_free_idx; /* special case to get total kill count */ if (min_oomadj > OOM_SCORE_ADJ_MAX) return killcnt_total; while (min_oomadj <= max_oomadj && (slot = ADJTOSLOT(min_oomadj)) < ADJTOSLOT_COUNT) { uint8_t idx = killcnt_idx[slot]; if (idx == KILLCNT_INVALID_IDX) { /* index is not assigned for this oomadj */ if (killcnt_idx < MAX_DISTINCT_OOM_ADJ) { /* * wraparound is highly unlikely and is detectable",
+        "resolved": false
+    },
+    {
+        "a_contents": "    case LMK_PROCPURGE:\n        if (nargs != 0)\n            goto wronglen;\n        cmd_procpurge();\n        break;\n    case LMK_GETKILLCNT:\n        if (nargs != 2)\n            goto wronglen;\n        kill_cnt = cmd_getkillcnt(packet);\n        len = lmkd_pack_set_getkillcnt_repl(packet, kill_cnt);\n        if (ctrl_data_write(dsock_idx, (char *)packet, len) != len)\n            return;\n        break;",
+        "b_contents": "    case LMK_PROCPURGE:\n        if (nargs != 0)\n            goto wronglen;\n        cmd_procpurge();\n        break;",
+        "base_contents": "",
+        "res_region": "    case LMK_PROCPURGE:\n        if (nargs != 0)\n            goto wronglen;\n        cmd_procpurge();\n        break;\n    case LMK_GETKILLCNT:\n        if (nargs != 2)\n            goto wronglen;\n        kill_cnt = cmd_getkillcnt(packet);\n        len = lmkd_pack_set_getkillcnt_repl(packet, kill_cnt);\n        if (ctrl_data_write(dsock_idx, (char *)packet, len) != len)\n            return;\n        break;",
+        "lookback": "            goto wronglen;\n        cmd_procremove(packet);\n        break;",
+        "lookahead": "    default:\n        ALOGE(\"Received unknown command code %d\", cmd);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 942,
+        "end_line": 963,
+        "merge_gen_region": "case LMK_PROCPURGE: if (nargs != 0) goto wronglen; cmd_procpurge(); break; case LMK_GETKILLCNT: if (nargs != 2) goto wronglen; kill_cnt = cmd_getkillcnt(packet); len = lmkd_pack_set_getkillcnt_repl(packet, kill_cnt); if (ctrl_data_write(dsock_idx, (char *)packet, len) != len) return; break;",
+        "resolved": true
+    },
+    {
+        "a_contents": "static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {\n    FILE *fp;\n    char buf[PATH_MAX];",
+        "b_contents": "static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {\n    FILE* fp;\n    char buf[PATH_MAX];",
+        "base_contents": "static int memory_stat_parse(struct memory_stat *mem_st,  int pid, uid_t uid) {\n   FILE *fp;\n   char buf[PATH_MAX];",
+        "res_region": "static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {\n    FILE *fp;\n    char buf[PATH_MAX];",
+        "lookback": "        mem_st->swap_in_bytes = value;\n}\n",
+        "lookahead": "\n    snprintf(buf, sizeof(buf), MEMCG_PROCESS_MEMORY_STAT_PATH, uid, pid);",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 1051,
+        "end_line": 1063,
+        "merge_gen_region": "static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) { FILE* fp;",
+        "resolved": false
+    },
+    {
+        "a_contents": "    return 0;\n}\n\nstatic int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {\n    char path[PATH_MAX];\n    char buffer[PROC_STAT_BUFFER_SIZE];\n    int fd, ret;\n\n    snprintf(path, sizeof(path), PROC_STAT_FILE_PATH, pid);\n    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {\n        ALOGE(\"%s open failed: %s\", path, strerror(errno));\n        return -1;\n    }\n\n    ret = read(fd, buffer, sizeof(buffer));\n    if (ret < 0) {\n        ALOGE(\"%s read failed: %s\", path, strerror(errno));\n        close(fd);\n        return -1;\n    }\n    close(fd);\n\n    // field 10 is pgfault\n    // field 12 is pgmajfault\n    // field 22 is starttime\n    // field 24 is rss_in_pages\n    int64_t pgfault = 0, pgmajfault = 0, starttime = 0, rss_in_pages = 0;\n    if (sscanf(buffer,\n               \"%*u %*s %*s %*d %*d %*d %*d %*d %*d %\" SCNd64 \" %*d \"\n               \"%\" SCNd64 \" %*d %*u %*u %*d %*d %*d %*d %*d %*d \"\n               \"%\" SCNd64 \" %*d %\" SCNd64 \"\",\n               &pgfault, &pgmajfault, &starttime, &rss_in_pages) != 4) {\n        return -1;\n    }\n    mem_st->pgfault = pgfault;\n    mem_st->pgmajfault = pgmajfault;\n    mem_st->rss_in_bytes = (rss_in_pages * PAGE_SIZE);\n    mem_st->process_start_time_ns = starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));\n    return 0;",
+        "b_contents": "    return 0;\n}\n\nstatic int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {\n    char path[PATH_MAX];\n    char buffer[PROC_STAT_BUFFER_SIZE];\n    int fd, ret;\n\n    snprintf(path, sizeof(path), PROC_STAT_FILE_PATH, pid);\n    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {\n        ALOGE(\"%s open failed: %s\", path, strerror(errno));\n        return -1;\n    }\n\n    ret = read(fd, buffer, sizeof(buffer));\n    if (ret < 0) {\n        ALOGE(\"%s read failed: %s\", path, strerror(errno));\n        close(fd);\n        return -1;\n    }\n    close(fd);\n\n    // field 10 is pgfault\n    // field 12 is pgmajfault\n    // field 24 is rss_in_pages\n    int64_t pgfault = 0, pgmajfault = 0, rss_in_pages = 0;\n    if (sscanf(buffer,\n               \"%*u %*s %*s %*d %*d %*d %*d %*d %*d %\" SCNd64 \" %*d \"\n               \"%\" SCNd64 \" %*d %*u %*u %*d %*d %*d %*d %*d %*d \"\n               \"%*d %*d %\" SCNd64 \"\",\n               &pgfault, &pgmajfault, &rss_in_pages) != 3) {\n        return -1;\n    }\n    mem_st->pgfault = pgfault;\n    mem_st->pgmajfault = pgmajfault;\n    mem_st->rss_in_bytes = (rss_in_pages * PAGE_SIZE);\n\n    return 0;",
+        "base_contents": "   return 0;",
+        "res_region": "    return 0;\n}\n\nstatic int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {\n    char path[PATH_MAX];\n    char buffer[PROC_STAT_BUFFER_SIZE];\n    int fd, ret;\n\n    snprintf(path, sizeof(path), PROC_STAT_FILE_PATH, pid);\n    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {\n        ALOGE(\"%s open failed: %s\", path, strerror(errno));\n        return -1;\n    }\n\n    ret = read(fd, buffer, sizeof(buffer));\n    if (ret < 0) {\n        ALOGE(\"%s read failed: %s\", path, strerror(errno));\n        close(fd);\n        return -1;\n    }\n    close(fd);\n\n    // field 10 is pgfault\n    // field 12 is pgmajfault\n    // field 22 is starttime\n    // field 24 is rss_in_pages\n    int64_t pgfault = 0, pgmajfault = 0, starttime = 0, rss_in_pages = 0;\n    if (sscanf(buffer,\n               \"%*u %*s %*s %*d %*d %*d %*d %*d %*d %\" SCNd64 \" %*d \"\n               \"%\" SCNd64 \" %*d %*u %*u %*d %*d %*d %*d %*d %*d \"\n               \"%\" SCNd64 \" %*d %\" SCNd64 \"\",\n               &pgfault, &pgmajfault, &starttime, &rss_in_pages) != 4) {\n        return -1;\n    }\n    mem_st->pgfault = pgfault;\n    mem_st->pgmajfault = pgmajfault;\n    mem_st->rss_in_bytes = (rss_in_pages * PAGE_SIZE);\n    mem_st->process_start_time_ns = starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));\n    return 0;",
+        "lookback": "    }\n    fclose(fp);\n",
+        "lookahead": "}\n#endif",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1079,
+        "end_line": 1160,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "                    mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns);\n        } else if (enable_stats_log) {\n            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,\n                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1);",
+        "b_contents": "                    mem_st.cache_in_bytes, mem_st.swap_in_bytes);\n        } else if (enable_stats_log) {\n            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,\n                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1);",
+        "base_contents": "                    mem_st.cache_in_bytes, mem_st.swap_in_bytes);",
+        "res_region": "                    mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns);\n        } else if (enable_stats_log) {\n            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,\n                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1);",
+        "lookback": "        if (memory_stat_parse_result == 0) {\n            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname,\n                    procp->oomadj, mem_st.pgfault, mem_st.pgmajfault, mem_st.rss_in_bytes,",
+        "lookahead": "        }\n#endif",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1483,
+        "end_line": 1495,
+        "merge_gen_region": "} else if (enable_stats_log) { stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, mem_st.pgfault, mem_st.pgmajfault, mem_st.rss_in_bytes, mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns); } else if (enable_stats_log) { stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1); } else if (enable_stats_log) { stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1); }",
+        "resolved": false
+    },
+    {
+        "a_contents": "    per_app_memcg =\n        property_get_bool(\"ro.config.per_app_memcg\", low_ram_device);\n    swap_free_low_percentage =\n        property_get_int32(\"ro.lmk.swap_free_low_percentage\", 10);\n\n    ctx = create_android_logger(MEMINFO_LOG_TAG);\n",
+        "b_contents": "    per_app_memcg = property_get_bool(\"ro.config.per_app_memcg\", low_ram_device);",
+        "base_contents": "",
+        "res_region": "    per_app_memcg =\n        property_get_bool(\"ro.config.per_app_memcg\", low_ram_device);\n    swap_free_low_percentage =\n        property_get_int32(\"ro.lmk.swap_free_low_percentage\", 10);\n\n    ctx = create_android_logger(MEMINFO_LOG_TAG);\n",
+        "lookback": "        (unsigned long)property_get_int32(\"ro.lmk.kill_timeout_ms\", 0);\n    use_minfree_levels =\n        property_get_bool(\"ro.lmk.use_minfree_levels\", false);",
+        "lookahead": "#ifdef LMKD_LOG_STATS\n    statslog_init(&log_ctx, &enable_stats_log);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2162,
+        "end_line": 2174,
+        "merge_gen_region": "ivity_app_memcg = property_get_bool(\"ro.config.per_app_memcg\", low_ram_device); swap_free_low_percentage = property_get_int32(\"ro.lmk.swap_free_low_percentage\", 10); ctx = create_android_logger(MEMINFO_LOG_TAG);",
+        "resolved": false
+    }
+]

@@ -1,0 +1,157 @@
+diff --git a/./output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_mergegen.c b/./output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_merged.c
+index 9ad082a..9972c3e 100644
+--- a/./output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_mergegen.c
++++ b/./output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_merged.c
+@@ -99 +99,9 @@ static bool use_minfree_levels;
+-static bool per_app_memcg; static int swap_free_low_percentage; static bool use_psi_monitors = false; static struct psi_threshold psi_thresholds[VMPRESS_LEVEL_COUNT] = { { PSI_SOME, 70 }, { PSI_SOME, 100 }, { PSI_FULL, 70 }, }; static android_log_context ctx;
++static bool per_app_memcg;
++static int swap_free_low_percentage;
++static bool use_psi_monitors = false;
++static struct psi_threshold psi_thresholds[VMPRESS_LEVEL_COUNT] = {
++    { PSI_SOME, 70 },
++    { PSI_SOME, 100 },
++    { PSI_FULL, 70 },
++};
++static android_log_context ctx;
+@@ -479 +487,73 @@ static void cmd_procremove(LMKD_CTRL_PACKET packet) {
+-static void cmd_procpurge() { int i; struct proc *procp; struct proc *next; if (use_inkernel_interface) { return; } for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) { procadjslot_list[i].next = &procadjslot_list[i]; procadjslot_list[i].prev = &procadjslot_list[i]; } for (i = 0; i < PIDHASH_SZ; i++) { procp = pidhash[i]; while (procp) { next = procp->pidhash_next; free(procp); procp = next; } } memset(&pidhash[0], 0, sizeof(pidhash)); } static void inc_killcnt(int oomadj) { int slot = ADJTOSLOT(oomadj); uint8_t idx = killcnt_idx[slot]; if (idx == KILLCNT_INVALID_IDX) { if (killcnt_free_idx < MAX_DISTINCT_OOM_ADJ) { killcnt_idx[slot] = killcnt_free_idx; killcnt[killcnt_free_idx; if (min_oomadj > OOM_SCORE_ADJ_MAX) return killcnt_total; while (min_oomadj <= max_oomadj && (slot = ADJTOSLOT(min_oomadj)) < ADJTOSLOT_COUNT) { uint8_t idx = killcnt_idx[slot]; if (idx == KILLCNT_INVALID_IDX) { if (killcnt_idx < MAX_DISTINCT_OOM_ADJ) {
++static void cmd_procpurge() {
++    int i;
++    struct proc *procp;
++    struct proc *next;
++    if (use_inkernel_interface) {
++        return;
++    }
++    for (i = 0; i <= ADJTOSLOT(OOM_SCORE_ADJ_MAX); i++) {
++        procadjslot_list[i].next = &procadjslot_list[i];
++        procadjslot_list[i].prev = &procadjslot_list[i];
++    }
++    for (i = 0; i < PIDHASH_SZ; i++) {
++        procp = pidhash[i];
++        while (procp) {
++            next = procp->pidhash_next;
++            free(procp);
++            procp = next;
++        }
++    }
++    memset(&pidhash[0], 0, sizeof(pidhash));
++}
++static void inc_killcnt(int oomadj) {
++    int slot = ADJTOSLOT(oomadj);
++    uint8_t idx = killcnt_idx[slot];
++    if (idx == KILLCNT_INVALID_IDX) {
++        if (killcnt_free_idx < MAX_DISTINCT_OOM_ADJ) {
++            killcnt_idx[slot] = killcnt_free_idx;
++            killcnt[killcnt_free_idx] = 1;
++            killcnt_free_idx++;
++        } else {
++            ALOGW("Number of distinct oomadj levels exceeds %d",
++                MAX_DISTINCT_OOM_ADJ);
++        }
++    } else {
++        killcnt[idx]++;
++    }
++    killcnt_total++;
++}
++static int get_killcnt(int min_oomadj, int max_oomadj) {
++    int slot;
++    int count = 0;
++    if (min_oomadj > max_oomadj)
++        return 0;
++    if (min_oomadj > OOM_SCORE_ADJ_MAX)
++        return killcnt_total;
++    while (min_oomadj <= max_oomadj &&
++           (slot = ADJTOSLOT(min_oomadj)) < ADJTOSLOT_COUNT) {
++        uint8_t idx = killcnt_idx[slot];
++        if (idx != KILLCNT_INVALID_IDX) {
++            count += killcnt[idx];
++        }
++        min_oomadj++;
++    }
++    return count;
++}
++static int cmd_getkillcnt(LMKD_CTRL_PACKET packet) {
++    struct lmk_getkillcnt params;
++    if (use_inkernel_interface) {
++        return 0;
++    }
++    lmkd_pack_get_getkillcnt(packet, &params);
++    return get_killcnt(params.min_oomadj, params.max_oomadj);
++}
++static void cmd_target(int ntargets, LMKD_CTRL_PACKET packet) {
++    int i;
++    struct lmk_target target;
++    char minfree_str[PROPERTY_VALUE_MAX];
++    char *pstr = minfree_str;
++    char *pend = minfree_str + sizeof(minfree_str);
++    static struct timespec last_req_tm;
++    struct timespec curr_tm;
++    if (ntargets < 1 || ntargets > (int)ARRAY_SIZE(lowmem_adj))
++        return;
+@@ -591 +671,13 @@ static void ctrl_command_handler(int dsock_idx) {
+-case LMK_PROCPURGE: if (nargs != 0) goto wronglen; cmd_procpurge(); break; case LMK_GETKILLCNT: if (nargs != 2) goto wronglen; kill_cnt = cmd_getkillcnt(packet); len = lmkd_pack_set_getkillcnt_repl(packet, kill_cnt); if (ctrl_data_write(dsock_idx, (char *)packet, len) != len) return; break;
++    case LMK_PROCPURGE:
++        if (nargs != 0)
++            goto wronglen;
++        cmd_procpurge();
++        break;
++    case LMK_GETKILLCNT:
++        if (nargs != 2)
++            goto wronglen;
++        kill_cnt = cmd_getkillcnt(packet);
++        len = lmkd_pack_set_getkillcnt_repl(packet, kill_cnt);
++        if (ctrl_data_write(dsock_idx, (char *)packet, len) != len)
++            return;
++        break;
+@@ -658 +750,3 @@ static void memory_stat_parse_line(char* line, struct memory_stat* mem_st) {
+-static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) { FILE* fp;
++static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {
++    FILE *fp;
++    char buf[PATH_MAX];
+@@ -668,0 +763,31 @@ static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t ui
++    return 0;
++}
++static int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {
++    char path[PATH_MAX];
++    char buffer[PROC_STAT_BUFFER_SIZE];
++    int fd, ret;
++    snprintf(path, sizeof(path), PROC_STAT_FILE_PATH, pid);
++    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {
++        ALOGE("%s open failed: %s", path, strerror(errno));
++        return -1;
++    }
++    ret = read(fd, buffer, sizeof(buffer));
++    if (ret < 0) {
++        ALOGE("%s read failed: %s", path, strerror(errno));
++        close(fd);
++        return -1;
++    }
++    close(fd);
++    int64_t pgfault = 0, pgmajfault = 0, starttime = 0, rss_in_pages = 0;
++    if (sscanf(buffer,
++               "%*u %*s %*s %*d %*d %*d %*d %*d %*d %" SCNd64 " %*d "
++               "%" SCNd64 " %*d %*u %*u %*d %*d %*d %*d %*d %*d "
++               "%" SCNd64 " %*d %" SCNd64 "",
++               &pgfault, &pgmajfault, &starttime, &rss_in_pages) != 4) {
++        return -1;
++    }
++    mem_st->pgfault = pgfault;
++    mem_st->pgmajfault = pgmajfault;
++    mem_st->rss_in_bytes = (rss_in_pages * PAGE_SIZE);
++    mem_st->process_start_time_ns = starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));
++    return 0;
+@@ -933 +1058,6 @@ static int kill_one_process(struct proc* procp, int min_oom_score) {
+-#ifndef AVCODEC_st.pgfault, mem_st.pgmajfault, mem_st.rss_in_bytes, mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns, min_oom_score); } else if (enable_stats_log) { stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1, min_oom_score); } else if (enable_stats_log) { stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1); }
++                    mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns,
++                    min_oom_score);
++        } else if (enable_stats_log) {
++            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,
++                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1,
++                                          min_oom_score);
+@@ -1446 +1576,5 @@ int main(int argc __unused, char **argv __unused) {
+-ivity_app_memcg = property_get_bool("ro.config.per_app_memcg", low_ram_device); swap_free_low_percentage = property_get_int32("ro.lmk.swap_free_low_percentage", 10); ctx = create_android_logger(MEMINFO_LOG_TAG);
++    per_app_memcg =
++        property_get_bool("ro.config.per_app_memcg", low_ram_device);
++    swap_free_low_percentage =
++        property_get_int32("ro.lmk.swap_free_low_percentage", 10);
++    ctx = create_android_logger(MEMINFO_LOG_TAG);

@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "\tauto &column_ids = get.GetColumnIds();\n\tfor (auto &column_id : column_ids) {\n\t\tif (column_id.IsRowIdColumn()) {\n\t\t\tthrow BinderException(\"Cannot create an index on the rowid!\");\n\t\t}\n\t\tauto col_id = column_id.GetPrimaryIndex();\n\t\tcreate_index_info->column_ids.push_back(col_id);\n\t\tcreate_index_info->scan_types.push_back(get.returned_types[col_id]);\n\t}\n\tcreate_index_info->scan_types.emplace_back(LogicalType::ROW_TYPE);\n\tcreate_index_info->names = get.names;\n\tcreate_index_info->schema = table.schema.name;\n\tauto &bind_data = get.bind_data->Cast<TableScanBindData>();\n\tbind_data.is_create_index = true;\n\tget.AddColumnId(COLUMN_IDENTIFIER_ROW_ID);\n\n\t// the logical CREATE INDEX also needs all fields to scan the referenced table\n\tauto result = make_uniq<LogicalCreateIndex>(std::move(create_index_info), std::move(expressions), table);\n\tresult->children.push_back(std::move(plan));\n\treturn std::move(result);",
+        "b_contents": "\tIndexBinder index_binder(binder, binder.context);\n\treturn index_binder.BindCreateIndex(binder.context, std::move(create_index_info), table, std::move(plan), nullptr);",
+        "base_contents": "\tauto &column_ids = get.GetColumnIds();\n\tfor (auto &column_id : column_ids) {\n\t\tif (column_id == COLUMN_IDENTIFIER_ROW_ID) {\n\t\t\tthrow BinderException(\"Cannot create an index on the rowid!\");\n\t\t}\n\t\tcreate_index_info->scan_types.push_back(get.returned_types[column_id]);\n\t}\n\tcreate_index_info->scan_types.emplace_back(LogicalType::ROW_TYPE);\n\tcreate_index_info->names = get.names;\n\tcreate_index_info->column_ids = column_ids;\n\tcreate_index_info->schema = table.schema.name;\n\tauto &bind_data = get.bind_data->Cast<TableScanBindData>();\n\tbind_data.is_create_index = true;\n\tget.AddColumnId(COLUMN_IDENTIFIER_ROW_ID);\n\n\t// the logical CREATE INDEX also needs all fields to scan the referenced table\n\tauto result = make_uniq<LogicalCreateIndex>(std::move(create_index_info), std::move(expressions), table);\n\tresult->children.push_back(std::move(plan));\n\treturn std::move(result);",
+        "res_region": "\tIndexBinder index_binder(binder, binder.context);\n\treturn index_binder.BindCreateIndex(binder.context, std::move(create_index_info), table, std::move(plan), nullptr);",
+        "lookback": "                                                         TableCatalogEntry &table, unique_ptr<LogicalOperator> plan) {\n\tD_ASSERT(plan->type == LogicalOperatorType::LOGICAL_GET);\n\tauto create_index_info = unique_ptr_cast<CreateInfo, CreateIndexInfo>(std::move(stmt.info));",
+        "lookahead": "}\n",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 573,
+        "end_line": 617,
+        "merge_gen_region": "auto create_index_info = unique_ptr_cast<CreateInfo, CreateIndexInfo>(std::move(stmt.info)); IndexBinder index return index_binder, binder.context); create_index_info->names = get.names; create_index_info->schema = table.schema.name; auto &bind_binder.BindCreateIndex(binder.context, std::move(create_index_info), table, std::move(plan), nullptr);",
+        "resolved": false
+    }
+]

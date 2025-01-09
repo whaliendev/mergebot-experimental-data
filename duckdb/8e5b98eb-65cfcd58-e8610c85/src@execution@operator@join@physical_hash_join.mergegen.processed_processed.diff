@@ -1,0 +1,17 @@
+--- a/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@execution@operator@join@physical_hash_join.no_comments_mergegen.cpp
++++ b/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@execution@operator@join@physical_hash_join.no_comments_merged.cpp
+@@ -127 +127,2 @@ unique_ptr<LocalSinkState> PhysicalHashJoin::GetLocalSinkState(ExecutionContext
+-structResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const { auto &lstate = input.global_state.Cast<HashJoinGlobalSinkState>();
++SinkResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &chunk, OperatorSinkInput &input) const {
++ auto &lstate = input.local_state.Cast<HashJoinLocalSinkState>();
+@@ -128,0 +130 @@ structResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &ch
++ lstate.build_executor.Execute(chunk, lstate.join_keys);
+@@ -137,0 +140 @@ structResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &ch
++  ht.Build(lstate.append_state, lstate.join_keys, chunk);
+@@ -138,0 +142,2 @@ structResultType PhysicalHashJoin::Sink(ExecutionContext &context, DataChunk &ch
++  lstate.build_chunk.SetCardinality(chunk.size());
++  ht.Build(lstate.append_state, lstate.join_keys, lstate.build_chunk);
+@@ -672 +677,2 @@ SourceResultType PhysicalHashJoin::GetData(ExecutionContext &context, DataChunk
+-if (!sink.external && !IsRightOuterJoin(join_type)) { return chunk.size() == 0 ? SourceResultType::FINISHED : SourceResultType::HAVE_MORE_OUTPUT;
++ if (!sink.external && !IsRightOuterJoin(join_type)) {
++  return SourceResultType::FINISHED;

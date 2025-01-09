@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "  if (addresses_ != nullptr) {",
+        "b_contents": "  if (r->addresses_ != nullptr || r->balancer_addresses_ != nullptr) {",
+        "base_contents": "  if (r->addresses_ != nullptr) {",
+        "res_region": "  if (addresses_ != nullptr || balancer_addresses_ != nullptr) {",
+        "lookback": "    GRPC_ERROR_UNREF(error);\n    return;\n  }",
+        "lookahead": "    Result result;\n    if (addresses_ != nullptr) {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 337,
+        "end_line": 343,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "    result.addresses = std::move(*addresses_);\n    if (service_config_json_ != nullptr) {",
+        "b_contents": "    if (r->addresses_ != nullptr) {\n      result.addresses = std::move(*r->addresses_);\n    }\n    if (r->service_config_json_ != nullptr) {",
+        "base_contents": "    result.addresses = std::move(*r->addresses_);\n    if (r->service_config_json_ != nullptr) {",
+        "res_region": "    if (addresses_ != nullptr) {\n      result.addresses = std::move(*addresses_);\n    }\n    if (service_config_json_ != nullptr) {",
+        "lookback": "  }\n  if (addresses_ != nullptr || balancer_addresses_ != nullptr) {\n    Result result;",
+        "lookahead": "      std::string service_config_string = ChooseServiceConfig(\n          service_config_json_, &result.service_config_error);",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 345,
+        "end_line": 356,
+        "merge_gen_region": "if (r->addresses_ != nullptr) { result.addresses = std::move(*addresses_); } if (service_config_json_ != nullptr) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "    result.args = grpc_channel_args_copy(channel_args_);\n    result_handler()->ReturnResult(std::move(result));\n    addresses_.reset();",
+        "b_contents": "    InlinedVector<grpc_arg, 1> new_args;\n    if (r->balancer_addresses_ != nullptr) {\n      new_args.push_back(\n          CreateGrpclbBalancerAddressesArg(r->balancer_addresses_.get()));\n    }\n    result.args = grpc_channel_args_copy_and_add(\n        r->channel_args_, new_args.data(), new_args.size());\n    r->result_handler()->ReturnResult(std::move(result));\n    r->addresses_.reset();\n    r->balancer_addresses_.reset();",
+        "base_contents": "    result.args = grpc_channel_args_copy(r->channel_args_);\n    r->result_handler()->ReturnResult(std::move(result));\n    r->addresses_.reset();",
+        "res_region": "    InlinedVector<grpc_arg, 1> new_args;\n    if (balancer_addresses_ != nullptr) {\n      new_args.push_back(\n          CreateGrpclbBalancerAddressesArg(balancer_addresses_.get()));\n    }\n    result.args = grpc_channel_args_copy_and_add(channel_args_, new_args.data(),\n                                                 new_args.size());\n    result_handler()->ReturnResult(std::move(result));\n    addresses_.reset();\n    balancer_addresses_.reset();",
+        "lookback": "            service_config_string, &result.service_config_error);\n      }\n    }",
+        "lookahead": "    // Reset backoff state so that we start from the beginning when the\n    // next request gets triggered.",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 368,
+        "end_line": 387,
+        "merge_gen_region": " InlinedVector<grpc_arg, 1> new_args; if (r->balancer_addresses_ != nullptr) { new_args.push_back( CreateGrpclbBalancerAddressesArg(r->balancer_addresses_.get())); } result.args = grpc_channel_args_copy_and_add(_, new_args.data(), new_args.size()); grpc_channel_args_); result_handler()->ReturnResult(std::move(result)); addresses_.reset(); r->balancer_addresses_.reset();",
+        "resolved": false
+    }
+]

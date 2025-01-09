@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "    {\n        std::lock_guard<std::mutex> guard(sCookiesMutex);\n\n        // delete all of the cookies associated with this TranscodingResourcePolicy\n        // instance since they are holding pointers to this object that will no\n        // longer be valid.\n        std::erase_if(sCookies, [this](const auto& cookieEntry) {\n            auto const& [key, cookie] = cookieEntry;\n            std::lock_guard guard(mCookieKeysLock);\n            if (const auto& it = mCookieKeys.find(key); it != mCookieKeys.end()) {\n                // No longer need to track this cookie\n                mCookieKeys.erase(key);\n                return true;\n            }\n            return false;\n        });\n    }",
+        "b_contents": "    {\n        std::lock_guard<std::mutex> guard(sCookiesMutex);\n\n        // delete all of the cookies associated with this TranscodingResourcePolicy\n        // instance since they are holding pointers to this object that will no\n        // longer be valid.\n        for (auto it = sCookies.begin(); it != sCookies.end();) {\n            const uintptr_t key = it->first;\n            std::lock_guard guard(mCookieKeysLock);\n            if (mCookieKeys.find(key) != mCookieKeys.end()) {\n                // No longer need to track this cookie\n                mCookieKeys.erase(key);\n                it = sCookies.erase(it);\n            } else {\n                it++;\n            }\n        }\n    }",
+        "base_contents": "",
+        "res_region": "    {\n        std::lock_guard<std::mutex> guard(sCookiesMutex);\n\n        // delete all of the cookies associated with this TranscodingResourcePolicy\n        // instance since they are holding pointers to this object that will no\n        // longer be valid.\n        std::erase_if(sCookies, [this](const auto& cookieEntry) {\n            auto const& [key, cookie] = cookieEntry;\n            std::lock_guard guard(mCookieKeysLock);\n            if (const auto& it = mCookieKeys.find(key); it != mCookieKeys.end()) {\n                // No longer need to track this cookie\n                mCookieKeys.erase(key);\n                return true;\n            }\n            return false;\n        });\n    }",
+        "lookback": "}\n\nTranscodingResourcePolicy::~TranscodingResourcePolicy() {",
+        "lookahead": "    unregisterSelf();\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 111,
+        "end_line": 149,
+        "merge_gen_region": "{ std::lock_guard<std::mutex> guard(sCookiesMutex); // delete all of the cookies associated with this TranscodingResourcePolicy // instance since they are holding pointers to this object that will no // longer be valid. std::erase_if(sCookies, [this](const auto& cookieEntry) { auto const& [key, cookie] = cookieEntry; std::lock_guard guard(mCookieKeysLock); if (const auto& it = mCookieKeys.find(key); it != mCookieKeys.end()) { // No longer need to track this cookie mCookieKeys.erase(key); return true; } return false; }); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "    std::unique_ptr<TranscodingResourcePolicyCookie> cookie =\n            std::make_unique<TranscodingResourcePolicyCookie>(this);\n    void* cookiePtr = static_cast<void*>(cookie.get());\n    uintptr_t cookieKey = sCookieKeyCounter++;\n    sCookies.emplace(cookieKey, std::move(cookie));\n    {\n        std::lock_guard guard(mCookieKeysLock);\n        mCookieKeys.insert(cookieKey);\n    }\n\n    AIBinder_linkToDeath(binder.get(), mDeathRecipient.get(), reinterpret_cast<void*>(cookieKey));",
+        "b_contents": "    std::unique_ptr<TranscodingResourcePolicyCookie> cookie =\n            std::make_unique<TranscodingResourcePolicyCookie>(this);\n    uintptr_t cookieKey = sCookieKeyCounter++;\n    sCookies.emplace(cookieKey, std::move(cookie));\n    {\n        std::lock_guard guard(mCookieKeysLock);\n        mCookieKeys.insert(cookieKey);\n    }\n\n    AIBinder_linkToDeath(binder.get(), mDeathRecipient.get(), reinterpret_cast<void*>(cookieKey));",
+        "base_contents": "    AIBinder_linkToDeath(binder.get(), mDeathRecipient.get(), reinterpret_cast<void*>(this));",
+        "res_region": "    std::unique_ptr<TranscodingResourcePolicyCookie> cookie =\n            std::make_unique<TranscodingResourcePolicyCookie>(this);\n    void* cookiePtr = static_cast<void*>(cookie.get());\n    uintptr_t cookieKey = sCookieKeyCounter++;\n    sCookies.emplace(cookieKey, std::move(cookie));\n    {\n        std::lock_guard guard(mCookieKeysLock);\n        mCookieKeys.insert(cookieKey);\n    }\n\n    AIBinder_linkToDeath(binder.get(), mDeathRecipient.get(), reinterpret_cast<void*>(cookieKey));",
+        "lookback": "        return;\n    }\n",
+        "lookahead": "\n    ALOGD(\"@@@ registered observer\");",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 185,
+        "end_line": 210,
+        "merge_gen_region": "std::unique_ptr<TranscodingResourcePolicyCookie> cookie = std::make_unique<TranscodingResourcePolicyCookie>(this); void* cookiePtr = static_cast<void*>(cookie.get()); uintptr_t cookieKey = sCookieKeyCounter++; sCookies.emplace(cookieKey, std::move(cookie)); { std::lock_guard guard(mCookieKeysLock); mCookieKeys.insert(cookieKey); }",
+        "resolved": false
+    }
+]

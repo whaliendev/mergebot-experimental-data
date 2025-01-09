@@ -1,0 +1,194 @@
+[
+    {
+        "a_contents": "#include \"android-base/file.h\"\n#include \"android-base/logging.h\"\n#include \"android-base/properties.h\"\n#include \"base/fast_exit.h\"\n#include \"base/systrace.h\"",
+        "b_contents": "#include \"android-base/logging.h\"\n#include \"android-base/properties.h\"\n#include \"base/fast_exit.h\"\n#include \"base/systrace.h\"",
+        "base_contents": "",
+        "res_region": "#include \"android-base/file.h\"\n#include \"android-base/logging.h\"\n#include \"android-base/properties.h\"\n#include \"base/fast_exit.h\"\n#include \"base/systrace.h\"",
+        "lookback": "#include <optional>\n#include <type_traits>\n",
+        "lookahead": "#include \"gc/heap-visit-objects-inl.h\"\n#include \"gc/heap.h\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 37,
+        "end_line": 49,
+        "merge_gen_region": "#include \"android-base/file.h\" #include \"android-base/logging.h\" #include \"android-base/properties.h\" #include \"base/fast_exit.h\" #include \"base/systrace.h\"",
+        "resolved": true
+    },
+    {
+        "a_contents": "static bool g_oome_triggered = false;\nstatic uint32_t g_oome_sessions_pending = 0;",
+        "b_contents": "static bool g_oome_triggered = false;",
+        "base_contents": "",
+        "res_region": "static bool g_oome_triggered = false;\nstatic uint32_t g_oome_sessions_pending = 0;",
+        "lookback": "\nstatic int requested_tracing_session_id = 0;\nstatic State g_state = State::kUninitialized;",
+        "lookahead": "\n// Pipe to signal from the signal handler into a worker thread that handles the",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 100,
+        "end_line": 106,
+        "merge_gen_region": "static bool g_oome_triggered = false; static uint32_t g_oome_sessions_pending = 0;",
+        "resolved": true
+    },
+    {
+        "a_contents": "uint64_t GetCurrentBootClockNs() {\n  struct timespec ts = {};\n  if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {\n    LOG(FATAL) << \"Failed to get boottime.\";\n  }\n  return ts.tv_sec * 1000000000LL + ts.tv_nsec;\n}\n\nbool IsDebugBuild() {\n  std::string build_type = android::base::GetProperty(\"ro.build.type\", \"\");\n  return !build_type.empty() && build_type != \"user\";\n}\n\n// Verifies the manifest restrictions are respected.\n// For regular heap dumps this is already handled by heapprofd.\nbool IsOomeHeapDumpAllowed(const perfetto::DataSourceConfig& ds_config) {\n  if (art::Runtime::Current()->IsJavaDebuggable() || IsDebugBuild()) {\n    return true;\n  }\n\n  if (ds_config.session_initiator() ==\n      perfetto::DataSourceConfig::SESSION_INITIATOR_TRUSTED_SYSTEM) {\n    return art::Runtime::Current()->IsProfileable() || art::Runtime::Current()->IsSystemServer();\n  } else {\n    return art::Runtime::Current()->IsProfileableFromShell();\n  }\n}\n",
+        "b_contents": "uint64_t GetCurrentBootClockNs() {\n  struct timespec ts = {};\n  if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {\n    LOG(FATAL) << \"Failed to get boottime.\";\n  }\n  return ts.tv_sec * 1000000000LL + ts.tv_nsec;\n}\n",
+        "base_contents": "",
+        "res_region": "uint64_t GetCurrentBootClockNs() {\n  struct timespec ts = {};\n  if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) {\n    LOG(FATAL) << \"Failed to get boottime.\";\n  }\n  return ts.tv_sec * 1000000000LL + ts.tv_nsec;\n}\n\nbool IsDebugBuild() {\n  std::string build_type = android::base::GetProperty(\"ro.build.type\", \"\");\n  return !build_type.empty() && build_type != \"user\";\n}\n\n// Verifies the manifest restrictions are respected.\n// For regular heap dumps this is already handled by heapprofd.\nbool IsOomeHeapDumpAllowed(const perfetto::DataSourceConfig& ds_config) {\n  if (art::Runtime::Current()->IsJavaDebuggable() || IsDebugBuild()) {\n    return true;\n  }\n\n  if (ds_config.session_initiator() ==\n      perfetto::DataSourceConfig::SESSION_INITIATOR_TRUSTED_SYSTEM) {\n    return art::Runtime::Current()->IsProfileable() || art::Runtime::Current()->IsSystemServer();\n  } else {\n    return art::Runtime::Current()->IsProfileableFromShell();\n  }\n}\n",
+        "lookback": "  return false;\n}\n",
+        "lookahead": "class JavaHprofDataSource : public perfetto::DataSource<JavaHprofDataSource> {\n public:",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 172,
+        "end_line": 211,
+        "merge_gen_region": "uint64_t GetCurrentBootClockNs() { struct timespec ts = {}; if (clock_gettime(CLOCK_BOOTTIME, &ts) != 0) { LOG(FATAL) << \"Failed to get boottime.\"; } return ts.tv_sec * 1000000000LL + ts.tv_nsec; } bool IsDebugBuild() { std::string build_type = android::base::GetProperty(\"ro.build.type\", \"\"); return !build_type.empty() && build_type != \"user\"; } // Verifies the manifest restrictions are respected. // For regular heap dumps this is already handled by heapprofd. bool IsOomeHeapDumpAllowed(const perfetto::DataSourceConfig& ds_config) { if (art::Runtime::Current()->IsJavaDebuggable() || IsDebugBuild()) { return true; } if (ds_config.session_initiator() == perfetto::DataSourceConfig::SESSION_INITIATOR_TRUSTED_SYSTEM) { return art::Runtime::Current()->IsProfileable() || art::Runtime::Current()->IsSystemServer(); } else { return art::Runtime::Current()->IsProfileableFromShell(); } }",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n  explicit JavaHprofDataSource(bool is_oome_heap) : is_oome_heap_(is_oome_heap) {}\n",
+        "b_contents": "\n  explicit JavaHprofDataSource(bool verify_session_id) : verify_session_id_(verify_session_id) {}\n",
+        "base_contents": "",
+        "res_region": "\n  explicit JavaHprofDataSource(bool is_oome_heap) : is_oome_heap_(is_oome_heap) {}\n",
+        "lookback": " public:\n  constexpr static perfetto::BufferExhaustedPolicy kBufferExhaustedPolicy =\n    perfetto::BufferExhaustedPolicy::kStall;",
+        "lookahead": "  void OnSetup(const SetupArgs& args) override {\n    if (!is_oome_heap_) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 216,
+        "end_line": 225,
+        "merge_gen_region": "explicit JavaHprofDataSource(bool is_oome_heap) : is_oome_heap_(is_oome_heap) {}",
+        "resolved": true
+    },
+    {
+        "a_contents": "    if (!is_oome_heap_) {\n      uint64_t normalized_tracing_session_id =\n        args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();\n      if (requested_tracing_session_id < 0) {\n        LOG(ERROR) << \"invalid requested tracing session id \" << requested_tracing_session_id;\n        return;\n      }\n      if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_tracing_session_id) {\n        return;\n      }",
+        "b_contents": "    if (verify_session_id_) {\n      uint64_t normalized_tracing_session_id =\n        args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();\n      if (requested_tracing_session_id < 0) {\n        LOG(ERROR) << \"invalid requested tracing session id \" << requested_tracing_session_id;\n        return;\n      }\n      if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_tracing_session_id) {\n        return;\n      }",
+        "base_contents": "    uint64_t normalized_cfg_tracing_session_id =\n      args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();\n    if (requested_tracing_session_id < 0) {\n      LOG(ERROR) << \"invalid requested tracing session id \" << requested_tracing_session_id;\n      return;\n    }\n    if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_cfg_tracing_session_id) {\n      return;",
+        "res_region": "    if (!is_oome_heap_) {\n      uint64_t normalized_tracing_session_id =\n        args.config->tracing_session_id() % std::numeric_limits<int32_t>::max();\n      if (requested_tracing_session_id < 0) {\n        LOG(ERROR) << \"invalid requested tracing session id \" << requested_tracing_session_id;\n        return;\n      }\n      if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_tracing_session_id) {\n        return;\n      }",
+        "lookback": "  explicit JavaHprofDataSource(bool is_oome_heap) : is_oome_heap_(is_oome_heap) {}\n\n  void OnSetup(const SetupArgs& args) override {",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 227,
+        "end_line": 258,
+        "merge_gen_region": "if (!is_oome_heap_) { uint64_t normalized_tracing_session_id = args.config->tracing_session_id() % std::numeric_limits<int32_t>::max(); if (requested_tracing_session_id < 0) { LOG(ERROR) << \"invalid requested tracing session id \" << requested_tracing_session_id; return; } if (static_cast<uint64_t>(requested_tracing_session_id) != normalized_tracing_session_id) { return; }",
+        "resolved": true
+    },
+    {
+        "a_contents": "  static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) {\n    std::string cmdline;\n    if (!android::base::ReadFileToString(\"/proc/self/cmdline\", &cmdline)) {\n      return false;\n    }\n    const char* argv0 = cmdline.c_str();\n\n    for (auto it = cfg.process_cmdline(); it; ++it) {\n      std::string pattern = (*it).ToStdString();\n      if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) {\n        return true;\n      }\n    }\n    return false;\n  }\n\n  bool is_oome_heap_ = false;",
+        "b_contents": "  bool verify_session_id_ = false;",
+        "base_contents": "",
+        "res_region": "  static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) {\n    std::string cmdline;\n    if (!android::base::ReadFileToString(\"/proc/self/cmdline\", &cmdline)) {\n      return false;\n    }\n    const char* argv0 = cmdline.c_str();\n\n    for (auto it = cfg.process_cmdline(); it; ++it) {\n      std::string pattern = (*it).ToStdString();\n      if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) {\n        return true;\n      }\n    }\n    return false;\n  }\n\n  bool is_oome_heap_ = false;",
+        "lookback": "  }\n\n private:",
+        "lookahead": "  bool enabled_ = false;\n  bool dump_smaps_ = false;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 338,
+        "end_line": 359,
+        "merge_gen_region": "static bool IsOomeDumpEnabled(const perfetto::protos::pbzero::JavaHprofConfig::Decoder& cfg) { std::string cmdline; if (!android::base::ReadFileToString(\"/proc/self/cmdline\", &cmdline)) { return false; } const char* argv0 = cmdline.c_str(); for (auto it = cfg.process_cmdline(); it; ++it) { std::string pattern = (*it).ToStdString(); if (fnmatch(pattern.c_str(), argv0, FNM_NOESCAPE) == 0) { return true; } } return false; } bool is_oome_heap_ = false; bool verify_session_id_ = false; bool enabled_ = false;",
+        "resolved": false
+    },
+    {
+        "a_contents": "void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {",
+        "b_contents": "void SetupDataSource(const std::string& ds_name, bool verify_session_id) {",
+        "base_contents": "art::Thread* JavaHprofDataSource::self_ = nullptr;\n\n\nvoid WaitForDataSource(art::Thread* self) {",
+        "res_region": "void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {",
+        "lookback": "  std::function<void()> async_stop_;\n};\n",
+        "lookahead": "  perfetto::TracingInitArgs args;\n  args.backends = perfetto::BackendType::kSystemBackend;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 370,
+        "end_line": 379,
+        "merge_gen_region": "void SetupDataSource(const std::string& ds_name, bool is_oome_heap) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "  JavaHprofDataSource::Register(dsd, is_oome_heap);\n  LOG(INFO) << \"registered data source \" << ds_name;\n}",
+        "b_contents": "  JavaHprofDataSource::Register(dsd, verify_session_id);\n  LOG(INFO) << \"registered data source \" << ds_name;\n}",
+        "base_contents": "  JavaHprofDataSource::Register(dsd);\n\n  LOG(INFO) << \"waiting for data source\";",
+        "res_region": "  JavaHprofDataSource::Register(dsd, is_oome_heap);\n  LOG(INFO) << \"registered data source \" << ds_name;\n}",
+        "lookback": "  perfetto::DataSourceDescriptor dsd;\n  dsd.set_name(ds_name);\n  dsd.set_will_notify_on_stop(true);",
+        "lookahead": "\n// Waits for the data source OnStart",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 387,
+        "end_line": 399,
+        "merge_gen_region": " JavaHprofDataSource::Register(dsd, verify_session_id); LOG(INFO) << \"registered data source \" << ds_name;",
+        "resolved": false
+    },
+    {
+        "a_contents": "// waitpid with a timeout implemented by ~busy-waiting\n// See b/181031512 for rationale.\nvoid BusyWaitpid(pid_t pid, uint32_t timeout_ms) {\n  for (size_t i = 0;; ++i) {\n    if (i == timeout_ms) {\n      // The child hasn't exited.\n      // Give up and SIGKILL it. The next waitpid should succeed.\n      LOG(ERROR) << \"perfetto_hprof child timed out. Sending SIGKILL.\";\n      kill(pid, SIGKILL);\n    }\n    int stat_loc;\n    pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG);\n    if (wait_result == -1 && errno != EINTR) {\n      if (errno != ECHILD) {\n        // This hopefully never happens (should only be EINVAL).\n        PLOG(FATAL_WITHOUT_ABORT) << \"waitpid\";\n      }\n      // If we get ECHILD, the parent process was handling SIGCHLD, or did a wildcard wait.\n      // The child is no longer here either way, so that's good enough for us.\n      break;\n    } else if (wait_result > 0) {\n      break;\n    } else {  // wait_result == 0 || errno == EINTR.\n      usleep(1000);\n    }\n  }\n}\n\nenum class ResumeParentPolicy {\n  IMMEDIATELY,\n  DEFERRED\n};\n\nvoid ForkAndRun(art::Thread* self,\n                ResumeParentPolicy resume_parent_policy,\n                const std::function<void(pid_t child)>& parent_runnable,\n                const std::function<void(pid_t parent, uint64_t timestamp)>& child_runnable) {\n  pid_t parent_pid = getpid();\n  LOG(INFO) << \"forking for \" << parent_pid;",
+        "b_contents": "// waitpid with a timeout implemented by ~busy-waiting\n// See b/181031512 for rationale.\nvoid BusyWaitpid(pid_t pid, uint32_t timeout_ms) {\n  for (size_t i = 0;; ++i) {\n    if (i == timeout_ms) {\n      // The child hasn't exited.\n      // Give up and SIGKILL it. The next waitpid should succeed.\n      LOG(ERROR) << \"perfetto_hprof child timed out. Sending SIGKILL.\";\n      kill(pid, SIGKILL);\n    }\n    int stat_loc;\n    pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG);\n    if (wait_result == -1 && errno != EINTR) {\n      if (errno != ECHILD) {\n        // This hopefully never happens (should only be EINVAL).\n        PLOG(FATAL_WITHOUT_ABORT) << \"waitpid\";\n      }\n      // If we get ECHILD, the parent process was handling SIGCHLD, or did a wildcard wait.\n      // The child is no longer here either way, so that's good enough for us.\n      break;\n    } else if (wait_result > 0) {\n      break;\n    } else {  // wait_result == 0 || errno == EINTR.\n      usleep(1000);\n    }\n  }\n}\n\nenum class ResumeParentPolicy {\n  IMMEDIATELY,\n  DEFERRED\n};\n\nvoid ForkAndRun(\n    art::Thread* self,\n    ResumeParentPolicy resume_parent_policy,\n    std::function<void(pid_t child)> parent_runnable,\n    std::function<void(pid_t parent, uint64_t timestamp)> child_runnable) {\n  pid_t parent_pid = getpid();\n  LOG(INFO) << \"preparing to dump heap for \" << parent_pid;",
+        "base_contents": "void DumpPerfetto(art::Thread* self) {\n  pid_t parent_pid = getpid();\n  LOG(INFO) << \"preparing to dump heap for \" << parent_pid;\n",
+        "res_region": "// waitpid with a timeout implemented by ~busy-waiting\n// See b/181031512 for rationale.\nvoid BusyWaitpid(pid_t pid, uint32_t timeout_ms) {\n  for (size_t i = 0;; ++i) {\n    if (i == timeout_ms) {\n      // The child hasn't exited.\n      // Give up and SIGKILL it. The next waitpid should succeed.\n      LOG(ERROR) << \"perfetto_hprof child timed out. Sending SIGKILL.\";\n      kill(pid, SIGKILL);\n    }\n    int stat_loc;\n    pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG);\n    if (wait_result == -1 && errno != EINTR) {\n      if (errno != ECHILD) {\n        // This hopefully never happens (should only be EINVAL).\n        PLOG(FATAL_WITHOUT_ABORT) << \"waitpid\";\n      }\n      // If we get ECHILD, the parent process was handling SIGCHLD, or did a wildcard wait.\n      // The child is no longer here either way, so that's good enough for us.\n      break;\n    } else if (wait_result > 0) {\n      break;\n    } else {  // wait_result == 0 || errno == EINTR.\n      usleep(1000);\n    }\n  }\n}\n\nenum class ResumeParentPolicy {\n  IMMEDIATELY,\n  DEFERRED\n};\n\nvoid ForkAndRun(art::Thread* self,\n                ResumeParentPolicy resume_parent_policy,\n                const std::function<void(pid_t child)>& parent_runnable,\n                const std::function<void(pid_t parent, uint64_t timestamp)>& child_runnable) {\n  pid_t parent_pid = getpid();\n  LOG(INFO) << \"forking for \" << parent_pid;",
+        "lookback": "  uint64_t prev_object_id_ = 0;\n};\n",
+        "lookahead": "  // Need to take a heap dump while GC isn't running. See the comment in\n  // Heap::VisitObjects(). Also we need the critical section to avoid visiting",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 990,
+        "end_line": 1076,
+        "merge_gen_region": "// waitpid with a timeout implemented by ~busy-waiting // See b/181031512 for rationale. void BusyWaitpid(pid_t pid, uint32_t timeout_ms) { for (size_t i = 0;; ++i) { if (i == timeout_ms) { // The child hasn't exited. // Give up and SIGKILL it. The next waitpid should succeed. LOG(ERROR) << \"perfetto_hprof child timed out. Sending SIGKILL.\"; kill(pid, SIGKILL); } int stat_loc; pid_t wait_result = waitpid(pid, &stat_loc, WNOHANG); if (wait_result == -1 && errno != EINTR) { if (errno != ECHILD) { // This hopefully never happens (should only be EINVAL). PLOG(FATAL_WITHOUT_ABORT) << \"waitpid\"; } // If we get ECHILD, the parent process was handling SIGCHLD, or did a wildcard wait. // The child is no longer here either way, so that's good enough for us. break; } else if (wait_result > 0) { break; } else { // wait_result == 0 || errno == EINTR. usleep(1000); } } } enum class ResumeParentPolicy { IMMEDIATELY, DEFERRED }; void ForkAndRun( art::Thread* self, ResumeParentPolicy resume_parent_policy, const std::function<void(pid_t child) { // If we get ECHILD, the parent process was handling SIGCHLD, or did a wildcard wait. // The child is no longer here either way, so that's good enough for us. break; } else if (wait_result > 0) { break; } else { // wait_result == 0 || errno == EINTR. usleep(1000); } }",
+        "resolved": false
+    },
+    {
+        "a_contents": "void DumpPerfetto(art::Thread* self) {\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::IMMEDIATELY,\n    // parent thread\n    [](pid_t child) {\n      // Busy waiting here will introduce some extra latency, but that is okay because we have\n      // already unsuspended all other threads. This runs on the perfetto_hprof_listener, which\n      // is not needed for progress of the app itself.\n      // We daemonize the child process, so effectively we only need to wait\n      // for it to fork and exit.\n      BusyWaitpid(child, 1000);\n    },\n    // child thread\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      // Daemon creates a new process that is the grand-child of the original process, and exits.\n      if (daemon(0, 0) == -1) {\n        PLOG(FATAL) << \"daemon\";\n      }\n      // The following code is only executed by the grand-child of the original process.\n\n      // Make sure that this is the first thing we do after forking, so if anything\n      // below hangs, the fork will go away from the watchdog.\n      ArmWatchdogOrDie();\n      SetupDataSource(\"android.java_hprof\", false);\n      WaitForDataSource(self);\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"finished dumping heap for \" << dumped_pid;\n    });\n}\n\nvoid DumpPerfettoOutOfMemory() REQUIRES_SHARED(art::Locks::mutator_lock_) {\n  art::Thread* self = art::Thread::Current();\n  if (!self) {\n    LOG(FATAL_WITHOUT_ABORT) << \"no thread in DumpPerfettoOutOfMemory\";\n    return;\n  }\n\n  // Ensure that there is an active, armed tracing session\n  uint32_t session_cnt =\n      android::base::GetUintProperty<uint32_t>(\"traced.oome_heap_session.count\", 0);\n  if (session_cnt == 0) {\n    return;\n  }\n  {\n    // OutOfMemoryErrors are reentrant, make sure we do not fork and process\n    // more than once.\n    art::MutexLock lk(self, GetStateMutex());\n    if (g_oome_triggered) {\n      return;\n    }\n    g_oome_triggered = true;\n    g_oome_sessions_pending = session_cnt;\n  }\n\n  art::ScopedThreadSuspension sts(self, art::ThreadState::kSuspended);\n  // If we fork & resume the original process execution it will most likely exit\n  // ~immediately due to the OOME error thrown. When the system detects that\n  // that, it will cleanup by killing all processes in the cgroup (including\n  // the process we just forked).\n  // We need to avoid the race between the heap dump and the process group\n  // cleanup, and the only way to do this is to avoid resuming the original\n  // process until the heap dump is complete.\n  // Given we are already about to crash anyway, the diagnostic data we get\n  // outweighs the cost of introducing some latency.\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::DEFERRED,\n    // parent process\n    [](pid_t child) {\n      // waitpid to reap the zombie\n      // we are explicitly waiting for the child to exit\n      // The reason for the timeout on top of the watchdog is that it is\n      // possible (albeit unlikely) that even the watchdog will fail to be\n      // activated in the case of an atfork handler.\n      BusyWaitpid(child, kWatchdogTimeoutSec * 1000);\n    },\n    // child process\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      ArmWatchdogOrDie();\n      art::ScopedTrace trace(\"perfetto_hprof oome\");\n      SetupDataSource(\"android.java_hprof.oom\", true);\n      perfetto::Tracing::ActivateTriggers({\"com.android.telemetry.art-outofmemory\"}, 500);\n\n      // A pre-armed tracing session might not exist, so we should wait for a\n      // limited amount of time before we decide to let the execution continue.\n      if (!TimedWaitForDataSource(self, 1000)) {\n        LOG(INFO) << \"OOME hprof timeout (state \" << g_state << \")\";\n        return;\n      }\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"OOME hprof complete for \" << dumped_pid;\n    });",
+        "b_contents": "void DumpPerfetto(art::Thread* self) {\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::IMMEDIATELY,\n    // parent thread\n    [](pid_t child) {\n      // Busy waiting here will introduce some extra latency, but that is okay because we have\n      // already unsuspended all other threads. This runs on the perfetto_hprof_listener, which\n      // is not needed for progress of the app itself.\n      // We daemonize the child process, so effectively we only need to wait\n      // for it to fork and exit.\n      BusyWaitpid(child, 1000);\n    },\n    // child thread\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      // Daemon creates a new process that is the grand-child of the original process, and exits.\n      if (daemon(0, 0) == -1) {\n        PLOG(FATAL) << \"daemon\";\n      }\n      // The following code is only executed by the grand-child of the original process.\n\n      // Make sure that this is the first thing we do after forking, so if anything\n      // below hangs, the fork will go away from the watchdog.\n      ArmWatchdogOrDie();\n      SetupDataSource(\"android.java_hprof\", true);\n      WaitForDataSource(self);\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"finished dumping heap for \" << dumped_pid;\n    });\n}\n\nvoid DumpPerfettoOutOfMemory() {\n  art::Thread* self = art::Thread::Current();\n  if (!self) {\n    LOG(FATAL_WITHOUT_ABORT) << \"no thread in DumpPerfettoOutOfMemory\";\n    return;\n  }\n  {\n    // OutOfMemoryErrors are reentrant, make sure we do not fork and process\n    // more than once.\n    art::MutexLock lk(self, GetStateMutex());\n    if (g_oome_triggered) {\n      return;\n    }\n    g_oome_triggered = true;\n  }\n  // If we fork & resume the original process execution it will most likely exit\n  // ~immediately due to the OOME error thrown. When the system detects that\n  // that, it will cleanup by killing all processes in the cgroup (including\n  // the process we just forked).\n  // We need to avoid the race between the heap dump and the process group\n  // cleanup, and the only way to do this is to avoid resuming the original\n  // process until the heap dump is complete.\n  // Given we are already about to crash anyway, the diagnostic data we get\n  // outweighs the cost of introducing some latency.\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::DEFERRED,\n    // parent process\n    [](pid_t child) {\n      // waitpid to reap the zombie\n      // we are explicitly waiting for the child to exit\n      // The reason for the timeout on top of the watchdog is that it is\n      // possible (albeit unlikely) that even the watchdog will fail to be\n      // activated in the case of an atfork handler.\n      BusyWaitpid(child, kWatchdogTimeoutSec * 1000);\n    },\n    // child process\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      ArmWatchdogOrDie();\n      art::ScopedTrace trace(\"perfetto_hprof oome\");\n      SetupDataSource(\"android.java_hprof.oom\", false);\n      perfetto::Tracing::ActivateTriggers({\"com.android.telemetry.art-outofmemory\"}, 500);\n\n      // A pre-armed tracing session might not exist, so we should wait for a\n      // limited amount of time before we decide to let the execution continue.\n      if (!TimedWaitForDataSource(self, 500)) {\n        LOG(INFO) << \"timeout waiting for data source start (no active session?)\";\n        return;\n      }\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"finished dumping heap for OOME \" << dumped_pid;\n    });\n}\n\nbool CanProfile() {\n  std::string build_type = android::base::GetProperty(\"ro.build.type\", \"\");\n  return !build_type.empty() && build_type != \"user\";",
+        "base_contents": "  LOG(INFO) << \"finished dumping heap for \" << parent_pid;\n  // Prevent the `atexit` handlers from running. We do not want to call cleanup\n  // functions the parent process has registered.\n  art::FastExit(0);",
+        "res_region": "void DumpPerfetto(art::Thread* self) {\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::IMMEDIATELY,\n    // parent thread\n    [](pid_t child) {\n      // Busy waiting here will introduce some extra latency, but that is okay because we have\n      // already unsuspended all other threads. This runs on the perfetto_hprof_listener, which\n      // is not needed for progress of the app itself.\n      // We daemonize the child process, so effectively we only need to wait\n      // for it to fork and exit.\n      BusyWaitpid(child, 1000);\n    },\n    // child thread\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      // Daemon creates a new process that is the grand-child of the original process, and exits.\n      if (daemon(0, 0) == -1) {\n        PLOG(FATAL) << \"daemon\";\n      }\n      // The following code is only executed by the grand-child of the original process.\n\n      // Make sure that this is the first thing we do after forking, so if anything\n      // below hangs, the fork will go away from the watchdog.\n      ArmWatchdogOrDie();\n      SetupDataSource(\"android.java_hprof\", false);\n      WaitForDataSource(self);\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"finished dumping heap for \" << dumped_pid;\n    });\n}\n\nvoid DumpPerfettoOutOfMemory() REQUIRES_SHARED(art::Locks::mutator_lock_) {\n  art::Thread* self = art::Thread::Current();\n  if (!self) {\n    LOG(FATAL_WITHOUT_ABORT) << \"no thread in DumpPerfettoOutOfMemory\";\n    return;\n  }\n\n  // Ensure that there is an active, armed tracing session\n  uint32_t session_cnt =\n      android::base::GetUintProperty<uint32_t>(\"traced.oome_heap_session.count\", 0);\n  if (session_cnt == 0) {\n    return;\n  }\n  {\n    // OutOfMemoryErrors are reentrant, make sure we do not fork and process\n    // more than once.\n    art::MutexLock lk(self, GetStateMutex());\n    if (g_oome_triggered) {\n      return;\n    }\n    g_oome_triggered = true;\n    g_oome_sessions_pending = session_cnt;\n  }\n\n  art::ScopedThreadSuspension sts(self, art::ThreadState::kSuspended);\n  // If we fork & resume the original process execution it will most likely exit\n  // ~immediately due to the OOME error thrown. When the system detects that\n  // that, it will cleanup by killing all processes in the cgroup (including\n  // the process we just forked).\n  // We need to avoid the race between the heap dump and the process group\n  // cleanup, and the only way to do this is to avoid resuming the original\n  // process until the heap dump is complete.\n  // Given we are already about to crash anyway, the diagnostic data we get\n  // outweighs the cost of introducing some latency.\n  ForkAndRun(\n    self,\n    ResumeParentPolicy::DEFERRED,\n    // parent process\n    [](pid_t child) {\n      // waitpid to reap the zombie\n      // we are explicitly waiting for the child to exit\n      // The reason for the timeout on top of the watchdog is that it is\n      // possible (albeit unlikely) that even the watchdog will fail to be\n      // activated in the case of an atfork handler.\n      BusyWaitpid(child, kWatchdogTimeoutSec * 1000);\n    },\n    // child process\n    [self](pid_t dumped_pid, uint64_t timestamp) {\n      ArmWatchdogOrDie();\n      art::ScopedTrace trace(\"perfetto_hprof oome\");\n      SetupDataSource(\"android.java_hprof.oom\", true);\n      perfetto::Tracing::ActivateTriggers({\"com.android.telemetry.art-outofmemory\"}, 500);\n\n      // A pre-armed tracing session might not exist, so we should wait for a\n      // limited amount of time before we decide to let the execution continue.\n      if (!TimedWaitForDataSource(self, 1000)) {\n        LOG(INFO) << \"OOME hprof timeout (state \" << g_state << \")\";\n        return;\n      }\n      WriteHeapPackets(dumped_pid, timestamp);\n      LOG(INFO) << \"OOME hprof complete for \" << dumped_pid;\n    });",
+        "lookback": "          });\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1180,
+        "end_line": 1368,
+        "merge_gen_region": "void DumpPerfetto(art::Thread* self) { ForkAndRun( self, ResumeParentPolicy::IMMEDIATELY, // parent thread [](pid_t child) { // Busy waiting here will introduce some extra latency, but that is okay because we have // already unsuspended all other threads. This runs on the perfetto_hprof_listener, which // is not needed for progress of the app itself. // We daemonize the child process, so effectively we only need to wait // for it to fork and exit. BusyWaitpid(child, 1000); }, // child thread [self](pid_t dumped_pid, uint64_t timestamp) { // Daemon creates a new process that is the grand-child of the original process, and exits. if (daemon(0, 0) == -1) { PLOG(FATAL) << \"daemon\"; } // The following code is only executed by the grand-child of the original process. // Make sure that this is the first thing we do after forking, so if anything // below hangs, the fork will go away from the watchdog. ArmWatchdogOrDie(); SetupDataSource(\"android.java_hprof\", false); WaitForDataSource(self); WriteHeapPackets(dumped_pid, timestamp);",
+        "resolved": false
+    },
+    {
+        "a_contents": "  // Register the OOM error handler.\n  art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);\n",
+        "b_contents": "  // Register the OOM error handler.\n  if (CanProfile()) {\n    art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);\n  }\n",
+        "base_contents": "",
+        "res_region": "  // Register the OOM error handler.\n  art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);\n",
+        "lookback": "  });\n  th.detach();\n",
+        "lookahead": "  return true;\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1458,
+        "end_line": 1469,
+        "merge_gen_region": "// Register the OOM error handler. art::Runtime::Current()->SetOutOfMemoryErrorHook(perfetto_hprof::DumpPerfettoOutOfMemory);",
+        "resolved": true
+    },
+    {
+        "a_contents": "  art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);\n",
+        "b_contents": "  if (CanProfile()) {\n    art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);\n  }\n",
+        "base_contents": "",
+        "res_region": "  art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr);\n",
+        "lookback": "}\n\nextern \"C\" bool ArtPlugin_Deinitialize() {",
+        "lookahead": "  if (sigaction(kJavaHeapprofdSignal, &g_orig_act, nullptr) != 0) {\n    PLOG(ERROR) << \"failed to reset signal handler\";",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1474,
+        "end_line": 1483,
+        "merge_gen_region": "bool ArtPlugin_Deinitialize() { art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr); if (CanProfile()) { art::Runtime::Current()->SetOutOfMemoryErrorHook(nullptr); }",
+        "resolved": false
+    }
+]

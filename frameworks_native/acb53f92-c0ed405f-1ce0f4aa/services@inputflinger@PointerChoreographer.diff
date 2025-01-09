@@ -1,0 +1,37 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/acb53f92-c0ed405f-1ce0f4aa/services@inputflinger@PointerChoreographer.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/acb53f92-c0ed405f-1ce0f4aa/services@inputflinger@PointerChoreographer.no_comments_merged.cpp
+index 3c9e3e3..b874430 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/acb53f92-c0ed405f-1ce0f4aa/services@inputflinger@PointerChoreographer.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/acb53f92-c0ed405f-1ce0f4aa/services@inputflinger@PointerChoreographer.no_comments_merged.cpp
+@@ -23 +23,2 @@ bool isStylusHoverEvent(const NotifyMotionArgs& args) {
+-inline void notifyPointerDisplayChange(std::optional<std::tuple<int32_t, FloatPoint>> change, PointerChoreographerPolicyInterface& policy) {
++inline void notifyPointerDisplayChange(std::optional<std::tuple<int32_t, FloatPoint>> change,
++                                       PointerChoreographerPolicyInterface& policy) {
+@@ -33 +34,11 @@ PointerChoreographer::PointerChoreographer(InputListenerInterface& listener,
+-      : mTouchControllerConstructor([this]() {}void PointerChoreographer::notifyInputDevicesChanged(const NotifyInputDevicesChangedArgs& args) {
++      : mTouchControllerConstructor([this]() {
++            return mPolicy.createPointerController(
++                    PointerControllerInterface::ControllerType::TOUCH);
++        }),
++        mNextListener(listener),
++        mPolicy(policy),
++        mDefaultMouseDisplayId(ADISPLAY_ID_DEFAULT),
++        mNotifiedPointerDisplayId(ADISPLAY_ID_NONE),
++        mShowTouchesEnabled(false),
++        mStylusPointerIconEnabled(false) {}
++void PointerChoreographer::notifyInputDevicesChanged(const NotifyInputDevicesChangedArgs& args) {
+@@ -71 +81,0 @@ NotifyMotionArgs PointerChoreographer::processMouseEventLocked(const NotifyMotio
+-<<<<<<< HEAD
+@@ -75,5 +84,0 @@ NotifyMotionArgs PointerChoreographer::processMouseEventLocked(const NotifyMotio
+-|||||||
+-    auto [displayId, pc] = getDisplayIdAndMouseControllerLocked(args.displayId);
+-=======
+-    auto [displayId, pc] = ensureMouseControllerLocked(args.displayId);
+->>>>>>> c0ed405f3f23972fa58f3af1e5e76593b651c7f1
+@@ -248 +253,2 @@ int32_t PointerChoreographer::getTargetMouseDisplayLocked(int32_t associatedDisp
+-std::pair<int32_t, PointerControllerInterface&> PointerChoreographer::getDisplayIdAndMouseControllerLocked(int32_t associatedDisplayId) {
++std::pair<int32_t, PointerControllerInterface&> PointerChoreographer::ensureMouseControllerLocked(
++        int32_t associatedDisplayId) {
+@@ -306 +312,2 @@ PointerChoreographer::PointerDisplayChange PointerChoreographer::updatePointerCo
+-PointerChoreographer::PointerDisplayChangePointerChoreographer::calculatePointerDisplayChangeToNotify() {
++PointerChoreographer::PointerDisplayChange
++PointerChoreographer::calculatePointerDisplayChangeToNotify() {

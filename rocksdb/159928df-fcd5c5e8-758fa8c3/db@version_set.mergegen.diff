@@ -1,0 +1,45 @@
+diff --git a/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_mergegen.cc b/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_merged.cc
+index 0542245..d5730af 100644
+--- a/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_mergegen.cc
++++ b/./output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_merged.cc
+@@ -373 +373 @@ Version::Version(ColumnFamilyData* cfd, VersionSet* vset,
+-num_levels_),NumberLevels()), finalized_(false), files_(new std::vector<FileMetaData*>[num_levels_]), files_by_size_(
++      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()),
+@@ -506 +506,2 @@ bool Version::UpdateStats(const GetStats& stats) {
+-void Version::ComputeCompactionScore( std::vector<uint64_t>& size_being_compacted) {bool
++void Version::ComputeCompactionScore(
++    std::vector<uint64_t>& size_being_compacted) {
+@@ -1083 +1084 @@ class VersionSet::Builder {
+-    if (v->vset_->options_->compaction_style == kCompactionStyleUniversal) {
++    if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+@@ -1239,0 +1241,3 @@ if (!edit->IsColumnFamilyManipulation()) {
++      v->ComputeCompactionScore(size_being_compacted);
++      v->UpdateFilesBySize();
++    }
+@@ -1587 +1591 @@ Status VersionSet::Recover(
+-      v->Finalize(size_being_compacted);
++      v->ComputeCompactionScore(size_being_compacted);
+@@ -1860 +1864,19 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
+-std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1); cfd->compaction_picker()->SizeBeingCompacted(size_being_compacted); v->ComputeCompactionScore(size_being_compacted); v->UpdateFilesBySize(); delete builder; printf("--------------- Column family \"%s\" (ID %u) --------------\n", cfd->GetName().c_str(), (unsigned int)cfd->GetID()); printf("log number: %lu\n", (unsigned long)cfd->GetLogNumber()); auto comparator = comparators.find(cfd->GetID()); if (comparator != comparators.end()) { printf("comparator: %s\n", comparator->second.c_str()); } else { printf("comparator: <NO COMPARATOR>\n"); } printf("%s \n", v->DebugString(hex).c_str()); delete v;
++      Version* v = new Version(cfd, this, current_version_number_++);
++      builder->SaveTo(v);
++      std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);
++      cfd->compaction_picker()->SizeBeingCompacted(size_being_compacted);
++      v->ComputeCompactionScore(size_being_compacted);
++      v->UpdateFilesBySize();
++      delete builder;
++      printf("--------------- Column family \"%s\"  (ID %u) --------------\n",
++             cfd->GetName().c_str(), (unsigned int)cfd->GetID());
++      printf("log number: %lu\n", (unsigned long)cfd->GetLogNumber());
++      auto comparator = comparators.find(cfd->GetID());
++      if (comparator != comparators.end()) {
++        printf("comparator: %s\n", comparator->second.c_str());
++      } else {
++        printf("comparator: <NO COMPARATOR>\n");
++      }
++      printf("%s \n", v->DebugString(hex).c_str());
++      delete v;
++    }
+@@ -2122,2 +2143,0 @@ ColumnFamilyData* VersionSet::CreateColumnFamily(
+-  std::vector<uint64_t> size_being_compacted(options.num_levels - 1, 0);
+-  v->Finalize(size_being_compacted);

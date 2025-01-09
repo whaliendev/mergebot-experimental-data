@@ -1,0 +1,34 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/a9c51987-01759208-7c11ca12/services@surfaceflinger@Scheduler@EventThread.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/a9c51987-01759208-7c11ca12/services@surfaceflinger@Scheduler@EventThread.no_comments_merged.h
+index b10acfd..ce9fac8 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/a9c51987-01759208-7c11ca12/services@surfaceflinger@Scheduler@EventThread.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/a9c51987-01759208-7c11ca12/services@surfaceflinger@Scheduler@EventThread.no_comments_merged.h
+@@ -83 +83 @@ struct IEventThreadCallback {
+-    ~IEventThreadCallback() = default;
++    virtual ~IEventThreadCallback() = default;
+@@ -111,3 +111 @@ public:
+-    void onNewVsyncSchedule(std::shared_ptr<scheduler::VsyncSchedule>) overrideprivate
+-          : GUARDED_BY(mMutex);
+-public:
++    void onNewVsyncSchedule(std::shared_ptr<scheduler::VsyncSchedule>) override EXCLUDES(mMutex);
+@@ -119,7 +117,6 @@ private:
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
++    void threadMain(std::unique_lock<std::mutex>& lock) REQUIRES(mMutex);
++    bool shouldConsumeEvent(const DisplayEventReceiver::Event& event,
++                            const sp<EventThreadConnection>& connection) const REQUIRES(mMutex);
++    void dispatchEvent(const DisplayEventReceiver::Event& event,
++                       const DisplayEventConsumers& consumers) REQUIRES(mMutex);
++    void removeDisplayEventConnectionLocked(const wp<EventThreadConnection>& connection)
+@@ -134,2 +131,2 @@ private:
+-    EXCLUDES(mMutex);
+-    EXCLUDES(mMutex);
++    scheduler::VSyncCallbackRegistration onNewVsyncScheduleInternal(
++            std::shared_ptr<scheduler::VsyncSchedule>) EXCLUDES(mMutex);
+@@ -141 +138 @@ private:
+-    TimePoint mLastVsyncCallbackTime GUARDED_BY(mMutex);
++    TimePoint mLastVsyncCallbackTime GUARDED_BY(mMutex) = TimePoint::now();

@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "  mutable_mem = default_cfd_->mem();\n  mutable_mem->Ref();\n  immutable_mems = default_cfd_->imm()->current();\n  immutable_mems->Ref();\n  version = default_cfd_->current();\n  version->Ref();",
+        "b_contents": "  SuperVersion* super_version = super_version_->Ref();",
+        "base_contents": "  mem_->Ref();\n  mutable_mem = mem_;\n  // Collect together all needed child iterators for imm_\n  immutable_mems = imm_.current();\n  immutable_mems->Ref();\n  versions_->current()->Ref();\n  version = versions_->current();",
+        "res_region": "  SuperVersion* super_version = default_cfd_->GetSuperVersion()->Ref();",
+        "lookback": "                                      SequenceNumber* latest_snapshot) {\n  mutex_.Lock();\n  *latest_snapshot = versions_->LastSequence();",
+        "lookahead": "  mutex_.Unlock();\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2729,
+        "end_line": 2746,
+        "merge_gen_region": "sp_snapshot = versions_->LastSequence(); SuperVersion* super_version = default_cfd_->imm()->current(); immutable_mems->Ref(); version = default_cfd_->current(); version->Ref();",
+        "resolved": false
+    },
+    {
+        "a_contents": "  version->AddIterators(options, storage_options_, &iterator_list);\n  Iterator* internal_iter =\n      NewMergingIterator(&default_cfd_->internal_comparator(),\n                         &iterator_list[0], iterator_list.size());\n  cleanup->version = version;\n  cleanup->mu = &mutex_;\n  cleanup->db = this;",
+        "b_contents": "  super_version->current->AddIterators(options, storage_options_,\n                                       &iterator_list);\n  Iterator* internal_iter = NewMergingIterator(\n      &internal_comparator_, &iterator_list[0], iterator_list.size());\n\n  IterState* cleanup = new IterState(this, &mutex_, super_version);",
+        "base_contents": "  version->AddIterators(options, storage_options_, &iterator_list);\n  Iterator* internal_iter = NewMergingIterator(\n      &internal_comparator_, &iterator_list[0], iterator_list.size());\n  cleanup->version = version;\n  cleanup->mu = &mutex_;\n  cleanup->db = this;",
+        "res_region": "  super_version->current->AddIterators(options, storage_options_,\n                                       &iterator_list);\n  Iterator* internal_iter =\n      NewMergingIterator(&default_cfd_->internal_comparator(),\n                         &iterator_list[0], iterator_list.size());\n\n  IterState* cleanup = new IterState(this, &mutex_, super_version);",
+        "lookback": "  // Collect all needed child iterators for immutable memtables\n  super_version->imm->AddIterators(options, &iterator_list);\n  // Collect iterators for files in L0 - Ln",
+        "lookahead": "  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);\n",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 2755,
+        "end_line": 2777,
+        "merge_gen_region": "Ptr_version->current->AddIterators(options, storage_options_, &iterator_list); Iterator* internal_iter = NewMergingIterator(&default_cfd_->internal_comparator(), &iterator_list[0], iterator_list.size());",
+        "resolved": false
+    },
+    {
+        "a_contents": "  mutable_mem = default_cfd_->mem();\n  mutable_mem->Ref();\n  immutable_mems = default_cfd_->imm()->current();\n  immutable_mems->Ref();\n  version = default_cfd_->current();\n  version->Ref();",
+        "b_contents": "  SuperVersion* super_version = super_version_->Ref();",
+        "base_contents": "  mutable_mem = mem_;\n  mutable_mem->Ref();\n  immutable_mems = imm_.current();\n  immutable_mems->Ref();\n  version = versions_->current();\n  version->Ref();",
+        "res_region": "  SuperVersion* super_version = default_cfd_->GetSuperVersion()->Ref();",
+        "lookback": "    uint64_t* superversion_number) {\n\n  mutex_.Lock();",
+        "lookahead": "  if (superversion_number != nullptr) {\n    *superversion_number = CurrentVersionNumber();",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2793,
+        "end_line": 2809,
+        "merge_gen_region": "super_mem = default_cfd_->mem(); mutable_mem->Ref(); immutable_version = default_cfd_->imm()->current(); immutable_mems->Ref(); version = default_cfd_->Ref();",
+        "resolved": false
+    },
+    {
+        "a_contents": "  immutable_mems->AddIterators(options, &list);\n  immutable_cleanup->imm = immutable_mems;\n  version->AddIterators(options, storage_options_, &list);\n  immutable_cleanup->version = version;\n  immutable_cleanup->db = this;\n  immutable_cleanup->mu = &mutex_;\n\n  immutable_iter = NewMergingIterator(&default_cfd_->internal_comparator(),\n                                      &list[0], list.size());\n  immutable_iter->RegisterCleanup(CleanupIteratorState, immutable_cleanup,\n                                  nullptr);",
+        "b_contents": "  super_version->imm->AddIterators(options, &list);\n  super_version->current->AddIterators(options, storage_options_, &list);\n  Iterator* immutable_iter =\n    NewMergingIterator(&internal_comparator_, &list[0], list.size());",
+        "base_contents": "  immutable_mems->AddIterators(options, &list);\n  immutable_cleanup->imm = immutable_mems;\n  version->AddIterators(options, storage_options_, &list);\n  immutable_cleanup->version = version;\n  immutable_cleanup->db = this;\n  immutable_cleanup->mu = &mutex_;\n\n  immutable_iter =\n    NewMergingIterator(&internal_comparator_, &list[0], list.size());\n  immutable_iter->RegisterCleanup(CleanupIteratorState, immutable_cleanup,\n                                  nullptr);",
+        "res_region": "  super_version->imm->AddIterators(options, &list);\n  super_version->current->AddIterators(options, storage_options_, &list);\n  Iterator* immutable_iter = NewMergingIterator(\n      &default_cfd_->internal_comparator(), &list[0], list.size());",
+        "lookback": "                               mutable_iter, kMaxSequenceNumber);\n\n  std::vector<Iterator*> list;",
+        "lookahead": "\n  // create a DBIter that only uses memtable content; see NewIterator()",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2821,
+        "end_line": 2850,
+        "merge_gen_region": " super_version->imm->AddIterators(options, &list); super_version->current->AddIterators(options, storage_options_, &list); Iterator* immutable_iter = NewMergingIterator(&default_cfd_->internal_comparator(), &list[0], list.size());",
+        "resolved": true
+    },
+    {
+        "a_contents": "  // TODO only works for default column family\n  MemTable* mem = default_cfd_->mem();\n  MemTableListVersion* imm = default_cfd_->imm()->current();\n  Version* current = default_cfd_->current();\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n\n  // Unlock while reading from files and memtables\n",
+        "b_contents": "  SuperVersion* get_version = super_version_->Ref();",
+        "base_contents": "  MemTable* mem = mem_;\n  MemTableListVersion* imm = imm_.current();\n  Version* current = versions_->current();\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n\n  // Unlock while reading from files and memtables\n",
+        "res_region": "  SuperVersion* get_version = default_cfd_->GetSuperVersion()->Ref();",
+        "lookback": "    snapshot = versions_->LastSequence();\n  }\n",
+        "lookahead": "  mutex_.Unlock();\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2994,
+        "end_line": 3017,
+        "merge_gen_region": "// TODO only works for default column family MemTable* mem = default_cfd_->mem(); MemTableListVersion* get_version = default_cfd",
+        "resolved": false
+    }
+]

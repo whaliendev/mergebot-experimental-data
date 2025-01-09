@@ -1,0 +1,1834 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_merged.cpp
+index b16083a..cc7fe29 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_merged.cpp
+@@ -41,0 +42,5 @@
++DEFINE_string(force_mode, DEFAULT_MODE,
++              "Force testing older modes (vab-legacy, vabc-legacy) ignoring device config.");
++DEFINE_string(force_iouring_disable, "",
++              "Force testing mode (iouring_disabled) - disable io_uring");
++DEFINE_string(compression_method, "gz", "Default compression algorithm.");
+@@ -101,2 +106 @@ class SnapshotTest : public ::testing::Test {
+-    ASSERT_TRUE(android::base::SetProperty(
+-        "snapuserd.test.io_uring.force_disable", "0"))
++        ASSERT_TRUE(android::base::SetProperty("snapuserd.test.io_uring.force_disable", "0"))
+@@ -105,4 +109,2 @@ class SnapshotTest : public ::testing::Test {
+-      ASSERT_TRUE(
+-          android::base::SetProperty("snapuserd.test.dm.snapshots", "1"))
+-          << "Failed to disable property: "
+-             "virtual_ab.userspace.snapshots.enabled";
++            ASSERT_TRUE(android::base::SetProperty("snapuserd.test.dm.snapshots", "1"))
++                    << "Failed to disable property: virtual_ab.userspace.snapshots.enabled";
+@@ -116,2 +118 @@ class SnapshotTest : public ::testing::Test {
+-      ASSERT_TRUE(android::base::SetProperty(
+-          "snapuserd.test.io_uring.force_disable", "1"))
++            ASSERT_TRUE(android::base::SetProperty("snapuserd.test.io_uring.force_disable", "1"))
+@@ -121,2 +122 @@ class SnapshotTest : public ::testing::Test {
+-    auto fetcher = std::make_unique<SnapshotTestPropertyFetcher>(
+-        "_a", std::move(properties));
++        auto fetcher = std::make_unique<SnapshotTestPropertyFetcher>("_a", std::move(properties));
+@@ -155,2 +155 @@ class SnapshotTest : public ::testing::Test {
+-      api_level =
+-          android::base::GetIntProperty("ro.product.first_api_level", -1);
++            api_level = android::base::GetIntProperty("ro.product.first_api_level", -1);
+@@ -222,2 +221 @@ class SnapshotTest : public ::testing::Test {
+-  bool CreatePartition(const std::string& name, uint64_t size,
+-                       std::string* path = nullptr,
++    bool CreatePartition(const std::string& name, uint64_t size, std::string* path = nullptr,
+@@ -234,3 +232,2 @@ class SnapshotTest : public ::testing::Test {
+-  bool CreatePartition(MetadataBuilder* builder, const std::string& name,
+-                       uint64_t size, std::string* path,
+-                       const std::string& group) {
++    bool CreatePartition(MetadataBuilder* builder, const std::string& name, uint64_t size,
++                         std::string* path, const std::string& group) {
+@@ -274,2 +271 @@ class SnapshotTest : public ::testing::Test {
+-      return AssertionFailure()
+-             << "Cannot initialize snapshot for writing: " << name;
++            return AssertionFailure() << "Cannot initialize snapshot for writing: " << name;
+@@ -282,2 +278 @@ class SnapshotTest : public ::testing::Test {
+-  AssertionResult MapUpdateSnapshot(const std::string& name,
+-                                    std::string* path) {
++    AssertionResult MapUpdateSnapshot(const std::string& name, std::string* path) {
+@@ -302,2 +297 @@ class SnapshotTest : public ::testing::Test {
+-      return AssertionFailure()
+-             << "Cannot delete dm-user device for " << snapshot;
++            return AssertionFailure() << "Cannot delete dm-user device for " << snapshot;
+@@ -308,2 +302 @@ class SnapshotTest : public ::testing::Test {
+-      return AssertionFailure()
+-             << "Cannot unmap image " << snapshot << "-cow-img";
++            return AssertionFailure() << "Cannot unmap image " << snapshot << "-cow-img";
+@@ -334,2 +327 @@ class SnapshotTest : public ::testing::Test {
+-      return AssertionFailure()
+-             << "Cannot unmap " << name << " after zero filling it";
++            return AssertionFailure() << "Cannot unmap " << name << " after zero filling it";
+@@ -340,2 +332 @@ class SnapshotTest : public ::testing::Test {
+-                              const std::chrono::milliseconds& timeout_ms,
+-                              std::string* path) {
++                                const std::chrono::milliseconds& timeout_ms, std::string* path) {
+@@ -349,2 +340 @@ class SnapshotTest : public ::testing::Test {
+-  AssertionResult PrepareOneSnapshot(
+-      uint64_t device_size,
++    AssertionResult PrepareOneSnapshot(uint64_t device_size,
+@@ -354,2 +344 @@ class SnapshotTest : public ::testing::Test {
+-    auto dynamic_partition_metadata =
+-        manifest.mutable_dynamic_partition_metadata();
++        auto dynamic_partition_metadata = manifest.mutable_dynamic_partition_metadata();
+@@ -357,2 +346 @@ class SnapshotTest : public ::testing::Test {
+-    dynamic_partition_metadata->set_cow_version(
+-        android::snapshot::kCowVersionMajor);
++        dynamic_partition_metadata->set_cow_version(android::snapshot::kCowVersionMajor);
+@@ -360,2 +348 @@ class SnapshotTest : public ::testing::Test {
+-      dynamic_partition_metadata->set_vabc_compression_param(
+-          FLAGS_compression_method);
++            dynamic_partition_metadata->set_vabc_compression_param(FLAGS_compression_method);
+@@ -383,2 +370 @@ class SnapshotTest : public ::testing::Test {
+-    if (!CreatePartition(builder.get(), "test_partition_a", device_size,
+-                         nullptr, "group_a")) {
++        if (!CreatePartition(builder.get(), "test_partition_a", device_size, nullptr, "group_a")) {
+@@ -427,2 +413 @@ class SnapshotTest : public ::testing::Test {
+-  std::unique_ptr<SnapshotManager> NewManagerForFirstStageMount(
+-      TestDeviceInfo* info) {
++    std::unique_ptr<SnapshotManager> NewManagerForFirstStageMount(TestDeviceInfo* info) {
+@@ -447,9 +432,8 @@ class SnapshotTest : public ::testing::Test {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++TEST_F(SnapshotTest, CreateSnapshot) {
++    ASSERT_TRUE(AcquireLock());
++    PartitionCowCreator cow_creator;
++    cow_creator.using_snapuserd = snapuserd_required_;
++    if (cow_creator.using_snapuserd) {
++        cow_creator.compression_algorithm = FLAGS_compression_method;
++    } else {
++        cow_creator.compression_algorithm = "none";
+@@ -457,5 +441,82 @@ TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-  struct statvfs fs;
+-  if (statvfs("/data", &fs) < 0) {
+-    PLOG(ERROR) << "statfs failed";
+-    return {0, 0};
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    SnapshotStatus status;
++    status.set_name("test-snapshot");
++    status.set_device_size(kDeviceSize);
++    status.set_snapshot_size(kDeviceSize);
++    status.set_cow_file_size(kDeviceSize);
++    ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++    ASSERT_TRUE(CreateCowImage("test-snapshot"));
++    std::vector<std::string> snapshots;
++    ASSERT_TRUE(sm->ListSnapshots(lock_.get(), &snapshots));
++    ASSERT_EQ(snapshots.size(), 1);
++    ASSERT_EQ(snapshots[0], "test-snapshot");
++    {
++        SnapshotStatus status;
++        ASSERT_TRUE(sm->ReadSnapshotStatus(lock_.get(), "test-snapshot", &status));
++        ASSERT_EQ(status.state(), SnapshotState::CREATED);
++        ASSERT_EQ(status.device_size(), kDeviceSize);
++        ASSERT_EQ(status.snapshot_size(), kDeviceSize);
++        ASSERT_EQ(status.using_snapuserd(), cow_creator.using_snapuserd);
++        ASSERT_EQ(status.compression_algorithm(), cow_creator.compression_algorithm);
++    }
++    ASSERT_TRUE(sm->UnmapSnapshot(lock_.get(), "test-snapshot"));
++    ASSERT_TRUE(sm->UnmapCowImage("test-snapshot"));
++    ASSERT_TRUE(sm->DeleteSnapshot(lock_.get(), "test-snapshot"));
++}
++TEST_F(SnapshotTest, MapSnapshot) {
++    ASSERT_TRUE(AcquireLock());
++    PartitionCowCreator cow_creator;
++    cow_creator.using_snapuserd = snapuserd_required_;
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    SnapshotStatus status;
++    status.set_name("test-snapshot");
++    status.set_device_size(kDeviceSize);
++    status.set_snapshot_size(kDeviceSize);
++    status.set_cow_file_size(kDeviceSize);
++    ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++    ASSERT_TRUE(CreateCowImage("test-snapshot"));
++    std::string base_device;
++    ASSERT_TRUE(CreatePartition("base-device", kDeviceSize, &base_device));
++    std::string cow_device;
++    ASSERT_TRUE(MapCowImage("test-snapshot", 10s, &cow_device));
++    std::string snap_device;
++    ASSERT_TRUE(sm->MapSnapshot(lock_.get(), "test-snapshot", base_device, cow_device, 10s,
++                                &snap_device));
++    ASSERT_TRUE(android::base::StartsWith(snap_device, "/dev/block/dm-"));
++}
++TEST_F(SnapshotTest, NoMergeBeforeReboot) {
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_FALSE(sm->InitiateMerge());
++}
++TEST_F(SnapshotTest, CleanFirstStageMount) {
++    auto sm = NewManagerForFirstStageMount();
++    ASSERT_NE(sm, nullptr);
++    ASSERT_FALSE(sm->NeedSnapshotsInFirstStageMount());
++}
++TEST_F(SnapshotTest, FirstStageMountAfterRollback) {
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    auto sm = NewManagerForFirstStageMount();
++    ASSERT_NE(sm, nullptr);
++    ASSERT_FALSE(sm->NeedSnapshotsInFirstStageMount());
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_EQ(access(indicator.c_str(), R_OK), 0);
++}
++TEST_F(SnapshotTest, Merge) {
++    ASSERT_TRUE(AcquireLock());
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    std::unique_ptr<ISnapshotWriter> writer;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize, &writer));
++    bool userspace_snapshots = sm->UpdateUsesUserSnapshots(lock_.get());
++    lock_ = nullptr;
++    std::string test_string = "This is a test string.";
++    test_string.resize(writer->options().block_size);
++    ASSERT_TRUE(writer->AddRawBlocks(0, test_string.data(), test_string.size()));
++    ASSERT_TRUE(writer->Finalize());
++    writer = nullptr;
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("test_partition_b"));
++    test_device->set_slot_suffix("_b");
++    ASSERT_TRUE(sm->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
+@@ -463,4 +524,76 @@ std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-  auto fs_limit = static_cast<uint64_t>(fs.f_blocks) * (fs.f_bsize - 1);
+-  auto fs_free = static_cast<uint64_t>(fs.f_bfree) * fs.f_bsize;
+-  LOG(INFO) << "Big file limit: " << fs_limit << ", free space: " << fs_free;
+-  return {fs_limit, fs_free};
++    ASSERT_TRUE(sm->InitiateMerge());
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(sm->IsSnapshotDevice("test_partition_b", &target));
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot-merge");
++    }
++    ASSERT_FALSE(sm->CancelUpdate());
++    ASSERT_EQ(sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    ASSERT_EQ(sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(sm->IsSnapshotDevice("test_partition_b"));
++    unique_fd fd(open("/dev/block/mapper/test_partition_b", O_RDONLY | O_CLOEXEC));
++    ASSERT_GE(fd, 0);
++    std::string buffer(test_string.size(), '\0');
++    ASSERT_TRUE(android::base::ReadFully(fd, buffer.data(), buffer.size()));
++    ASSERT_EQ(test_string, buffer);
++}
++TEST_F(SnapshotTest, FirstStageMountAndMerge) {
++    ASSERT_TRUE(AcquireLock());
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(AcquireLock());
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots(lock_.get());
++    SnapshotStatus status;
++    ASSERT_TRUE(init->ReadSnapshotStatus(lock_.get(), "test_partition_b", &status));
++    ASSERT_EQ(status.state(), SnapshotState::CREATED);
++    if (snapuserd_required_) {
++        ASSERT_EQ(status.compression_algorithm(), FLAGS_compression_method);
++    } else {
++        ASSERT_EQ(status.compression_algorithm(), "");
++    }
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(init->IsSnapshotDevice("test_partition_b", &target));
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++    }
++}
++TEST_F(SnapshotTest, FlashSuperDuringUpdate) {
++    ASSERT_TRUE(AcquireLock());
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    FormatFakeSuper();
++    ASSERT_TRUE(CreatePartition("test_partition_b", kDeviceSize));
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(AcquireLock());
++    SnapshotStatus status;
++    ASSERT_TRUE(init->ReadSnapshotStatus(lock_.get(), "test_partition_b", &status));
++    DeviceMapper::TargetInfo target;
++    ASSERT_FALSE(init->IsSnapshotDevice("test_partition_b", &target));
++    lock_ = nullptr;
++    ASSERT_EQ(sm->ProcessUpdateState(), UpdateState::Cancelled);
++}
++TEST_F(SnapshotTest, FlashSuperDuringMerge) {
++    ASSERT_TRUE(AcquireLock());
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
+@@ -468,99 +601,35 @@ std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_TRUE(DeleteSnapshotDevice("test_partition_b"));
++    ASSERT_TRUE(init->image_manager()->UnmapImageIfExists("test_partition_b-cow-img"));
++    FormatFakeSuper();
++    ASSERT_TRUE(CreatePartition("test_partition_b", kDeviceSize));
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_EQ(init->ProcessUpdateState(), UpdateState::Cancelled);
++    ASSERT_EQ(init->GetUpdateState(), UpdateState::None);
++}
++TEST_F(SnapshotTest, UpdateBootControlHal) {
++    ASSERT_TRUE(AcquireLock());
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::None));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Initiated));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Unverified));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::SNAPSHOTTED);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Merging));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeNeedsReboot));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeCompleted));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
++}
++TEST_F(SnapshotTest, MergeFailureCode) {
++    ASSERT_TRUE(AcquireLock());
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
++                                     MergeFailureCode::ListSnapshots));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
++    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
++    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
++    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
+@@ -601,2 +670 @@ class LockTestConsumer {
+-    return AssertionFailure()
+-           << "Timeout waiting for fulfilling " << requests_.size()
++        return AssertionFailure() << "Timeout waiting for fulfilling " << requests_.size()
+@@ -607,2 +675 @@ class LockTestConsumer {
+-    future_ =
+-        std::async(std::launch::async, &LockTestConsumer::HandleRequests, this);
++        future_ = std::async(std::launch::async, &LockTestConsumer::HandleRequests, this);
+@@ -617,2 +684 @@ class LockTestConsumer {
+-        if (cv_.wait_for(ulock, consumer_timeout,
+-                         [this] { return !requests_.empty(); })) {
++                if (cv_.wait_for(ulock, consumer_timeout, [this] { return !requests_.empty(); })) {
+@@ -674,9 +740,5 @@ class LockTest : public ::testing::Test {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++TEST_F(LockTest, SharedShared) {
++    ASSERT_TRUE(first_consumer.MakeRequest(Request::LOCK_SHARED));
++    ASSERT_TRUE(first_consumer.WaitFulfill(request_timeout));
++    ASSERT_TRUE(second_consumer.MakeRequest(Request::LOCK_SHARED));
++    ASSERT_TRUE(second_consumer.WaitFulfill(request_timeout));
+@@ -685,12 +747,22 @@ using LockTestParam = std::pair<Request, Request>;
+-class LockTestP : public LockTest,
+-                  public ::testing::WithParamInterface<LockTestParam> {};
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
++class LockTestP : public LockTest, public ::testing::WithParamInterface<LockTestParam> {};
++TEST_P(LockTestP, Test) {
++    ASSERT_TRUE(first_consumer.MakeRequest(GetParam().first));
++    ASSERT_TRUE(first_consumer.WaitFulfill(request_timeout));
++    ASSERT_TRUE(second_consumer.MakeRequest(GetParam().second));
++    ASSERT_FALSE(second_consumer.WaitFulfill(request_timeout))
++            << "Should not be able to " << GetParam().second << " while separate thread "
++            << GetParam().first;
++    ASSERT_TRUE(first_consumer.MakeRequest(Request::UNLOCK));
++    ASSERT_TRUE(second_consumer.WaitFulfill(request_timeout))
++            << "Should be able to hold lock that is released by separate thread";
++}
++INSTANTIATE_TEST_SUITE_P(
++        LockTest, LockTestP,
++        testing::Values(LockTestParam{Request::LOCK_EXCLUSIVE, Request::LOCK_EXCLUSIVE},
++                        LockTestParam{Request::LOCK_EXCLUSIVE, Request::LOCK_SHARED},
++                        LockTestParam{Request::LOCK_SHARED, Request::LOCK_EXCLUSIVE}),
++        [](const testing::TestParamInfo<LockTestP::ParamType>& info) {
++            std::stringstream ss;
++            ss << info.param.first << info.param.second;
++            return ss.str();
++        });
+@@ -708,2 +780 @@ class SnapshotUpdateTest : public SnapshotTest {
+-    auto dynamic_partition_metadata =
+-        manifest_.mutable_dynamic_partition_metadata();
++        auto dynamic_partition_metadata = manifest_.mutable_dynamic_partition_metadata();
+@@ -711,2 +782 @@ class SnapshotUpdateTest : public SnapshotTest {
+-    dynamic_partition_metadata->set_cow_version(
+-        android::snapshot::kCowVersionMajor);
++        dynamic_partition_metadata->set_cow_version(android::snapshot::kCowVersionMajor);
+@@ -714,2 +784 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      dynamic_partition_metadata->set_vabc_compression_param(
+-          FLAGS_compression_method);
++            dynamic_partition_metadata->set_vabc_compression_param(FLAGS_compression_method);
+@@ -790,2 +859 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      return AssertionFailure()
+-             << "Path of " << name << " cannot be determined";
++            return AssertionFailure() << "Path of " << name << " cannot be determined";
+@@ -795,2 +863 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      return AssertionFailure()
+-             << "Cannot read partition " << name << ": " << path;
++            return AssertionFailure() << "Cannot read partition " << name << ": " << path;
+@@ -800,2 +867 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      return AssertionFailure()
+-             << "No existing hash for " << name << ". Bad test code?";
++            return AssertionFailure() << "No existing hash for " << name << ". Bad test code?";
+@@ -857,2 +923 @@ class SnapshotUpdateTest : public SnapshotTest {
+-        return AssertionFailure()
+-               << "Unable to write random data to snapshot " << name;
++                return AssertionFailure() << "Unable to write random data to snapshot " << name;
+@@ -870,2 +935 @@ class SnapshotUpdateTest : public SnapshotTest {
+-        return AssertionFailure()
+-               << "Unable to write random data to snapshot " << name;
++                return AssertionFailure() << "Unable to write random data to snapshot " << name;
+@@ -909,2 +973 @@ class SnapshotUpdateTest : public SnapshotTest {
+-  AssertionResult ShiftAllSnapshotBlocks(const std::string& name,
+-                                         uint64_t old_size) {
++    AssertionResult ShiftAllSnapshotBlocks(const std::string& name, uint64_t old_size) {
+@@ -916,2 +979 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      return AssertionFailure()
+-             << "No max blocks set for " << name << " writer";
++            return AssertionFailure() << "No max blocks set for " << name << " writer";
+@@ -924,2 +986 @@ class SnapshotUpdateTest : public SnapshotTest {
+-        return AssertionFailure()
+-               << "Unable to add copy for " << name << " for blocks "
++                return AssertionFailure() << "Unable to add copy for " << name << " for blocks "
+@@ -936,2 +997 @@ class SnapshotUpdateTest : public SnapshotTest {
+-      return AssertionFailure()
+-             << "Unable to hash snapshot writer for " << name;
++            return AssertionFailure() << "Unable to hash snapshot writer for " << name;
+@@ -942,2 +1002,2 @@ class SnapshotUpdateTest : public SnapshotTest {
+-  AssertionResult MapUpdateSnapshots(const std::vector<std::string>& names = {
+-                                         "sys_b", "vnd_b", "prd_b"}) {
++    AssertionResult MapUpdateSnapshots(const std::vector<std::string>& names = {"sys_b", "vnd_b",
++                                                                                "prd_b"}) {
+@@ -952,2 +1012 @@ class SnapshotUpdateTest : public SnapshotTest {
+-  void AddOperation(PartitionUpdate* partition_update,
+-                    uint64_t size_bytes = 0) {
++    void AddOperation(PartitionUpdate* partition_update, uint64_t size_bytes = 0) {
+@@ -961,2 +1020 @@ class SnapshotUpdateTest : public SnapshotTest {
+-  void AddOperationForPartitions(
+-      std::vector<PartitionUpdate*> partitions = {}) {
++    void AddOperationForPartitions(std::vector<PartitionUpdate*> partitions = {}) {
+@@ -979,102 +1037,317 @@ class SnapshotUpdateTest : public SnapshotTest {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-static std::vector<Interval> ToIntervals(
+-    const std::vector<std::unique_ptr<Extent>>& extents) {
++TEST_F(SnapshotUpdateTest, FullUpdateFlow) {
++    constexpr uint64_t partition_size = 3788_KiB;
++    SetSize(sys_, partition_size);
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, 18_MiB);
++    vnd_->set_estimate_cow_size(30_MiB);
++    prd_->set_estimate_cow_size(30_MiB);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    auto tgt = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(tgt, nullptr);
++    ASSERT_NE(nullptr, tgt->FindPartition("sys_b-cow"));
++    ASSERT_NE(nullptr, tgt->FindPartition("vnd_b-cow"));
++    ASSERT_EQ(nullptr, tgt->FindPartition("prd_b-cow"));
++    ASSERT_TRUE(WriteSnapshots());
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_NE(access(indicator.c_str(), R_OK), 0);
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::SECOND_PHASE);
++    }
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        std::vector<std::string> snapshots;
++        ASSERT_TRUE(init->ListSnapshots(local_lock.get(), &snapshots));
++        ASSERT_TRUE(snapshots.empty());
++    }
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
++}
++TEST_F(SnapshotUpdateTest, DuplicateOps) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "snapuserd-only test";
++    }
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    std::vector<PartitionUpdate*> partitions = {sys_, vnd_, prd_};
++    for (auto* partition : partitions) {
++        AddOperation(partition);
++        std::unique_ptr<ISnapshotWriter> writer;
++        auto res = MapUpdateSnapshot(partition->partition_name() + "_b", &writer);
++        ASSERT_TRUE(res);
++        ASSERT_TRUE(writer->AddZeroBlocks(0, 1));
++        ASSERT_TRUE(writer->AddZeroBlocks(0, 1));
++        ASSERT_TRUE(writer->Finalize());
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++}
++TEST_F(SnapshotUpdateTest, SpaceSwapUpdate) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    auto old_sys_size = GetSize(sys_);
++    auto old_prd_size = GetSize(prd_);
++    SetSize(sys_, old_sys_size * 2);
++    sys_->set_estimate_cow_size(8_MiB);
++    SetSize(prd_, old_prd_size / 2);
++    prd_->set_estimate_cow_size(1_MiB);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        SnapshotStatus status;
++        ASSERT_TRUE(sm->ReadSnapshotStatus(local_lock.get(), "prd_b", &status));
++        ASSERT_EQ(status.old_partition_size(), 3145728);
++        ASSERT_TRUE(sm->ReadSnapshotStatus(local_lock.get(), "sys_b", &status));
++        ASSERT_EQ(status.old_partition_size(), 3145728);
++    }
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    ASSERT_TRUE(WriteSnapshotAndHash(vnd_));
++    ASSERT_TRUE(ShiftAllSnapshotBlocks("prd_b", old_prd_size));
++    sync();
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_NE(access(indicator.c_str(), R_OK), 0);
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::FIRST_PHASE);
++    }
++    ASSERT_TRUE(UnmapAll());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(init->IsSnapshotDevice("prd_b", &target));
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots();
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++        ASSERT_TRUE(init->IsSnapshotDevice("sys_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++        ASSERT_TRUE(init->IsSnapshotDevice("vnd_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot-merge");
++        ASSERT_TRUE(init->IsSnapshotDevice("sys_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++        ASSERT_TRUE(init->IsSnapshotDevice("vnd_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++    }
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        std::vector<std::string> snapshots;
++        ASSERT_TRUE(init->ListSnapshots(local_lock.get(), &snapshots));
++        ASSERT_TRUE(snapshots.empty());
++    }
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
++}
++TEST_F(SnapshotUpdateTest, ConsistencyCheckResume) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    auto old_sys_size = GetSize(sys_);
++    auto old_prd_size = GetSize(prd_);
++    SetSize(sys_, old_sys_size * 2);
++    sys_->set_estimate_cow_size(8_MiB);
++    SetSize(prd_, old_prd_size / 2);
++    prd_->set_estimate_cow_size(1_MiB);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    ASSERT_TRUE(WriteSnapshotAndHash(vnd_));
++    ASSERT_TRUE(ShiftAllSnapshotBlocks("prd_b", old_prd_size));
++    sync();
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    auto old_checker = init->merge_consistency_checker();
++    init->set_merge_consistency_checker(
++            [](const std::string&, const SnapshotStatus&) -> MergeFailureCode {
++                return MergeFailureCode::WrongMergeCountConsistencyCheck;
++            });
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::FIRST_PHASE);
++    }
++    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    ASSERT_TRUE(UnmapAll());
++    init->set_merge_consistency_checker(std::move(old_checker));
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
++}
++TEST_F(SnapshotUpdateTest, DirectWriteEmptySpace) {
++    GTEST_SKIP() << "b/141889746";
++    SetSize(sys_, 4_MiB);
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_EQ(3_MiB, GetSnapshotSize("sys_b").value_or(0));
++}
++TEST_F(SnapshotUpdateTest, SnapshotOldPartitions) {
++    SetSize(sys_, 4_MiB);
++    SetSize(vnd_, 2_MiB);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_EQ(4_MiB, GetSnapshotSize("sys_b").value_or(0));
++}
++TEST_F(SnapshotUpdateTest, CowPartitionDoNotTakeOldPartitions) {
++    SetSize(sys_, 2_MiB);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    auto tgt = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(nullptr, tgt);
++    auto metadata = tgt->Export();
++    ASSERT_NE(nullptr, metadata);
++    std::vector<std::string> written;
++    for (auto p : metadata->partitions) {
++        if (GetPartitionGroupName(metadata->groups[p.group_index]) != kCowGroupName) {
++            continue;
++        }
++        std::string path;
++        ASSERT_TRUE(CreateLogicalPartition(
++                CreateLogicalPartitionParams{
++                        .block_device = fake_super,
++                        .metadata = metadata.get(),
++                        .partition = &p,
++                        .timeout_ms = 1s,
++                        .partition_opener = opener_.get(),
++                },
++                &path));
++        ASSERT_TRUE(WriteRandomData(path));
++        written.push_back(GetPartitionName(p));
++    }
++    ASSERT_FALSE(written.empty())
++            << "No COW partitions are created even if there are empty space in super partition";
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++}
++TEST_F(SnapshotUpdateTest, SnapshotStatusFileWithoutCow) {
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        SnapshotStatus status;
++        status.set_name("sys_b");
++        ASSERT_TRUE(sm->WriteSnapshotStatus(local_lock.get(), status));
++        ASSERT_TRUE(image_manager_->CreateBackingImage("sys_b-cow-img", 1_MiB,
++                                                       IImageManager::CREATE_IMAGE_DEFAULT));
++    }
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("sys_b"));
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    EXPECT_TRUE(MapUpdateSnapshots());
++}
++TEST_F(SnapshotUpdateTest, TestRollback) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("sys_b"));
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(UnmapAll());
++    init = NewManagerForFirstStageMount("_a");
++    ASSERT_NE(init, nullptr);
++    ASSERT_FALSE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++}
++TEST_F(SnapshotUpdateTest, CancelAfterApply) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(sm->CancelUpdate());
++}
++static std::vector<Interval> ToIntervals(const std::vector<std::unique_ptr<Extent>>& extents) {
+@@ -1083,3 +1356 @@ static std::vector<Interval> ToIntervals(
+-                 [](const auto& extent) {
+-                   return extent->AsLinearExtent()->AsInterval();
+-                 });
++                   [](const auto& extent) { return extent->AsLinearExtent()->AsInterval(); });
+@@ -1088,29 +1359,127 @@ static std::vector<Interval> ToIntervals(
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++TEST_F(SnapshotUpdateTest, ReclaimCow) {
++    sys_->set_estimate_cow_size(64_KiB);
++    vnd_->set_estimate_cow_size(64_KiB);
++    prd_->set_estimate_cow_size(64_KiB);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(new_sm->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeCompleted, new_sm->ProcessUpdateState());
++    ASSERT_TRUE(new_sm->BeginUpdate());
++    ASSERT_TRUE(new_sm->CreateUpdateSnapshots(manifest_));
++    auto src = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(src, nullptr);
++    auto tgt = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(tgt, nullptr);
++    for (const auto& cow_part_name : {"sys_a-cow", "vnd_a-cow", "prd_a-cow"}) {
++        auto* cow_part = tgt->FindPartition(cow_part_name);
++        ASSERT_NE(nullptr, cow_part) << cow_part_name << " does not exist in target metadata";
++        auto cow_intervals = ToIntervals(cow_part->extents());
++        for (const auto& old_part_name : {"sys_b", "vnd_b", "prd_b"}) {
++            auto* old_part = src->FindPartition(old_part_name);
++            ASSERT_NE(nullptr, old_part) << old_part_name << " does not exist in source metadata";
++            auto old_intervals = ToIntervals(old_part->extents());
++            auto intersect = Interval::Intersect(cow_intervals, old_intervals);
++            ASSERT_TRUE(intersect.empty()) << "COW uses space of source partitions";
++        }
++    }
++}
++TEST_F(SnapshotUpdateTest, RetrofitAfterRegularAb) {
++    constexpr auto kRetrofitGroupSize = kGroupSize / 2;
++    ASSERT_TRUE(UnmapAll());
++    FormatFakeSuper();
++    src_ = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(nullptr, src_);
++    for (const auto& suffix : {"_a"s, "_b"s}) {
++        ASSERT_TRUE(src_->AddGroup(group_->name() + suffix, kRetrofitGroupSize));
++        for (const auto& name : {"sys"s, "vnd"s, "prd"s}) {
++            auto partition = src_->AddPartition(name + suffix, group_->name() + suffix, 0);
++            ASSERT_NE(nullptr, partition);
++            ASSERT_TRUE(src_->ResizePartition(partition, 2_MiB));
++        }
++    }
++    auto metadata = src_->Export();
++    ASSERT_NE(nullptr, metadata);
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *metadata.get(), 0));
++    std::string path;
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(CreateLogicalPartition(
++                CreateLogicalPartitionParams{
++                        .block_device = fake_super,
++                        .metadata_slot = 0,
++                        .partition_name = name,
++                        .timeout_ms = 1s,
++                        .partition_opener = opener_.get(),
++                },
++                &path));
++        ASSERT_TRUE(WriteRandomData(path));
++        auto hash = GetHash(path);
++        ASSERT_TRUE(hash.has_value());
++        hashes_[name] = *hash;
++    }
++    group_->set_size(kRetrofitGroupSize);
++    for (auto* partition : {sys_, vnd_, prd_}) {
++        SetSize(partition, 2_MiB);
++    }
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_FALSE(image_manager_->BackingImageExists("sys_b-cow-img"));
++    ASSERT_FALSE(image_manager_->BackingImageExists("vnd_b-cow-img"));
++    ASSERT_FALSE(image_manager_->BackingImageExists("prd_b-cow-img"));
++    ASSERT_TRUE(WriteSnapshots());
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++}
++TEST_F(SnapshotUpdateTest, MergeCannotRemoveCow) {
++    SetSize(sys_, 10_MiB);
++    SetSize(vnd_, 10_MiB);
++    SetSize(prd_, 10_MiB);
++    sys_->set_estimate_cow_size(12_MiB);
++    vnd_->set_estimate_cow_size(12_MiB);
++    prd_->set_estimate_cow_size(12_MiB);
++    src_ = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(src_, nullptr);
++    src_->RemoveGroupAndPartitions(group_->name() + "_a");
++    src_->RemoveGroupAndPartitions(group_->name() + "_b");
++    ASSERT_TRUE(FillFakeMetadata(src_.get(), manifest_, "_a"));
++    auto metadata = src_->Export();
++    ASSERT_NE(nullptr, metadata);
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *metadata.get(), 0));
++    AddOperation(sys_);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    auto cow_path = android::base::GetProperty("gsid.mapped_image.sys_b-cow-img", "");
++    unique_fd fd(open(cow_path.c_str(), O_RDONLY | O_CLOEXEC));
++    ASSERT_GE(fd, 0);
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeNeedsReboot, init->ProcessUpdateState());
++    fd.reset();
++    ASSERT_TRUE(UnmapAll());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_FALSE(sm->IsSnapshotDevice("sys_b", nullptr));
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+@@ -1140,2 +1509 @@ class MetadataMountedTest : public ::testing::Test {
+-      return AssertionFailure()
+-             << "No mount point found in fstab for path " << metadata_dir_;
++            return AssertionFailure() << "No mount point found in fstab for path " << metadata_dir_;
+@@ -1152,120 +1520,302 @@ class MetadataMountedTest : public ::testing::Test {
+-void MountMetadata() { MetadataMountedTest().TearDown(); }
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++void MountMetadata() {
++    MetadataMountedTest().TearDown();
++}
++TEST_F(MetadataMountedTest, Android) {
++    auto device = sm->EnsureMetadataMounted();
++    EXPECT_NE(nullptr, device);
++    device.reset();
++    EXPECT_TRUE(IsMetadataMounted());
++    EXPECT_TRUE(sm->CancelUpdate()) << "Metadata dir should never be unmounted in Android mode";
++}
++TEST_F(MetadataMountedTest, Recovery) {
++    test_device->set_recovery(true);
++    metadata_dir_ = test_device->GetMetadataDir();
++    EXPECT_TRUE(android::fs_mgr::EnsurePathUnmounted(&fstab_, metadata_dir_));
++    EXPECT_FALSE(IsMetadataMounted());
++    auto device = sm->EnsureMetadataMounted();
++    EXPECT_NE(nullptr, device);
++    EXPECT_TRUE(IsMetadataMounted());
++    device.reset();
++    EXPECT_FALSE(IsMetadataMounted());
++}
++TEST_F(SnapshotUpdateTest, MergeInRecovery) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(new_sm->InitiateMerge());
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    test_device->set_recovery(true);
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    ASSERT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++}
++TEST_F(SnapshotUpdateTest, MergeInFastboot) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(new_sm->InitiateMerge());
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    test_device->set_recovery(true);
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_TRUE(new_sm->FinishMergeInRecovery());
++    ASSERT_TRUE(UnmapAll());
++    auto mount = new_sm->EnsureMetadataMounted();
++    ASSERT_TRUE(mount && mount->HasDevice());
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    init = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    init = nullptr;
++    test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::None);
++}
++TEST_F(SnapshotUpdateTest, DataWipeRollbackInRecovery) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    EXPECT_TRUE(test_device->IsSlotUnbootable(1));
++    EXPECT_FALSE(test_device->IsSlotUnbootable(0));
++}
++TEST_F(SnapshotUpdateTest, DataWipeAfterRollback) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = new TestDeviceInfo(fake_super, "_a");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    EXPECT_FALSE(test_device->IsSlotUnbootable(0));
++    EXPECT_FALSE(test_device->IsSlotUnbootable(1));
++}
++TEST_F(SnapshotUpdateTest, DataWipeRequiredInPackage) {
++    if (ShouldSkipLegacyMerging()) {
++        GTEST_SKIP() << "Skipping legacy merge in test";
++    }
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(true ));
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(test_device->IsSlotUnbootable(1));
++    ASSERT_FALSE(test_device->IsSlotUnbootable(0));
++    ASSERT_TRUE(UnmapAll());
++    test_device = new TestDeviceInfo(fake_super, "_b");
++    auto init = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name)) << name;
++    }
++}
++TEST_F(SnapshotUpdateTest, DataWipeWithStaleSnapshots) {
++    if (ShouldSkipLegacyMerging()) {
++        GTEST_SKIP() << "Skipping legacy merge in test";
++    }
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    {
++        ASSERT_TRUE(AcquireLock());
++        PartitionCowCreator cow_creator = {
++                .using_snapuserd = snapuserd_required_,
++                .compression_algorithm = snapuserd_required_ ? FLAGS_compression_method : "",
++        };
++        SnapshotStatus status;
++        status.set_name("sys_a");
++        status.set_device_size(1_MiB);
++        status.set_snapshot_size(2_MiB);
++        status.set_cow_partition_size(2_MiB);
++        ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++        lock_ = nullptr;
++        ASSERT_TRUE(sm->EnsureImageManager());
++        ASSERT_TRUE(sm->image_manager()->CreateBackingImage("sys_a", 1_MiB, 0));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(true ));
++    ASSERT_TRUE(UnmapAll());
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(test_device->IsSlotUnbootable(1));
++    ASSERT_FALSE(test_device->IsSlotUnbootable(0));
++    ASSERT_TRUE(UnmapAll());
++    test_device = new TestDeviceInfo(fake_super, "_b");
++    auto init = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name)) << name;
++    }
++}
++TEST_F(SnapshotUpdateTest, Hashtree) {
++    constexpr auto partition_size = 4_MiB;
++    constexpr auto data_size = 3_MiB;
++    constexpr auto hashtree_size = 512_KiB;
++    constexpr auto fec_size = partition_size - data_size - hashtree_size;
++    const auto block_size = manifest_.block_size();
++    SetSize(sys_, partition_size);
++    AddOperation(sys_, data_size);
++    sys_->set_estimate_cow_size(partition_size + data_size);
++    sys_->mutable_hash_tree_data_extent()->set_start_block(0);
++    sys_->mutable_hash_tree_data_extent()->set_num_blocks(data_size / block_size);
++    sys_->mutable_hash_tree_extent()->set_start_block(data_size / block_size);
++    sys_->mutable_hash_tree_extent()->set_num_blocks(hashtree_size / block_size);
++    sys_->mutable_fec_data_extent()->set_start_block(0);
++    sys_->mutable_fec_data_extent()->set_num_blocks((data_size + hashtree_size) / block_size);
++    sys_->mutable_fec_extent()->set_start_block((data_size + hashtree_size) / block_size);
++    sys_->mutable_fec_extent()->set_num_blocks(fec_size / block_size);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots({"vnd_b", "prd_b"}));
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(IsPartitionUnchanged("sys_b"));
++}
++TEST_F(SnapshotUpdateTest, Overflow) {
++    if (snapuserd_required_) {
++        GTEST_SKIP() << "No overflow bit set for snapuserd COWs";
++    }
++    const auto actual_write_size = GetSize(sys_);
++    const auto declared_write_size = actual_write_size - 1_MiB;
++    AddOperation(sys_, declared_write_size);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots({"vnd_b", "prd_b"}));
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    std::vector<android::dm::DeviceMapper::TargetInfo> table;
++    ASSERT_TRUE(DeviceMapper::Instance().GetTableStatus("sys_b", &table));
++    ASSERT_EQ(1u, table.size());
++    EXPECT_TRUE(table[0].IsOverflowSnapshot());
++    ASSERT_FALSE(sm->FinishedSnapshotWrites(false))
++            << "FinishedSnapshotWrites should detect overflow of CoW device.";
++}
++std::pair<uint64_t, uint64_t> GetBigFileLimit() {
++    struct statvfs fs;
++    if (statvfs("/data", &fs) < 0) {
++        PLOG(ERROR) << "statfs failed";
++        return {0, 0};
++    }
++    auto fs_limit = static_cast<uint64_t>(fs.f_blocks) * (fs.f_bsize - 1);
++    auto fs_free = static_cast<uint64_t>(fs.f_bfree) * fs.f_bsize;
++    LOG(INFO) << "Big file limit: " << fs_limit << ", free space: " << fs_free;
++    return {fs_limit, fs_free};
++}
++TEST_F(SnapshotUpdateTest, LowSpace) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping test on legacy VAB";
++    }
++    auto fs = GetBigFileLimit();
++    ASSERT_NE(fs.first, 0);
++    constexpr uint64_t partition_size = 10_MiB;
++    SetSize(sys_, partition_size);
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, partition_size);
++    sys_->set_estimate_cow_size(fs.first);
++    vnd_->set_estimate_cow_size(fs.first);
++    prd_->set_estimate_cow_size(fs.first);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    auto res = sm->CreateUpdateSnapshots(manifest_);
++    ASSERT_FALSE(res);
++    ASSERT_EQ(Return::ErrorCode::NO_SPACE, res.error_code());
++    auto expected_delta = fs.first - fs.second;
++    ASSERT_GE(res.required_size(), expected_delta / 2);
++}
++TEST_F(SnapshotUpdateTest, AddPartition) {
++    group_->add_partition_names("dlkm");
++    auto dlkm = manifest_.add_partitions();
++    dlkm->set_partition_name("dlkm");
++    dlkm->set_estimate_cow_size(2_MiB);
++    SetSize(dlkm, 3_MiB);
++    constexpr uint64_t partition_size = 3788_KiB;
++    SetSize(sys_, partition_size);
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, partition_size);
++    SetSize(dlkm, partition_size);
++    AddOperationForPartitions({sys_, vnd_, prd_, dlkm});
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    for (const auto& partition : {sys_, vnd_, prd_, dlkm}) {
++        ASSERT_TRUE(WriteSnapshotAndHash(partition));
++    }
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->EnsureSnapuserdConnected());
++    init->set_use_first_stage_snapuserd(true);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    std::vector<std::string> partitions = {"sys_b", "vnd_b", "prd_b", "dlkm_b"};
++    for (const auto& name : partitions) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(init->PerformInitTransition(SnapshotManager::InitTransition::SECOND_STAGE));
++    for (const auto& name : partitions) {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete(name + "-user-cow-init"));
++    }
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b", "dlkm_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
+@@ -1283,42 +1833,122 @@ class AutoKill final {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
+-}
+-class FlashAfterUpdateTest
+-    : public SnapshotUpdateTest,
++TEST_F(SnapshotUpdateTest, DaemonTransition) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    ASSERT_TRUE(sm->EnsureSnapuserdConnected());
++    sm->set_use_first_stage_snapuserd(true);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->EnsureSnapuserdConnected());
++    init->set_use_first_stage_snapuserd(true);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots();
++    if (userspace_snapshots) {
++        ASSERT_EQ(access("/dev/dm-user/sys_b-init", F_OK), 0);
++        ASSERT_EQ(access("/dev/dm-user/sys_b", F_OK), -1);
++    } else {
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow-init", F_OK), 0);
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow", F_OK), -1);
++    }
++    ASSERT_TRUE(init->PerformInitTransition(SnapshotManager::InitTransition::SECOND_STAGE));
++    if (userspace_snapshots) {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("sys_b-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("vnd_b-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("prd_b-init"));
++        ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted("/dev/dm-user/sys_b-init", 10s));
++        ASSERT_EQ(access("/dev/dm-user/sys_b", F_OK), 0);
++    } else {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("sys_b-user-cow-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("vnd_b-user-cow-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("prd_b-user-cow-init"));
++        ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted("/dev/dm-user/sys_b-user-cow-init", 10s));
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow", F_OK), 0);
++    }
++}
++TEST_F(SnapshotUpdateTest, MapAllSnapshots) {
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(sm->MapAllSnapshots(10s));
++    ASSERT_TRUE(IsPartitionUnchanged("sys_b"));
++    ASSERT_TRUE(sm->UnmapAllSnapshots());
++}
++TEST_F(SnapshotUpdateTest, CancelOnTargetSlot) {
++    AddOperationForPartitions();
++    ASSERT_TRUE(UnmapAll());
++    test_device->set_slot_suffix("_b");
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    std::string path;
++    ASSERT_TRUE(CreateLogicalPartition(
++            CreateLogicalPartitionParams{
++                    .block_device = fake_super,
++                    .metadata_slot = 0,
++                    .partition_name = "sys_a",
++                    .timeout_ms = 1s,
++                    .partition_opener = opener_.get(),
++            },
++            &path));
++    bool userspace_snapshots = sm->UpdateUsesUserSnapshots();
++    unique_fd fd;
++    if (!userspace_snapshots) {
++        fd.reset(open(path.c_str(), O_RDONLY));
++    }
++    test_device->set_slot_suffix("_a");
++    ASSERT_TRUE(sm->BeginUpdate());
++}
++TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    constexpr uint64_t partition_size = 3788_KiB;
++    SetSize(sys_, partition_size);
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    if (sm->UpdateUsesUserSnapshots()) {
++        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    }
++    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    class DmStatusFailure final : public DeviceMapperWrapper {
++      public:
++        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
++            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
++                return false;
++            }
++            if (name == "sys_b" && !table->empty()) {
++                auto& info = table->at(0);
++                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
++                    info.data = "Merge failed";
++                }
++            }
++            return true;
++        }
++    };
++    DmStatusFailure wrapper;
++    auto info = new TestDeviceInfo(fake_super, "_b");
++    info->set_dm(&wrapper);
++    auto init = NewManagerForFirstStageMount(info);
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
++    }
++    ASSERT_TRUE(UnmapAll());
++    init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++}
++class FlashAfterUpdateTest : public SnapshotUpdateTest,
+@@ -1338,9 +1968,49 @@ class FlashAfterUpdateTest
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++TEST_P(FlashAfterUpdateTest, FlashSlotAfterUpdate) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    bool after_merge = std::get<1>(GetParam());
++    if (after_merge) {
++        ASSERT_TRUE(InitiateMerge("_b"));
++        ASSERT_TRUE(UnmapAll());
++    }
++    auto flashed_slot = std::get<0>(GetParam());
++    auto flashed_slot_suffix = SlotSuffixForSlotNumber(flashed_slot);
++    auto flashed_builder = MetadataBuilder::New(*opener_, "super", flashed_slot);
++    ASSERT_NE(flashed_builder, nullptr);
++    flashed_builder->RemoveGroupAndPartitions(group_->name() + flashed_slot_suffix);
++    flashed_builder->RemoveGroupAndPartitions(kCowGroupName);
++    ASSERT_TRUE(FillFakeMetadata(flashed_builder.get(), manifest_, flashed_slot_suffix));
++    ASSERT_NE(nullptr, flashed_builder->FindPartition("prd" + flashed_slot_suffix));
++    flashed_builder->RemovePartition("prd" + flashed_slot_suffix);
++    auto flashed_metadata = flashed_builder->Export();
++    ASSERT_NE(nullptr, flashed_metadata);
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *flashed_metadata, 0));
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *flashed_metadata, 1));
++    std::string path;
++    for (const auto& name : {"sys", "vnd"}) {
++        ASSERT_TRUE(CreateLogicalPartition(
++                CreateLogicalPartitionParams{
++                        .block_device = fake_super,
++                        .metadata_slot = flashed_slot,
++                        .partition_name = name + flashed_slot_suffix,
++                        .timeout_ms = 1s,
++                        .partition_opener = opener_.get(),
++                },
++                &path));
++        ASSERT_TRUE(WriteRandomData(path));
++        auto hash = GetHash(path);
++        ASSERT_TRUE(hash.has_value());
++        hashes_[name + flashed_slot_suffix] = *hash;
++    }
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount(flashed_slot_suffix);
++    ASSERT_NE(init, nullptr);
++    if (flashed_slot && after_merge) {
++        ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    }
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    for (const auto& name : {"sys", "vnd"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name + flashed_slot_suffix));
+@@ -1347,0 +2018,14 @@ TEST_P(ImageManagerTest, CreateImageNoSpace) {
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, flashed_slot_suffix));
++    if (flashed_slot == 0 && after_merge) {
++        ASSERT_EQ(UpdateState::MergeCompleted, new_sm->ProcessUpdateState());
++    } else {
++        ASSERT_EQ(UpdateState::Cancelled, new_sm->ProcessUpdateState());
++    }
++    ASSERT_TRUE(new_sm->CancelUpdate());
++}
++INSTANTIATE_TEST_SUITE_P(Snapshot, FlashAfterUpdateTest, Combine(Values(0, 1), Bool()),
++                         [](const TestParamInfo<FlashAfterUpdateTest::ParamType>& info) {
++                             return "Flash"s + (std::get<0>(info.param) ? "New"s : "Old"s) +
++                                    "Slot"s + (std::get<1>(info.param) ? "After"s : "Before"s) +
++                                    "Merge"s;
++                         });
+@@ -1368,9 +2052,7 @@ class ImageManagerTest : public SnapshotTest {
+-TEST_P(ImageManagerTest, CreateImageNoSpace) {
+-  uint64_t to_allocate = userdata_->free_space() + userdata_->bsize();
+-  auto res = image_manager_->CreateBackingImage(
+-      kImageName, to_allocate, IImageManager::CREATE_IMAGE_DEFAULT);
+-  ASSERT_FALSE(res) << "Should not be able to create image with size = "
+-                    << to_allocate << " bytes because only "
+-                    << userdata_->free_space() << " bytes are free";
+-  ASSERT_EQ(FiemapStatus::ErrorCode::NO_SPACE, res.error_code())
+-      << res.string();
++TEST_F(ImageManagerTest, CreateImageNoSpace) {
++    auto fs = GetBigFileLimit();
++    ASSERT_NE(fs.first, 0);
++    auto res = image_manager_->CreateBackingImage(kImageName, fs.first,
++                                                  IImageManager::CREATE_IMAGE_DEFAULT);
++    ASSERT_FALSE(res);
++    ASSERT_EQ(res.error_code(), FiemapStatus::ErrorCode::NO_SPACE) << res.string();
+@@ -1380,2 +2062 @@ bool Mkdir(const std::string& path) {
+-    std::cerr << "Could not mkdir " << path << ": " << strerror(errno)
+-              << std::endl;
++        std::cerr << "Could not mkdir " << path << ": " << strerror(errno) << std::endl;
+@@ -1388,3 +2069 @@ class SnapshotTestEnvironment : public ::testing::Environment {
+-  () = delete;
+-  {}() = delete;
+-  {}
++    ~SnapshotTestEnvironment() override {}
+@@ -1398,4 +2077,3 @@ bool SnapshotTestEnvironment::CreateFakeSuper() {
+-  static constexpr int kImageFlags = IImageManager::CREATE_IMAGE_DEFAULT |
+-                                     IImageManager::CREATE_IMAGE_ZERO_FILL;
+-  if (!super_images_->CreateBackingImage("fake-super", kSuperSize,
+-                                         kImageFlags)) {
++    static constexpr int kImageFlags =
++            IImageManager::CREATE_IMAGE_DEFAULT | IImageManager::CREATE_IMAGE_ZERO_FILL;
++    if (!super_images_->CreateBackingImage("fake-super", kSuperSize, kImageFlags)) {
+@@ -1413,2 +2091 @@ void SnapshotTestEnvironment::SetUp() {
+-  RETURN_IF_NON_VIRTUAL_AB_MSG(
+-      "Virtual A/B is not enabled, skipping global setup.\n");
++    RETURN_IF_NON_VIRTUAL_AB_MSG("Virtual A/B is not enabled, skipping global setup.\n");
+@@ -1434,2 +2111 @@ void SnapshotTestEnvironment::SetUp() {
+-      ASSERT_TRUE(
+-          super_images_->GetMappedImageDevice("fake-super", &fake_super));
++            ASSERT_TRUE(super_images_->GetMappedImageDevice("fake-super", &fake_super));
+@@ -1437,2 +2113 @@ void SnapshotTestEnvironment::SetUp() {
+-      ASSERT_TRUE(
+-          super_images_->MapImageDevice("fake-super", 10s, &fake_super));
++            ASSERT_TRUE(super_images_->MapImageDevice("fake-super", 10s, &fake_super));
+@@ -1475,2 +2150 @@ int main(int argc, char** argv) {
+-  ::testing::AddGlobalTestEnvironment(
+-      new ::android::snapshot::SnapshotTestEnvironment());
++    ::testing::AddGlobalTestEnvironment(new ::android::snapshot::SnapshotTestEnvironment());

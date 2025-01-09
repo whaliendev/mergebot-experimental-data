@@ -1,0 +1,23 @@
+diff --git a/./output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_mergegen.cpp b/./output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_merged.cpp
+index 88e1a54..2a18c04 100644
+--- a/./output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/192831ab-da52cc20-7f82d1a7/media@codec2@sfplugin@CCodec.no_comments_merged.cpp
+@@ -1093,0 +1094,2 @@ void CCodec::start() {
++    (void)mSentConfigAfterResume.test_and_set();
++    err2 = mChannel->start(inputFormat, outputFormat, buffersBoundToCodec);
+@@ -1310 +1312,11 @@ void CCodec::signalResume() {
+-mSentConfigAfterResume.clear(); { Mutexed<std::unique_ptr<Config>>::Locked configLocked(mConfig); const std::unique_ptr<Config> &config = *configLocked; config->queryConfiguration(comp); } (void)mChannel->start(nullptr, nullptr, [&]{ Mutexed<std::unique_ptr<Config>>::Locked configLocked(mConfig); const std::unique_ptr<Config> &config = *configLocked; return config->mBuffersBoundToCodec;
++    mSentConfigAfterResume.clear();
++    {
++        Mutexed<std::unique_ptr<Config>>::Locked configLocked(mConfig);
++        const std::unique_ptr<Config> &config = *configLocked;
++        config->queryConfiguration(comp);
++    }
++    (void)mChannel->start(nullptr, nullptr, [&]{
++        Mutexed<std::unique_ptr<Config>>::Locked configLocked(mConfig);
++        const std::unique_ptr<Config> &config = *configLocked;
++        return config->mBuffersBoundToCodec;
++    }());
+@@ -1474,0 +1487,2 @@ void CCodec::onMessageReceived(const sp<AMessage> &msg) {
++            Mutexed<std::unique_ptr<Config>>::Locked configLocked(mConfig);
++            const std::unique_ptr<Config> &config = *configLocked;

@@ -1,0 +1,749 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/media@libaudioclient@IAudioFlinger.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/media@libaudioclient@IAudioFlinger.no_comments_merged.cpp
+index 34e81f7..de7a0e4 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/media@libaudioclient@IAudioFlinger.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/83c7bb9b-fd414a83-7f0218eb/media@libaudioclient@IAudioFlinger.no_comments_merged.cpp
+@@ -19,0 +20,11 @@ using media::audio::common::AudioUuid;
++#define VALUE_OR_RETURN_BINDER(x) \
++    ({ \
++       auto _tmp = (x); \
++       if (!_tmp.ok()) return Status::fromStatusT(_tmp.error()); \
++       std::move(_tmp.value()); \
++     })
++#define RETURN_BINDER_IF_ERROR(x) \
++    { \
++       auto _tmp = (x); \
++       if (_tmp != OK) return Status::fromStatusT(_tmp); \
++    }
+@@ -23,2 +34,2 @@ ConversionResult<media::CreateTrackRequest> IAudioFlinger::CreateTrackInput::toA
+-    aidl.config =
+-            VALUE_OR_RETURN(legacy2aidl_audio_config_t_AudioConfig(config, false ));
++    aidl.config = VALUE_OR_RETURN(legacy2aidl_audio_config_t_AudioConfig(
++                    config, false ));
+@@ -33,2 +44,2 @@ ConversionResult<media::CreateTrackRequest> IAudioFlinger::CreateTrackInput::toA
+-    aidl.selectedDeviceId =
+-            VALUE_OR_RETURN(legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
++    aidl.selectedDeviceId = VALUE_OR_RETURN(
++            legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
+@@ -38,2 +49,2 @@ ConversionResult<media::CreateTrackRequest> IAudioFlinger::CreateTrackInput::toA
+-ConversionResult<IAudioFlinger::CreateTrackInput> IAudioFlinger::CreateTrackInput::fromAidl(
+-        const media::CreateTrackRequest& aidl) {
++ConversionResult<IAudioFlinger::CreateTrackInput>
++IAudioFlinger::CreateTrackInput::fromAidl(const media::CreateTrackRequest& aidl) {
+@@ -42,2 +53,2 @@ ConversionResult<IAudioFlinger::CreateTrackInput> IAudioFlinger::CreateTrackInpu
+-    legacy.config =
+-            VALUE_OR_RETURN(aidl2legacy_AudioConfig_audio_config_t(aidl.config, false ));
++    legacy.config = VALUE_OR_RETURN(
++            aidl2legacy_AudioConfig_audio_config_t(aidl.config, false ));
+@@ -45,4 +56,3 @@ ConversionResult<IAudioFlinger::CreateTrackInput> IAudioFlinger::CreateTrackInpu
+-    legacy.sharedBuffer =
+-            VALUE_OR_RETURN(aidl2legacy_NullableSharedFileRegion_IMemory(aidl.sharedBuffer));
+-    legacy.notificationsPerBuffer =
+-            VALUE_OR_RETURN(convertIntegral<uint32_t>(aidl.notificationsPerBuffer));
++    legacy.sharedBuffer = VALUE_OR_RETURN(aidl2legacy_NullableSharedFileRegion_IMemory(aidl.sharedBuffer));
++    legacy.notificationsPerBuffer = VALUE_OR_RETURN(
++            convertIntegral<uint32_t>(aidl.notificationsPerBuffer));
+@@ -53,4 +63,4 @@ ConversionResult<IAudioFlinger::CreateTrackInput> IAudioFlinger::CreateTrackInpu
+-    legacy.notificationFrameCount =
+-            VALUE_OR_RETURN(convertIntegral<size_t>(aidl.notificationFrameCount));
+-    legacy.selectedDeviceId =
+-            VALUE_OR_RETURN(aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
++    legacy.notificationFrameCount = VALUE_OR_RETURN(
++            convertIntegral<size_t>(aidl.notificationFrameCount));
++    legacy.selectedDeviceId = VALUE_OR_RETURN(
++            aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
+@@ -60 +70,2 @@ ConversionResult<IAudioFlinger::CreateTrackInput> IAudioFlinger::CreateTrackInpu
+-ConversionResult<media::CreateTrackResponse> IAudioFlinger::CreateTrackOutput::toAidl() const {
++ConversionResult<media::CreateTrackResponse>
++IAudioFlinger::CreateTrackOutput::toAidl() const {
+@@ -65,2 +76,2 @@ ConversionResult<media::CreateTrackResponse> IAudioFlinger::CreateTrackOutput::t
+-    aidl.selectedDeviceId =
+-            VALUE_OR_RETURN(legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
++    aidl.selectedDeviceId = VALUE_OR_RETURN(
++            legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
+@@ -69 +80,2 @@ ConversionResult<media::CreateTrackResponse> IAudioFlinger::CreateTrackOutput::t
+-    aidl.streamType = VALUE_OR_RETURN(legacy2aidl_audio_stream_type_t_AudioStreamType(streamType));
++    aidl.streamType = VALUE_OR_RETURN(
++            legacy2aidl_audio_stream_type_t_AudioStreamType(streamType));
+@@ -75,3 +87,4 @@ ConversionResult<media::CreateTrackResponse> IAudioFlinger::CreateTrackOutput::t
+-    aidl.afFormat = VALUE_OR_RETURN(legacy2aidl_audio_format_t_AudioFormatDescription(afFormat));
+-    aidl.afTrackFlags =
+-            VALUE_OR_RETURN(legacy2aidl_audio_output_flags_t_int32_t_mask(afTrackFlags));
++    aidl.afFormat = VALUE_OR_RETURN(
++            legacy2aidl_audio_format_t_AudioFormatDescription(afFormat));
++    aidl.afTrackFlags = VALUE_OR_RETURN(
++            legacy2aidl_audio_output_flags_t_int32_t_mask(afTrackFlags));
+@@ -83 +96,2 @@ ConversionResult<media::CreateTrackResponse> IAudioFlinger::CreateTrackOutput::t
+-ConversionResult<IAudioFlinger::CreateTrackOutput> IAudioFlinger::CreateTrackOutput::fromAidl(
++ConversionResult<IAudioFlinger::CreateTrackOutput>
++IAudioFlinger::CreateTrackOutput::fromAidl(
+@@ -88,4 +102,4 @@ ConversionResult<IAudioFlinger::CreateTrackOutput> IAudioFlinger::CreateTrackOut
+-    legacy.notificationFrameCount =
+-            VALUE_OR_RETURN(convertIntegral<size_t>(aidl.notificationFrameCount));
+-    legacy.selectedDeviceId =
+-            VALUE_OR_RETURN(aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
++    legacy.notificationFrameCount = VALUE_OR_RETURN(
++            convertIntegral<size_t>(aidl.notificationFrameCount));
++    legacy.selectedDeviceId = VALUE_OR_RETURN(
++            aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
+@@ -94,2 +108,2 @@ ConversionResult<IAudioFlinger::CreateTrackOutput> IAudioFlinger::CreateTrackOut
+-    legacy.streamType =
+-            VALUE_OR_RETURN(aidl2legacy_AudioStreamType_audio_stream_type_t(aidl.streamType));
++    legacy.streamType = VALUE_OR_RETURN(
++            aidl2legacy_AudioStreamType_audio_stream_type_t(aidl.streamType));
+@@ -99,6 +113,7 @@ ConversionResult<IAudioFlinger::CreateTrackOutput> IAudioFlinger::CreateTrackOut
+-    legacy.afChannelMask = VALUE_OR_RETURN(aidl2legacy_AudioChannelLayout_audio_channel_mask_t(
+-            aidl.afChannelMask, false ));
+-    legacy.afFormat =
+-            VALUE_OR_RETURN(aidl2legacy_AudioFormatDescription_audio_format_t(aidl.afFormat));
+-    legacy.afTrackFlags =
+-            VALUE_OR_RETURN(aidl2legacy_int32_t_audio_output_flags_t_mask(aidl.afTrackFlags));
++    legacy.afChannelMask = VALUE_OR_RETURN(
++            aidl2legacy_AudioChannelLayout_audio_channel_mask_t(aidl.afChannelMask,
++                                                                false ));
++    legacy.afFormat = VALUE_OR_RETURN(
++            aidl2legacy_AudioFormatDescription_audio_format_t(aidl.afFormat));
++    legacy.afTrackFlags = VALUE_OR_RETURN(
++            aidl2legacy_int32_t_audio_output_flags_t_mask(aidl.afTrackFlags));
+@@ -110 +125,2 @@ ConversionResult<IAudioFlinger::CreateTrackOutput> IAudioFlinger::CreateTrackOut
+-ConversionResult<media::CreateRecordRequest> IAudioFlinger::CreateRecordInput::toAidl() const {
++ConversionResult<media::CreateRecordRequest>
++IAudioFlinger::CreateRecordInput::toAidl() const {
+@@ -117,2 +133,2 @@ ConversionResult<media::CreateRecordRequest> IAudioFlinger::CreateRecordInput::t
+-    aidl.maxSharedAudioHistoryMs =
+-            VALUE_OR_RETURN(convertIntegral<int32_t>(maxSharedAudioHistoryMs));
++    aidl.maxSharedAudioHistoryMs = VALUE_OR_RETURN(
++            convertIntegral<int32_t>(maxSharedAudioHistoryMs));
+@@ -122,2 +138,2 @@ ConversionResult<media::CreateRecordRequest> IAudioFlinger::CreateRecordInput::t
+-    aidl.selectedDeviceId =
+-            VALUE_OR_RETURN(legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
++    aidl.selectedDeviceId = VALUE_OR_RETURN(
++            legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
+@@ -127 +143,2 @@ ConversionResult<media::CreateRecordRequest> IAudioFlinger::CreateRecordInput::t
+-ConversionResult<IAudioFlinger::CreateRecordInput> IAudioFlinger::CreateRecordInput::fromAidl(
++ConversionResult<IAudioFlinger::CreateRecordInput>
++IAudioFlinger::CreateRecordInput::fromAidl(
+@@ -130 +147,2 @@ ConversionResult<IAudioFlinger::CreateRecordInput> IAudioFlinger::CreateRecordIn
+-    legacy.attr = VALUE_OR_RETURN(aidl2legacy_AudioAttributes_audio_attributes_t(aidl.attr));
++    legacy.attr = VALUE_OR_RETURN(
++            aidl2legacy_AudioAttributes_audio_attributes_t(aidl.attr));
+@@ -135,2 +153,2 @@ ConversionResult<IAudioFlinger::CreateRecordInput> IAudioFlinger::CreateRecordIn
+-    legacy.maxSharedAudioHistoryMs =
+-            VALUE_OR_RETURN(convertIntegral<int32_t>(aidl.maxSharedAudioHistoryMs));
++    legacy.maxSharedAudioHistoryMs = VALUE_OR_RETURN(
++            convertIntegral<int32_t>(aidl.maxSharedAudioHistoryMs));
+@@ -139,4 +157,4 @@ ConversionResult<IAudioFlinger::CreateRecordInput> IAudioFlinger::CreateRecordIn
+-    legacy.notificationFrameCount =
+-            VALUE_OR_RETURN(convertIntegral<size_t>(aidl.notificationFrameCount));
+-    legacy.selectedDeviceId =
+-            VALUE_OR_RETURN(aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
++    legacy.notificationFrameCount = VALUE_OR_RETURN(
++            convertIntegral<size_t>(aidl.notificationFrameCount));
++    legacy.selectedDeviceId = VALUE_OR_RETURN(
++            aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
+@@ -146 +164,2 @@ ConversionResult<IAudioFlinger::CreateRecordInput> IAudioFlinger::CreateRecordIn
+-ConversionResult<media::CreateRecordResponse> IAudioFlinger::CreateRecordOutput::toAidl() const {
++ConversionResult<media::CreateRecordResponse>
++IAudioFlinger::CreateRecordOutput::toAidl() const {
+@@ -151,2 +170,2 @@ ConversionResult<media::CreateRecordResponse> IAudioFlinger::CreateRecordOutput:
+-    aidl.selectedDeviceId =
+-            VALUE_OR_RETURN(legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
++    aidl.selectedDeviceId = VALUE_OR_RETURN(
++            legacy2aidl_audio_port_handle_t_int32_t(selectedDeviceId));
+@@ -166 +185,2 @@ ConversionResult<media::CreateRecordResponse> IAudioFlinger::CreateRecordOutput:
+-ConversionResult<IAudioFlinger::CreateRecordOutput> IAudioFlinger::CreateRecordOutput::fromAidl(
++ConversionResult<IAudioFlinger::CreateRecordOutput>
++IAudioFlinger::CreateRecordOutput::fromAidl(
+@@ -171,4 +191,4 @@ ConversionResult<IAudioFlinger::CreateRecordOutput> IAudioFlinger::CreateRecordO
+-    legacy.notificationFrameCount =
+-            VALUE_OR_RETURN(convertIntegral<size_t>(aidl.notificationFrameCount));
+-    legacy.selectedDeviceId =
+-            VALUE_OR_RETURN(aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
++    legacy.notificationFrameCount = VALUE_OR_RETURN(
++            convertIntegral<size_t>(aidl.notificationFrameCount));
++    legacy.selectedDeviceId = VALUE_OR_RETURN(
++            aidl2legacy_int32_t_audio_port_handle_t(aidl.selectedDeviceId));
+@@ -188,2 +208,2 @@ ConversionResult<IAudioFlinger::CreateRecordOutput> IAudioFlinger::CreateRecordO
+-AudioFlingerClientAdapter::AudioFlingerClientAdapter(const sp<media::IAudioFlingerService> delegate)
+-    : mDelegate(delegate) {}
++AudioFlingerClientAdapter::AudioFlingerClientAdapter(
++        const sp<media::IAudioFlingerService> delegate) : mDelegate(delegate) {}
+@@ -264,2 +284,2 @@ status_t AudioFlingerClientAdapter::setStreamVolume(audio_stream_type_t stream,
+-    AudioStreamType streamAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
++    AudioStreamType streamAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
+@@ -270,2 +290,2 @@ status_t AudioFlingerClientAdapter::setStreamMute(audio_stream_type_t stream, bo
+-    AudioStreamType streamAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
++    AudioStreamType streamAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
+@@ -277,2 +297,2 @@ float AudioFlingerClientAdapter::streamVolume(audio_stream_type_t stream,
+-        AudioStreamType streamAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
++        AudioStreamType streamAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
+@@ -281,2 +301,2 @@ float AudioFlingerClientAdapter::streamVolume(audio_stream_type_t stream,
+-        RETURN_IF_ERROR(
+-                statusTFromBinderStatus(mDelegate->streamVolume(streamAidl, outputAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->streamVolume(streamAidl, outputAidl, &aidlRet)));
+@@ -289,2 +309,2 @@ bool AudioFlingerClientAdapter::streamMute(audio_stream_type_t stream) const {
+-        AudioStreamType streamAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
++        AudioStreamType streamAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_stream_type_t_AudioStreamType(stream));
+@@ -292 +312,2 @@ bool AudioFlingerClientAdapter::streamMute(audio_stream_type_t stream) const {
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->streamMute(streamAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->streamMute(streamAidl, &aidlRet)));
+@@ -307 +328,2 @@ bool AudioFlingerClientAdapter::getMicMute() const {
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->getMicMute(&aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getMicMute(&aidlRet)));
+@@ -314,2 +336,2 @@ void AudioFlingerClientAdapter::setRecordSilenced(audio_port_handle_t portId, bo
+-        int32_t portIdAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_handle_t_int32_t(portId));
++        int32_t portIdAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_port_handle_t_int32_t(portId));
+@@ -323,2 +345,2 @@ status_t AudioFlingerClientAdapter::setParameters(audio_io_handle_t ioHandle,
+-    std::string keyValuePairsAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_String8_string(keyValuePairs));
++    std::string keyValuePairsAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_String8_string(keyValuePairs));
+@@ -327,2 +349,2 @@ status_t AudioFlingerClientAdapter::setParameters(audio_io_handle_t ioHandle,
+-String8 AudioFlingerClientAdapter::getParameters(audio_io_handle_t ioHandle,
+-                                                 const String8& keys) const {
++String8 AudioFlingerClientAdapter::getParameters(audio_io_handle_t ioHandle, const String8& keys)
++const {
+@@ -346,2 +368,2 @@ size_t AudioFlingerClientAdapter::getInputBufferSize(uint32_t sampleRate, audio_
+-        AudioFormatDescription formatAidl =
+-                VALUE_OR_RETURN(legacy2aidl_audio_format_t_AudioFormatDescription(format));
++        AudioFormatDescription formatAidl = VALUE_OR_RETURN(
++                legacy2aidl_audio_format_t_AudioFormatDescription(format));
+@@ -351,2 +373,3 @@ size_t AudioFlingerClientAdapter::getInputBufferSize(uint32_t sampleRate, audio_
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->getInputBufferSize(
+-                sampleRateAidl, formatAidl, channelMaskAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getInputBufferSize(sampleRateAidl, formatAidl, channelMaskAidl,
++                                              &aidlRet)));
+@@ -400,2 +423,2 @@ status_t AudioFlingerClientAdapter::getRenderPosition(uint32_t* halFrames, uint3
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->getRenderPosition(outputAidl, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->getRenderPosition(outputAidl, &aidlRet)));
+@@ -414,2 +437,2 @@ uint32_t AudioFlingerClientAdapter::getInputFramesLost(audio_io_handle_t ioHandl
+-        RETURN_IF_ERROR(
+-                statusTFromBinderStatus(mDelegate->getInputFramesLost(ioHandleAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getInputFramesLost(ioHandleAidl, &aidlRet)));
+@@ -422,2 +445,2 @@ audio_unique_id_t AudioFlingerClientAdapter::newAudioUniqueId(audio_unique_id_us
+-        media::AudioUniqueIdUse useAidl =
+-                VALUE_OR_RETURN(legacy2aidl_audio_unique_id_use_t_AudioUniqueIdUse(use));
++        media::AudioUniqueIdUse useAidl = VALUE_OR_RETURN(
++                legacy2aidl_audio_unique_id_use_t_AudioUniqueIdUse(use));
+@@ -425 +448,2 @@ audio_unique_id_t AudioFlingerClientAdapter::newAudioUniqueId(audio_unique_id_us
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->newAudioUniqueId(useAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->newAudioUniqueId(useAidl, &aidlRet)));
+@@ -433,2 +457,2 @@ void AudioFlingerClientAdapter::acquireAudioSessionId(audio_session_t audioSessi
+-        int32_t audioSessionAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_session_t_int32_t(audioSession));
++        int32_t audioSessionAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_session_t_int32_t(audioSession));
+@@ -443,2 +467,2 @@ void AudioFlingerClientAdapter::releaseAudioSessionId(audio_session_t audioSessi
+-        int32_t audioSessionAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_session_t_int32_t(audioSession));
++        int32_t audioSessionAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_session_t_int32_t(audioSession));
+@@ -446 +470,2 @@ void AudioFlingerClientAdapter::releaseAudioSessionId(audio_session_t audioSessi
+-        return statusTFromBinderStatus(mDelegate->releaseAudioSessionId(audioSessionAidl, pidAidl));
++        return statusTFromBinderStatus(
++                mDelegate->releaseAudioSessionId(audioSessionAidl, pidAidl));
+@@ -451 +476,2 @@ status_t AudioFlingerClientAdapter::queryNumberEffects(uint32_t* numEffects) con
+-    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(mDelegate->queryNumberEffects(&aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->queryNumberEffects(&aidlRet)));
+@@ -457,2 +483,2 @@ status_t AudioFlingerClientAdapter::queryNumberEffects(uint32_t* numEffects) con
+-status_t AudioFlingerClientAdapter::queryEffect(uint32_t index,
+-                                                effect_descriptor_t* pDescriptor) const {
++status_t
++AudioFlingerClientAdapter::queryEffect(uint32_t index, effect_descriptor_t* pDescriptor) const {
+@@ -461 +487,2 @@ status_t AudioFlingerClientAdapter::queryEffect(uint32_t index,
+-    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(mDelegate->queryEffect(indexAidl, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->queryEffect(indexAidl, &aidlRet)));
+@@ -463,2 +490,2 @@ status_t AudioFlingerClientAdapter::queryEffect(uint32_t index,
+-        *pDescriptor =
+-                VALUE_OR_RETURN_STATUS(aidl2legacy_EffectDescriptor_effect_descriptor_t(aidlRet));
++        *pDescriptor = VALUE_OR_RETURN_STATUS(
++                aidl2legacy_EffectDescriptor_effect_descriptor_t(aidlRet));
+@@ -472,5 +499,6 @@ status_t AudioFlingerClientAdapter::getEffectDescriptor(const effect_uuid_t* pEf
+-    AudioUuid effectUuidAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_uuid_t_AudioUuid(*pEffectUUID));
+-    AudioUuid typeUuidAidl = VALUE_OR_RETURN_STATUS(legacy2aidl_audio_uuid_t_AudioUuid(*pTypeUUID));
+-    int32_t preferredTypeFlagAidl =
+-            VALUE_OR_RETURN_STATUS(convertReinterpret<int32_t>(preferredTypeFlag));
++    AudioUuid effectUuidAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_uuid_t_AudioUuid(*pEffectUUID));
++    AudioUuid typeUuidAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_uuid_t_AudioUuid(*pTypeUUID));
++    int32_t preferredTypeFlagAidl = VALUE_OR_RETURN_STATUS(
++            convertReinterpret<int32_t>(preferredTypeFlag));
+@@ -478,2 +506,3 @@ status_t AudioFlingerClientAdapter::getEffectDescriptor(const effect_uuid_t* pEf
+-    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(mDelegate->getEffectDescriptor(
+-            effectUuidAidl, typeUuidAidl, preferredTypeFlagAidl, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->getEffectDescriptor(effectUuidAidl, typeUuidAidl, preferredTypeFlagAidl,
++                                           &aidlRet)));
+@@ -481,2 +510,2 @@ status_t AudioFlingerClientAdapter::getEffectDescriptor(const effect_uuid_t* pEf
+-        *pDescriptor =
+-                VALUE_OR_RETURN_STATUS(aidl2legacy_EffectDescriptor_effect_descriptor_t(aidlRet));
++        *pDescriptor = VALUE_OR_RETURN_STATUS(
++                aidl2legacy_EffectDescriptor_effect_descriptor_t(aidlRet));
+@@ -490,2 +519,2 @@ status_t AudioFlingerClientAdapter::createEffect(const media::CreateEffectReques
+-status_t AudioFlingerClientAdapter::moveEffects(audio_session_t session,
+-                                                audio_io_handle_t srcOutput,
++status_t
++AudioFlingerClientAdapter::moveEffects(audio_session_t session, audio_io_handle_t srcOutput,
+@@ -494,4 +523,4 @@ status_t AudioFlingerClientAdapter::moveEffects(audio_session_t session,
+-    int32_t srcOutputAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_io_handle_t_int32_t(srcOutput));
+-    int32_t dstOutputAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_io_handle_t_int32_t(dstOutput));
++    int32_t srcOutputAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_io_handle_t_int32_t(srcOutput));
++    int32_t dstOutputAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_io_handle_t_int32_t(dstOutput));
+@@ -501 +530,2 @@ status_t AudioFlingerClientAdapter::moveEffects(audio_session_t session,
+-void AudioFlingerClientAdapter::setEffectSuspended(int effectId, audio_session_t sessionId,
++void AudioFlingerClientAdapter::setEffectSuspended(int effectId,
++                                                   audio_session_t sessionId,
+@@ -505,2 +535,2 @@ void AudioFlingerClientAdapter::setEffectSuspended(int effectId, audio_session_t
+-        int32_t sessionIdAidl =
+-                VALUE_OR_RETURN_STATUS(legacy2aidl_audio_session_t_int32_t(sessionId));
++        int32_t sessionIdAidl = VALUE_OR_RETURN_STATUS(
++                legacy2aidl_audio_session_t_int32_t(sessionId));
+@@ -515 +545,2 @@ audio_module_handle_t AudioFlingerClientAdapter::loadHwModule(const char* name)
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->loadHwModule(nameAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->loadHwModule(nameAidl, &aidlRet)));
+@@ -523 +554,2 @@ uint32_t AudioFlingerClientAdapter::getPrimaryOutputSamplingRate() const {
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->getPrimaryOutputSamplingRate(&aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getPrimaryOutputSamplingRate(&aidlRet)));
+@@ -531 +563,2 @@ size_t AudioFlingerClientAdapter::getPrimaryOutputFrameCount() const {
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->getPrimaryOutputFrameCount(&aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getPrimaryOutputFrameCount(&aidlRet)));
+@@ -540,2 +573,2 @@ status_t AudioFlingerClientAdapter::getAudioPort(struct audio_port_v7* port) con
+-    media::AudioPortFw portAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_v7_AudioPortFw(*port));
++    media::AudioPortFw portAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_port_v7_AudioPortFw(*port));
+@@ -543 +576,2 @@ status_t AudioFlingerClientAdapter::getAudioPort(struct audio_port_v7* port) con
+-    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(mDelegate->getAudioPort(portAidl, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->getAudioPort(portAidl, &aidlRet)));
+@@ -549,4 +583,4 @@ status_t AudioFlingerClientAdapter::createAudioPatch(const struct audio_patch* p
+-    media::AudioPatchFw patchAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_patch_AudioPatchFw(*patch));
+-    int32_t aidlRet = VALUE_OR_RETURN_STATUS(
+-            legacy2aidl_audio_patch_handle_t_int32_t(AUDIO_PATCH_HANDLE_NONE));
++    media::AudioPatchFw patchAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_patch_AudioPatchFw(*patch));
++    int32_t aidlRet = VALUE_OR_RETURN_STATUS(legacy2aidl_audio_patch_handle_t_int32_t(
++                    AUDIO_PATCH_HANDLE_NONE));
+@@ -556,2 +590,2 @@ status_t AudioFlingerClientAdapter::createAudioPatch(const struct audio_patch* p
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->createAudioPatch(patchAidl, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->createAudioPatch(patchAidl, &aidlRet)));
+@@ -571,2 +605,2 @@ status_t AudioFlingerClientAdapter::listAudioPatches(unsigned int* num_patches,
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->listAudioPatches(maxPatches, &aidlRet)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->listAudioPatches(maxPatches, &aidlRet)));
+@@ -578,2 +612,2 @@ status_t AudioFlingerClientAdapter::setAudioPortConfig(const struct audio_port_c
+-    media::AudioPortConfigFw configAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_config_AudioPortConfigFw(*config));
++    media::AudioPortConfigFw configAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_port_config_AudioPortConfigFw(*config));
+@@ -602 +636,2 @@ size_t AudioFlingerClientAdapter::frameCountHAL(audio_io_handle_t ioHandle) cons
+-        RETURN_IF_ERROR(statusTFromBinderStatus(mDelegate->frameCountHAL(ioHandleAidl, &aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->frameCountHAL(ioHandleAidl, &aidlRet)));
+@@ -607 +642,2 @@ size_t AudioFlingerClientAdapter::frameCountHAL(audio_io_handle_t ioHandle) cons
+-status_t AudioFlingerClientAdapter::getMicrophones(
++status_t
++AudioFlingerClientAdapter::getMicrophones(
+@@ -628 +664,2 @@ status_t AudioFlingerClientAdapter::updateSecondaryOutputs(
+-            VALUE_OR_RETURN_STATUS(convertContainer<std::vector<media::TrackSecondaryOutputInfo>>(
++            VALUE_OR_RETURN_STATUS(
++                    convertContainer<std::vector<media::TrackSecondaryOutputInfo>>(
+@@ -648,2 +685,2 @@ int32_t AudioFlingerClientAdapter::getAAudioHardwareBurstMinUsec() const {
+-        RETURN_IF_ERROR(
+-                statusTFromBinderStatus(mDelegate->getAAudioHardwareBurstMinUsec(&aidlRet)));
++        RETURN_IF_ERROR(statusTFromBinderStatus(
++                mDelegate->getAAudioHardwareBurstMinUsec(&aidlRet)));
+@@ -654,4 +691,4 @@ int32_t AudioFlingerClientAdapter::getAAudioHardwareBurstMinUsec() const {
+-status_t AudioFlingerClientAdapter::setDeviceConnectedState(const struct audio_port_v7* port,
+-                                                            media::DeviceConnectedState state) {
+-    media::AudioPortFw aidlPort =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_v7_AudioPortFw(*port));
++status_t AudioFlingerClientAdapter::setDeviceConnectedState(
++        const struct audio_port_v7 *port, media::DeviceConnectedState state) {
++    media::AudioPortFw aidlPort = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_port_v7_AudioPortFw(*port));
+@@ -663,2 +700,2 @@ status_t AudioFlingerClientAdapter::setSimulateDeviceConnections(bool enabled) {
+-status_t AudioFlingerClientAdapter::setRequestedLatencyMode(audio_io_handle_t output,
+-                                                            audio_latency_mode_t mode) {
++status_t AudioFlingerClientAdapter::setRequestedLatencyMode(
++        audio_io_handle_t output, audio_latency_mode_t mode) {
+@@ -666,2 +703,2 @@ status_t AudioFlingerClientAdapter::setRequestedLatencyMode(audio_io_handle_t ou
+-    media::audio::common::AudioLatencyMode modeAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_latency_mode_t_AudioLatencyMode(mode));
++    media::audio::common::AudioLatencyMode modeAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_latency_mode_t_AudioLatencyMode(mode));
+@@ -677,4 +714,5 @@ status_t AudioFlingerClientAdapter::getSupportedLatencyModes(
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->getSupportedLatencyModes(outputAidl, &modesAidl)));
+-    *modes = VALUE_OR_RETURN_STATUS(convertContainer<std::vector<audio_latency_mode_t>>(
+-            modesAidl, aidl2legacy_AudioLatencyMode_audio_latency_mode_t));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->getSupportedLatencyModes(outputAidl, &modesAidl)));
++    *modes = VALUE_OR_RETURN_STATUS(
++            convertContainer<std::vector<audio_latency_mode_t>>(modesAidl,
++                     aidl2legacy_AudioLatencyMode_audio_latency_mode_t));
+@@ -690,2 +728,2 @@ status_t AudioFlingerClientAdapter::isBluetoothVariableLatencyEnabled(bool* enab
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->isBluetoothVariableLatencyEnabled(enabled)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->isBluetoothVariableLatencyEnabled(enabled)));
+@@ -698,2 +736,2 @@ status_t AudioFlingerClientAdapter::supportsBluetoothVariableLatency(bool* suppo
+-    RETURN_STATUS_IF_ERROR(
+-            statusTFromBinderStatus(mDelegate->supportsBluetoothVariableLatency(support)));
++    RETURN_STATUS_IF_ERROR(statusTFromBinderStatus(
++            mDelegate->supportsBluetoothVariableLatency(support)));
+@@ -703 +741,2 @@ status_t AudioFlingerClientAdapter::getSoundDoseInterface(
+-        const sp<media::ISoundDoseCallback>& callback, sp<media::ISoundDose>* soundDose) const {
++        const sp<media::ISoundDoseCallback> &callback,
++        sp<media::ISoundDose>* soundDose) const {
+@@ -708,2 +747,2 @@ status_t AudioFlingerClientAdapter::invalidateTracks(
+-    std::vector<int32_t> portIdsAidl =
+-            VALUE_OR_RETURN_STATUS(convertContainer<std::vector<int32_t>>(
++    std::vector<int32_t> portIdsAidl = VALUE_OR_RETURN_STATUS(
++            convertContainer<std::vector<int32_t>>(
+@@ -725,4 +764,4 @@ status_t AudioFlingerClientAdapter::getAudioMixPort(const struct audio_port_v7*
+-    media::AudioPortFw devicePortAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_v7_AudioPortFw(*devicePort));
+-    media::AudioPortFw mixPortAidl =
+-            VALUE_OR_RETURN_STATUS(legacy2aidl_audio_port_v7_AudioPortFw(*mixPort));
++    media::AudioPortFw devicePortAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_port_v7_AudioPortFw(*devicePort));
++    media::AudioPortFw mixPortAidl = VALUE_OR_RETURN_STATUS(
++            legacy2aidl_audio_port_v7_AudioPortFw(*mixPort));
+@@ -744,2 +783 @@ AudioFlingerServerAdapter::AudioFlingerServerAdapter(
+-        const sp<AudioFlingerServerAdapter::Delegate>& delegate)
+-    : mDelegate(delegate) {
++        const sp<AudioFlingerServerAdapter::Delegate>& delegate) : mDelegate(delegate) {
+@@ -749 +787,3 @@ AudioFlingerServerAdapter::AudioFlingerServerAdapter(
+-status_t AudioFlingerServerAdapter::onTransact(uint32_t code, const Parcel& data, Parcel* reply,
++status_t AudioFlingerServerAdapter::onTransact(uint32_t code,
++                                               const Parcel& data,
++                                               Parcel* reply,
+@@ -751,3 +791,10 @@ status_t AudioFlingerServerAdapter::onTransact(uint32_t code, const Parcel& data
+-    return mDelegate->onTransactWrapper(
+-            static_cast<Delegate::TransactionCode>(code), data, flags,
+-            [&] { return BnAudioFlingerService::onTransact(code, data, reply, flags); });
++    return mDelegate->onTransactWrapper(static_cast<Delegate::TransactionCode>(code),
++                                        data,
++                                        flags,
++                                        [&] {
++                                            return BnAudioFlingerService::onTransact(
++                                                    code,
++                                                    data,
++                                                    reply,
++                                                    flags);
++                                        });
+@@ -767,4 +814,4 @@ Status AudioFlingerServerAdapter::sampleRate(int32_t ioHandle, int32_t* _aidl_re
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(convertIntegral<int32_t>(mDelegate->sampleRate(ioHandleLegacy)));
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            convertIntegral<int32_t>(mDelegate->sampleRate(ioHandleLegacy)));
+@@ -773,3 +820,4 @@ Status AudioFlingerServerAdapter::sampleRate(int32_t ioHandle, int32_t* _aidl_re
+-Status AudioFlingerServerAdapter::format(int32_t output, AudioFormatDescription* _aidl_return) {
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++Status AudioFlingerServerAdapter::format(int32_t output,
++                                         AudioFormatDescription* _aidl_return) {
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -781,4 +829,4 @@ Status AudioFlingerServerAdapter::frameCount(int32_t ioHandle, int64_t* _aidl_re
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(convertIntegral<int64_t>(mDelegate->frameCount(ioHandleLegacy)));
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            convertIntegral<int64_t>(mDelegate->frameCount(ioHandleLegacy)));
+@@ -788,4 +836,4 @@ Status AudioFlingerServerAdapter::latency(int32_t output, int32_t* _aidl_return)
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(convertIntegral<int32_t>(mDelegate->latency(outputLegacy)));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            convertIntegral<int32_t>(mDelegate->latency(outputLegacy)));
+@@ -816,4 +864,4 @@ Status AudioFlingerServerAdapter::setStreamVolume(AudioStreamType stream, float
+-    audio_stream_type_t streamLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_stream_type_t streamLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -823,2 +871,2 @@ Status AudioFlingerServerAdapter::setStreamMute(AudioStreamType stream, bool mut
+-    audio_stream_type_t streamLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
++    audio_stream_type_t streamLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
+@@ -829,4 +877,4 @@ Status AudioFlingerServerAdapter::streamVolume(AudioStreamType stream, int32_t o
+-    audio_stream_type_t streamLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_stream_type_t streamLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -837,2 +885,2 @@ Status AudioFlingerServerAdapter::streamMute(AudioStreamType stream, bool* _aidl
+-    audio_stream_type_t streamLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
++    audio_stream_type_t streamLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioStreamType_audio_stream_type_t(stream));
+@@ -854,2 +902,2 @@ Status AudioFlingerServerAdapter::setRecordSilenced(int32_t portId, bool silence
+-    audio_port_handle_t portIdLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_port_handle_t(portId));
++    audio_port_handle_t portIdLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_port_handle_t(portId));
+@@ -859,6 +907,6 @@ Status AudioFlingerServerAdapter::setRecordSilenced(int32_t portId, bool silence
+-Status AudioFlingerServerAdapter::setParameters(int32_t ioHandle,
+-                                                const std::string& keyValuePairs) {
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+-    String8 keyValuePairsLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_string_view_String8(keyValuePairs));
++Status
++AudioFlingerServerAdapter::setParameters(int32_t ioHandle, const std::string& keyValuePairs) {
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    String8 keyValuePairsLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_string_view_String8(keyValuePairs));
+@@ -869,2 +917,2 @@ Status AudioFlingerServerAdapter::getParameters(int32_t ioHandle, const std::str
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+@@ -885,2 +933,2 @@ Status AudioFlingerServerAdapter::getInputBufferSize(int32_t sampleRate,
+-    audio_format_t formatLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioFormatDescription_audio_format_t(format));
++    audio_format_t formatLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioFormatDescription_audio_format_t(format));
+@@ -899,4 +947,4 @@ Status AudioFlingerServerAdapter::openDuplicateOutput(int32_t output1, int32_t o
+-    audio_io_handle_t output1Legacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output1));
+-    audio_io_handle_t output2Legacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output2));
++    audio_io_handle_t output1Legacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output1));
++    audio_io_handle_t output2Legacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output2));
+@@ -908,2 +956,2 @@ Status AudioFlingerServerAdapter::closeOutput(int32_t output) {
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -913,2 +961,2 @@ Status AudioFlingerServerAdapter::suspendOutput(int32_t output) {
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -918,2 +966,2 @@ Status AudioFlingerServerAdapter::restoreOutput(int32_t output) {
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -927,2 +975,2 @@ Status AudioFlingerServerAdapter::closeInput(int32_t input) {
+-    audio_io_handle_t inputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(input));
++    audio_io_handle_t inputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(input));
+@@ -934,4 +982,4 @@ Status AudioFlingerServerAdapter::setVoiceVolume(float volume) {
+-Status AudioFlingerServerAdapter::getRenderPosition(int32_t output,
+-                                                    media::RenderPosition* _aidl_return) {
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++Status
++AudioFlingerServerAdapter::getRenderPosition(int32_t output, media::RenderPosition* _aidl_return) {
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -947,2 +995,2 @@ Status AudioFlingerServerAdapter::getInputFramesLost(int32_t ioHandle, int32_t*
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+@@ -953,4 +1001,4 @@ Status AudioFlingerServerAdapter::getInputFramesLost(int32_t ioHandle, int32_t*
+-Status AudioFlingerServerAdapter::newAudioUniqueId(media::AudioUniqueIdUse use,
+-                                                   int32_t* _aidl_return) {
+-    audio_unique_id_use_t useLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioUniqueIdUse_audio_unique_id_use_t(use));
++Status
++AudioFlingerServerAdapter::newAudioUniqueId(media::AudioUniqueIdUse use, int32_t* _aidl_return) {
++    audio_unique_id_use_t useLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioUniqueIdUse_audio_unique_id_use_t(use));
+@@ -961,4 +1009,4 @@ Status AudioFlingerServerAdapter::newAudioUniqueId(media::AudioUniqueIdUse use,
+-Status AudioFlingerServerAdapter::acquireAudioSessionId(int32_t audioSession, int32_t pid,
+-                                                        int32_t uid) {
+-    audio_session_t audioSessionLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_session_t(audioSession));
++Status
++AudioFlingerServerAdapter::acquireAudioSessionId(int32_t audioSession, int32_t pid, int32_t uid) {
++    audio_session_t audioSessionLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_session_t(audioSession));
+@@ -971,2 +1019,2 @@ Status AudioFlingerServerAdapter::releaseAudioSessionId(int32_t audioSession, in
+-    audio_session_t audioSessionLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_session_t(audioSession));
++    audio_session_t audioSessionLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_session_t(audioSession));
+@@ -983,2 +1031,2 @@ Status AudioFlingerServerAdapter::queryNumberEffects(int32_t* _aidl_return) {
+-Status AudioFlingerServerAdapter::queryEffect(int32_t index,
+-                                              media::EffectDescriptor* _aidl_return) {
++Status
++AudioFlingerServerAdapter::queryEffect(int32_t index, media::EffectDescriptor* _aidl_return) {
+@@ -988,2 +1036,2 @@ Status AudioFlingerServerAdapter::queryEffect(int32_t index,
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(legacy2aidl_effect_descriptor_t_EffectDescriptor(result));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            legacy2aidl_effect_descriptor_t_EffectDescriptor(result));
+@@ -996,6 +1044,6 @@ Status AudioFlingerServerAdapter::getEffectDescriptor(const AudioUuid& effectUUI
+-    effect_uuid_t effectUuidLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioUuid_audio_uuid_t(effectUUID));
+-    effect_uuid_t typeUuidLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioUuid_audio_uuid_t(typeUUID));
+-    uint32_t preferredTypeFlagLegacy =
+-            VALUE_OR_RETURN_BINDER(convertReinterpret<uint32_t>(preferredTypeFlag));
++    effect_uuid_t effectUuidLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioUuid_audio_uuid_t(effectUUID));
++    effect_uuid_t typeUuidLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioUuid_audio_uuid_t(typeUUID));
++    uint32_t preferredTypeFlagLegacy = VALUE_OR_RETURN_BINDER(
++            convertReinterpret<uint32_t>(preferredTypeFlag));
+@@ -1005,2 +1053,2 @@ Status AudioFlingerServerAdapter::getEffectDescriptor(const AudioUuid& effectUUI
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(legacy2aidl_effect_descriptor_t_EffectDescriptor(result));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            legacy2aidl_effect_descriptor_t_EffectDescriptor(result));
+@@ -1013,8 +1061,8 @@ Status AudioFlingerServerAdapter::createEffect(const media::CreateEffectRequest&
+-Status AudioFlingerServerAdapter::moveEffects(int32_t session, int32_t srcOutput,
+-                                              int32_t dstOutput) {
+-    audio_session_t sessionLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_session_t(session));
+-    audio_io_handle_t srcOutputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(srcOutput));
+-    audio_io_handle_t dstOutputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(dstOutput));
++Status
++AudioFlingerServerAdapter::moveEffects(int32_t session, int32_t srcOutput, int32_t dstOutput) {
++    audio_session_t sessionLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_session_t(session));
++    audio_io_handle_t srcOutputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(srcOutput));
++    audio_io_handle_t dstOutputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(dstOutput));
+@@ -1027,2 +1075,2 @@ Status AudioFlingerServerAdapter::setEffectSuspended(int32_t effectId, int32_t s
+-    audio_session_t sessionIdLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_session_t(sessionId));
++    audio_session_t sessionIdLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_session_t(sessionId));
+@@ -1060,2 +1108,2 @@ Status AudioFlingerServerAdapter::createAudioPatch(const media::AudioPatchFw& pa
+-    audio_patch_handle_t handleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_patch_handle_t(*_aidl_return));
++    audio_patch_handle_t handleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_patch_handle_t(*_aidl_return));
+@@ -1067,2 +1115,2 @@ Status AudioFlingerServerAdapter::releaseAudioPatch(int32_t handle) {
+-    audio_patch_handle_t handleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_patch_handle_t(handle));
++    audio_patch_handle_t handleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_patch_handle_t(handle));
+@@ -1077 +1125,2 @@ Status AudioFlingerServerAdapter::listAudioPatches(int32_t maxCount,
+-    RETURN_BINDER_IF_ERROR(convertRange(&patchesLegacy[0], &patchesLegacy[count],
++    RETURN_BINDER_IF_ERROR(convertRange(&patchesLegacy[0],
++                           &patchesLegacy[count],
+@@ -1083,2 +1132,2 @@ Status AudioFlingerServerAdapter::setAudioPortConfig(const media::AudioPortConfi
+-    audio_port_config configLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioPortConfigFw_audio_port_config(config));
++    audio_port_config configLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioPortConfigFw_audio_port_config(config));
+@@ -1089,2 +1138,2 @@ Status AudioFlingerServerAdapter::getAudioHwSyncForSession(int32_t sessionId,
+-    audio_session_t sessionIdLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_session_t(sessionId));
++    audio_session_t sessionIdLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_session_t(sessionId));
+@@ -1103,2 +1152,2 @@ Status AudioFlingerServerAdapter::frameCountHAL(int32_t ioHandle, int64_t* _aidl
+-    audio_io_handle_t ioHandleLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
++    audio_io_handle_t ioHandleLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(ioHandle));
+@@ -1137,2 +1186,2 @@ Status AudioFlingerServerAdapter::getAAudioMixerBurstCount(int32_t* _aidl_return
+-    *_aidl_return =
+-            VALUE_OR_RETURN_BINDER(convertIntegral<int32_t>(mDelegate->getAAudioMixerBurstCount()));
++    *_aidl_return = VALUE_OR_RETURN_BINDER(
++            convertIntegral<int32_t>(mDelegate->getAAudioMixerBurstCount()));
+@@ -1146,2 +1195,2 @@ Status AudioFlingerServerAdapter::getAAudioHardwareBurstMinUsec(int32_t* _aidl_r
+-Status AudioFlingerServerAdapter::setDeviceConnectedState(const media::AudioPortFw& port,
+-                                                          media::DeviceConnectedState state) {
++Status AudioFlingerServerAdapter::setDeviceConnectedState(
++        const media::AudioPortFw& port, media::DeviceConnectedState state) {
+@@ -1156,5 +1205,6 @@ Status AudioFlingerServerAdapter::setRequestedLatencyMode(
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
+-    audio_latency_mode_t modeLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioLatencyMode_audio_latency_mode_t(modeAidl));
+-    return Status::fromStatusT(mDelegate->setRequestedLatencyMode(outputLegacy, modeLegacy));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_latency_mode_t modeLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioLatencyMode_audio_latency_mode_t(modeAidl));
++    return Status::fromStatusT(mDelegate->setRequestedLatencyMode(
++            outputLegacy, modeLegacy));
+@@ -1164,2 +1214,2 @@ Status AudioFlingerServerAdapter::getSupportedLatencyModes(
+-    audio_io_handle_t outputLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_int32_t_audio_io_handle_t(output));
++    audio_io_handle_t outputLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_int32_t_audio_io_handle_t(output));
+@@ -1183 +1233,3 @@ Status AudioFlingerServerAdapter::getSoundDoseInterface(
+-        const sp<media::ISoundDoseCallback>& callback, sp<media::ISoundDose>* soundDose) {
++        const sp<media::ISoundDoseCallback>& callback,
++        sp<media::ISoundDose>* soundDose)
++{
+@@ -1187,2 +1239,2 @@ Status AudioFlingerServerAdapter::invalidateTracks(const std::vector<int32_t>& p
+-    std::vector<audio_port_handle_t> portIdsLegacy =
+-            VALUE_OR_RETURN_BINDER(convertContainer<std::vector<audio_port_handle_t>>(
++    std::vector<audio_port_handle_t> portIdsLegacy = VALUE_OR_RETURN_BINDER(
++            convertContainer<std::vector<audio_port_handle_t>>(
+@@ -1199,4 +1251,4 @@ Status AudioFlingerServerAdapter::getAudioMixPort(const media::AudioPortFw& devi
+-    audio_port_v7 devicePortLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioPortFw_audio_port_v7(devicePort));
+-    audio_port_v7 mixPortLegacy =
+-            VALUE_OR_RETURN_BINDER(aidl2legacy_AudioPortFw_audio_port_v7(mixPort));
++    audio_port_v7 devicePortLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioPortFw_audio_port_v7(devicePort));
++    audio_port_v7 mixPortLegacy = VALUE_OR_RETURN_BINDER(
++            aidl2legacy_AudioPortFw_audio_port_v7(mixPort));

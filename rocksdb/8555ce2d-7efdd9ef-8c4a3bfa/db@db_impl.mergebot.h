@@ -506,6 +506,12 @@ class DBImpl : public DB {
       SequenceNumber in, std::vector<SequenceNumber>& snapshots,
       SequenceNumber* prev_snapshot);
 
+  // Background threads call this function, which is just a wrapper around
+  // the cfd->InstallSuperVersion() function. Background threads carry
+  // deletion_state which can have new_superversion already allocated.
+  void InstallSuperVersion(ColumnFamilyData* cfd,
+                           DeletionState& deletion_state);
+
   // Function that Get and KeyMayExist call with no_io true or false
   // Note: 'value_found' from KeyMayExist propagates here
   Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
@@ -523,12 +529,6 @@ class DBImpl : public DB {
   std::pair<Iterator*, Iterator*> GetTailingIteratorPair(
       const ReadOptions& options, ColumnFamilyData* cfd,
       uint64_t* superversion_number);
-
-  // Background threads call this function, which is just a wrapper around
-  // the cfd->InstallSuperVersion() function. Background threads carry
-  // deletion_state which can have new_superversion already allocated.
-  void InstallSuperVersion(ColumnFamilyData* cfd,
-                           DeletionState& deletion_state);
 
   using DB::GetPropertiesOfAllTables;
   virtual Status GetPropertiesOfAllTables(

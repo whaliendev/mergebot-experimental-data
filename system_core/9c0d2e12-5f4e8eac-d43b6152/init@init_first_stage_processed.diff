@@ -1,0 +1,136 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@init_first_stage.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@init_first_stage.no_comments_merged.cpp
+@@ -22 +22 @@ class FirstStageMount {
+-    virtual ~FirstStageMount()
++    virtual ~FirstStageMount() = default;
+@@ -42 +42,2 @@ class FirstStageMountVBootV1 : public FirstStageMount {
+-    FirstStageMountVBootV1()() = delete;
++    FirstStageMountVBootV1() = default;
++    ~FirstStageMountVBootV1() override = default;
+@@ -48,2 +48,0 @@ class FirstStageMountVBootV2 : public FirstStageMount {
+-  protected:
+-    ListenerAction UeventCallback(const Uevent& uevent) override;
+@@ -53,2 +52 @@ class FirstStageMountVBootV2 : public FirstStageMount {
+-    () = delete;
+-    () = delete;
++    ~FirstStageMountVBootV2() override = default;
+@@ -55,0 +54 @@ class FirstStageMountVBootV2 : public FirstStageMount {
++    ListenerAction UeventCallback(const Uevent& uevent) override;
+@@ -92 +91 @@ bool FirstStageMount::DoFirstStageMount() {
+-bool FirstStageMount::InitDevices() < < < < < < < HEAD {
++bool FirstStageMount::InitDevices() {
+@@ -95,15 +93,0 @@ bool FirstStageMount::InitDevices() < < < < < < < HEAD {
+-|||||||
+-{
+-    if (!GetRequiredDevices()) return false;
+-    InitRequiredDevices();
+-    if (!required_devices_partition_names_.empty()) {
+-        LOG(ERROR) << __FUNCTION__ << "(): partition(s) not found: "
+-                   << android::base::Join(required_devices_partition_names_, ", ");
+-        return false;
+-    } else {
+-        return true;
+-    }
+-}
+-=======
+-{ return GetRequiredDevices() && InitRequiredDevices(); }
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+@@ -116 +99,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-<<<<<<< HEAD
+@@ -123,18 +105,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-|||||||
+-        device_init(("/sys" + dm_path).c_str(), [&dm_path](uevent* uevent) -> coldboot_action_t {
+-            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;
+-            return COLDBOOT_CONTINUE;
+-        });
+-=======
+-        bool found = false;
+-        auto dm_callback = [&dm_path, &found](uevent* uevent) -> coldboot_action_t {
+-            if (uevent->path && uevent->path == dm_path) {
+-                found = true;
+-                return COLDBOOT_STOP;
+-            }
+-            return COLDBOOT_CONTINUE;
+-        };
+-        device_init(("/sys" + dm_path).c_str(), dm_callback);
+-        if (!found) {
+-            device_poll(dm_callback, 10s);
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+@@ -142 +106,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-<<<<<<< HEAD
+@@ -156,12 +119,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-|||||||
+-=======
+-        if (!found) {
+-            LOG(ERROR) << "device-mapper device not found";
+-            return false;
+-        }
+-    }
+-    auto uevent_callback = [this](uevent* uevent) -> coldboot_action_t {
+-        return ColdbootCallback(uevent);
+-    };
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+-<<<<<<< HEAD
+@@ -176,20 +127,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-|||||||
+-    device_init(nullptr,
+-                [this](uevent* uevent) -> coldboot_action_t { return ColdbootCallback(uevent); });
+-=======
+-    device_init(nullptr, uevent_callback);
+-    if (!required_devices_partition_names_.empty()) {
+-        device_poll(uevent_callback, 10s);
+-    }
+-    if (!required_devices_partition_names_.empty()) {
+-        LOG(ERROR) << __PRETTY_FUNCTION__ << ": partition(s) not found: "
+-                   << android::base::Join(required_devices_partition_names_, ", ");
+-        return false;
+-    }
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+-<<<<<<< HEAD
+-    return true;
+-|||||||
+-    device_close();
+-=======
+-    device_close();
+@@ -197 +128,0 @@ bool FirstStageMount::InitRequiredDevices() {
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+@@ -222 +152,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -225,7 +154,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-|||||||
+-    device_init(syspath.c_str(), [&](uevent* uevent) -> coldboot_action_t {
+-        if (uevent->device_name && uevent->device_name == device_name) {
+-=======
+-    auto verity_callback = [&](uevent* uevent) -> coldboot_action_t {
+-        if (uevent->device_name && uevent->device_name == device_name) {
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+@@ -233 +155,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -237,6 +158,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-|||||||
+-            return COLDBOOT_STOP;
+-=======
+-            found = true;
+-            return COLDBOOT_STOP;
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479
+@@ -244 +159,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -256,18 +170,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-|||||||
+-        return COLDBOOT_CONTINUE;
+-    });
+-    device_close();
+-=======
+-        return COLDBOOT_CONTINUE;
+-    };
+-    device_init(syspath.c_str(), verity_callback);
+-    if (!found) {
+-        device_poll(verity_callback, 10s);
+-    }
+-    if (!found) {
+-        LOG(ERROR) << "dm-verity device not found";
+-        return false;
+-    }
+-    device_close();
+-    return true;
+->>>>>>> 5f4e8eac8a0db87a43ed7a930103f4241c22d479

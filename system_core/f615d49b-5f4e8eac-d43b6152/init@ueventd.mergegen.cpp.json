@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "#include <grp.h>\n#include <pwd.h>",
+        "base_contents": "#include <grp.h>\n#include <poll.h>\n#include <pwd.h>",
+        "res_region": "",
+        "lookback": "\n#include <ctype.h>\n#include <fcntl.h>",
+        "lookahead": "#include <signal.h>\n#include <stdio.h>",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 20,
+        "end_line": 28,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "int ueventd_main(int argc, char** argv) {\n    /*\n     * init sets the umask to 077 for forked processes. We need to\n     * create files with exact permissions, without modification by\n     * the umask.\n     */\n    umask(000);\n\n    InitKernelLogging(argv);\n\n    LOG(INFO) << \"ueventd started!\";\n\n    selinux_callback cb;\n    cb.func_log = selinux_klog_callback;\n    selinux_set_callback(SELINUX_CB_LOG, cb);\n\n    DeviceHandler device_handler = CreateDeviceHandler();\n    UeventListener uevent_listener;\n\n    if (access(COLDBOOT_DONE, F_OK) != 0) {\n        ColdBoot cold_boot(uevent_listener, device_handler);\n        cold_boot.Run();\n    }",
+        "b_contents": "    device_poll();",
+        "base_contents": "    pollfd ufd;\n    ufd.events = POLLIN;\n    ufd.fd = get_device_fd();\n\n    while (true) {\n        ufd.revents = 0;\n        int nr = poll(&ufd, 1, -1);\n        if (nr <= 0) {\n            continue;\n        }\n        if (ufd.revents & POLLIN) {\n            handle_device_fd();\n        }\n    }",
+        "res_region": "int ueventd_main(int argc, char** argv) {\n    /*\n     * init sets the umask to 077 for forked processes. We need to\n     * create files with exact permissions, without modification by\n     * the umask.\n     */\n    umask(000);\n\n    InitKernelLogging(argv);\n\n    LOG(INFO) << \"ueventd started!\";\n\n    selinux_callback cb;\n    cb.func_log = selinux_klog_callback;\n    selinux_set_callback(SELINUX_CB_LOG, cb);\n\n    DeviceHandler device_handler = CreateDeviceHandler();\n    UeventListener uevent_listener;\n\n    if (access(COLDBOOT_DONE, F_OK) != 0) {\n        ColdBoot cold_boot(uevent_listener, device_handler);\n        cold_boot.Run();\n    }",
+        "lookback": "                         std::move(subsystems), true);\n}\n",
+        "lookahead": "\n    uevent_listener.Poll([&device_handler](const Uevent& uevent) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 253,
+        "end_line": 294,
+        "merge_gen_region": "int ueventd_main(int argc, char** argv) { /* * init sets the umask to 077 for forked processes. We need to * create files with exact permissions, without modification by * the umask. */ umask(000); InitKernelLogging(argv); LOG(INFO) << \"ueventd started!\"; selinux_callback cb; cb.func_log = selinux_klog_callback; selinux_set_callback(SELINUX_CB_LOG, cb); DeviceHandler device_handler = CreateDeviceHandler(); UeventListener uevent_listener; if (access(COLDBOOT_DONE, F_OK) != 0) { ColdBoot cold_boot(uevent_listener, device_handler); cold_boot.Run(); }",
+        "resolved": true
+    }
+]

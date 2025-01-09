@@ -1,0 +1,470 @@
+#include <arpa/inet.h>
+#include <cutils/sockets.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <android-base/cmsg.h>
+#include <android-base/logging.h>
+#include <android-base/properties.h>
+#include <android-base/scopeguard.h>
+#include <android-base/strings.h>
+#include <fs_mgr/file_wait.h>
+#include <snapuserd/dm_user_block_server.h>
+#include <snapuserd/snapuserd_client.h>
+#include "snapuserd_server.h"
+#define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_ 
+#include <sys/_system_properties.h>
+namespace android {
+namespace snapshot {
+using namespace std::string_literals;
+using android::base::borrowed_fd;
+using android::base::unique_fd;
+DaemonOps UserSnapshotServer::Resolveop(std::string& input) {
+    if (input == "init") return DaemonOps::INIT;
+    if (input == "start") return DaemonOps::START;
+    if (input == "stop") return DaemonOps::STOP;
+    if (input == "query") return DaemonOps::QUERY;
+    if (input == "delete") return DaemonOps::DELETE;
+    if (input == "detach") return DaemonOps::DETACH;
+    if (input == "supports") return DaemonOps::SUPPORTS;
+    if (input == "initiate_merge") return DaemonOps::INITIATE;
+    if (input == "merge_percent") return DaemonOps::PERCENTAGE;
+    if (input == "getstatus") return DaemonOps::GETSTATUS;
+    if (input == "update-verify") return DaemonOps::UPDATE_VERIFY;
+    return DaemonOps::INVALID;
+}
+UserSnapshotServer::UserSnapshotServer() {
+    monitor_merge_event_fd_.reset(eventfd(0, EFD_CLOEXEC));
+    if (monitor_merge_event_fd_ == -1) {
+        PLOG(FATAL) << "monitor_merge_event_fd_: failed to create eventfd";
+    }
+    terminating_ = false;
+LOG_ = false;
+}
+UserSnapshotServer::~UserSnapshotServer() {
+    for (size_t i = 1; i < watched_fds_.size(); i++) {
+        close(watched_fds_[i].fd);
+    }
+}
+std::string UserSnapshotServer::GetDaemonStatus() {
+    std::string msg = "";
+    if (IsTerminating())
+        msg = "passive";
+    else
+        msg = "active";
+    return msg;
+}
+void UserSnapshotServer::Parsemsg(std::string const& msg, const char delim,
+                                  std::vector<std::string>& out) {
+    std::stringstream ss(msg);
+    std::string s;
+    while (std::getline(ss, s, delim)) {
+        out.push_back(s);
+    }
+}
+void UserSnapshotServer::ShutdownThreads() {
+    terminating_ = true;
+    JoinAllThreads();
+}
+HandlerThread::HandlerThread(std::shared_ptr<SnapshotHandler> snapuserd)
+    : snapuserd_(snapuserd), misc_name_(snapuserd_->GetMiscName()) {}
+bool UserSnapshotServer::Sendmsg(android::base::borrowed_fd fd, const std::string& msg) {
+    ssize_t ret = TEMP_FAILURE_RETRY(send(fd.get(), msg.data(), msg.size(), MSG_NOSIGNAL));
+    if (ret < 0) {
+        PLOG(ERROR) << "Snapuserd:server: send() failed";
+        return false;
+    }
+    if (ret < msg.size()) {
+        LOG(ERROR) << "Partial send; expected " << msg.size() << " bytes, sent " << ret;
+        return false;
+    }
+    return true;
+}
+bool UserSnapshotServer::Recv(android::base::borrowed_fd fd, std::string* data) {
+    char msg[kMaxPacketSize];
+    ssize_t rv = TEMP_FAILURE_RETRY(recv(fd.get(), msg, sizeof(msg), 0));
+    if (rv < 0) {
+        PLOG(ERROR) << "recv failed";
+        return false;
+    }
+    *data = std::string(msg, rv);
+    return true;
+}
+bool UserSnapshotServer::Receivemsg(android::base::borrowed_fd fd, const std::string& str) {
+    const char delim = ',';
+    std::vector<std::string> out;
+    Parsemsg(str, delim, out);
+    DaemonOps op = Resolveop(out[0]);
+    switch (op) {
+        case DaemonOps::INIT: {
+            if (out.size() != 5) {
+                LOG(ERROR) << "Malformed init message, " << out.size() << " parts";
+                return Sendmsg(fd, "fail");
+            }
+            auto handler = AddHandler(out[1], out[2], out[3], out[4]);
+            if (!handler) {
+                return Sendmsg(fd, "fail");
+            }
+auto num_sectors = handler->snapuserd()->GetNumSectors(); if (!num_sectors) { return Sendmsg(fd, "fail"); } auto retval = "success," + std::to_string(num_sectors);
+        }
+        case DaemonOps::START: {
+            if (out.size() != 2) {
+                LOG(ERROR) << "Malformed start message, " << out.size() << " parts";
+                return Sendmsg(fd, "fail");
+            }
+            std::lock_guard<std::mutex> lock(lock_);
+            auto iter = FindHandler(&lock, out[1]);
+            if (iter == dm_users_.end()) {
+                LOG(ERROR) << "Could not find handler: " << out[1];
+                return Sendmsg(fd, "fail");
+            }
+            if (!(*iter)->snapuserd() || (*iter)->snapuserd()->IsAttached()) {
+                LOG(ERROR) << "Tried to re-attach control device: " << out[1];
+                return Sendmsg(fd, "fail");
+            }
+            if (!StartHandler(*iter)) {
+                return Sendmsg(fd, "fail");
+            }
+            return Sendmsg(fd, "success");
+        }
+        case DaemonOps::STOP: {
+            SetTerminating();
+            ShutdownThreads();
+            return true;
+        }
+        case DaemonOps::QUERY: {
+            return Sendmsg(fd, GetDaemonStatus());
+        }
+        case DaemonOps::DELETE: {
+            if (out.size() != 2) {
+                LOG(ERROR) << "Malformed delete message, " << out.size() << " parts";
+                return Sendmsg(fd, "fail");
+            }
+            {
+                std::lock_guard<std::mutex> lock(lock_);
+                auto iter = FindHandler(&lock, out[1]);
+                if (iter == dm_users_.end()) {
+                    LOG(DEBUG) << "Could not find handler: " << out[1];
+                    return Sendmsg(fd, "success");
+                }
+                if (!(*iter)->ThreadTerminated()) {
+                    (*iter)->snapuserd()->NotifyIOTerminated();
+                }
+            }
+            if (!RemoveAndJoinHandler(out[1])) {
+                return Sendmsg(fd, "fail");
+            }
+            return Sendmsg(fd, "success");
+        }
+        case DaemonOps::DETACH: {
+            std::lock_guard<std::mutex> lock(lock_);
+            TerminateMergeThreads(&lock);
+            terminating_ = true;
+            return true;
+        }
+        case DaemonOps::SUPPORTS: {
+            if (out.size() != 2) {
+                LOG(ERROR) << "Malformed supports message, " << out.size() << " parts";
+                return Sendmsg(fd, "fail");
+            }
+            if (out[1] == "second_stage_socket_handoff") {
+                return Sendmsg(fd, "success");
+            }
+            return Sendmsg(fd, "fail");
+        }
+        case DaemonOps::INITIATE: {
+            if (out.size() != 2) {
+                LOG(ERROR) << "Malformed initiate-merge message, " << out.size() << " parts";
+                return Sendmsg(fd, "fail");
+            }
+            if (out[0] == "initiate_merge") {
+                std::lock_guard<std::mutex> lock(lock_);
+                auto iter = FindHandler(&lock, out[1]);
+                if (iter == dm_users_.end()) {
+                    LOG(ERROR) << "Could not find handler: " << out[1];
+                    return Sendmsg(fd, "fail");
+                }
+                if (!StartMerge(&lock, *iter)) {
+                    return Sendmsg(fd, "fail");
+                }
+                return Sendmsg(fd, "success");
+            }
+            return Sendmsg(fd, "fail");
+        }
+        case DaemonOps::PERCENTAGE: {
+            std::lock_guard<std::mutex> lock(lock_);
+            double percentage = GetMergePercentage(&lock);
+            return Sendmsg(fd, std::to_string(percentage));
+        }
+        case DaemonOps::GETSTATUS: {
+            if (out.size() != 2) {
+                LOG(ERROR) << "Malformed delete message, " << out.size() << " parts";
+                return Sendmsg(fd, "snapshot-merge-failed");
+            }
+            {
+                std::lock_guard<std::mutex> lock(lock_);
+                auto iter = FindHandler(&lock, out[1]);
+                if (iter == dm_users_.end()) {
+                    LOG(ERROR) << "Could not find handler: " << out[1];
+                    return Sendmsg(fd, "snapshot-merge-failed");
+                }
+                std::string merge_status = GetMergeStatus(*iter);
+                return Sendmsg(fd, merge_status);
+            }
+        }
+        case DaemonOps::UPDATE_VERIFY: {
+            std::lock_guard<std::mutex> lock(lock_);
+            if (!UpdateVerification(&lock)) {
+                return Sendmsg(fd, "fail");
+            }
+            return Sendmsg(fd, "success");
+        }
+        default: {
+            LOG(ERROR) << "Received unknown message type from client";
+            Sendmsg(fd, "fail");
+            return false;
+        }
+    }
+}
+void UserSnapshotServer::RunThread(std::shared_ptr<HandlerThread> handler) {
+    LOG(INFO) << "Entering thread for handler: " << handler->misc_name();
+    if (!handler->snapuserd()->Start()) {
+        LOG(ERROR) << " Failed to launch all worker threads";
+    }
+    handler->snapuserd()->CloseFds();
+    bool merge_completed = handler->snapuserd()->CheckMergeCompletionStatus();
+    handler->snapuserd()->UnmapBufferRegion();
+    auto misc_name = handler->misc_name();
+    LOG(INFO) << "Handler thread about to exit: " << misc_name;
+    {
+        std::lock_guard<std::mutex> lock(lock_);
+        if (merge_completed) {
+            num_partitions_merge_complete_ += 1;
+            active_merge_threads_ -= 1;
+            WakeupMonitorMergeThread();
+        }
+        handler->SetThreadTerminated();
+        auto iter = FindHandler(&lock, handler->misc_name());
+        if (iter == dm_users_.end()) {
+            handler->FreeResources();
+            LOG(INFO) << "Exiting handler thread to allow for join: " << misc_name;
+            return;
+        }
+        LOG(INFO) << "Exiting handler thread and freeing resources: " << misc_name;
+        if (handler->snapuserd()->IsAttached()) {
+            handler->thread().detach();
+        }
+        handler->FreeResources();
+        dm_users_.erase(iter);
+    }
+}
+bool UserSnapshotServer::Start(const std::string& socketname) {
+    bool start_listening = true;
+    sockfd_.reset(android_get_control_socket(socketname.c_str()));
+    if (sockfd_ < 0) {
+        sockfd_.reset(socket_local_server(socketname.c_str(), ANDROID_SOCKET_NAMESPACE_RESERVED,
+                                          SOCK_STREAM));
+        if (sockfd_ < 0) {
+            PLOG(ERROR) << "Failed to create server socket " << socketname;
+            return false;
+        }
+        start_listening = false;
+    }
+    return StartWithSocket(start_listening);
+}
+bool UserSnapshotServer::StartWithSocket(bool start_listening) {
+    if (start_listening && listen(sockfd_.get(), 4) < 0) {
+        PLOG(ERROR) << "listen socket failed";
+        return false;
+    }
+    AddWatchedFd(sockfd_, POLLIN);
+    is_socket_present_ = true;
+    if (access("/dev/socket/property_service", F_OK) == 0) {
+        if (!android::base::SetProperty("snapuserd.ready", "true")) {
+            LOG(ERROR) << "Failed to set snapuserd.ready property";
+            return false;
+        }
+    }
+    LOG(DEBUG) << "Snapuserd server now accepting connections";
+    return true;
+}
+bool UserSnapshotServer::Run() {
+    LOG(INFO) << "Now listening on snapuserd socket";
+    while (!IsTerminating()) {
+        int rv = TEMP_FAILURE_RETRY(poll(watched_fds_.data(), watched_fds_.size(), -1));
+        if (rv < 0) {
+            PLOG(ERROR) << "poll failed";
+            return false;
+        }
+        if (!rv) {
+            continue;
+        }
+        if (watched_fds_[0].revents) {
+            AcceptClient();
+        }
+        auto iter = watched_fds_.begin() + 1;
+        while (iter != watched_fds_.end()) {
+            if (iter->revents && !HandleClient(iter->fd, iter->revents)) {
+                close(iter->fd);
+                iter = watched_fds_.erase(iter);
+            } else {
+                iter++;
+            }
+        }
+    }
+    JoinAllThreads();
+    return true;
+}
+void UserSnapshotServer::JoinAllThreads() {
+    std::vector<std::shared_ptr<HandlerThread>> dm_users;
+    {
+        std::lock_guard<std::mutex> guard(lock_);
+        dm_users = std::move(dm_users_);
+    }
+    for (auto& client : dm_users) {
+        auto& th = client->thread();
+        if (th.joinable()) th.join();
+    }
+    stop_monitor_merge_thread_ = true;
+    WakeupMonitorMergeThread();
+}
+void UserSnapshotServer::AddWatchedFd(android::base::borrowed_fd fd, int events) {
+    struct pollfd p = {};
+    p.fd = fd.get();
+    p.events = events;
+    watched_fds_.emplace_back(std::move(p));
+}
+void UserSnapshotServer::AcceptClient() {
+    int fd = TEMP_FAILURE_RETRY(accept4(sockfd_.get(), nullptr, nullptr, SOCK_CLOEXEC));
+    if (fd < 0) {
+        PLOG(ERROR) << "accept4 failed";
+        return;
+    }
+    AddWatchedFd(fd, POLLIN);
+}
+bool UserSnapshotServer::HandleClient(android::base::borrowed_fd fd, int revents) {
+    std::string str;
+    if (!Recv(fd, &str)) {
+        return false;
+    }
+    if (str.empty() && (revents & POLLHUP)) {
+        LOG(DEBUG) << "Snapuserd client disconnected";
+        return false;
+    }
+    if (!Receivemsg(fd, str)) {
+        LOG(ERROR) << "Encountered error handling client message, revents: " << revents;
+        return false;
+    }
+    return true;
+}
+void UserSnapshotServer::Interrupt() {
+    sockfd_ = {};
+    SetTerminating();
+}
+std::shared_ptr<HandlerThread> UserSnapshotServer::AddHandler(const std::string& misc_name,
+                                                              const std::string& cow_device_path,
+                                                              const std::string& backing_device,
+                                                              const std::string& base_path_merge) {
+    int num_worker_threads = kNumWorkerThreads;
+    if (is_socket_present_) {
+        num_worker_threads = 1;
+    }
+    bool perform_verification = true;
+    if (android::base::EndsWith(misc_name, "-init") || is_socket_present_) {
+        perform_verification = false;
+    }
+auto snapuserd = std::make_shared<SnapshotHandler>(misc_name, cow_device_path, backing_device, base_path_merge, opener, num_worker_threads, io_uring_enabled_, perform_verification); if (!snapuserd->InitCowDevice()) { LOG(ERROR) << "Failed to initialize Snapuserd"; return nullptr; } if (!snapuserd->InitializeWorkers()) { LOG(ERROR) << "Failed to initialize workers"; return nullptr; } auto handler = std::make_shared<HandlerThread>(snapuserd); { std::lock_guard<std::mutex> lock(lock_); if (FindHandler(&lock, misc_name) != dm_users_.end()) { LOG(ERROR) << "Handler already exists: " << misc_name; return nullptr; } dm_users_.push_back(handler); } return handler; } bool UserSnapshotServer::StartHandler(const std::shared_ptr<HandlerThread>& handler) { if (handler->snapuserd()->IsAttached()) { LOG(ERROR) << "Handler already attached"; return false; } handler->snapuserd()->AttachControlDevice(); handler->thread() = std::thread(std::bind(&UserSnapshotServer::RunThread, this, handler)); return true; } bool UserSnapshotServer::StartMerge(std::lock_guard<std::mutex>* proof_of_lock, const std::shared_ptr<HandlerThread>& handler) { CHECK(proof_of_lock); if (!handler->snapuserd()->IsAttached()) { LOG(ERROR) << "Handler already attached"; return false; } handler->snapuserd()->ConsoleControlDevice(); handler->thread() = std::thread(std::bind(&UserSnapshotServer::RunThread, this, handler)); return true; } bool UserSnapshotServer::StartMerge(std
+}
+bool UserSnapshotServer::WaitForSocket() {
+    auto scope_guard = android::base::make_scope_guard([this]() -> void { JoinAllThreads(); });
+    auto socket_path = ANDROID_SOCKET_DIR "/"s + kSnapuserdSocketProxy;
+    if (!android::fs_mgr::WaitForFile(socket_path, std::chrono::milliseconds::max())) {
+        LOG(ERROR)
+                << "Failed to wait for proxy socket, second-stage snapuserd will fail to connect";
+        return false;
+    }
+    __system_properties_init();
+    if (!android::base::WaitForProperty("snapuserd.proxy_ready", "true")) {
+        LOG(ERROR)
+                << "Failed to wait for proxy property, second-stage snapuserd will fail to connect";
+        return false;
+    }
+    unique_fd fd(socket_local_client(kSnapuserdSocketProxy, ANDROID_SOCKET_NAMESPACE_RESERVED,
+                                     SOCK_SEQPACKET));
+    if (fd < 0) {
+        PLOG(ERROR) << "Failed to connect to socket proxy";
+        return false;
+    }
+    char code[1];
+    std::vector<unique_fd> fds;
+    ssize_t rv = android::base::ReceiveFileDescriptorVector(fd, code, sizeof(code), 1, &fds);
+    if (rv < 0) {
+        PLOG(ERROR) << "Failed to receive server socket over proxy";
+        return false;
+    }
+    if (fds.empty()) {
+        LOG(ERROR) << "Expected at least one file descriptor from proxy";
+        return false;
+    }
+    code[0] = 'a';
+    if (TEMP_FAILURE_RETRY(send(fd, code, sizeof(code), MSG_NOSIGNAL)) < 0) {
+        PLOG(ERROR) << "Failed to send ACK to proxy";
+        return false;
+    }
+    sockfd_ = std::move(fds[0]);
+    if (!StartWithSocket(true)) {
+        return false;
+    }
+    return Run();
+}
+bool UserSnapshotServer::RunForSocketHandoff() {
+    unique_fd proxy_fd(android_get_control_socket(kSnapuserdSocketProxy));
+    if (proxy_fd < 0) {
+        PLOG(FATAL) << "Proxy could not get android control socket " << kSnapuserdSocketProxy;
+    }
+    borrowed_fd server_fd(android_get_control_socket(kSnapuserdSocket));
+    if (server_fd < 0) {
+        PLOG(FATAL) << "Proxy could not get android control socket " << kSnapuserdSocket;
+    }
+    if (listen(proxy_fd.get(), 4) < 0) {
+        PLOG(FATAL) << "Proxy listen socket failed";
+    }
+    if (!android::base::SetProperty("snapuserd.proxy_ready", "true")) {
+        LOG(FATAL) << "Proxy failed to set ready property";
+    }
+    unique_fd client_fd(
+            TEMP_FAILURE_RETRY(accept4(proxy_fd.get(), nullptr, nullptr, SOCK_CLOEXEC)));
+    if (client_fd < 0) {
+        PLOG(FATAL) << "Proxy accept failed";
+    }
+    char code[1] = {'a'};
+    std::vector<int> fds = {server_fd.get()};
+    ssize_t rv = android::base::SendFileDescriptorVector(client_fd, code, sizeof(code), fds);
+    if (rv < 0) {
+        PLOG(FATAL) << "Proxy could not send file descriptor to snapuserd";
+    }
+    if (recv(client_fd, code, sizeof(code), 0) < 0) {
+        PLOG(FATAL) << "Proxy could not receive terminating code from snapuserd";
+    }
+    return true;
+}
+bool UserSnapshotServer::UpdateVerification(std::lock_guard<std::mutex>* proof_of_lock) {
+    CHECK(proof_of_lock);
+    bool status = true;
+    for (auto iter = dm_users_.begin(); iter != dm_users_.end(); iter++) {
+        auto& th = (*iter)->thread();
+        if (th.joinable() && status) {
+            status = (*iter)->snapuserd()->CheckPartitionVerification() && status;
+        } else {
+            return false;
+        }
+    }
+    return status;
+}
+}
+}

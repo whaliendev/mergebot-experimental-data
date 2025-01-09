@@ -1,0 +1,247 @@
+--- a/./output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_merged.cc
+@@ -59,0 +60 @@ const std::string default_column_family_name("default");
++const std::string kNullString = "NULL";
+@@ -1852 +1853,12 @@ inline SequenceNumber DBImpl::findEarliestVisibleSnapshot(
+-Status DBImpl::ProcessKeyValueCompaction( SequenceNumber visible_at_tip, SequenceNumber earliest_snapshot, SequenceNumber latest_snapshot, DeletionState& deletion_state, bool bottommostFiles( compact->compaction->level()) > 0); assert(compact->builder == nullptr); assert(!compact->outfile);
++Status DBImpl::ProcessKeyValueCompaction(
++    SequenceNumber visible_at_tip,
++    SequenceNumber earliest_snapshot,
++    SequenceNumber latest_snapshot,
++    DeletionState& deletion_state,
++    bool bottommost_level,
++    int64_t& imm_micros,
++    Iterator* input,
++    CompactionState* compact,
++    bool is_compaction_v2,
++    LogBuffer* log_buffer) {
++  size_t combined_idx = 0;
+@@ -1862 +1874,6 @@ Status DBImpl::ProcessKeyValueCompaction( SequenceNumber visible_at_tip, Sequenc
+-epHelper merge( cfd->user_comparator(), cfd->options()->merge_operator.get(), options_.info_log.get(), options_.min_partial_merge_operands, false ); auto compaction_filter = cfd->options()->compaction_filter; std::unique_ptr<CompactionFilter> compaction_filter_from_factory = nullptr;
++  ColumnFamilyData* cfd = compact->compaction->column_family_data();
++  MergeHelper merge(
++      cfd->user_comparator(), cfd->options()->merge_operator.get(),
++      options_.info_log.get(), cfd->options()->min_partial_merge_operands,
++      false );
++  auto compaction_filter = cfd->options()->compaction_filter;
+@@ -1871 +1888,15 @@ epHelper merge( cfd->user_comparator(), cfd->options()->merge_operator.get(), op
+-while (input->Valid() && !shutting_down_.Acquire_Load() && !cfd->IsDropped()) { Slice key; Slice value;
++  for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {
++    Slice key;
++    Slice value;
++    if (!is_compaction_v2) {
++      key = input->key();
++      value = input->value();
++    } else {
++      if (combined_idx >= compact->combined_key_buf_.size()) {
++        break;
++      }
++      assert(combined_idx < compact->combined_key_buf_.size());
++      key = compact->combined_key_buf_[combined_idx];
++      value = compact->combined_value_buf_[combined_idx];
++      ++combined_idx;
++    }
+@@ -1888 +1919,2 @@ while (input->Valid() && !shutting_down_.Acquire_Load() && !cfd->IsDropped()) {
+-if (!has_current_user_key || cfd->user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
++          cfd->user_comparator()->Compare(ikey.user_key,
++                                          Slice(current_user_key)) != 0) {
+@@ -2026 +2060,195 @@ bool to_delete = compaction_filter->Filter( compact->compaction->level(), ikey.u
+-return status; } void DBImpl::CallCompactionFilterV2(CompactionState* compact, CompactionFilterV2* compaction_filter_v2) { if (compact == nullptr || compaction_filter_v2 == nullptr) { return; } std::vector<Slice> user_key_buf; for (const auto& key : compact->ikey_buf_) { user_key_buf.emplace_back(key.user_key); }
++  return status;
++}
++void DBImpl::CallCompactionFilterV2(CompactionState* compact,
++  CompactionFilterV2* compaction_filter_v2) {
++  if (compact == nullptr || compaction_filter_v2 == nullptr) {
++    return;
++  }
++  std::vector<Slice> user_key_buf;
++  for (const auto& key : compact->ikey_buf_) {
++    user_key_buf.emplace_back(key.user_key);
++  }
++  compact->to_delete_buf_ = compaction_filter_v2->Filter(
++      compact->compaction->level(),
++      user_key_buf, compact->existing_value_buf_,
++      &compact->new_value_buf_,
++      &compact->value_changed_buf_);
++  assert(compact->to_delete_buf_.size() ==
++      compact->key_buf_.size());
++  assert(compact->to_delete_buf_.size() ==
++      compact->existing_value_buf_.size());
++  assert(compact->to_delete_buf_.size() ==
++      compact->value_changed_buf_.size());
++  int new_value_idx = 0;
++  for (unsigned int i = 0; i < compact->to_delete_buf_.size(); ++i) {
++    if (compact->to_delete_buf_[i]) {
++      UpdateInternalKey(&compact->key_str_buf_[i][0],
++          compact->key_str_buf_[i].size(),
++          compact->ikey_buf_[i].sequence,
++          kTypeDeletion);
++      compact->existing_value_buf_[i].clear();
++      RecordTick(options_.statistics.get(), COMPACTION_KEY_DROP_USER);
++    } else if (compact->value_changed_buf_[i]) {
++      compact->existing_value_buf_[i] =
++        Slice(compact->new_value_buf_[new_value_idx++]);
++    }
++  }
++}
++Status DBImpl::DoCompactionWork(CompactionState* compact,
++                                DeletionState& deletion_state,
++                                LogBuffer* log_buffer) {
++  assert(compact);
++  compact->CleanupBatchBuffer();
++  compact->CleanupMergedBuffer();
++  compact->cur_prefix_ = kNullString;
++  int64_t imm_micros = 0;
++  ColumnFamilyData* cfd = compact->compaction->column_family_data();
++  Log(options_.info_log,
++      "[CF %u] Compacting %d@%d + %d@%d files, score %.2f slots available %d",
++      cfd->GetID(), compact->compaction->num_input_files(0),
++      compact->compaction->level(), compact->compaction->num_input_files(1),
++      compact->compaction->output_level(), compact->compaction->score(),
++      options_.max_background_compactions - bg_compaction_scheduled_);
++  char scratch[2345];
++  compact->compaction->Summary(scratch, sizeof(scratch));
++  Log(options_.info_log, "Compaction start summary: %s\n", scratch);
++  assert(cfd->current()->NumLevelFiles(compact->compaction->level()) > 0);
++  assert(compact->builder == nullptr);
++  assert(!compact->outfile);
++  SequenceNumber visible_at_tip = 0;
++  SequenceNumber earliest_snapshot;
++  SequenceNumber latest_snapshot = 0;
++  snapshots_.getAll(compact->existing_snapshots);
++  if (compact->existing_snapshots.size() == 0) {
++    visible_at_tip = versions_->LastSequence();
++    earliest_snapshot = visible_at_tip;
++  } else {
++    latest_snapshot = compact->existing_snapshots.back();
++    compact->existing_snapshots.push_back(versions_->LastSequence());
++    earliest_snapshot = compact->existing_snapshots[0];
++  }
++  bool bottommost_level = compact->compaction->BottomMostLevel();
++  AllocateCompactionOutputFileNumbers(compact);
++  mutex_.Unlock();
++  const uint64_t start_micros = env_->NowMicros();
++  unique_ptr<Iterator> input(versions_->MakeInputIterator(compact->compaction));
++  input->SeekToFirst();
++  shared_ptr<Iterator> backup_input(
++      versions_->MakeInputIterator(compact->compaction));
++  backup_input->SeekToFirst();
++  Status status;
++  ParsedInternalKey ikey;
++  std::unique_ptr<CompactionFilterV2> compaction_filter_from_factory_v2
++    = nullptr;
++  auto context = compact->GetFilterContext();
++  compaction_filter_from_factory_v2 =
++      cfd->options()->compaction_filter_factory_v2->CreateCompactionFilterV2(
++          context);
++  auto compaction_filter_v2 =
++    compaction_filter_from_factory_v2.get();
++  if (compaction_filter_v2) {
++    while (backup_input->Valid() && !shutting_down_.Acquire_Load() &&
++           !cfd->IsDropped()) {
++      Slice key = backup_input->key();
++      Slice value = backup_input->value();
++      const SliceTransform* transformer =
++          cfd->options()->compaction_filter_factory_v2->GetPrefixExtractor();
++      std::string key_prefix = transformer->Transform(key).ToString();
++      if (compact->cur_prefix_ == kNullString) {
++        compact->cur_prefix_ = key_prefix;
++      }
++      if (!ParseInternalKey(key, &ikey)) {
++        Log(options_.info_log, "Failed to parse key: %s",
++            key.ToString().c_str());
++        continue;
++      } else {
++        if (key_prefix == compact->cur_prefix_) {
++          if (ikey.type == kTypeValue &&
++              (visible_at_tip || ikey.sequence > latest_snapshot)) {
++            compact->BufferKeyValueSlices(key, value);
++          } else {
++            compact->BufferOtherKeyValueSlices(key, value);
++          }
++          backup_input->Next();
++          continue;
++        } else {
++          if (compact->key_buf_.size() > 0) {
++            CallCompactionFilterV2(compact, compaction_filter_v2);
++          }
++          compact->cur_prefix_ = key_prefix;
++        }
++      }
++      compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
++      status = ProcessKeyValueCompaction(
++          visible_at_tip,
++          earliest_snapshot,
++          latest_snapshot,
++          deletion_state,
++          bottommost_level,
++          imm_micros,
++          input.get(),
++          compact,
++          true,
++          log_buffer);
++      if (!status.ok()) {
++        break;
++      }
++      compact->CleanupBatchBuffer();
++      compact->CleanupMergedBuffer();
++      if (ikey.type == kTypeValue &&
++        (visible_at_tip || ikey.sequence > latest_snapshot)) {
++        compact->BufferKeyValueSlices(key, value);
++      } else {
++        compact->BufferOtherKeyValueSlices(key, value);
++      }
++      backup_input->Next();
++      if (!backup_input->Valid()) {
++        if (compact->key_buf_.size() > 0) {
++          CallCompactionFilterV2(compact, compaction_filter_v2);
++        }
++        compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
++        status = ProcessKeyValueCompaction(
++            visible_at_tip,
++            earliest_snapshot,
++            latest_snapshot,
++            deletion_state,
++            bottommost_level,
++            imm_micros,
++            input.get(),
++            compact,
++            true,
++            log_buffer);
++        compact->CleanupBatchBuffer();
++        compact->CleanupMergedBuffer();
++      }
++    }
++    if (compact->key_buf_.size() > 0) {
++      CallCompactionFilterV2(compact, compaction_filter_v2);
++    }
++    compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
++    status = ProcessKeyValueCompaction(
++        visible_at_tip,
++        earliest_snapshot,
++        latest_snapshot,
++        deletion_state,
++        bottommost_level,
++        imm_micros,
++        input.get(),
++        compact,
++        true,
++        log_buffer);
++  }
++  if (!compaction_filter_v2) {
++    status = ProcessKeyValueCompaction(
++      visible_at_tip,
++      earliest_snapshot,
++      latest_snapshot,
++      deletion_state,
++      bottommost_level,
++      imm_micros,
++      input.get(),
++      compact,
++      false,
++      log_buffer);
++  }
++  if (status.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) {
+@@ -2028 +2256 @@ return status; } void DBImpl::CallCompactionFilterV2(CompactionState* compact, C
+-        "Database shutdown started during compaction");
++        "Database shutdown or Column family drop during compaction");

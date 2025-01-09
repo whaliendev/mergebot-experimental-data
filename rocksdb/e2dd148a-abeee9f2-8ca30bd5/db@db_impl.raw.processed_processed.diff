@@ -1,0 +1,80 @@
+--- a/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_conflict.cc
++++ b/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_merged.cc
+@@ -1500,45 +1499,0 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-<<<<<<< HEAD
+-||||||| 8ca30bd51
+-  if (is_manual) {
+-    manual_compaction_->in_progress = true;
+-  }
+-  while (imm_.IsFlushPending()) {
+-    Log(options_.info_log,
+-        "BackgroundCompaction doing FlushMemTableToOutputFile, compaction slots "
+-        "available %d",
+-        options_.max_background_compactions - bg_compaction_scheduled_);
+-    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state);
+-    if (!stat.ok()) {
+-      if (is_manual) {
+-        manual_compaction_->status = stat;
+-        manual_compaction_->done = true;
+-        manual_compaction_->in_progress = false;
+-        manual_compaction_ = nullptr;
+-      }
+-      return stat;
+-    }
+-  }
+-  unique_ptr<Compaction> c;
+-=======
+-  if (is_manual) {
+-    manual_compaction_->in_progress = true;
+-  }
+-  while (imm_.IsFlushPending()) {
+-    LogToBuffer(log_buffer,
+-                "BackgroundCompaction doing FlushMemTableToOutputFile, "
+-                "compaction slots "
+-                "available %d",
+-                options_.max_background_compactions - bg_compaction_scheduled_);
+-    Status stat = FlushMemTableToOutputFile(madeProgress, deletion_state);
+-    if (!stat.ok()) {
+-      if (is_manual) {
+-        manual_compaction_->status = stat;
+-        manual_compaction_->done = true;
+-        manual_compaction_->in_progress = false;
+-        manual_compaction_ = nullptr;
+-      }
+-      return stat;
+-    }
+-  }
+-  unique_ptr<Compaction> c;
+->>>>>>> abeee9f2
+@@ -1565 +1519,0 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-<<<<<<< HEAD
+@@ -1569 +1523 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-        c.reset(cfd->PickCompaction());
++        c.reset(cfd->PickCompaction(log_buffer));
+@@ -1577,7 +1530,0 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-||||||| 8ca30bd51
+-  } else if (!options_.disable_auto_compactions) {
+-    c.reset(versions_->PickCompaction());
+-=======
+-  } else if (!options_.disable_auto_compactions) {
+-    c.reset(versions_->PickCompaction(log_buffer));
+->>>>>>> abeee9f2
+@@ -1602,2 +1549 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-<<<<<<< HEAD
+-    Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
++    LogToBuffer(log_buffer, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+@@ -1608,14 +1553,0 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-||||||| 8ca30bd51
+-    Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+-        static_cast<unsigned long long>(f->number), c->level() + 1,
+-        static_cast<unsigned long long>(f->file_size),
+-        status.ToString().c_str(), versions_->current()->LevelSummary(&tmp));
+-    versions_->ReleaseCompactionFiles(c.get(), status);
+-=======
+-    LogToBuffer(log_buffer, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+-                static_cast<unsigned long long>(f->number), c->level() + 1,
+-                static_cast<unsigned long long>(f->file_size),
+-                status.ToString().c_str(),
+-                versions_->current()->LevelSummary(&tmp));
+-    versions_->ReleaseCompactionFiles(c.get(), status);
+->>>>>>> abeee9f2

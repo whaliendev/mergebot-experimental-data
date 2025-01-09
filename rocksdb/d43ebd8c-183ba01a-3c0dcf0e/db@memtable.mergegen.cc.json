@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "            memcpy(p, value.data(), new_size);\n            assert(\n              (p + new_size) - entry ==\n              (unsigned) (VarintLength(key_length) +\n                          key_length +\n                          VarintLength(new_size) +\n                          new_size)\n            );\n            // no need to update bloom, as user key does not change.\n            return;",
+        "b_contents": "            memcpy(p, value.data(), value.size());\n            assert((unsigned)((p + value.size()) - entry) ==\n                   (unsigned)(VarintLength(key_length) + key_length +\n                              VarintLength(value.size()) + value.size()));\n            return true;",
+        "base_contents": "            memcpy(p, value.data(), value.size());\n            assert(\n              (p + value.size()) - entry ==\n              (unsigned) (VarintLength(key_length) +\n                          key_length +\n                          VarintLength(value.size()) +\n                          value.size())\n            );\n            return true;",
+        "res_region": "            memcpy(p, value.data(), value.size());\n            assert((unsigned)((p + value.size()) - entry) ==\n                   (unsigned)(VarintLength(key_length) + key_length +\n                              VarintLength(value.size()) + value.size()));\n            return;",
+        "lookback": "            char* p = EncodeVarint32(const_cast<char*>(key_ptr) + key_length,\n                                     new_size);\n            WriteLock wl(GetLock(lkey.user_key()));",
+        "lookahead": "          }\n        }",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 365,
+        "end_line": 392,
+        "merge_gen_region": "(GetLock(lkey.user_key())); memcpy(p, value.data(), new_size); assert((unsigned)((p + new_size) - entry) == (unsigned)(VarintLength(key_length) + key_length + VarintLength(new_size) + new_size) ); // no need to update bloom, as user key does not change. return;",
+        "resolved": false
+    }
+]

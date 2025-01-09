@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "      entry_type(entry_type), capacity(0), is_finalized(false) {\n",
+        "b_contents": "      entry_type(entry_type), capacity(0), entries(0), payload_page_offset(0), is_finalized(false),\n      aggregate_allocator(allocator) {",
+        "base_contents": "      entry_type(entry_type), capacity(0), entries(0), payload_page_offset(0), is_finalized(false) {",
+        "res_region": "      entry_type(entry_type), capacity(0), is_finalized(false), aggregate_allocator(allocator) {",
+        "lookback": "                                                     vector<AggregateObject> aggregate_objects_p,\n                                                     HtEntryType entry_type, idx_t initial_capacity)\n    : BaseAggregateHashTable(context, allocator, aggregate_objects_p, std::move(payload_types_p)),",
+        "lookahead": "\t// Append hash column to the end and initialise the row layout\n\tgroup_types_p.emplace_back(LogicalType::HASH);",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 46,
+        "end_line": 54,
+        "merge_gen_region": "std::move(payload_types_p)), entry_type(entry_type), capacity(0), is_finalized(false), aggregate_allocator(allocator) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t// There are aggregates with destructors: Call the destructor for each of the aggregates\n\tTupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false);\n\tauto &row_locations = iterator.GetChunkState().row_locations;\n\tdo {\n\t\tRowOperations::DestroyStates(layout, row_locations, iterator.GetCount());\n\t} while (iterator.Next());\n\tdata_collection->Reset();",
+        "b_contents": "\tRowOperationsState state(aggregate_allocator.GetAllocator());\n\tPayloadApply([&](idx_t page_nr, idx_t page_offset, data_ptr_t ptr) {\n\t\tdata_pointers[count++] = ptr;\n\t\tif (count == STANDARD_VECTOR_SIZE) {\n\t\t\tRowOperations::DestroyStates(state, layout, state_vector, count);\n\t\t\tcount = 0;\n\t\t}\n\t});\n\tRowOperations::DestroyStates(state, layout, state_vector, count);",
+        "base_contents": "\tPayloadApply([&](idx_t page_nr, idx_t page_offset, data_ptr_t ptr) {\n\t\tdata_pointers[count++] = ptr;\n\t\tif (count == STANDARD_VECTOR_SIZE) {\n\t\t\tRowOperations::DestroyStates(layout, state_vector, count);\n\t\t\tcount = 0;\n\t\t}\n\t});\n\tRowOperations::DestroyStates(layout, state_vector, count);",
+        "res_region": "\t// There are aggregates with destructors: Call the destructor for each of the aggregates\n\tRowOperationsState state(aggregate_allocator.GetAllocator());\n\tTupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false);\n\tauto &row_locations = iterator.GetChunkState().row_locations;\n\tdo {\n\t\tRowOperations::DestroyStates(state, layout, row_locations, iterator.GetCount());\n\t} while (iterator.Next());\n\tdata_collection->Reset();",
+        "lookback": "\t\treturn;\n\t}\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 107,
+        "end_line": 134,
+        "merge_gen_region": "// There are aggregates with destructors: Call the destructor for each of the aggregates TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false); auto &row_locations = iterator.GetChunkState().row_locations; do { RowOperations::DestroyStates(state, layout, row_locations, iterator.GetCount()); } while (iterator.Next()); data_collection->Reset();",
+        "resolved": false
+    },
+    {
+        "a_contents": "\tidx_t payload_idx = 0;",
+        "b_contents": "\tRowOperationsState row_state(aggregate_allocator.GetAllocator());",
+        "base_contents": "",
+        "res_region": "\tidx_t payload_idx = 0;\n\tRowOperationsState row_state(aggregate_allocator.GetAllocator());",
+        "lookback": "\t// Now every cell has an entry, update the aggregates\n\tauto &aggregates = layout.GetAggregates();\n\tidx_t filter_idx = 0;",
+        "lookahead": "\tfor (idx_t i = 0; i < aggregates.size(); i++) {\n\t\tauto &aggr = aggregates[i];",
+        "label": [
+            "concat",
+            "complex_conflict"
+        ],
+        "start_line": 304,
+        "end_line": 309,
+        "merge_gen_region": " idx_t payload_idx = 0; RowOperationsState row_state(aggregate_allocator.GetAllocator());",
+        "resolved": true
+    },
+    {
+        "a_contents": "\tcollection.FinalizePinState(scan_state.pin_state);\n\treturn false;",
+        "b_contents": "\n\tAggregateHTAppendState append_state;\n\tFindOrCreateGroups(append_state, state.groups, source_hashes, state.group_addresses, state.new_groups_sel);\n\n\tRowOperationsState row_state(aggregate_allocator.GetAllocator());\n\tRowOperations::CombineStates(row_state, layout, source_addresses, state.group_addresses, count);",
+        "base_contents": "\n\tAggregateHTAppendState append_state;\n\tFindOrCreateGroups(append_state, state.groups, source_hashes, state.group_addresses, state.new_groups_sel);\n\n\tRowOperations::CombineStates(layout, source_addresses, state.group_addresses, count);",
+        "res_region": "\n\tcollection.FinalizePinState(scan_state.pin_state);\n\treturn false;",
+        "lookback": "\t\t                  groups.size(), hash_col_idx, hashes, *FlatVector::IncrementalSelectionVector());\n\t\treturn true;\n\t}",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 589,
+        "end_line": 605,
+        "merge_gen_region": " collection.FinalizePinState(scan_state.pin_state); return false;",
+        "resolved": true
+    },
+    {
+        "a_contents": "\treturn result.size();",
+        "b_contents": "\tRowOperationsState row_state(aggregate_allocator.GetAllocator());\n\tRowOperations::FinalizeStates(row_state, layout, addresses, result, group_cols);\n\treturn this_n;",
+        "base_contents": "\tRowOperations::FinalizeStates(layout, addresses, result, group_cols);\n\treturn this_n;",
+        "res_region": "void GroupedAggregateHashTable::Combine(GroupedAggregateHashTable &other) {\n\tD_ASSERT(!is_finalized);\n\n\tD_ASSERT(other.layout.GetAggrWidth() == layout.GetAggrWidth());\n\tD_ASSERT(other.layout.GetDataWidth() == layout.GetDataWidth());\n\tD_ASSERT(other.layout.GetRowWidth() == layout.GetRowWidth());\n\n\tif (other.Count() == 0) {\n\t\treturn;\n\t}\n\n\tFlushMoveState state(*other.data_collection);\n\tRowOperationsState row_state(aggregate_allocator.GetAllocator());\n\twhile (state.Scan()) {\n\t\tFindOrCreateGroups(state.append_state, state.groups, state.hashes, state.group_addresses, state.new_groups_sel);\n\t\tRowOperations::CombineStates(row_state, layout, state.scan_state.chunk_state.row_locations,\n\t\t                             state.group_addresses, state.groups.size());\n\t}\n\n\tVerify();\n}\n\nvoid GroupedAggregateHashTable::Partition(vector<GroupedAggregateHashTable *> &partition_hts, idx_t radix_bits) {\n\tconst auto num_partitions = RadixPartitioning::NumberOfPartitions(radix_bits);\n\tD_ASSERT(partition_hts.size() == num_partitions);\n\n\t// Partition the data\n\tauto partitioned_data =\n\t    make_uniq<RadixPartitionedTupleData>(buffer_manager, layout, radix_bits, layout.ColumnCount() - 1);\n\tpartitioned_data->Partition(*data_collection, TupleDataPinProperties::KEEP_EVERYTHING_PINNED);\n\tD_ASSERT(partitioned_data->GetPartitions().size() == num_partitions);\n\n\t// Move the partitioned data collections to the partitioned hash tables and initialize the 1st part of the HT\n\tauto &partitions = partitioned_data->GetPartitions();\n\tfor (idx_t partition_idx = 0; partition_idx < num_partitions; partition_idx++) {\n\t\tauto &partition_ht = *partition_hts[partition_idx];\n\t\tpartition_ht.data_collection = std::move(partitions[partition_idx]);\n\t\tpartition_ht.InitializeFirstPart();\n\t\tpartition_ht.Verify();\n\t}\n}\n\nvoid GroupedAggregateHashTable::InitializeFirstPart() {\n\tdata_collection->GetBlockPointers(payload_hds_ptrs);\n\tauto size = MaxValue<idx_t>(NextPowerOfTwo(Count() * 2L), capacity);\n\tswitch (entry_type) {\n\tcase HtEntryType::HT_WIDTH_64:\n\t\tResize<aggr_ht_entry_64>(size);\n\t\tbreak;\n\tcase HtEntryType::HT_WIDTH_32:\n\t\tResize<aggr_ht_entry_32>(size);\n\t\tbreak;\n\tdefault:\n\t\tthrow InternalException(\"Unknown HT entry width\");\n\t}\n}\n\nidx_t GroupedAggregateHashTable::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate,\n                                      DataChunk &result) {\n\tdata_collection->Scan(gstate, lstate, result);\n\n\tRowOperationsState row_state(aggregate_allocator.GetAllocator());\n\tconst auto group_cols = layout.ColumnCount() - 1;\n\tRowOperations::FinalizeStates(row_state, layout, lstate.scan_state.chunk_state.row_locations, result, group_cols);\n\n\treturn result.size();",
+        "lookback": "\treturn false;\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 671,
+        "end_line": 680,
+        "merge_gen_region": "return result.size();",
+        "resolved": false
+    }
+]

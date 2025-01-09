@@ -1,0 +1,49 @@
+--- a/./output/system_core/0bb51f76-8cbbc2dc-d61ce22b/fs_mgr@libsnapshot@snapuserd@user-space-merge@snapuserd_test.no_comments_mergegen.cpp
++++ b/./output/system_core/0bb51f76-8cbbc2dc-d61ce22b/fs_mgr@libsnapshot@snapuserd@user-space-merge@snapuserd_test.no_comments_merged.cpp
+@@ -41,0 +44 @@ using testing::AssertionSuccess;
++class SnapuserdTestBase : public ::testing::Test {
+@@ -57 +59,0 @@ std::unique_ptr<ICowWriter> CreateCowDeviceInternal();
+-std::unique_ptr<SnapuserdClient> client_;
+@@ -67 +69 @@ void SnapuserdTestBase::SetUp() {
+-void SnapuserdTestBase::TearDownBase::TearDown();
++void SnapuserdTestBase::TearDown() {}
+@@ -408 +410,14 @@ void SnapuserdTest::InitCowDevice() {
+-uint64_t num_sectors = handlers_->AddHandler(system_device_ctrl_name_, cow_system_->path, base_dev_->GetPath(), base_dev_->GetPath(), opener, 1, use_iouring, false); ASSERT_NE(num_sectors, 0); #endif
++    bool use_iouring = true;
++    if (FLAGS_force_config == "iouring_disabled") {
++        use_iouring = false;
++    }
++    auto factory = harness_->GetBlockServerFactory();
++    auto opener = factory->CreateOpener(system_device_ctrl_name_);
++    auto handler =
++            handlers_->AddHandler(system_device_ctrl_name_, cow_system_->path, base_dev_->GetPath(),
++                                  base_dev_->GetPath(), opener, 1, use_iouring, false);
++    ASSERT_NE(handler, nullptr);
++    ASSERT_NE(handler->snapuserd(), nullptr);
++#ifdef __ANDROID__
++    ASSERT_NE(handler->snapuserd()->GetNumSectors(), 0);
++#endif
+@@ -419 +434 @@ void SnapuserdTest::InitDaemon() {
+-bool ok = client_->AttachDmUser(system_device_ctrl_name_); ASSERT_TRUE(ok);
++    ASSERT_TRUE(handlers_->StartHandler(system_device_ctrl_name_));
+@@ -423 +438 @@ void SnapuserdTest::CheckMergeCompletion() {
+-double percentage = client_->GetMergePercent();
++        double percentage = handlers_->GetMergePercentage();
+@@ -443 +460,2 @@ bool SnapuserdTest::Merge() {
+-bool ok = client_->InitiateMerge(system_device_ctrl_name_);
++bool SnapuserdTest::StartMerge() {
++    return handlers_->InitiateMerge(system_device_ctrl_name_);
+@@ -650,12 +670 @@ int main(int argc, char** argv) {
+-    android::base::SetProperty("ctl.stop", "snapuserd");
+-    if (FLAGS_force_config == "iouring_disabled") {
+-        if (!android::base::SetProperty("snapuserd.test.io_uring.force_disable", "1")) {
+-            return testing::AssertionFailure()
+-                   << "Failed to disable property: snapuserd.test.io_uring.disabled";
+-        }
+-    }
+-    int ret = RUN_ALL_TESTS();
+-    if (FLAGS_force_config == "iouring_disabled") {
+-        android::base::SetProperty("snapuserd.test.io_uring.force_disable", "0");
+-    }
+-    return ret;
++    return RUN_ALL_TESTS();

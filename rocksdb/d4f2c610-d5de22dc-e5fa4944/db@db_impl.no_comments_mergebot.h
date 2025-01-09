@@ -183,9 +183,6 @@ class DBImpl : public DB {
   void DeleteObsoleteFiles();
   Status FlushMemTableToOutputFile(ColumnFamilyData* cfd, bool* madeProgress,
                                    DeletionState& deletion_state);
-  Status FlushMemTableToOutputFile(bool* madeProgress,
-                                   DeletionState& deletion_state,
-                                   LogBuffer* log_buffer);
   Status RecoverLogFile(uint64_t log_number, SequenceNumber* max_sequence,
                         bool read_only);
   Status WriteLevel0TableForRecovery(ColumnFamilyData* cfd, MemTable* mem,
@@ -294,6 +291,12 @@ class DBImpl : public DB {
   inline SequenceNumber findEarliestVisibleSnapshot(
       SequenceNumber in, std::vector<SequenceNumber>& snapshots,
       SequenceNumber* prev_snapshot);
+  void InstallSuperVersion(ColumnFamilyData* cfd,
+                           DeletionState& deletion_state);
+  using DB::GetPropertiesOfAllTables;
+  virtual Status GetPropertiesOfAllTables(
+      ColumnFamilyHandle* column_family,
+      TablePropertiesCollection* props) override;
   Status GetImpl(const ReadOptions& options, ColumnFamilyHandle* column_family,
                  const Slice& key, std::string* value,
                  bool* value_found = nullptr);
@@ -301,12 +304,6 @@ class DBImpl : public DB {
   std::pair<Iterator*, Iterator*> GetTailingIteratorPair(
       const ReadOptions& options, ColumnFamilyData* cfd,
       uint64_t* superversion_number);
-  void InstallSuperVersion(ColumnFamilyData* cfd,
-                           DeletionState& deletion_state);
-  using DB::GetPropertiesOfAllTables;
-  virtual Status GetPropertiesOfAllTables(
-      ColumnFamilyHandle* column_family,
-      TablePropertiesCollection* props) override;
 };
 extern Options SanitizeOptions(const std::string& db,
                                const InternalKeyComparator* icmp,

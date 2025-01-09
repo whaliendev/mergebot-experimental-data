@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "",
+        "b_contents": "  void TEST_GetFilesMetaData(std::vector<std::vector<FileMetaData>>* metadata);\n\n  // holds references to memtable, all immutable memtables and version\n  struct SuperVersion {\n    MemTable* mem;\n    MemTableListVersion* imm;\n    Version* current;\n    std::atomic<uint32_t> refs;\n    // We need to_delete because during Cleanup(), imm->Unref() returns\n    // all memtables that we need to free through this vector. We then\n    // delete all those memtables outside of mutex, during destruction\n    autovector<MemTable*> to_delete;\n\n    // should be called outside the mutex\n    SuperVersion() = default;\n    ~SuperVersion();\n    SuperVersion* Ref();\n    // Returns true if this was the last reference and caller should\n    // call Clenaup() and delete the object\n    bool Unref();\n\n    // call these two methods with db mutex held\n    // Cleanup unrefs mem, imm and current. Also, it stores all memtables\n    // that needs to be deleted in to_delete vector. Unrefing those\n    // objects needs to be done in the mutex\n    void Cleanup();\n    void Init(MemTable* new_mem, MemTableListVersion* new_imm,\n              Version* new_current);\n  };\n",
+        "base_contents": "  // holds references to memtable, all immutable memtables and version\n  struct SuperVersion {\n    MemTable* mem;\n    MemTableListVersion* imm;\n    Version* current;\n    std::atomic<uint32_t> refs;\n    // We need to_delete because during Cleanup(), imm->Unref() returns\n    // all memtables that we need to free through this vector. We then\n    // delete all those memtables outside of mutex, during destruction\n    autovector<MemTable*> to_delete;\n\n    // should be called outside the mutex\n    SuperVersion() = default;\n    ~SuperVersion();\n    SuperVersion* Ref();\n    // Returns true if this was the last reference and caller should\n    // call Clenaup() and delete the object\n    bool Unref();\n\n    // call these two methods with db mutex held\n    // Cleanup unrefs mem, imm and current. Also, it stores all memtables\n    // that needs to be deleted in to_delete vector. Unrefing those\n    // objects needs to be done in the mutex\n    void Cleanup();\n    void Init(MemTable* new_mem, MemTableListVersion* new_imm,\n              Version* new_current);\n  };\n",
+        "res_region": "  void TEST_GetFilesMetaData(std::vector<std::vector<FileMetaData>>* metadata);\n",
+        "lookback": "    default_interval_to_delete_obsolete_WAL_ = default_interval_to_delete_obsolete_WAL;\n  }\n",
+        "lookahead": "  // needed for CleanupIteratorState\n  struct DeletionState {",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 176,
+        "end_line": 237,
+        "merge_gen_region": "void TEST_GetFilesMetaData(std::vector<std::vector<FileMetaData>>* metadata);",
+        "resolved": true
+    }
+]

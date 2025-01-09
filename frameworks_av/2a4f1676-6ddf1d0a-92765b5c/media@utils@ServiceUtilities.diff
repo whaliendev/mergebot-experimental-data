@@ -1,0 +1,240 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_merged.cpp
+index 461aabf..cc9ec2c 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_merged.cpp
+@@ -20,0 +21 @@ static const String16 sCallAudioInterception("android.permission.CALL_AUDIO_INTE
++static const String16 sAndroidPermissionBluetoothConnect("android.permission.BLUETOOTH_CONNECT");
+@@ -56,3 +57,2 @@ std::optional<AttributionSourceState> resolveAttributionSource(
+-                resolveCallingPackage(permissionController,
+-                                      VALUE_OR_FATAL(aidl2legacy_string_view_String16(
+-                                              nextAttributionSource.packageName.value_or(""))),
++                resolveCallingPackage(permissionController, VALUE_OR_FATAL(
++                aidl2legacy_string_view_String16(nextAttributionSource.packageName.value_or(""))),
+@@ -73,0 +74,25 @@ std::optional<AttributionSourceState> resolveAttributionSource(
++    static bool checkRecordingInternal(const AttributionSourceState &attributionSource,
++                                       const uint32_t virtualDeviceId,
++                                       const String16 &msg, bool start, audio_source_t source) {
++    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
++    if (isAudioServerOrMediaServerOrSystemServerOrRootUid(uid)) return true;
++    std::optional<AttributionSourceState> resolvedAttributionSource =
++            resolveAttributionSource(attributionSource, virtualDeviceId);
++    if (!resolvedAttributionSource.has_value()) {
++        return false;
++    }
++    const int32_t attributedOpCode = getOpForSource(source);
++    permission::PermissionChecker permissionChecker;
++    bool permitted = false;
++    if (start) {
++        permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
++                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
++                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
++    } else {
++        permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
++                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
++                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
++    }
++    return permitted;
++}
++static constexpr int DEVICE_ID_DEFAULT = 0;
+@@ -79,3 +104,4 @@ bool recordingAllowed(const AttributionSourceState& attributionSource,
+-                      const uint32_t virtualDeviceId, audio_source_t source) {
+-    return checkRecordingInternal(attributionSource, virtualDeviceId, String16(), false,
+-                                  source);
++                      const uint32_t virtualDeviceId,
++                      audio_source_t source) {
++    return checkRecordingInternal(attributionSource, virtualDeviceId,
++                                  String16(), false, source);
+@@ -83,3 +109,6 @@ bool recordingAllowed(const AttributionSourceState& attributionSource,
+-bool startRecording(const AttributionSourceState& attributionSource, const uint32_t virtualDeviceId,
+-                    const String16& msg, audio_source_t source) {
+-    return checkRecordingInternal(attributionSource, virtualDeviceId, msg, true, source);
++bool startRecording(const AttributionSourceState& attributionSource,
++                    const uint32_t virtualDeviceId,
++                    const String16& msg,
++                    audio_source_t source) {
++    return checkRecordingInternal(attributionSource, virtualDeviceId, msg, true,
++                                  source);
+@@ -106,3 +135,3 @@ bool captureAudioOutputAllowed(const AttributionSourceState& attributionSource)
+-    bool ok = (permissionChecker.checkPermissionForPreflight(sCaptureAudioOutput, attributionSource,
+-                                                             String16(), AppOpsManager::OP_NONE) !=
+-               permission::PermissionChecker::PERMISSION_HARD_DENIED);
++    bool ok = (permissionChecker.checkPermissionForPreflight(
++            sCaptureAudioOutput, attributionSource, String16(),
++            AppOpsManager::OP_NONE) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
+@@ -144 +173,2 @@ bool accessUltrasoundAllowed(const AttributionSourceState& attributionSource) {
+-    static const String16 sAccessUltrasound("android.permission.ACCESS_ULTRASOUND");
++    static const String16 sAccessUltrasound(
++        "android.permission.ACCESS_ULTRASOUND");
+@@ -154,4 +184,3 @@ bool captureHotwordAllowed(const AttributionSourceState& attributionSource) {
+-        ok = (permissionChecker.checkPermissionForPreflight(sCaptureHotwordAllowed,
+-                                                            attributionSource, String16(),
+-                                                            AppOpsManager::OP_NONE) !=
+-              permission::PermissionChecker::PERMISSION_HARD_DENIED);
++        ok = (permissionChecker.checkPermissionForPreflight(
++                sCaptureHotwordAllowed, attributionSource, String16(),
++                AppOpsManager::OP_NONE) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
+@@ -177,2 +206,2 @@ bool modifyAudioRoutingAllowed(const AttributionSourceState& attributionSource)
+-    if (!ok)
+-        ALOGE("%s(): android.permission.MODIFY_AUDIO_ROUTING denied for uid %d", __func__, uid);
++    if (!ok) ALOGE("%s(): android.permission.MODIFY_AUDIO_ROUTING denied for uid %d",
++        __func__, uid);
+@@ -211,5 +240,5 @@ bool bypassInterruptionPolicyAllowed(const AttributionSourceState& attributionSo
+-    bool ok = PermissionCache::checkPermission(sModifyPhoneState, pid, uid) ||
+-              PermissionCache::checkPermission(sWriteSecureSettings, pid, uid) ||
+-              PermissionCache::checkPermission(sModifyAudioRouting, pid, uid);
+-    ALOGE_IF(!ok, "Request requires %s or %s", String8(sModifyPhoneState).c_str(),
+-             String8(sWriteSecureSettings).c_str());
++    bool ok = PermissionCache::checkPermission(sModifyPhoneState, pid, uid)
++        || PermissionCache::checkPermission(sWriteSecureSettings, pid, uid)
++        || PermissionCache::checkPermission(sModifyAudioRouting, pid, uid);
++    ALOGE_IF(!ok, "Request requires %s or %s",
++             String8(sModifyPhoneState).c_str(), String8(sWriteSecureSettings).c_str());
+@@ -222,2 +251,2 @@ bool callAudioInterceptionAllowed(const AttributionSourceState& attributionSourc
+-    if (!ok)
+-        ALOGV("%s(): android.permission.CALL_AUDIO_INTERCEPTION denied for uid %d", __func__, uid);
++    if (!ok) ALOGV("%s(): android.permission.CALL_AUDIO_INTERCEPTION denied for uid %d",
++        __func__, uid);
+@@ -228,4 +257,4 @@ AttributionSourceState getCallingAttributionSource() {
+-    attributionSource.pid =
+-            VALUE_OR_FATAL(legacy2aidl_pid_t_int32_t(IPCThreadState::self()->getCallingPid()));
+-    attributionSource.uid =
+-            VALUE_OR_FATAL(legacy2aidl_uid_t_int32_t(IPCThreadState::self()->getCallingUid()));
++    attributionSource.pid = VALUE_OR_FATAL(legacy2aidl_pid_t_int32_t(
++            IPCThreadState::self()->getCallingPid()));
++    attributionSource.uid = VALUE_OR_FATAL(legacy2aidl_uid_t_int32_t(
++            IPCThreadState::self()->getCallingUid()));
+@@ -238 +267,2 @@ void purgePermissionCache() {
+-status_t checkIMemory(const sp<IMemory>& iMemory) {
++status_t checkIMemory(const sp<IMemory>& iMemory)
++{
+@@ -251,2 +281,2 @@ status_t checkIMemory(const sp<IMemory>& iMemory) {
+-        ALOGE("%s check failed: pointer %p size %zu fd size %u", __FUNCTION__,
+-              iMemory->unsecurePointer(), iMemory->size(), (uint32_t)size);
++        ALOGE("%s check failed: pointer %p size %zu fd size %u",
++              __FUNCTION__, iMemory->unsecurePointer(), iMemory->size(), (uint32_t)size);
+@@ -256,0 +287,23 @@ status_t checkIMemory(const sp<IMemory>& iMemory) {
++bool mustAnonymizeBluetoothAddress(
++        const AttributionSourceState& attributionSource, const String16& caller) {
++    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
++    if (isAudioServerOrSystemServerUid(uid)) {
++        return false;
++    }
++    const std::optional<AttributionSourceState> resolvedAttributionSource =
++            resolveAttributionSource(attributionSource, DEVICE_ID_DEFAULT);
++    if (!resolvedAttributionSource.has_value()) {
++        return true;
++    }
++    permission::PermissionChecker permissionChecker;
++    return permissionChecker.checkPermissionForPreflightFromDatasource(
++            sAndroidPermissionBluetoothConnect, resolvedAttributionSource.value(), caller,
++            AppOpsManager::OP_BLUETOOTH_CONNECT)
++                != permission::PermissionChecker::PERMISSION_GRANTED;
++}
++void anonymizeBluetoothAddress(char *address) {
++    if (address == nullptr || strlen(address) != strlen("AA:BB:CC:DD:EE:FF")) {
++        return;
++    }
++    memcpy(address, "XX:XX:XX:XX", strlen("XX:XX:XX:XX"));
++}
+@@ -286,2 +339 @@ std::optional<bool> MediaPackageManager::doIsAllowed(uid_t uid) {
+-              "from the package manager.",
+-              __func__, uid);
++              "from the package manager.", __func__, uid);
+@@ -294,2 +346 @@ std::optional<bool> MediaPackageManager::doIsAllowed(uid_t uid) {
+-              "retrieved from the package manager: %s",
+-              __func__, uid, status.toString8().c_str());
++              "retrieved from the package manager: %s", __func__, uid, status.toString8().c_str());
+@@ -300,2 +351 @@ std::optional<bool> MediaPackageManager::doIsAllowed(uid_t uid) {
+-              " response size: %zu != %zu",
+-              __func__, uid, packageNames.size(), isAllowed.size());
++              " response size: %zu != %zu", __func__, uid, packageNames.size(), isAllowed.size());
+@@ -306,2 +356,2 @@ std::optional<bool> MediaPackageManager::doIsAllowed(uid_t uid) {
+-    std::transform(begin(packageNames), end(packageNames), begin(isAllowed), begin(packages),
+-                   [](auto& name, bool isAllowed) -> Package {
++    std::transform(begin(packageNames), end(packageNames), begin(isAllowed),
++                   begin(packages), [] (auto& name, bool isAllowed) -> Package {
+@@ -310,2 +360,2 @@ std::optional<bool> MediaPackageManager::doIsAllowed(uid_t uid) {
+-    bool playbackCaptureAllowed =
+-            std::all_of(begin(isAllowed), end(isAllowed), [](bool b) { return b; });
++    bool playbackCaptureAllowed = std::all_of(begin(isAllowed), end(isAllowed),
++                                                  [](bool b) { return b; });
+@@ -324 +374,2 @@ void MediaPackageManager::dump(int fd, int spaces) const {
+-                    package.playbackCaptureAllowed ? "true " : "false", package.name.c_str());
++                    package.playbackCaptureAllowed ? "true " : "false",
++                    package.name.c_str());
+@@ -330 +381,2 @@ static constexpr size_t INFO_CACHE_MAX = 1000;
+-mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
++mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid)
++{
+@@ -338,2 +390,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-            ALOGV("%s: uid %d expiration %lld now %lld", __func__, uid,
+-                  (long long)info.expirationNs, (long long)now);
++            ALOGV("%s: uid %d expiration %lld now %lld",
++                    __func__, uid, (long long)info.expirationNs, (long long)now);
+@@ -341 +393,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-                ALOGV("%s: entry for uid %d expired, now %lld", __func__, uid, (long long)now);
++                ALOGV("%s: entry for uid %d expired, now %lld",
++                        __func__, uid, (long long)now);
+@@ -365,2 +418,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-                ALOGE("%s: getNamesForUids failed: %s", __func__,
+-                      status.exceptionMessage().c_str());
++                ALOGE("%s: getNamesForUids failed: %s",
++                        __func__, status.exceptionMessage().c_str());
+@@ -374,2 +427 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-            struct passwd pw {
+-            }, *result;
++            struct passwd pw{}, *result;
+@@ -377,2 +429,3 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-            if (getpwuid_r(uid, &pw, buf, sizeof(buf), &result) == 0 && result != nullptr &&
+-                result->pw_name != nullptr) {
++            if (getpwuid_r(uid, &pw, buf, sizeof(buf), &result) == 0
++                    && result != nullptr
++                    && result->pw_name != nullptr) {
+@@ -397,2 +450,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-                ALOGE("%s: getInstallerForPackage failed: %s", __func__,
+-                      status.exceptionMessage().c_str());
++                ALOGE("%s: getInstallerForPackage failed: %s",
++                        __func__, status.exceptionMessage().c_str());
+@@ -403,2 +456,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-                    ALOGE("%s: getVersionCodeForPackage failed: %s", __func__,
+-                          status.exceptionMessage().c_str());
++                    ALOGE("%s: getVersionCodeForPackage failed: %s",
++                            __func__, status.exceptionMessage().c_str());
+@@ -407,2 +460,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-            ALOGV("%s: package '%s' installed by '%s' versioncode %lld", __func__, pkg.c_str(),
+-                  installer.c_str(), (long long)versionCode);
++            ALOGV("%s: package '%s' installed by '%s' versioncode %lld",
++                    __func__, pkg.c_str(), installer.c_str(), (long long)versionCode);
+@@ -417,2 +470,2 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-        ALOGV("%s: adding uid %d package '%s' expirationNs: %lld", __func__, uid,
+-              info.package.c_str(), (long long)info.expirationNs);
++        ALOGV("%s: adding uid %d package '%s' expirationNs: %lld",
++                __func__, uid, info.package.c_str(), (long long)info.expirationNs);
+@@ -423,27 +475,0 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-static bool checkRecordingInternal(const AttributionSourceState& attributionSource,
+-                                   const uint32_t virtualDeviceId, const String16& msg, bool start,
+-                                   audio_source_t source) {
+-    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
+-    if (isAudioServerOrMediaServerOrSystemServerOrRootUid(uid)) return true;
+-    std::optional<AttributionSourceState> resolvedAttributionSource =
+-            resolveAttributionSource(attributionSource, virtualDeviceId);
+-    if (!resolvedAttributionSource.has_value()) {
+-        return false;
+-    }
+-    const int32_t attributedOpCode = getOpForSource(source);
+-    permission::PermissionChecker permissionChecker;
+-    bool permitted = false;
+-    if (start) {
+-        permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
+-                             sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+-                             attributedOpCode) !=
+-                     permission::PermissionChecker::PERMISSION_HARD_DENIED);
+-    } else {
+-        permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
+-                             sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+-                             attributedOpCode) !=
+-                     permission::PermissionChecker::PERMISSION_HARD_DENIED);
+-    }
+-    return permitted;
+-}
+-static constexpr int DEVICE_ID_DEFAULT = 0;

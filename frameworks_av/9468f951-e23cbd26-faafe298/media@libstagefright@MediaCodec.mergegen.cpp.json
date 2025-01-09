@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "void MediaCodec::flushMediametrics() {\n    updateMediametrics();\n    if (mMetricsHandle != 0) {\n        if (mediametrics_count(mMetricsHandle) > 0) {\n            mediametrics_selfRecord(mMetricsHandle);\n        }\n        mediametrics_delete(mMetricsHandle);\n        mMetricsHandle = 0;\n    }\n}\n\nvoid MediaCodec::updateLowLatency(const sp<AMessage> &msg) {\n    int32_t lowLatency = 0;\n    if (msg->findInt32(\"low-latency\", &lowLatency)) {\n        Mutex::Autolock al(mLatencyLock);\n        if (lowLatency > 0) {\n            ++mNumLowLatencyEnables;\n            // This is just an estimate since low latency mode change happens ONLY at key frame\n            mIsLowLatencyModeOn = true;\n        } else if (lowLatency == 0) {\n            ++mNumLowLatencyDisables;\n            // This is just an estimate since low latency mode change happens ONLY at key frame\n            mIsLowLatencyModeOn = false;",
+        "b_contents": "void MediaCodec::flushMediametrics() {\n    updateMediametrics();\n    if (mMetricsHandle != 0) {\n        if (mediametrics_count(mMetricsHandle) > 0) {\n            mediametrics_selfRecord(mMetricsHandle);",
+        "base_contents": "void MediaCodec::flushAnalyticsItem() {\n    updateAnalyticsItem();\n    if (mAnalyticsItem != NULL) {\n        // don't log empty records\n        if (mAnalyticsItem->count() > 0) {\n            mAnalyticsItem->selfrecord();",
+        "res_region": "void MediaCodec::flushMediametrics() {\n    updateMediametrics();\n    if (mMetricsHandle != 0) {\n        if (mediametrics_count(mMetricsHandle) > 0) {\n            mediametrics_selfRecord(mMetricsHandle);",
+        "lookback": "    }\n}\n",
+        "lookahead": "        }\n        mediametrics_delete(mMetricsHandle);",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 712,
+        "end_line": 749,
+        "merge_gen_region": "void MediaCodec::flushMediametrics() { updateMediametrics(); if (mMetricsHandle != 0) { if (mediametrics_count(mMetricsHandle) > 0) { mediametrics_selfRecord(mMetricsHandle); } mediametrics_delete(mMetricsHandle); mMetricsHandle = 0; } } void MediaCodec::updateLowLatency(const sp<AMessage> &msg) { int32_t lowLatency = 0; if (msg->findInt32(\"low-latency\", &lowLatency)) { Mutex::Autolock al(mLatencyLock); if (lowLatency > 0) { ++mNumLowLatencyEnables; // This is just an estimate since low latency mode change happens ONLY at key frame mIsLowLatencyModeOn = true; } else if (lowLatency == 0) { ++mNumLowLatencyDisables; // This is just an estimate since low latency mode change happens ONLY at key frame mIsLowLatencyModeOn = false;",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "        mediametrics_delete(mMetricsHandle);\n        mMetricsHandle = 0;",
+        "base_contents": "        delete mAnalyticsItem;\n        mAnalyticsItem = NULL;",
+        "res_region": "        mediametrics_delete(mMetricsHandle);\n        mMetricsHandle = 0;\n    }\n}\n\nvoid MediaCodec::updateLowLatency(const sp<AMessage> &msg) {\n    int32_t lowLatency = 0;\n    if (msg->findInt32(\"low-latency\", &lowLatency)) {\n        Mutex::Autolock al(mLatencyLock);\n        if (lowLatency > 0) {\n            ++mNumLowLatencyEnables;\n            // This is just an estimate since low latency mode change happens ONLY at key frame\n            mIsLowLatencyModeOn = true;\n        } else if (lowLatency == 0) {\n            ++mNumLowLatencyDisables;\n            // This is just an estimate since low latency mode change happens ONLY at key frame\n            mIsLowLatencyModeOn = false;\n        }",
+        "lookback": "        if (mediametrics_count(mMetricsHandle) > 0) {\n            mediametrics_selfRecord(mMetricsHandle);\n        }",
+        "lookahead": "    }\n}",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 751,
+        "end_line": 758,
+        "merge_gen_region": "mediametrics_delete(mMetricsHandle); mMetricsHandle = 0;",
+        "resolved": false
+    },
+    {
+        "a_contents": "                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);",
+        "b_contents": "                        resourceType = MediaResource::kSecureCodec;\n                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);",
+        "base_contents": "                        resourceType = MediaResource::kSecureCodec;\n                        mAnalyticsItem->setInt32(kCodecSecure, 1);",
+        "res_region": "                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);",
+        "lookback": "\n                    if (mComponentName.endsWith(\".secure\")) {\n                        mFlags |= kFlagIsSecure;",
+        "lookahead": "                    } else {\n                        mFlags &= ~kFlagIsSecure;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2152,
+        "end_line": 2160,
+        "merge_gen_region": "mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);",
+        "resolved": true
+    },
+    {
+        "a_contents": "                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 0);",
+        "b_contents": "                        resourceType = MediaResource::kNonSecureCodec;\n                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 0);",
+        "base_contents": "                        resourceType = MediaResource::kNonSecureCodec;\n                        mAnalyticsItem->setInt32(kCodecSecure, 0);",
+        "res_region": "                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 0);",
+        "lookback": "                        mediametrics_setInt32(mMetricsHandle, kCodecSecure, 1);\n                    } else {\n                        mFlags &= ~kFlagIsSecure;",
+        "lookahead": "                    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2163,
+        "end_line": 2171,
+        "merge_gen_region": "mediametrics_setInt32(mMetricsHandle, kCodecSecure, 0);",
+        "resolved": true
+    }
+]

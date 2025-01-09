@@ -1,0 +1,21 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/75175b60-796cd474-52aa2334/fastboot@device@commands.no_comments_merged.cpp
+@@ -144,12 +137 @@ bool OemPostWipeData(FastbootDevice* device) {
+-  const std::string checkPostWipeDataCmd("oem postwipedata support");
+-  auto check_cmd_ret_val = fastboot_hal->doOemCommand(
+-      checkPostWipeDataCmd, [&](Result result) { ret = result; });
+-  if (!check_cmd_ret_val.isOk()) {
+-    return false;
+-  }
+-  if (ret.status != Status::SUCCESS) {
+-    return false;
+-  }
+-  const std::string postWipeDataCmd("oem postwipedata userdata");
+-  auto ret_val = fastboot_hal->doOemCommand(
+-      postWipeDataCmd, [&](Result result) { ret = result; });
++    auto ret_val = fastboot_hal->doOemSpecificErase([&](Result result) { ret = result; });
+@@ -159 +141,3 @@ bool OemPostWipeData(FastbootDevice* device) {
+-  if (ret.status != Status::SUCCESS) {
++    if (ret.status == Status::NOT_SUPPORTED) {
++        return false;
++    } else if (ret.status != Status::SUCCESS) {

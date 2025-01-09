@@ -1,0 +1,90 @@
+--- a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_conflict.cpp
++++ b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmHal.no_comments_merged.cpp
+@@ -239 +238,0 @@ Mutex DrmHal::mLock;
+-<<<<<<< HEAD
+@@ -246,32 +244,0 @@ struct DrmHal::DrmSessionClient : public aidl::android::media::BnResourceManager
+-||||||| 35b28e5f80
+-struct DrmSessionClient : public DrmSessionClientInterface {
+-    explicit DrmSessionClient(DrmHal* drm) : mDrm(drm) {}
+-    virtual bool reclaimSession(const Vector<uint8_t>& sessionId) {
+-        sp<DrmHal> drm = mDrm.promote();
+-        if (drm == NULL) {
+-            return true;
+-        }
+-        status_t err = drm->closeSession(sessionId);
+-        if (err != OK) {
+-            return false;
+-        }
+-        drm->sendEvent(EventType::SESSION_RECLAIMED,
+-                toHidlVec(sessionId), hidl_vec<uint8_t>());
+-        return true;
+-    }
+-=======
+-bool DrmHal::DrmSessionClient::reclaimResource() {
+-    sp<DrmHal> drm = mDrm.promote();
+-    if (drm == NULL) {
+-        return true;
+-    }
+-    status_t err = drm->closeSession(mSessionId);
+-    if (err != OK) {
+-        return false;
+-    }
+-    drm->sendEvent(EventType::SESSION_RECLAIMED,
+-            toHidlVec(mSessionId), hidl_vec<uint8_t>());
+-    return true;
+-}
+->>>>>>> 77b8c802
+-<<<<<<< HEAD
+@@ -280,24 +247,4 @@ bool DrmHal::DrmSessionClient::reclaimResource() {
+-||||||| 35b28e5f80
+-protected:
+-    virtual ~DrmSessionClient() {}
+-=======
+-String8 DrmHal::DrmSessionClient::getName() {
+-    String8 name;
+-    sp<DrmHal> drm = mDrm.promote();
+-    if (drm == NULL) {
+-        name.append("<deleted>");
+-    } else if (drm->getPropertyStringInternal(String8("vendor"), name) != OK
+-        || name.isEmpty()) {
+-      name.append("<Get vendor failed or is empty>");
+-    }
+-    name.append("[");
+-    for (size_t i = 0; i < mSessionId.size(); ++i) {
+-        name.appendFormat("%02x", mSessionId[i]);
+-    }
+-    name.append("]");
+-    return name;
+-}
+->>>>>>> 77b8c802
+-DrmHal::DrmSessionClient::~DrmSessionClient() {
+-    DrmSessionManager::Instance()->removeSession(mSessionId);
+-}
++private:
++    wp<DrmHal> mDrm;
++    DISALLOW_EVIL_CONSTRUCTORS(DrmSessionClient);
++};
+@@ -653 +599,0 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-<<<<<<< HEAD
+@@ -658,9 +603,0 @@ status_t DrmHal::openSession(DrmPlugin::SecurityLevel level,
+-||||||| 35b28e5f80
+-        DrmSessionManager::Instance()->addSession(getCallingPid(),
+-                mDrmSessionClient, sessionId);
+-        mOpenSessions.push(sessionId);
+-=======
+-        sp<DrmSessionClient> client(new DrmSessionClient(this, sessionId));
+-        DrmSessionManager::Instance()->addSession(getCallingPid(), client, sessionId);
+-        mOpenSessions.push(client);
+->>>>>>> 77b8c802
+@@ -679 +615,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-<<<<<<< HEAD
+@@ -683,9 +618,0 @@ status_t DrmHal::closeSession(Vector<uint8_t> const &sessionId) {
+-||||||| 35b28e5f80
+-            for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-                if (mOpenSessions[i] == sessionId) {
+-                    mOpenSessions.removeAt(i);
+-=======
+-            for (size_t i = 0; i < mOpenSessions.size(); i++) {
+-                if (isEqualSessionId(mOpenSessions[i]->mSessionId, sessionId)) {
+-                    mOpenSessions.removeAt(i);
+->>>>>>> 77b8c802

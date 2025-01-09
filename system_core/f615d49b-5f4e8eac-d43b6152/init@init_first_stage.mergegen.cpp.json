@@ -1,0 +1,114 @@
+[
+    {
+        "a_contents": "bool FirstStageMount::InitDevices() {\n    return GetRequiredDevices() && InitRequiredDevices();\n}",
+        "b_contents": "bool FirstStageMount::InitDevices() { return GetRequiredDevices() && InitRequiredDevices(); }",
+        "base_contents": "bool FirstStageMount::InitDevices() {\n    if (!GetRequiredDevices()) return false;\n\n    InitRequiredDevices();\n\n    // InitRequiredDevices() will remove found partitions from required_devices_partition_names_.\n    // So if it isn't empty here, it means some partitions are not found.\n    if (!required_devices_partition_names_.empty()) {\n        LOG(ERROR) << __FUNCTION__ << \"(): partition(s) not found: \"\n                   << android::base::Join(required_devices_partition_names_, \", \");\n        return false;\n    } else {\n        return true;\n    }\n}",
+        "res_region": "bool FirstStageMount::InitDevices() {\n    return GetRequiredDevices() && InitRequiredDevices();\n}",
+        "lookback": "    return true;\n}\n",
+        "lookahead": "\n// Creates devices with uevent->partition_name matching one in the member variable",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 145,
+        "end_line": 167,
+        "merge_gen_region": "bool FirstStageMount::InitDevices() { return GetRequiredDevices() && InitRequiredDevices();",
+        "resolved": false
+    },
+    {
+        "a_contents": "        bool found = false;\n        auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) {\n            if (uevent.path == dm_path) {\n                device_handler_.HandleDeviceEvent(uevent);\n                found = true;\n                return ListenerAction::kStop;\n            }\n            return ListenerAction::kContinue;\n        };\n        uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path, dm_callback);\n        if (!found) {\n            uevent_listener_.Poll(dm_callback, 10s);\n        }\n        if (!found) {\n            LOG(ERROR) << \"device-mapper device not found\";\n            return false;\n        }",
+        "b_contents": "        bool found = false;\n        auto dm_callback = [&dm_path, &found](uevent* uevent) -> coldboot_action_t {\n            if (uevent->path && uevent->path == dm_path) {\n                found = true;\n                return COLDBOOT_STOP;\n            }\n            return COLDBOOT_CONTINUE;  // dm_path not found, continue to find it.\n        };\n        device_init((\"/sys\" + dm_path).c_str(), dm_callback);\n        if (!found) {\n            device_poll(dm_callback, 10s);\n        }\n        if (!found) {\n            LOG(ERROR) << \"device-mapper device not found\";\n            return false;\n        }",
+        "base_contents": "        device_init((\"/sys\" + dm_path).c_str(), [&dm_path](uevent* uevent) -> coldboot_action_t {\n            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;\n            return COLDBOOT_CONTINUE;  // dm_path not found, continue to find it.\n        });",
+        "res_region": "        bool found = false;\n        auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) {\n            if (uevent.path == dm_path) {\n                device_handler_.HandleDeviceEvent(uevent);\n                found = true;\n                return ListenerAction::kStop;\n            }\n            return ListenerAction::kContinue;\n        };\n        uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path, dm_callback);\n        if (!found) {\n            uevent_listener_.Poll(dm_callback, 10s);\n        }\n        if (!found) {\n            LOG(ERROR) << \"device-mapper device not found\";\n            return false;\n        }",
+        "lookback": "\n    if (need_dm_verity_) {\n        const std::string dm_path = \"/devices/virtual/misc/device-mapper\";",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 179,
+        "end_line": 219,
+        "merge_gen_region": "auto dm_callback = [this, &dm_path, &found](const Uevent& uevent) { if (uevent.path == dm_path) { device_handler_.HandleDeviceEvent(uevent); found = true; } return ListenerAction::kStop; } return ListenerAction::kContinue; }; uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path, dm_callback); if (!found) { uevent_listener_.Poll(dm_callback, 10s); } if (!found) { LOG(ERROR) << \"device-mapper device not found\"; return false; }",
+        "resolved": false
+    },
+    {
+        "a_contents": "    auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); };\n    uevent_listener_.RegenerateUevents(uevent_callback);",
+        "b_contents": "    auto uevent_callback = [this](uevent* uevent) -> coldboot_action_t {\n        return ColdbootCallback(uevent);\n    };\n\n    device_init(nullptr, uevent_callback);\n    if (!required_devices_partition_names_.empty()) {\n        device_poll(uevent_callback, 10s);\n    }\n\n    if (!required_devices_partition_names_.empty()) {\n        LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \"\n                   << android::base::Join(required_devices_partition_names_, \", \");\n        return false;\n    }",
+        "base_contents": "    device_init(nullptr,\n                [this](uevent* uevent) -> coldboot_action_t { return ColdbootCallback(uevent); });",
+        "res_region": "    auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); };\n    uevent_listener_.RegenerateUevents(uevent_callback);",
+        "lookback": "        }\n    }\n",
+        "lookahead": "\n    // UeventCallback() will remove found partitions from required_devices_partition_names_.",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 222,
+        "end_line": 243,
+        "merge_gen_region": "auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); }; device_init(nullptr, uevent_callback); if (!required_devices_partition_names_.empty()) { device_poll(uevent_callback, 10s); } if (!required_devices_partition_names_.empty()) { LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \" << android::base::Join(required_devices_partition_names_, \", \"); return false; }",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // UeventCallback() will remove found partitions from required_devices_partition_names_.\n    // So if it isn't empty here, it means some partitions are not found.\n    if (!required_devices_partition_names_.empty()) {\n        uevent_listener_.Poll(uevent_callback, 10s);\n    }\n\n    if (!required_devices_partition_names_.empty()) {\n        LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \"\n                   << android::base::Join(required_devices_partition_names_, \", \");\n        return false;\n    }\n\n    return true;",
+        "b_contents": "    device_close();\n    return true;",
+        "base_contents": "    device_close();",
+        "res_region": "    // UeventCallback() will remove found partitions from required_devices_partition_names_.\n    // So if it isn't empty here, it means some partitions are not found.\n    if (!required_devices_partition_names_.empty()) {\n        uevent_listener_.Poll(uevent_callback, 10s);\n    }\n\n    if (!required_devices_partition_names_.empty()) {\n        LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \"\n                   << android::base::Join(required_devices_partition_names_, \", \");\n        return false;\n    }\n\n    return true;",
+        "lookback": "    auto uevent_callback = [this](const Uevent& uevent) { return UeventCallback(uevent); };\n    uevent_listener_.RegenerateUevents(uevent_callback);\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 245,
+        "end_line": 264,
+        "merge_gen_region": "// UeventCallback() will remove found partitions from required_devices_partition_names_. // So if it isn't empty here, it means some partitions are not found. if (!required_devices_partition_names_.empty()) { uevent_listener_.Poll(uevent_callback, 10s); } if (!required_devices_partition_names_.empty()) { LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \" << android::base::Join(required_devices_partition_names_, \", \"); return false; } return true;",
+        "resolved": true
+    },
+    {
+        "a_contents": "    auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent& uevent) {\n        if (uevent.device_name == device_name) {",
+        "b_contents": "    auto verity_callback = [&](uevent* uevent) -> coldboot_action_t {\n        if (uevent->device_name && uevent->device_name == device_name) {",
+        "base_contents": "    device_init(syspath.c_str(), [&](uevent* uevent) -> coldboot_action_t {\n        if (uevent->device_name && uevent->device_name == device_name) {",
+        "res_region": "    auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent& uevent) {\n        if (uevent.device_name == device_name) {",
+        "lookback": "    const std::string syspath = \"/sys/block/\" + device_name;\n    bool found = false;\n",
+        "lookahead": "            LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n            device_handler_.HandleDeviceEvent(uevent);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 299,
+        "end_line": 308,
+        "merge_gen_region": "auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent& uevent) { if (uevent.device_name == device_name) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "            device_handler_.HandleDeviceEvent(uevent);\n            found = true;\n            return ListenerAction::kStop;",
+        "b_contents": "            found = true;\n            return COLDBOOT_STOP;",
+        "base_contents": "            return COLDBOOT_STOP;",
+        "res_region": "            device_handler_.HandleDeviceEvent(uevent);\n            found = true;\n            return ListenerAction::kStop;",
+        "lookback": "    auto verity_callback = [&device_name, &verity_device, this, &found](const Uevent& uevent) {\n        if (uevent.device_name == device_name) {\n            LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;",
+        "lookahead": "        }\n        return ListenerAction::kContinue;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 310,
+        "end_line": 319,
+        "merge_gen_region": "LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device; device_handler_.HandleDeviceEvent(uevent); found = true;",
+        "resolved": false
+    },
+    {
+        "a_contents": "        return ListenerAction::kContinue;\n    };\n\n    uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback);\n    if (!found) {\n        uevent_listener_.Poll(verity_callback, 10s);\n    }\n    if (!found) {\n        LOG(ERROR) << \"dm-verity device not found\";\n        return false;\n    }\n\n    return true;",
+        "b_contents": "        return COLDBOOT_CONTINUE;\n    };\n\n    device_init(syspath.c_str(), verity_callback);\n    if (!found) {\n        device_poll(verity_callback, 10s);\n    }\n    if (!found) {\n        LOG(ERROR) << \"dm-verity device not found\";\n        return false;\n    }\n    device_close();\n    return true;",
+        "base_contents": "        return COLDBOOT_CONTINUE;\n    });\n    device_close();",
+        "res_region": "        return ListenerAction::kContinue;\n    };\n\n    uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback);\n    if (!found) {\n        uevent_listener_.Poll(verity_callback, 10s);\n    }\n    if (!found) {\n        LOG(ERROR) << \"dm-verity device not found\";\n        return false;\n    }\n\n    return true;",
+        "lookback": "            found = true;\n            return ListenerAction::kStop;\n        }",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 321,
+        "end_line": 353,
+        "merge_gen_region": "template uevent_listener_.RegenerateUeventsForPath(syspath, verity_callback); if (!found) { uevent_listener_.Poll(verity_callback, 10s); } if (!found) { LOG(ERROR) << \"dm-verity device not found\"; return false; } return true;",
+        "resolved": false
+    }
+]

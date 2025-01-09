@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "      // cfd is nullptr if Version is dummy\n      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()),\n      finalized_(false),",
+        "b_contents": "      num_levels_(vset->num_levels_),",
+        "base_contents": "      num_levels_(vset->num_levels_),\n      finalized_(false),",
+        "res_region": "      // cfd is nullptr if Version is dummy\n      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()),",
+        "lookback": "      next_(this),\n      prev_(this),\n      refs_(0),",
+        "lookahead": "      files_(new std::vector<FileMetaData*>[num_levels_]),\n      files_by_size_(num_levels_),",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 469,
+        "end_line": 478,
+        "merge_gen_region": "num_levels_),NumberLevels()), finalized_(false), files_(new std::vector<FileMetaData*>[num_levels_]), files_by_size_(",
+        "resolved": false
+    },
+    {
+        "a_contents": "void Version::Finalize(std::vector<uint64_t>& size_being_compacted) {\n  assert(!finalized_);\n  finalized_ = true;\n  // Pre-sort level0 for Get()\n  if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {\n    std::sort(files_[0].begin(), files_[0].end(), NewestFirstBySeqNo);\n  } else {\n    std::sort(files_[0].begin(), files_[0].end(), NewestFirst);\n  }\n",
+        "b_contents": "void Version::ComputeCompactionScore(\n    std::vector<uint64_t>& size_being_compacted) {",
+        "base_contents": "void Version::Finalize(std::vector<uint64_t>& size_being_compacted) {\n  assert(!finalized_);\n  finalized_ = true;\n  // Pre-sort level0 for Get()\n  if (vset_->options_->compaction_style == kCompactionStyleUniversal) {\n    std::sort(files_[0].begin(), files_[0].end(), NewestFirstBySeqNo);\n  } else {\n    std::sort(files_[0].begin(), files_[0].end(), NewestFirst);\n  }\n",
+        "res_region": "",
+        "lookback": "  return false;\n}\n",
+        "lookahead": "bool Version::OverlapInLevel(int level,\n                             const Slice* smallest_user_key,",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 660,
+        "end_line": 685,
+        "merge_gen_region": "void Version::ComputeCompactionScore( std::vector<uint64_t>& size_being_compacted) {bool",
+        "resolved": false
+    },
+    {
+        "a_contents": "    if (!edit->IsColumnFamilyManipulation()) {\n      // The calls to Finalize and UpdateFilesBySize are cpu-heavy\n      // and is best called outside the mutex.\n      v->Finalize(size_being_compacted);\n      v->UpdateFilesBySize();\n    }",
+        "b_contents": "    // The calls to ComputeCompactionScore and UpdateFilesBySize are cpu-heavy\n    // and is best called outside the mutex.\n    v->ComputeCompactionScore(size_being_compacted);\n    v->UpdateFilesBySize();",
+        "base_contents": "    // The calls to Finalize and UpdateFilesBySize are cpu-heavy\n    // and is best called outside the mutex.\n    v->Finalize(size_being_compacted);\n    v->UpdateFilesBySize();",
+        "res_region": "    if (!edit->IsColumnFamilyManipulation()) {\n      // The calls to ComputeCompactionScore and UpdateFilesBySize are cpu-heavy\n      // and is best called outside the mutex.\n      v->ComputeCompactionScore(size_being_compacted);\n      v->UpdateFilesBySize();\n    }",
+        "lookback": "      }\n    }\n",
+        "lookahead": "\n    // Write new record to MANIFEST log",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1635,
+        "end_line": 1652,
+        "merge_gen_region": "if (!edit->IsColumnFamilyManipulation()) { // The calls to ComputeCompactionScore and UpdateFilesBySize are cpu-heavy // and is best called outside the mutex. v->ComputeCompactionScore(size_being_compacted); v->UpdateFilesBySize(); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "    Version* v = new Version(this, current_version_number_++);\n    builder.SaveTo(v);\n\n    // Install recovered version\n    std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n    compaction_picker_->SizeBeingCompacted(size_being_compacted);\n    v->ComputeCompactionScore(size_being_compacted);\n",
+        "base_contents": "    Version* v = new Version(this, current_version_number_++);\n    builder.SaveTo(v);\n\n    // Install recovered version\n    std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n    compaction_picker_->SizeBeingCompacted(size_being_compacted);\n    v->Finalize(size_being_compacted);\n",
+        "res_region": "",
+        "lookback": "      AppendVersion(cfd, v);\n    }\n",
+        "lookahead": "    manifest_file_size_ = manifest_file_size;\n    next_file_number_ = next_file + 1;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2088,
+        "end_line": 2107,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      Version* v = new Version(cfd, this, current_version_number_++);\n      builder->SaveTo(v);\n      std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n      cfd->compaction_picker()->SizeBeingCompacted(size_being_compacted);\n      v->Finalize(size_being_compacted);\n      v->UpdateFilesBySize();\n      delete builder;\n\n      printf(\"--------------- Column family \\\"%s\\\"  (ID %u) --------------\\n\",\n             cfd->GetName().c_str(), (unsigned int)cfd->GetID());\n      printf(\"log number: %lu\\n\", (unsigned long)cfd->GetLogNumber());\n      auto comparator = comparators.find(cfd->GetID());\n      if (comparator != comparators.end()) {\n        printf(\"comparator: %s\\n\", comparator->second.c_str());\n      } else {\n        printf(\"comparator: <NO COMPARATOR>\\n\");\n      }\n      printf(\"%s \\n\", v->DebugString(hex).c_str());\n      delete v;\n    }",
+        "b_contents": "    // Install recovered version\n    std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n    compaction_picker_->SizeBeingCompacted(size_being_compacted);\n    v->ComputeCompactionScore(size_being_compacted);",
+        "base_contents": "    // Install recovered version\n    std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n    compaction_picker_->SizeBeingCompacted(size_being_compacted);\n    v->Finalize(size_being_compacted);",
+        "res_region": "      Version* v = new Version(cfd, this, current_version_number_++);\n      builder->SaveTo(v);\n      std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1);\n      cfd->compaction_picker()->SizeBeingCompacted(size_being_compacted);\n      v->ComputeCompactionScore(size_being_compacted);\n      v->UpdateFilesBySize();\n      delete builder;\n\n      printf(\"--------------- Column family \\\"%s\\\"  (ID %u) --------------\\n\",\n             cfd->GetName().c_str(), (unsigned int)cfd->GetID());\n      printf(\"log number: %lu\\n\", (unsigned long)cfd->GetLogNumber());\n      auto comparator = comparators.find(cfd->GetID());\n      if (comparator != comparators.end()) {\n        printf(\"comparator: %s\\n\", comparator->second.c_str());\n      } else {\n        printf(\"comparator: <NO COMPARATOR>\\n\");\n      }\n      printf(\"%s \\n\", v->DebugString(hex).c_str());\n      delete v;\n    }",
+        "lookback": "      assert(builders_iter != builders.end());\n      auto builder = builders_iter->second;\n",
+        "lookahead": "\n    next_file_number_ = next_file + 1;",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 2432,
+        "end_line": 2463,
+        "merge_gen_region": "std::vector<uint64_t> size_being_compacted(v->NumberLevels() - 1); cfd->compaction_picker()->SizeBeingCompacted(size_being_compacted); v->ComputeCompactionScore(size_being_compacted); v->UpdateFilesBySize(); delete builder; printf(\"--------------- Column family \\\"%s\\\" (ID %u) --------------\\n\", cfd->GetName().c_str(), (unsigned int)cfd->GetID()); printf(\"log number: %lu\\n\", (unsigned long)cfd->GetLogNumber()); auto comparator = comparators.find(cfd->GetID()); if (comparator != comparators.end()) { printf(\"comparator: %s\\n\", comparator->second.c_str()); } else { printf(\"comparator: <NO COMPARATOR>\\n\"); } printf(\"%s \\n\", v->DebugString(hex).c_str()); delete v;",
+        "resolved": false
+    }
+]

@@ -1,0 +1,38 @@
+diff --git a/./output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_mergegen.cpp b/./output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_merged.cpp
+index ff30dd4..047f53e 100644
+--- a/./output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_mergegen.cpp
++++ b/./output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@commandline.no_comments_merged.cpp
+@@ -1109,0 +1110,17 @@ static bool _is_valid_os_fd(int fd) {
++    if (fd < 3) {
++        return false;
++    }
++#ifdef _WIN32
++    auto handle = (HANDLE)fd;
++    DWORD info = 0;
++    if (GetHandleInformation(handle, &info) == 0) {
++        return false;
++    }
++#else
++    int flags = fcntl(fd, F_GETFD);
++    if (flags == -1) {
++        return false;
++    }
++#endif
++    return true;
++}
+@@ -1612 +1629,9 @@ int adb_commandline(int argc, const char** argv) {
+-int connection_fd = atoi(argv[1]); if (!_is_valid_os_fd(connection_fd)) {
++        int connection_fd = atoi(argv[1]);
++        if (!_is_valid_os_fd(connection_fd)) {
++            error_exit("Invalid connection_fd number given: %d", connection_fd);
++        }
++        connection_fd = adb_register_socket(connection_fd);
++        close_on_exec(connection_fd);
++        int output_fd = atoi(argv[2]);
++        if (!_is_valid_os_fd(output_fd)) {
++            error_exit("Invalid output_fd number given: %d", output_fd);
+@@ -1614 +1639,3 @@ int connection_fd = atoi(argv[1]); if (!_is_valid_os_fd(connection_fd)) {
+-connection_fd = adb_register_socket(connection_fd); close_on_exec(connection_fd); int output_fd = atoi(argv[2]); if (!_is_valid_os_fd(output_fd)) { error_exit("Invalid output_fd number given: %d", output_fd); } output_fd = adb_register_socket(output_fd); close_on_exec(output_fd);
++        output_fd = adb_register_socket(output_fd);
++        close_on_exec(output_fd);
++        return incremental::serve(connection_fd, output_fd, argc - 3, argv + 3);

@@ -1,0 +1,24 @@
+diff --git a/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_mergegen.cc b/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_merged.cc
+index f0bb6c2..9395d6b 100644
+--- a/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/e2dd148a-abeee9f2-8ca30bd5/db@db_impl.no_comments_merged.cc
+@@ -1520 +1520,11 @@ Status DBImpl::BackgroundCompaction(bool* madeProgress,
+-if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) { c.reset(cfd->PickCompaction()); if (c != nullptr) {
++  } else {
++    for (auto cfd : *versions_->GetColumnFamilySet()) {
++      if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) {
++        c.reset(cfd->PickCompaction(log_buffer));
++        if (c != nullptr) {
++          MeasureTime(options_.statistics.get(), NUM_FILES_IN_SINGLE_COMPACTION,
++                      c->inputs(0)->size());
++          break;
++        }
++      }
++    }
+@@ -1539 +1549,5 @@ if (!cfd->options()->disable_auto_compactions && !cfd->IsDropped()) { c.reset(cf
+- LogToBuffer(log_buffer, "Moved #%lld to level-%d %lld bytes %s: %s\n", static_cast<unsigned long long>(f->number), c->level() + 1, static_cast<unsigned long long>(f->file_size), status.ToString().c_str(), c->input_version()->LevelSummary(&tmp));
++    LogToBuffer(log_buffer, "Moved #%lld to level-%d %lld bytes %s: %s\n",
++        static_cast<unsigned long long>(f->number), c->level() + 1,
++        static_cast<unsigned long long>(f->file_size),
++        status.ToString().c_str(), c->input_version()->LevelSummary(&tmp));
++    c->ReleaseCompactionFiles(status);

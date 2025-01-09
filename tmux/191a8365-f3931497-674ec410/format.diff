@@ -1,0 +1,1228 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/191a8365-f3931497-674ec410/format.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/191a8365-f3931497-674ec410/format.no_comments_merged.c
+index eb3ded8..7fd4cf3 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/191a8365-f3931497-674ec410/format.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/191a8365-f3931497-674ec410/format.no_comments_merged.c
+@@ -15,3 +15 @@
+-struct format_entry
+-    static char *
+-    format_job_get(struct format_tree *, const char *);
++static char *format_job_get(struct format_tree *, const char *);
+@@ -19,3 +17,4 @@ static void format_job_timer(int, short, void *);
+-static int format_replace(struct format_tree *, const char *, size_t, char **,
+-                          size_t *, size_t *);
+-static void format_defaults_session(struct format_tree *, struct session *);
++static int format_replace(struct format_tree *, const char *, size_t,
++       char **, size_t *, size_t *);
++static void format_defaults_session(struct format_tree *,
++       struct session *);
+@@ -40,3 +39,7 @@ RB_GENERATE_STATIC(format_job_tree, format_job, entry, format_job_cmp);
+-static int format_job_cmp(struct format_job *fj1, struct format_job *fj2) {
+-  if (fj1->tag < fj2->tag) return (-1);
+-  if (fj1->tag > fj2->tag) return (1);
++static int
++format_job_cmp(struct format_job *fj1, struct format_job *fj2)
++{
++ if (fj1->tag < fj2->tag)
++  return (-1);
++ if (fj1->tag > fj2->tag)
++  return (1);
+@@ -79,0 +83 @@ static int format_entry_cmp(struct format_entry *, struct format_entry *);
++RB_GENERATE_STATIC(format_entry_tree, format_entry, entry, format_entry_cmp);
+@@ -86,2 +90,3 @@ struct format_modifier {
+-static int format_entry_cmp(struct format_entry *fe1,
+-                            struct format_entry *fe2) {
++static int
++format_entry_cmp(struct format_entry *fe1, struct format_entry *fe2)
++{
+@@ -146 +151,3 @@ static const char *format_lower[] = {
+-static inline int format_logging(struct format_tree *ft) {
++static inline int
++format_logging(struct format_tree *ft)
++{
+@@ -150,2 +157,2 @@ static void printflike(3, 4)
+-    format_log1(struct format_tree *ft, const char *from, const char *fmt,
+-                ...) {
++format_log1(struct format_tree *ft, const char *from, const char *fmt, ...)
++{
+@@ -155 +162,2 @@ static void printflike(3, 4)
+-  if (!format_logging(ft)) return;
++ if (!format_logging(ft))
++  return;
+@@ -164 +172,4 @@ static void printflike(3, 4)
+-static void format_job_update(struct job *job) {
++#define format_log(ft,fmt,...) format_log1(ft, __func__, fmt, ##__VA_ARGS__)
++static void
++format_job_update(struct job *job)
++{
+@@ -173 +184,2 @@ static void format_job_update(struct job *job) {
+-  if (line == NULL) return;
++ if (line == NULL)
++  return;
+@@ -180 +192,2 @@ static void format_job_update(struct job *job) {
+-    if (fj->client != NULL) server_status_client(fj->client);
++  if (fj->client != NULL)
++   server_status_client(fj->client);
+@@ -184 +197,3 @@ static void format_job_update(struct job *job) {
+-static void format_job_complete(struct job *job) {
++static void
++format_job_complete(struct job *job)
++{
+@@ -194 +209,2 @@ static void format_job_complete(struct job *job) {
+-    if (len != 0) memcpy(buf, EVBUFFER_DATA(evb), len);
++  if (len != 0)
++   memcpy(buf, EVBUFFER_DATA(evb), len);
+@@ -205 +221,2 @@ static void format_job_complete(struct job *job) {
+-    if (fj->client != NULL) server_status_client(fj->client);
++  if (fj->client != NULL)
++   server_status_client(fj->client);
+@@ -209 +226,3 @@ static void format_job_complete(struct job *job) {
+-static char *format_job_get(struct format_tree *ft, const char *cmd) {
++static char *
++format_job_get(struct format_tree *ft, const char *cmd)
++{
+@@ -242 +261,2 @@ static char *format_job_get(struct format_tree *ft, const char *cmd) {
+-  if (force && fj->job != NULL) job_free(fj->job);
++ if (force && fj->job != NULL)
++        job_free(fj->job);
+@@ -244,3 +264,3 @@ static char *format_job_get(struct format_tree *ft, const char *cmd) {
+-    fj->job = job_run(expanded, NULL, server_client_get_cwd(ft->client, NULL),
+-                      format_job_update, format_job_complete, NULL, fj,
+-                      JOB_NOWAIT, -1, -1);
++  fj->job = job_run(expanded, NULL,
++      server_client_get_cwd(ft->client, NULL), format_job_update,
++      format_job_complete, NULL, fj, JOB_NOWAIT, -1, -1);
+@@ -254 +274,2 @@ static char *format_job_get(struct format_tree *ft, const char *cmd) {
+-  if (ft->flags & FORMAT_STATUS) fj->status = 1;
++ if (ft->flags & FORMAT_STATUS)
++  fj->status = 1;
+@@ -258 +279,3 @@ static char *format_job_get(struct format_tree *ft, const char *cmd) {
+-static void format_job_tidy(struct format_job_tree *jobs, int force) {
++static void
++format_job_tidy(struct format_job_tree *jobs, int force)
++{
+@@ -263 +286,2 @@ static void format_job_tidy(struct format_job_tree *jobs, int force) {
+-    if (!force && (fj->last > now || now - fj->last < 3600)) continue;
++  if (!force && (fj->last > now || now - fj->last < 3600))
++   continue;
+@@ -266 +290,2 @@ static void format_job_tidy(struct format_job_tree *jobs, int force) {
+-    if (fj->job != NULL) job_free(fj->job);
++  if (fj->job != NULL)
++   job_free(fj->job);
+@@ -273,2 +298,5 @@ static void format_job_tidy(struct format_job_tree *jobs, int force) {
+-void format_lost_client(struct client *c) {
+-  if (c->jobs != NULL) format_job_tidy(c->jobs, 1);
++void
++format_lost_client(struct client *c)
++{
++ if (c->jobs != NULL)
++  format_job_tidy(c->jobs, 1);
+@@ -277,2 +305,3 @@ void format_lost_client(struct client *c) {
+-static void format_job_timer(__unused int fd, __unused short events,
+-                             __unused void *arg) {
++static void
++format_job_timer(__unused int fd, __unused short events, __unused void *arg)
++{
+@@ -283 +312,2 @@ static void format_job_timer(__unused int fd, __unused short events,
+-    if (c->jobs != NULL) format_job_tidy(c->jobs, 0);
++  if (c->jobs != NULL)
++   format_job_tidy(c->jobs, 0);
+@@ -288 +318,3 @@ static void format_job_timer(__unused int fd, __unused short events,
+-static char *format_cb_host(__unused struct format_tree *ft) {
++static char *
++format_cb_host(__unused struct format_tree *ft)
++{
+@@ -290 +322,2 @@ static char *format_cb_host(__unused struct format_tree *ft) {
+-  if (gethostname(host, sizeof host) != 0) return (xstrdup(""));
++ if (gethostname(host, sizeof host) != 0)
++  return (xstrdup(""));
+@@ -293 +326,3 @@ static char *format_cb_host(__unused struct format_tree *ft) {
+-static char *format_cb_host_short(__unused struct format_tree *ft) {
++static char *
++format_cb_host_short(__unused struct format_tree *ft)
++{
+@@ -295,2 +330,4 @@ static char *format_cb_host_short(__unused struct format_tree *ft) {
+-  if (gethostname(host, sizeof host) != 0) return (xstrdup(""));
+-  if ((cp = strchr(host, '.')) != NULL) *cp = '\0';
++ if (gethostname(host, sizeof host) != 0)
++  return (xstrdup(""));
++ if ((cp = strchr(host, '.')) != NULL)
++  *cp = '\0';
+@@ -299 +336,3 @@ static char *format_cb_host_short(__unused struct format_tree *ft) {
+-static char *format_cb_pid(__unused struct format_tree *ft) {
++static char *
++format_cb_pid(__unused struct format_tree *ft)
++{
+@@ -304 +343,3 @@ static char *format_cb_pid(__unused struct format_tree *ft) {
+-static char *format_cb_session_attached_list(struct format_tree *ft) {
++static char *
++format_cb_session_attached_list(struct format_tree *ft)
++{
+@@ -310 +351,2 @@ static char *format_cb_session_attached_list(struct format_tree *ft) {
+-  if (s == NULL) return (NULL);
++ if (s == NULL)
++  return (NULL);
+@@ -312 +354,2 @@ static char *format_cb_session_attached_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -315 +358,2 @@ static char *format_cb_session_attached_list(struct format_tree *ft) {
+-      if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++   if (EVBUFFER_LENGTH(buffer) > 0)
++    evbuffer_add(buffer, ",", 1);
+@@ -324 +368,3 @@ static char *format_cb_session_attached_list(struct format_tree *ft) {
+-static char *format_cb_session_alerts(struct format_tree *ft) {
++static char *
++format_cb_session_alerts(struct format_tree *ft)
++{
+@@ -328 +374,2 @@ static char *format_cb_session_alerts(struct format_tree *ft) {
+-  if (s == NULL) return (NULL);
++ if (s == NULL)
++  return (NULL);
+@@ -331 +378,2 @@ static char *format_cb_session_alerts(struct format_tree *ft) {
+-    if ((wl->flags & WINLINK_ALERTFLAGS) == 0) continue;
++  if ((wl->flags & WINLINK_ALERTFLAGS) == 0)
++   continue;
+@@ -333 +381,2 @@ static char *format_cb_session_alerts(struct format_tree *ft) {
+-    if (*alerts != '\0') strlcat(alerts, ",", sizeof alerts);
++  if (*alerts != '\0')
++   strlcat(alerts, ",", sizeof alerts);
+@@ -335,3 +384,6 @@ static char *format_cb_session_alerts(struct format_tree *ft) {
+-    if (wl->flags & WINLINK_ACTIVITY) strlcat(alerts, "#", sizeof alerts);
+-    if (wl->flags & WINLINK_BELL) strlcat(alerts, "!", sizeof alerts);
+-    if (wl->flags & WINLINK_SILENCE) strlcat(alerts, "~", sizeof alerts);
++  if (wl->flags & WINLINK_ACTIVITY)
++   strlcat(alerts, "#", sizeof alerts);
++  if (wl->flags & WINLINK_BELL)
++   strlcat(alerts, "!", sizeof alerts);
++  if (wl->flags & WINLINK_SILENCE)
++   strlcat(alerts, "~", sizeof alerts);
+@@ -341 +393,3 @@ static char *format_cb_session_alerts(struct format_tree *ft) {
+-static char *format_cb_session_stack(struct format_tree *ft) {
++static char *
++format_cb_session_stack(struct format_tree *ft)
++{
+@@ -345 +399,2 @@ static char *format_cb_session_stack(struct format_tree *ft) {
+-  if (s == NULL) return (NULL);
++ if (s == NULL)
++  return (NULL);
+@@ -349 +404,2 @@ static char *format_cb_session_stack(struct format_tree *ft) {
+-    if (*result != '\0') strlcat(result, ",", sizeof result);
++  if (*result != '\0')
++   strlcat(result, ",", sizeof result);
+@@ -354 +410,3 @@ static char *format_cb_session_stack(struct format_tree *ft) {
+-static char *format_cb_window_stack_index(struct format_tree *ft) {
++static char *
++format_cb_window_stack_index(struct format_tree *ft)
++{
+@@ -362 +420,2 @@ static char *format_cb_window_stack_index(struct format_tree *ft) {
+-    if (wl == ft->wl) break;
++  if (wl == ft->wl)
++   break;
+@@ -364 +423,2 @@ static char *format_cb_window_stack_index(struct format_tree *ft) {
+-  if (wl == NULL) return (xstrdup("0"));
++ if (wl == NULL)
++  return (xstrdup("0"));
+@@ -368 +428,3 @@ static char *format_cb_window_stack_index(struct format_tree *ft) {
+-static char *format_cb_window_linked_sessions_list(struct format_tree *ft) {
++static char *
++format_cb_window_linked_sessions_list(struct format_tree *ft)
++{
+@@ -375 +437,2 @@ static char *format_cb_window_linked_sessions_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -377 +440,2 @@ static char *format_cb_window_linked_sessions_list(struct format_tree *ft) {
+-    if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++  if (EVBUFFER_LENGTH(buffer) > 0)
++   evbuffer_add(buffer, ",", 1);
+@@ -385 +449,3 @@ static char *format_cb_window_linked_sessions_list(struct format_tree *ft) {
+-static char *format_cb_window_active_sessions(struct format_tree *ft) {
++static char *
++format_cb_window_active_sessions(struct format_tree *ft)
++{
+@@ -391 +457,2 @@ static char *format_cb_window_active_sessions(struct format_tree *ft) {
+-    if (wl->session->curw == wl) n++;
++  if (wl->session->curw == wl)
++   n++;
+@@ -396 +463,3 @@ static char *format_cb_window_active_sessions(struct format_tree *ft) {
+-static char *format_cb_window_active_sessions_list(struct format_tree *ft) {
++static char *
++format_cb_window_active_sessions_list(struct format_tree *ft)
++{
+@@ -403 +472,2 @@ static char *format_cb_window_active_sessions_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -406 +476,2 @@ static char *format_cb_window_active_sessions_list(struct format_tree *ft) {
+-      if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++   if (EVBUFFER_LENGTH(buffer) > 0)
++    evbuffer_add(buffer, ",", 1);
+@@ -415 +486,3 @@ static char *format_cb_window_active_sessions_list(struct format_tree *ft) {
+-static char *format_cb_window_active_clients(struct format_tree *ft) {
++static char *
++format_cb_window_active_clients(struct format_tree *ft)
++{
+@@ -423,2 +496,4 @@ static char *format_cb_window_active_clients(struct format_tree *ft) {
+-    if (client_session == NULL) continue;
+-    if (w == client_session->curw->window) n++;
++  if (client_session == NULL)
++   continue;
++  if (w == client_session->curw->window)
++   n++;
+@@ -429 +504,3 @@ static char *format_cb_window_active_clients(struct format_tree *ft) {
+-static char *format_cb_window_active_clients_list(struct format_tree *ft) {
++static char *
++format_cb_window_active_clients_list(struct format_tree *ft)
++{
+@@ -437 +514,2 @@ static char *format_cb_window_active_clients_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -440 +518,2 @@ static char *format_cb_window_active_clients_list(struct format_tree *ft) {
+-    if (client_session == NULL) continue;
++  if (client_session == NULL)
++   continue;
+@@ -442 +521,2 @@ static char *format_cb_window_active_clients_list(struct format_tree *ft) {
+-      if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++   if (EVBUFFER_LENGTH(buffer) > 0)
++    evbuffer_add(buffer, ",", 1);
+@@ -451 +531,3 @@ static char *format_cb_window_active_clients_list(struct format_tree *ft) {
+-static char *format_cb_window_layout(struct format_tree *ft) {
++static char *
++format_cb_window_layout(struct format_tree *ft)
++{
+@@ -453,2 +535,4 @@ static char *format_cb_window_layout(struct format_tree *ft) {
+-  if (w == NULL) return (NULL);
+-  if (w->saved_layout_root != NULL) return (layout_dump(w->saved_layout_root));
++ if (w == NULL)
++  return (NULL);
++ if (w->saved_layout_root != NULL)
++  return (layout_dump(w->saved_layout_root));
+@@ -457 +541,3 @@ static char *format_cb_window_layout(struct format_tree *ft) {
+-static char *format_cb_window_visible_layout(struct format_tree *ft) {
++static char *
++format_cb_window_visible_layout(struct format_tree *ft)
++{
+@@ -459 +545,2 @@ static char *format_cb_window_visible_layout(struct format_tree *ft) {
+-  if (w == NULL) return (NULL);
++ if (w == NULL)
++  return (NULL);
+@@ -462 +549,3 @@ static char *format_cb_window_visible_layout(struct format_tree *ft) {
+-static char *format_cb_start_command(struct format_tree *ft) {
++static char *
++format_cb_start_command(struct format_tree *ft)
++{
+@@ -464 +553,2 @@ static char *format_cb_start_command(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -467 +557,3 @@ static char *format_cb_start_command(struct format_tree *ft) {
+-static char *format_cb_current_command(struct format_tree *ft) {
++static char *
++format_cb_current_command(struct format_tree *ft)
++{
+@@ -470 +562,2 @@ static char *format_cb_current_command(struct format_tree *ft) {
+-  if (wp == NULL || wp->shell == NULL) return (NULL);
++ if (wp == NULL || wp->shell == NULL)
++  return (NULL);
+@@ -484 +577,3 @@ static char *format_cb_current_command(struct format_tree *ft) {
+-static char *format_cb_current_path(struct format_tree *ft) {
++static char *
++format_cb_current_path(struct format_tree *ft)
++{
+@@ -487,2 +582,2 @@ static char *format_cb_current_path(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
+-<<<<<<< HEAD
++ if (wp == NULL)
++  return (NULL);
+@@ -490,7 +585,2 @@ static char *format_cb_current_path(struct format_tree *ft) {
+-  if (cwd != NULL) fe->value = xstrdup(cwd);
+-|||||||
+-  cwd = get_proc_cwd(wp->fd);
+-  if (cwd != NULL) fe->value = xstrdup(cwd);
+-=======
+-  cwd = get_proc_cwd(wp->fd);
+-  if (cwd == NULL) return (NULL);
++ if (cwd == NULL)
++  return (NULL);
+@@ -498 +587,0 @@ static char *format_cb_current_path(struct format_tree *ft) {
+->>>>>>> f3931497f8aee291bce132fb106cedb55c5b3fa9
+@@ -500 +589,3 @@ static char *format_cb_current_path(struct format_tree *ft) {
+-static char *format_cb_history_bytes(struct format_tree *ft) {
++static char *
++format_cb_history_bytes(struct format_tree *ft)
++{
+@@ -507 +598,2 @@ static char *format_cb_history_bytes(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -518 +610,3 @@ static char *format_cb_history_bytes(struct format_tree *ft) {
+-static char *format_cb_history_all_bytes(struct format_tree *ft) {
++static char *
++format_cb_history_all_bytes(struct format_tree *ft)
++{
+@@ -524 +618,2 @@ static char *format_cb_history_all_bytes(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -532,3 +627,3 @@ static char *format_cb_history_all_bytes(struct format_tree *ft) {
+-  xasprintf(&value, "%u,%zu,%u,%zu,%u,%zu", lines, lines * sizeof *gl, cells,
+-            cells * sizeof *gl->celldata, extended_cells,
+-            extended_cells * sizeof *gl->extddata);
++ xasprintf(&value, "%u,%zu,%u,%zu,%u,%zu", lines,
++     lines * sizeof *gl, cells, cells * sizeof *gl->celldata,
++     extended_cells, extended_cells * sizeof *gl->extddata);
+@@ -537 +632,3 @@ static char *format_cb_history_all_bytes(struct format_tree *ft) {
+-static char *format_cb_pane_tabs(struct format_tree *ft) {
++static char *
++format_cb_pane_tabs(struct format_tree *ft)
++{
+@@ -543 +640,2 @@ static char *format_cb_pane_tabs(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -545 +643,2 @@ static char *format_cb_pane_tabs(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -547,2 +646,4 @@ static char *format_cb_pane_tabs(struct format_tree *ft) {
+-    if (!bit_test(wp->base.tabs, i)) continue;
+-    if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++  if (!bit_test(wp->base.tabs, i))
++   continue;
++  if (EVBUFFER_LENGTH(buffer) > 0)
++   evbuffer_add(buffer, ",", 1);
+@@ -556 +657,3 @@ static char *format_cb_pane_tabs(struct format_tree *ft) {
+-static char *format_cb_session_group_list(struct format_tree *ft) {
++static char *
++format_cb_session_group_list(struct format_tree *ft)
++{
+@@ -563 +666,2 @@ static char *format_cb_session_group_list(struct format_tree *ft) {
+-  if (s == NULL) return (NULL);
++ if (s == NULL)
++  return (NULL);
+@@ -565 +669,2 @@ static char *format_cb_session_group_list(struct format_tree *ft) {
+-  if (sg == NULL) return (NULL);
++ if (sg == NULL)
++  return (NULL);
+@@ -567 +672,2 @@ static char *format_cb_session_group_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -569 +675,2 @@ static char *format_cb_session_group_list(struct format_tree *ft) {
+-    if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++  if (EVBUFFER_LENGTH(buffer) > 0)
++   evbuffer_add(buffer, ",", 1);
+@@ -577 +684,3 @@ static char *format_cb_session_group_list(struct format_tree *ft) {
+-static char *format_cb_session_group_attached_list(struct format_tree *ft) {
++static char *
++format_cb_session_group_attached_list(struct format_tree *ft)
++{
+@@ -584 +693,2 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-  if (s == NULL) return (NULL);
++ if (s == NULL)
++  return (NULL);
+@@ -586 +696,2 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-  if (sg == NULL) return (NULL);
++ if (sg == NULL)
++  return (NULL);
+@@ -588 +699,2 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-  if (buffer == NULL) fatalx("out of memory");
++ if (buffer == NULL)
++  fatalx("out of memory");
+@@ -591 +703,2 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-    if (client_session == NULL) continue;
++  if (client_session == NULL)
++   continue;
+@@ -594 +707,2 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-        if (EVBUFFER_LENGTH(buffer) > 0) evbuffer_add(buffer, ",", 1);
++    if (EVBUFFER_LENGTH(buffer) > 0)
++     evbuffer_add(buffer, ",", 1);
+@@ -604 +718,3 @@ static char *format_cb_session_group_attached_list(struct format_tree *ft) {
+-static char *format_cb_pane_in_mode(struct format_tree *ft) {
++static char *
++format_cb_pane_in_mode(struct format_tree *ft)
++{
+@@ -609 +725,2 @@ static char *format_cb_pane_in_mode(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -615 +732,3 @@ static char *format_cb_pane_in_mode(struct format_tree *ft) {
+-static char *format_cb_pane_at_top(struct format_tree *ft) {
++static char *
++format_cb_pane_at_top(struct format_tree *ft)
++{
+@@ -620 +739,2 @@ static char *format_cb_pane_at_top(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -630 +750,3 @@ static char *format_cb_pane_at_top(struct format_tree *ft) {
+-static char *format_cb_pane_at_bottom(struct format_tree *ft) {
++static char *
++format_cb_pane_at_bottom(struct format_tree *ft)
++{
+@@ -635 +757,2 @@ static char *format_cb_pane_at_bottom(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -645 +768,3 @@ static char *format_cb_pane_at_bottom(struct format_tree *ft) {
+-static char *format_cb_cursor_character(struct format_tree *ft) {
++static char *
++format_cb_cursor_character(struct format_tree *ft)
++{
+@@ -649 +774,2 @@ static char *format_cb_cursor_character(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
++ if (wp == NULL)
++  return (NULL);
+@@ -655 +781,3 @@ static char *format_cb_cursor_character(struct format_tree *ft) {
+-char *format_grid_word(struct grid *gd, u_int x, u_int y) {
++char *
++format_grid_word(struct grid *gd, u_int x, u_int y)
++{
+@@ -667 +795,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-    if (gc.flags & GRID_FLAG_PADDING) break;
++  if (gc.flags & GRID_FLAG_PADDING)
++   break;
+@@ -673 +802,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-      if (y == 0) break;
++   if (y == 0)
++    break;
+@@ -675 +805,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-      if (~gl->flags & GRID_LINE_WRAPPED) break;
++   if (~gl->flags & GRID_LINE_WRAPPED)
++    break;
+@@ -678 +809,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-      if (x == 0) break;
++   if (x == 0)
++    break;
+@@ -686 +818,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-        if (y == gd->hsize + gd->sy - 1) break;
++    if (y == gd->hsize + gd->sy - 1)
++     break;
+@@ -688 +821,2 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-        if (~gl->flags & GRID_LINE_WRAPPED) break;
++    if (~gl->flags & GRID_LINE_WRAPPED)
++     break;
+@@ -696,2 +830,4 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-    if (gc.flags & GRID_FLAG_PADDING) break;
+-    if (utf8_cstrhas(ws, &gc.data)) break;
++  if (gc.flags & GRID_FLAG_PADDING)
++   break;
++  if (utf8_cstrhas(ws, &gc.data))
++   break;
+@@ -708 +844,3 @@ char *format_grid_word(struct grid *gd, u_int x, u_int y) {
+-static char *format_cb_mouse_word(struct format_tree *ft) {
++static char *
++format_cb_mouse_word(struct format_tree *ft)
++{
+@@ -713 +851,2 @@ static char *format_cb_mouse_word(struct format_tree *ft) {
+-  if (!ft->m.valid) return (NULL);
++ if (!ft->m.valid)
++  return (NULL);
+@@ -715,2 +854,4 @@ static char *format_cb_mouse_word(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
+-  if (cmd_mouse_at(wp, &ft->m, &x, &y, 0) != 0) return (NULL);
++ if (wp == NULL)
++  return (NULL);
++ if (cmd_mouse_at(wp, &ft->m, &x, &y, 0) != 0)
++  return (NULL);
+@@ -726 +867,3 @@ static char *format_cb_mouse_word(struct format_tree *ft) {
+-char *format_grid_line(struct grid *gd, u_int y) {
++char *
++format_grid_line(struct grid *gd, u_int y)
++{
+@@ -734 +877,2 @@ char *format_grid_line(struct grid *gd, u_int y) {
+-    if (gc.flags & GRID_FLAG_PADDING) break;
++  if (gc.flags & GRID_FLAG_PADDING)
++   break;
+@@ -745 +889,3 @@ char *format_grid_line(struct grid *gd, u_int y) {
+-static char *format_cb_mouse_line(struct format_tree *ft) {
++static char *
++format_cb_mouse_line(struct format_tree *ft)
++{
+@@ -749 +895,2 @@ static char *format_cb_mouse_line(struct format_tree *ft) {
+-  if (!ft->m.valid) return (NULL);
++ if (!ft->m.valid)
++  return (NULL);
+@@ -751,2 +898,4 @@ static char *format_cb_mouse_line(struct format_tree *ft) {
+-  if (wp == NULL) return (NULL);
+-  if (cmd_mouse_at(wp, &ft->m, &x, &y, 0) != 0) return (NULL);
++ if (wp == NULL)
++  return (NULL);
++ if (cmd_mouse_at(wp, &ft->m, &x, &y, 0) != 0)
++  return (NULL);
+@@ -762 +911,3 @@ static char *format_cb_mouse_line(struct format_tree *ft) {
+-void format_merge(struct format_tree *ft, struct format_tree *from) {
++void
++format_merge(struct format_tree *ft, struct format_tree *from)
++{
+@@ -765 +916,2 @@ void format_merge(struct format_tree *ft, struct format_tree *from) {
+-    if (fe->value != NULL) format_add(ft, fe->key, "%s", fe->value);
++  if (fe->value != NULL)
++   format_add(ft, fe->key, "%s", fe->value);
+@@ -768,2 +920,3 @@ void format_merge(struct format_tree *ft, struct format_tree *from) {
+-static void format_create_add_item(struct format_tree *ft,
+-                                   struct cmdq_item *item) {
++static void
++format_create_add_item(struct format_tree *ft, struct cmdq_item *item)
++{
+@@ -786,2 +939,3 @@ static void format_create_add_item(struct format_tree *ft,
+-struct format_tree *format_create(struct client *c, struct cmdq_item *item,
+-                                  int tag, int flags) {
++struct format_tree *
++format_create(struct client *c, struct cmdq_item *item, int tag, int flags)
++{
+@@ -818 +972,2 @@ struct format_tree *format_create(struct client *c, struct cmdq_item *item,
+-  if (item != NULL) format_create_add_item(ft, item);
++ if (item != NULL)
++  format_create_add_item(ft, item);
+@@ -821 +976,3 @@ struct format_tree *format_create(struct client *c, struct cmdq_item *item,
+-void format_free(struct format_tree *ft) {
++void
++format_free(struct format_tree *ft)
++{
+@@ -829 +986,2 @@ void format_free(struct format_tree *ft) {
+-  if (ft->client != NULL) server_client_unref(ft->client);
++ if (ft->client != NULL)
++  server_client_unref(ft->client);
+@@ -832,2 +990,4 @@ void format_free(struct format_tree *ft) {
+-void format_each(struct format_tree *ft,
+-                 void (*cb)(const char *, const char *, void *), void *arg) {
++void
++format_each(struct format_tree *ft, void (*cb)(const char *, const char *,
++    void *), void *arg)
++{
+@@ -843 +1003,2 @@ void format_each(struct format_tree *ft,
+-        if (fe->value == NULL) fe->value = xstrdup("");
++    if (fe->value == NULL)
++     fe->value = xstrdup("");
+@@ -849 +1010,3 @@ void format_each(struct format_tree *ft,
+-void format_add(struct format_tree *ft, const char *key, const char *fmt, ...) {
++void
++format_add(struct format_tree *ft, const char *key, const char *fmt, ...)
++{
+@@ -868,2 +1031,3 @@ void format_add(struct format_tree *ft, const char *key, const char *fmt, ...) {
+-void format_add_tv(struct format_tree *ft, const char *key,
+-                   struct timeval *tv) {
++void
++format_add_tv(struct format_tree *ft, const char *key, struct timeval *tv)
++{
+@@ -884 +1048,3 @@ void format_add_tv(struct format_tree *ft, const char *key,
+-void format_add_cb(struct format_tree *ft, const char *key, format_cb cb) {
++void
++format_add_cb(struct format_tree *ft, const char *key, format_cb cb)
++{
+@@ -900 +1066,3 @@ void format_add_cb(struct format_tree *ft, const char *key, format_cb cb) {
+-static char *format_quote(const char *s) {
++static char *
++format_quote(const char *s)
++{
+@@ -905 +1073,2 @@ static char *format_quote(const char *s) {
+-    if (strchr("|&;<>()$`\\\"'*?[# =%", *cp) != NULL) *at++ = '\\';
++  if (strchr("|&;<>()$`\\\"'*?[# =%", *cp) != NULL)
++   *at++ = '\\';
+@@ -911 +1080,3 @@ static char *format_quote(const char *s) {
+-static char *format_pretty_time(time_t t) {
++static char *
++format_pretty_time(time_t t)
++{
+@@ -917 +1088,2 @@ static char *format_pretty_time(time_t t) {
+-  if (now < t) now = t;
++ if (now < t)
++  now = t;
+@@ -942,2 +1114,4 @@ static char *format_pretty_time(time_t t) {
+-static char *format_find(struct format_tree *ft, const char *key, int modifiers,
+-                         const char *time_format) {
++static char *
++format_find(struct format_tree *ft, const char *key, int modifiers,
++    const char *time_format)
++{
+@@ -957 +1131,2 @@ static char *format_find(struct format_tree *ft, const char *key, int modifiers,
+-  if (o == NULL) o = options_parse_get(global_w_options, key, &idx, 0);
++ if (o == NULL)
++  o = options_parse_get(global_w_options, key, &idx, 0);
+@@ -960 +1135,2 @@ static char *format_find(struct format_tree *ft, const char *key, int modifiers,
+-  if (o == NULL) o = options_parse_get(global_s_options, key, &idx, 0);
++ if (o == NULL)
++  o = options_parse_get(global_s_options, key, &idx, 0);
+@@ -974 +1150,2 @@ static char *format_find(struct format_tree *ft, const char *key, int modifiers,
+-      if (fe->value == NULL) fe->value = xstrdup("");
++   if (fe->value == NULL)
++    fe->value = xstrdup("");
+@@ -981,2 +1158,4 @@ static char *format_find(struct format_tree *ft, const char *key, int modifiers,
+-    if (ft->s != NULL) envent = environ_find(ft->s->environ, key);
+-    if (envent == NULL) envent = environ_find(global_environ, key);
++  if (ft->s != NULL)
++   envent = environ_find(ft->s->environ, key);
++  if (envent == NULL)
++   envent = environ_find(global_environ, key);
+@@ -993 +1172,2 @@ found:
+-      if (errstr != NULL) t = 0;
++   if (errstr != NULL)
++    t = 0;
+@@ -996 +1176,2 @@ found:
+-    if (t == 0) return (NULL);
++  if (t == 0)
++   return (NULL);
+@@ -1032 +1213,3 @@ found:
+-static char *format_strip(const char *s) {
++static char *
++format_strip(const char *s)
++{
+@@ -1037 +1220,2 @@ static char *format_strip(const char *s) {
+-    if (*s == '#' && s[1] == '{') brackets++;
++  if (*s == '#' && s[1] == '{')
++   brackets++;
+@@ -1039 +1223,2 @@ static char *format_strip(const char *s) {
+-      if (brackets != 0) *cp++ = *s;
++   if (brackets != 0)
++    *cp++ = *s;
+@@ -1042 +1227,2 @@ static char *format_strip(const char *s) {
+-    if (*s == '}') brackets--;
++  if (*s == '}')
++   brackets--;
+@@ -1048 +1234,3 @@ static char *format_strip(const char *s) {
+-const char *format_skip(const char *s, const char *end) {
++const char *
++format_skip(const char *s, const char *end)
++{
+@@ -1051 +1239,2 @@ const char *format_skip(const char *s, const char *end) {
+-    if (*s == '#' && s[1] == '{') brackets++;
++  if (*s == '#' && s[1] == '{')
++   brackets++;
+@@ -1056,2 +1245,4 @@ const char *format_skip(const char *s, const char *end) {
+-    if (*s == '}') brackets--;
+-    if (strchr(end, *s) != NULL && brackets == 0) break;
++  if (*s == '}')
++   brackets--;
++  if (strchr(end, *s) != NULL && brackets == 0)
++   break;
+@@ -1059 +1250,2 @@ const char *format_skip(const char *s, const char *end) {
+-  if (*s == '\0') return (NULL);
++ if (*s == '\0')
++  return (NULL);
+@@ -1062,2 +1254,4 @@ const char *format_skip(const char *s, const char *end) {
+-static int format_choose(struct format_tree *ft, const char *s, char **left,
+-                         char **right, int expand) {
++static int
++format_choose(struct format_tree *ft, const char *s, char **left, char **right,
++    int expand)
++{
+@@ -1067 +1261,2 @@ static int format_choose(struct format_tree *ft, const char *s, char **left,
+-  if (cp == NULL) return (-1);
++ if (cp == NULL)
++  return (-1);
+@@ -1081,2 +1276,5 @@ static int format_choose(struct format_tree *ft, const char *s, char **left,
+-int format_true(const char *s) {
+-  if (s != NULL && *s != '\0' && (s[0] != '0' || s[1] != '\0')) return (1);
++int
++format_true(const char *s)
++{
++ if (s != NULL && *s != '\0' && (s[0] != '0' || s[1] != '\0'))
++  return (1);
+@@ -1085,4 +1283,9 @@ int format_true(const char *s) {
+-static int format_is_end(char c) { return (c == ';' || c == ':'); }
+-static void format_add_modifier(struct format_modifier **list, u_int *count,
+-                                const char *c, size_t n, char **argv,
+-                                int argc) {
++static int
++format_is_end(char c)
++{
++ return (c == ';' || c == ':');
++}
++static void
++format_add_modifier(struct format_modifier **list, u_int *count,
++    const char *c, size_t n, char **argv, int argc)
++{
+@@ -1098 +1301,3 @@ static void format_add_modifier(struct format_modifier **list, u_int *count,
+-static void format_free_modifiers(struct format_modifier *list, u_int count) {
++static void
++format_free_modifiers(struct format_modifier *list, u_int count)
++{
+@@ -1100 +1305,2 @@ static void format_free_modifiers(struct format_modifier *list, u_int count) {
+-  for (i = 0; i < count; i++) cmd_free_argv(list[i].argc, list[i].argv);
++ for (i = 0; i < count; i++)
++  cmd_free_argv(list[i].argc, list[i].argv);
+@@ -1103,3 +1309,3 @@ static void format_free_modifiers(struct format_modifier *list, u_int count) {
+-static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-                                                      const char **s,
+-                                                      u_int *count) {
++static struct format_modifier *
++format_build_modifiers(struct format_tree *ft, const char **s, u_int *count)
++{
+@@ -1112,2 +1318,4 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-    if (*cp == ';') cp++;
+-    if (strchr("lbdqETSWP<>", cp[0]) != NULL && format_is_end(cp[1])) {
++  if (*cp == ';')
++   cp++;
++  if (strchr("lbdqETSWP<>", cp[0]) != NULL &&
++      format_is_end(cp[1])) {
+@@ -1118,3 +1326,6 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-    if ((memcmp("||", cp, 2) == 0 || memcmp("&&", cp, 2) == 0 ||
+-         memcmp("!=", cp, 2) == 0 || memcmp("==", cp, 2) == 0 ||
+-         memcmp("<=", cp, 2) == 0 || memcmp(">=", cp, 2) == 0) &&
++  if ((memcmp("||", cp, 2) == 0 ||
++      memcmp("&&", cp, 2) == 0 ||
++      memcmp("!=", cp, 2) == 0 ||
++      memcmp("==", cp, 2) == 0 ||
++      memcmp("<=", cp, 2) == 0 ||
++      memcmp(">=", cp, 2) == 0) &&
+@@ -1126 +1337,2 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-    if (strchr("mCst=pe", cp[0]) == NULL) break;
++  if (strchr("mCst=pe", cp[0]) == NULL)
++   break;
+@@ -1137 +1349,2 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-      if (end == NULL) break;
++   if (end == NULL)
++    break;
+@@ -1155 +1368,2 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-      if (end == NULL) break;
++   if (end == NULL)
++    break;
+@@ -1173,2 +1387,3 @@ static struct format_modifier *format_build_modifiers(struct format_tree *ft,
+-static char *format_match(struct format_modifier *fm, const char *pattern,
+-                          const char *text) {
++static char *
++format_match(struct format_modifier *fm, const char *pattern, const char *text)
++{
+@@ -1178 +1393,2 @@ static char *format_match(struct format_modifier *fm, const char *pattern,
+-  if (fm->argc >= 1) s = fm->argv[0];
++ if (fm->argc >= 1)
++  s = fm->argv[0];
+@@ -1180,2 +1396,4 @@ static char *format_match(struct format_modifier *fm, const char *pattern,
+-    if (strchr(s, 'i') != NULL) flags |= FNM_CASEFOLD;
+-    if (fnmatch(pattern, text, flags) != 0) return (xstrdup("0"));
++  if (strchr(s, 'i') != NULL)
++   flags |= FNM_CASEFOLD;
++  if (fnmatch(pattern, text, flags) != 0)
++   return (xstrdup("0"));
+@@ -1184,2 +1402,4 @@ static char *format_match(struct format_modifier *fm, const char *pattern,
+-    if (strchr(s, 'i') != NULL) flags |= REG_ICASE;
+-    if (regcomp(&r, pattern, flags) != 0) return (xstrdup("0"));
++  if (strchr(s, 'i') != NULL)
++   flags |= REG_ICASE;
++  if (regcomp(&r, pattern, flags) != 0)
++   return (xstrdup("0"));
+@@ -1194,2 +1414,4 @@ static char *format_match(struct format_modifier *fm, const char *pattern,
+-static char *format_sub(struct format_modifier *fm, const char *text,
+-                        const char *pattern, const char *with) {
++static char *
++format_sub(struct format_modifier *fm, const char *text, const char *pattern,
++    const char *with)
++{
+@@ -1198 +1420,2 @@ static char *format_sub(struct format_modifier *fm, const char *text,
+-  if (fm->argc >= 3 && strchr(fm->argv[2], 'i') != NULL) flags |= REG_ICASE;
++ if (fm->argc >= 3 && strchr(fm->argv[2], 'i') != NULL)
++  flags |= REG_ICASE;
+@@ -1200 +1423,2 @@ static char *format_sub(struct format_modifier *fm, const char *text,
+-  if (value == NULL) return (xstrdup(text));
++ if (value == NULL)
++  return (xstrdup(text));
+@@ -1203,2 +1427,3 @@ static char *format_sub(struct format_modifier *fm, const char *text,
+-static char *format_search(struct format_modifier *fm, struct window_pane *wp,
+-                           const char *s) {
++static char *
++format_search(struct format_modifier *fm, struct window_pane *wp, const char *s)
++{
+@@ -1208,2 +1433,4 @@ static char *format_search(struct format_modifier *fm, struct window_pane *wp,
+-    if (strchr(fm->argv[0], 'i') != NULL) ignore = 1;
+-    if (strchr(fm->argv[0], 'r') != NULL) regex = 1;
++  if (strchr(fm->argv[0], 'i') != NULL)
++   ignore = 1;
++  if (strchr(fm->argv[0], 'r') != NULL)
++   regex = 1;
+@@ -1214 +1441,3 @@ static char *format_search(struct format_modifier *fm, struct window_pane *wp,
+-static char *format_loop_sessions(struct format_tree *ft, const char *fmt) {
++static char *
++format_loop_sessions(struct format_tree *ft, const char *fmt)
++{
+@@ -1237 +1466,3 @@ static char *format_loop_sessions(struct format_tree *ft, const char *fmt) {
+-static char *format_loop_windows(struct format_tree *ft, const char *fmt) {
++static char *
++format_loop_windows(struct format_tree *ft, const char *fmt)
++{
+@@ -1276 +1507,3 @@ static char *format_loop_windows(struct format_tree *ft, const char *fmt) {
+-static char *format_loop_panes(struct format_tree *ft, const char *fmt) {
++static char *
++format_loop_panes(struct format_tree *ft, const char *fmt)
++{
+@@ -1313,3 +1546,4 @@ static char *format_loop_panes(struct format_tree *ft, const char *fmt) {
+-static char *format_replace_expression(struct format_modifier *mexp,
+-                                       struct format_tree *ft,
+-                                       const char *copy) {
++static char *
++format_replace_expression(struct format_modifier *mexp, struct format_tree *ft,
++    const char *copy)
++{
+@@ -1331 +1565,2 @@ static char *format_replace_expression(struct format_modifier *mexp,
+-  else if (strcmp(mexp->argv[0], "%") == 0 || strcmp(mexp->argv[0], "m") == 0)
++ else if (strcmp(mexp->argv[0], "%") == 0 ||
++     strcmp(mexp->argv[0], "m") == 0)
+@@ -1334 +1569,2 @@ static char *format_replace_expression(struct format_modifier *mexp,
+-    format_log(ft, "expression has no valid operator: '%s'", mexp->argv[0]);
++  format_log(ft, "expression has no valid operator: '%s'",
++      mexp->argv[0]);
+@@ -1344 +1580,2 @@ static char *format_replace_expression(struct format_modifier *mexp,
+-      format_log(ft, "expression precision %s: %s", errstr, mexp->argv[2]);
++   format_log (ft, "expression precision %s: %s", errstr,
++       mexp->argv[2]);
+@@ -1398,2 +1635,4 @@ fail:
+-static int format_replace(struct format_tree *ft, const char *key,
+-                          size_t keylen, char **buf, size_t *len, size_t *off) {
++static int
++format_replace(struct format_tree *ft, const char *key, size_t keylen,
++    char **buf, size_t *len, size_t *off)
++{
+@@ -1417 +1656,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-        format_log(ft, "modifier %u argument %d: %s", i, j, fm->argv[j]);
++    format_log(ft, "modifier %u argument %d: %s", i,
++        j, fm->argv[j]);
+@@ -1431,2 +1671,4 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          if (fm->argc < 2) break;
+-          sub = xreallocarray(sub, nsub + 1, sizeof *sub);
++    if (fm->argc < 2)
++     break;
++    sub = xreallocarray (sub, nsub + 1,
++        sizeof *sub);
+@@ -1436,4 +1678,8 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          if (fm->argc < 1) break;
+-          limit = strtonum(fm->argv[0], INT_MIN, INT_MAX, &errptr);
+-          if (errptr != NULL) limit = 0;
+-          if (fm->argc >= 2 && fm->argv[1] != NULL) marker = fm->argv[1];
++    if (fm->argc < 1)
++     break;
++    limit = strtonum(fm->argv[0], INT_MIN, INT_MAX,
++        &errptr);
++    if (errptr != NULL)
++     limit = 0;
++    if (fm->argc >= 2 && fm->argv[1] != NULL)
++     marker = fm->argv[1];
+@@ -1442,3 +1688,6 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          if (fm->argc < 1) break;
+-          width = strtonum(fm->argv[0], INT_MIN, INT_MAX, &errptr);
+-          if (errptr != NULL) width = 0;
++    if (fm->argc < 1)
++     break;
++    width = strtonum(fm->argv[0], INT_MIN, INT_MAX,
++        &errptr);
++    if (errptr != NULL)
++     width = 0;
+@@ -1447 +1696,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          if (fm->argc < 1 || fm->argc > 3) break;
++    if (fm->argc < 1 || fm->argc > 3)
++     break;
+@@ -1461 +1711,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          if (fm->argc < 1) break;
++    if (fm->argc < 1)
++     break;
+@@ -1464 +1715,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-          else if (fm->argc >= 2 && strchr(fm->argv[0], 'f') != NULL)
++    else if (fm->argc >= 2 &&
++        strchr(fm->argv[0], 'f') != NULL)
+@@ -1487,3 +1739,6 @@ static int format_replace(struct format_tree *ft, const char *key,
+-      if (strcmp(fm->modifier, "||") == 0 || strcmp(fm->modifier, "&&") == 0 ||
+-          strcmp(fm->modifier, "==") == 0 || strcmp(fm->modifier, "!=") == 0 ||
+-          strcmp(fm->modifier, ">=") == 0 || strcmp(fm->modifier, "<=") == 0)
++   if (strcmp(fm->modifier, "||") == 0 ||
++       strcmp(fm->modifier, "&&") == 0 ||
++       strcmp(fm->modifier, "==") == 0 ||
++       strcmp(fm->modifier, "!=") == 0 ||
++       strcmp(fm->modifier, ">=") == 0 ||
++       strcmp(fm->modifier, "<=") == 0)
+@@ -1499 +1754,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-    if (value == NULL) goto fail;
++  if (value == NULL)
++   goto fail;
+@@ -1502 +1758,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-    if (value == NULL) goto fail;
++  if (value == NULL)
++   goto fail;
+@@ -1505 +1762,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-    if (value == NULL) goto fail;
++  if (value == NULL)
++   goto fail;
+@@ -1518 +1776,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-      format_log(ft, "compare %s syntax error: %s", cmp->modifier, copy);
++   format_log(ft, "compare %s syntax error: %s",
++       cmp->modifier, copy);
+@@ -1581 +1840,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-        format_log(ft, "condition '%s' found: %s", condition, found);
++    format_log(ft, "condition '%s' found: %s",
++        condition, found);
+@@ -1583 +1843,3 @@ static int format_replace(struct format_tree *ft, const char *key,
+-        format_log(ft, "condition '%s' not found; assuming false", condition);
++    format_log(ft,
++        "condition '%s' not found; assuming false",
++        condition);
+@@ -1588 +1850,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-      format_log(ft, "condition '%s' syntax error: %s", condition, cp + 1);
++   format_log(ft, "condition '%s' syntax error: %s",
++       condition, cp + 1);
+@@ -1605 +1868,2 @@ static int format_replace(struct format_tree *ft, const char *key,
+-    if (value == NULL) value = xstrdup("");
++  if (value == NULL)
++   value = xstrdup("");
+@@ -1619 +1883,2 @@ done:
+-  } else if (modifiers & FORMAT_EXPANDTIME) {
++ }
++ else if (modifiers & FORMAT_EXPANDTIME) {
+@@ -1686 +1951,3 @@ fail:
+-static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
++static char *
++format_expand1(struct format_tree *ft, const char *fmt, int time)
++{
+@@ -1693,2 +1960,4 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-  if (fmt == NULL || *fmt == '\0') return (xstrdup(""));
+-  if (ft->loop == FORMAT_LOOP_LIMIT) return (xstrdup(""));
++ if (fmt == NULL || *fmt == '\0')
++  return (xstrdup(""));
++ if (ft->loop == FORMAT_LOOP_LIMIT)
++  return (xstrdup(""));
+@@ -1725,2 +1994,4 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-          if (*ptr == '(') brackets++;
+-          if (*ptr == ')' && --brackets == 0) break;
++    if (*ptr == '(')
++     brackets++;
++    if (*ptr == ')' && --brackets == 0)
++     break;
+@@ -1728 +1999,2 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-        if (*ptr != ')' || brackets != 0) break;
++   if (*ptr != ')' || brackets != 0)
++    break;
+@@ -1752 +2024,2 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-        if (ptr == NULL) break;
++   if (ptr == NULL)
++    break;
+@@ -1755 +2028,2 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-        if (format_replace(ft, fmt, n, &buf, &len, &off) != 0) break;
++   if (format_replace(ft, fmt, n, &buf, &len, &off) != 0)
++    break;
+@@ -1785 +2059,2 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-        if (format_replace(ft, s, n, &buf, &len, &off) != 0) break;
++   if (format_replace(ft, s, n, &buf, &len, &off) != 0)
++    break;
+@@ -1795 +2070,3 @@ static char *format_expand1(struct format_tree *ft, const char *fmt, int time) {
+-char *format_expand_time(struct format_tree *ft, const char *fmt) {
++char *
++format_expand_time(struct format_tree *ft, const char *fmt)
++{
+@@ -1798 +2075,3 @@ char *format_expand_time(struct format_tree *ft, const char *fmt) {
+-char *format_expand(struct format_tree *ft, const char *fmt) {
++char *
++format_expand(struct format_tree *ft, const char *fmt)
++{
+@@ -1801,3 +2080,4 @@ char *format_expand(struct format_tree *ft, const char *fmt) {
+-char *format_single(struct cmdq_item *item, const char *fmt, struct client *c,
+-                    struct session *s, struct winlink *wl,
+-                    struct window_pane *wp) {
++char *
++format_single(struct cmdq_item *item, const char *fmt, struct client *c,
++    struct session *s, struct winlink *wl, struct window_pane *wp)
++{
+@@ -1811,2 +2091,4 @@ char *format_single(struct cmdq_item *item, const char *fmt, struct client *c,
+-char *format_single_from_state(struct cmdq_item *item, const char *fmt,
+-                               struct client *c, struct cmd_find_state *fs) {
++char *
++format_single_from_state(struct cmdq_item *item, const char *fmt,
++    struct client *c, struct cmd_find_state *fs)
++{
+@@ -1815 +2097,3 @@ char *format_single_from_state(struct cmdq_item *item, const char *fmt,
+-char *format_single_from_target(struct cmdq_item *item, const char *fmt) {
++char *
++format_single_from_target(struct cmdq_item *item, const char *fmt)
++{
+@@ -1819,4 +2103,4 @@ char *format_single_from_target(struct cmdq_item *item, const char *fmt) {
+-struct format_tree *format_create_defaults(struct cmdq_item *item,
+-                                           struct client *c, struct session *s,
+-                                           struct winlink *wl,
+-                                           struct window_pane *wp) {
++struct format_tree *
++format_create_defaults(struct cmdq_item *item, struct client *c,
++    struct session *s, struct winlink *wl, struct window_pane *wp)
++{
+@@ -1831,3 +2115,4 @@ struct format_tree *format_create_defaults(struct cmdq_item *item,
+-struct format_tree *format_create_from_state(struct cmdq_item *item,
+-                                             struct client *c,
+-                                             struct cmd_find_state *fs) {
++struct format_tree *
++format_create_from_state(struct cmdq_item *item, struct client *c,
++    struct cmd_find_state *fs)
++{
+@@ -1836 +2121,3 @@ struct format_tree *format_create_from_state(struct cmdq_item *item,
+-struct format_tree *format_create_from_target(struct cmdq_item *item) {
++struct format_tree *
++format_create_from_target(struct cmdq_item *item)
++{
+@@ -1840,3 +2127,4 @@ struct format_tree *format_create_from_target(struct cmdq_item *item) {
+-void format_defaults(struct format_tree *ft, struct client *c,
+-                     struct session *s, struct winlink *wl,
+-                     struct window_pane *wp) {
++void
++format_defaults(struct format_tree *ft, struct client *c, struct session *s,
++    struct winlink *wl, struct window_pane *wp)
++{
+@@ -1865,7 +2153,14 @@ void format_defaults(struct format_tree *ft, struct client *c,
+-  if (s == NULL && c != NULL) s = c->session;
+-  if (wl == NULL && s != NULL) wl = s->curw;
+-  if (wp == NULL && wl != NULL) wp = wl->window->active;
+-  if (c != NULL) format_defaults_client(ft, c);
+-  if (s != NULL) format_defaults_session(ft, s);
+-  if (wl != NULL) format_defaults_winlink(ft, wl);
+-  if (wp != NULL) format_defaults_pane(ft, wp);
++ if (s == NULL && c != NULL)
++  s = c->session;
++ if (wl == NULL && s != NULL)
++  wl = s->curw;
++ if (wp == NULL && wl != NULL)
++  wp = wl->window->active;
++ if (c != NULL)
++  format_defaults_client(ft, c);
++ if (s != NULL)
++  format_defaults_session(ft, s);
++ if (wl != NULL)
++  format_defaults_winlink(ft, wl);
++ if (wp != NULL)
++  format_defaults_pane(ft, wp);
+@@ -1873 +2168,2 @@ void format_defaults(struct format_tree *ft, struct client *c,
+-  if (pb != NULL) format_defaults_paste_buffer(ft, pb);
++ if (pb != NULL)
++  format_defaults_paste_buffer(ft, pb);
+@@ -1875 +2171,3 @@ void format_defaults(struct format_tree *ft, struct client *c,
+-static void format_defaults_session(struct format_tree *ft, struct session *s) {
++static void
++format_defaults_session(struct format_tree *ft, struct session *s)
++{
+@@ -1886 +2184,2 @@ static void format_defaults_session(struct format_tree *ft, struct session *s) {
+-    format_add(ft, "session_group_size", "%u", session_group_count(sg));
++  format_add(ft, "session_group_size", "%u",
++      session_group_count (sg));
+@@ -1891 +2190,2 @@ static void format_defaults_session(struct format_tree *ft, struct session *s) {
+-    format_add_cb(ft, "session_group_list", format_cb_session_group_list);
++  format_add_cb(ft, "session_group_list",
++      format_cb_session_group_list);
+@@ -1900 +2200,2 @@ static void format_defaults_session(struct format_tree *ft, struct session *s) {
+-  format_add_cb(ft, "session_attached_list", format_cb_session_attached_list);
++ format_add_cb(ft, "session_attached_list",
++     format_cb_session_attached_list);
+@@ -1908 +2209,3 @@ static void format_defaults_session(struct format_tree *ft, struct session *s) {
+-static void format_defaults_client(struct format_tree *ft, struct client *c) {
++static void
++format_defaults_client(struct format_tree *ft, struct client *c)
++{
+@@ -1912 +2215,2 @@ static void format_defaults_client(struct format_tree *ft, struct client *c) {
+-  if (ft->s == NULL) ft->s = c->session;
++ if (ft->s == NULL)
++  ft->s = c->session;
+@@ -1921 +2225,2 @@ static void format_defaults_client(struct format_tree *ft, struct client *c) {
+-  format_add(ft, "client_control_mode", "%d", !!(c->flags & CLIENT_CONTROL));
++ format_add(ft, "client_control_mode", "%d",
++  !!(c->flags & CLIENT_CONTROL));
+@@ -1947 +2252,2 @@ static void format_defaults_client(struct format_tree *ft, struct client *c) {
+-  if (s != NULL) format_add(ft, "client_session", "%s", s->name);
++ if (s != NULL)
++  format_add(ft, "client_session", "%s", s->name);
+@@ -1952 +2258,3 @@ static void format_defaults_client(struct format_tree *ft, struct client *c) {
+-void format_defaults_window(struct format_tree *ft, struct window *w) {
++void
++format_defaults_window(struct format_tree *ft, struct window *w)
++{
+@@ -1962 +2270,2 @@ void format_defaults_window(struct format_tree *ft, struct window *w) {
+-  format_add_cb(ft, "window_visible_layout", format_cb_window_visible_layout);
++ format_add_cb(ft, "window_visible_layout",
++     format_cb_window_visible_layout);
+@@ -1964 +2273,2 @@ void format_defaults_window(struct format_tree *ft, struct window *w) {
+-  format_add(ft, "window_zoomed_flag", "%d", !!(w->flags & WINDOW_ZOOMED));
++ format_add(ft, "window_zoomed_flag", "%d",
++     !!(w->flags & WINDOW_ZOOMED));
+@@ -1966,2 +2276,3 @@ void format_defaults_window(struct format_tree *ft, struct window *w) {
+-static void format_defaults_winlink(struct format_tree *ft,
+-                                    struct winlink *wl) {
++static void
++format_defaults_winlink(struct format_tree *ft, struct winlink *wl)
++{
+@@ -1973 +2284,2 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  if (ft->w == NULL) format_defaults_window(ft, w);
++ if (ft->w == NULL)
++  format_defaults_window(ft, w);
+@@ -1987 +2299,2 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  format_add_cb(ft, "window_active_sessions", format_cb_window_active_sessions);
++ format_add_cb(ft, "window_active_sessions",
++     format_cb_window_active_sessions);
+@@ -1990 +2303,2 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  format_add_cb(ft, "window_active_clients", format_cb_window_active_clients);
++ format_add_cb(ft, "window_active_clients",
++     format_cb_window_active_clients);
+@@ -2001 +2315,2 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  format_add(ft, "window_bell_flag", "%d", !!(wl->flags & WINLINK_BELL));
++ format_add(ft, "window_bell_flag", "%d",
++     !!(wl->flags & WINLINK_BELL));
+@@ -2004,2 +2319,4 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  format_add(ft, "window_silence_flag", "%d", !!(wl->flags & WINLINK_SILENCE));
+-  format_add(ft, "window_last_flag", "%d", !!(wl == TAILQ_FIRST(&s->lastw)));
++ format_add(ft, "window_silence_flag", "%d",
++     !!(wl->flags & WINLINK_SILENCE));
++ format_add(ft, "window_last_flag", "%d",
++     !!(wl == TAILQ_FIRST(&s->lastw)));
+@@ -2009 +2326,2 @@ static void format_defaults_winlink(struct format_tree *ft,
+-  format_add(ft, "window_linked_sessions", "%u", wl->window->references);
++ format_add(ft, "window_linked_sessions", "%u",
++     wl->window->references);
+@@ -2011 +2329,3 @@ static void format_defaults_winlink(struct format_tree *ft,
+-void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
++void
++format_defaults_pane(struct format_tree *ft, struct window_pane *wp)
++{
+@@ -2017 +2337,2 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-  if (ft->w == NULL) format_defaults_window(ft, w);
++ if (ft->w == NULL)
++  format_defaults_window(ft, w);
+@@ -2025 +2346,2 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-  if (window_pane_index(wp, &idx) != 0) fatalx("index not found");
++ if (window_pane_index(wp, &idx) != 0)
++  fatalx("index not found");
+@@ -2030 +2352,2 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-  if (wp->base.path != NULL) format_add(ft, "pane_path", "%s", wp->base.path);
++ if (wp->base.path != NULL)
++     format_add(ft, "pane_path", "%s", wp->base.path);
+@@ -2057 +2380,2 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-    if (wme->mode->formats != NULL) wme->mode->formats(wme, ft);
++  if (wme->mode->formats != NULL)
++   wme->mode->formats(wme, ft);
+@@ -2079,7 +2403,14 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-  format_add(ft, "cursor_flag", "%d", !!(wp->base.mode & MODE_CURSOR));
+-  format_add(ft, "insert_flag", "%d", !!(wp->base.mode & MODE_INSERT));
+-  format_add(ft, "keypad_cursor_flag", "%d", !!(wp->base.mode & MODE_KCURSOR));
+-  format_add(ft, "keypad_flag", "%d", !!(wp->base.mode & MODE_KKEYPAD));
+-  format_add(ft, "wrap_flag", "%d", !!(wp->base.mode & MODE_WRAP));
+-  format_add(ft, "origin_flag", "%d", !!(wp->base.mode & MODE_ORIGIN));
+-  format_add(ft, "mouse_any_flag", "%d", !!(wp->base.mode & ALL_MOUSE_MODES));
++ format_add(ft, "cursor_flag", "%d",
++     !!(wp->base.mode & MODE_CURSOR));
++ format_add(ft, "insert_flag", "%d",
++     !!(wp->base.mode & MODE_INSERT));
++ format_add(ft, "keypad_cursor_flag", "%d",
++     !!(wp->base.mode & MODE_KCURSOR));
++ format_add(ft, "keypad_flag", "%d",
++     !!(wp->base.mode & MODE_KKEYPAD));
++ format_add(ft, "wrap_flag", "%d",
++     !!(wp->base.mode & MODE_WRAP));
++ format_add(ft, "origin_flag", "%d",
++     !!(wp->base.mode & MODE_ORIGIN));
++ format_add(ft, "mouse_any_flag", "%d",
++     !!(wp->base.mode & ALL_MOUSE_MODES));
+@@ -2090,3 +2421,6 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-  format_add(ft, "mouse_all_flag", "%d", !!(wp->base.mode & MODE_MOUSE_ALL));
+-  format_add(ft, "mouse_utf8_flag", "%d", !!(wp->base.mode & MODE_MOUSE_UTF8));
+-  format_add(ft, "mouse_sgr_flag", "%d", !!(wp->base.mode & MODE_MOUSE_SGR));
++ format_add(ft, "mouse_all_flag", "%d",
++     !!(wp->base.mode & MODE_MOUSE_ALL));
++ format_add(ft, "mouse_utf8_flag", "%d",
++     !!(wp->base.mode & MODE_MOUSE_UTF8));
++ format_add(ft, "mouse_sgr_flag", "%d",
++     !!(wp->base.mode & MODE_MOUSE_SGR));
+@@ -2095,2 +2429,3 @@ void format_defaults_pane(struct format_tree *ft, struct window_pane *wp) {
+-void format_defaults_paste_buffer(struct format_tree *ft,
+-                                  struct paste_buffer *pb) {
++void
++format_defaults_paste_buffer(struct format_tree *ft, struct paste_buffer *pb)
++{

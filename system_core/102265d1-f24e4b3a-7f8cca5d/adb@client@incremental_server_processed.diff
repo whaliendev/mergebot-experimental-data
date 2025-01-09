@@ -1,0 +1,32 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_merged.cpp
+@@ -86 +85,2 @@ static inline constexpr T readBigEndian(void* data) {
+-struct ResponseHeader {
++struct RequestCommand {
++    RequestType request_type;
+@@ -88 +88 @@ struct ResponseHeader {
+-  CompressionType compression_type;
++    union {
+@@ -90 +90,2 @@ struct ResponseHeader {
+-  BlockSize block_size;
++        NumBlocks num_blocks;
++    };
+@@ -93,0 +95 @@ struct ResponseHeader {
++    BlockType block_type;
+@@ -133,6 +130,2 @@ class IncrementalServer {
+-  IncrementalServer(unique_fd fd, unique_fd adb_fd, unique_fd output_fd,
+-                    std::vector<File> files)
+-      : adb_fd_(std::move(fd)),
+-        adb_fd_(std::move(adb_fd)),
+-        output_fd_(std::move(output_fd)),
+-        files_(std::move(files)) {
++    IncrementalServer(unique_fd adb_fd, unique_fd output_fd, std::vector<File> files)
++        : adb_fd_(std::move(adb_fd)), output_fd_(std::move(output_fd)), files_(std::move(files)) {
+@@ -185 +174 @@ class IncrementalServer {
+-  bool servingComplete_;
++    bool servingComplete_ = false;
+@@ -368,2 +352,2 @@ void IncrementalServer::Flush() {
+-bool IncrementalServer::Exit(std::optional<TimePoint> startTime,
+-                             int missesCount, int missesSent) {
++bool IncrementalServer::ServingComplete(std::optional<TimePoint> startTime, int missesCount,
++                                        int missesSent) {

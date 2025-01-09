@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {\n    // We need platform devices to create symlinks.\n    if (uevent->subsystem == \"platform\") {\n        return COLDBOOT_CREATE;",
+        "b_contents": "coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {\n    // We need platform devices to create symlinks.\n    if (!strncmp(uevent->subsystem, \"platform\", 8)) {\n        return COLDBOOT_CREATE;",
+        "base_contents": "// Creates devices with uevent->partition_name matching one in the in/out\n// devices_partition_names. Found partitions will then be removed from the\n// devices_partition_names for the caller to check which devices are NOT created.\nvoid FirstStageMount::InitRequiredDevices(std::set<std::string>* devices_partition_names) {\n    if (devices_partition_names->empty()) {\n        return;",
+        "res_region": "coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {\n    // We need platform devices to create symlinks.\n    if (uevent->subsystem == \"platform\") {\n        return COLDBOOT_CREATE;",
+        "lookback": "    device_close();\n}\n",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 179,
+        "end_line": 196,
+        "merge_gen_region": "coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) { // We need platform devices to create symlinks. if (!strncmp(uevent->subsystem, \"platform\", 8)) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // Ignores everything that is not a block device.\n    if (uevent->subsystem != \"block\") {\n        return COLDBOOT_CONTINUE;\n    }",
+        "b_contents": "    // Ignores everything that is not a block device.\n    if (strncmp(uevent->subsystem, \"block\", 5)) {\n        return COLDBOOT_CONTINUE;\n    }",
+        "base_contents": "        // Ignores everything that is not a block device.\n        if (strncmp(uevent->subsystem, \"block\", 5)) {\n            return COLDBOOT_CONTINUE;\n        }",
+        "res_region": "    // Ignores everything that is not a block device.\n    if (uevent->subsystem != \"block\") {\n        return COLDBOOT_CONTINUE;\n    }",
+        "lookback": "        return COLDBOOT_CREATE;\n    }\n",
+        "lookahead": "\n    if (!uevent->partition_name.empty()) {",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 199,
+        "end_line": 214,
+        "merge_gen_region": "// Ignores everything that is not a block device. if (uevent->subsystem != \"block\") { return COLDBOOT_CONTINUE; }",
+        "resolved": true
+    },
+    {
+        "a_contents": "    if (!uevent->partition_name.empty()) {\n        // Matches partition name to create device nodes.\n        // Both required_devices_partition_names_ and uevent->partition_name have A/B\n        // suffix when A/B is used.\n        auto iter = required_devices_partition_names_.find(uevent->partition_name);\n        if (iter != required_devices_partition_names_.end()) {\n            LOG(VERBOSE) << __FUNCTION__ << \"(): found partition: \" << *iter;\n            required_devices_partition_names_.erase(iter);\n            if (required_devices_partition_names_.empty()) {\n                return COLDBOOT_STOP;  // Found all partitions, stop coldboot.\n            } else {\n                return COLDBOOT_CREATE;  // Creates this device and continue to find others.",
+        "b_contents": "    if (uevent->partition_name) {\n        // Matches partition name to create device nodes.\n        // Both required_devices_partition_names_ and uevent->partition_name have A/B\n        // suffix when A/B is used.\n        auto iter = required_devices_partition_names_.find(uevent->partition_name);\n        if (iter != required_devices_partition_names_.end()) {\n            LOG(VERBOSE) << __FUNCTION__ << \"(): found partition: \" << *iter;\n            required_devices_partition_names_.erase(iter);\n            if (required_devices_partition_names_.empty()) {\n                return COLDBOOT_STOP;  // Found all partitions, stop coldboot.\n            } else {\n                return COLDBOOT_CREATE;  // Creates this device and continue to find others.",
+        "base_contents": "        if (uevent->partition_name) {\n            // Matches partition name to create device nodes.\n            // Both devices_partition_names and uevent->partition_name have A/B\n            // suffix when A/B is used.\n            auto iter = devices_partition_names->find(uevent->partition_name);\n            if (iter != devices_partition_names->end()) {\n                LOG(VERBOSE) << __FUNCTION__ << \"(): found partition: \" << *iter;\n                devices_partition_names->erase(iter);\n                if (devices_partition_names->empty()) {\n                    return COLDBOOT_STOP;  // Found all partitions, stop coldboot.\n                } else {\n                    return COLDBOOT_CREATE;  // Creates this device and continue to find others.\n                }",
+        "res_region": "    if (!uevent->partition_name.empty()) {\n        // Matches partition name to create device nodes.\n        // Both required_devices_partition_names_ and uevent->partition_name have A/B\n        // suffix when A/B is used.\n        auto iter = required_devices_partition_names_.find(uevent->partition_name);\n        if (iter != required_devices_partition_names_.end()) {\n            LOG(VERBOSE) << __FUNCTION__ << \"(): found partition: \" << *iter;\n            required_devices_partition_names_.erase(iter);\n            if (required_devices_partition_names_.empty()) {\n                return COLDBOOT_STOP;  // Found all partitions, stop coldboot.\n            } else {\n                return COLDBOOT_CREATE;  // Creates this device and continue to find others.",
+        "lookback": "        return COLDBOOT_CONTINUE;\n    }\n",
+        "lookahead": "            }\n        }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 216,
+        "end_line": 256,
+        "merge_gen_region": "if (!uevent->partition_name.empty()) { // Matches partition name to create device nodes. // Both required_devices_partition_names_ and uevent->partition_name have A/B // suffix when A/B is used. auto iter = required_devices_partition_names_.find(uevent->partition_name); if (iter != required_devices_partition_names_.end()) { LOG(VERBOSE) << __FUNCTION__ << \"(): found partition: \" << *iter; required_devices_partition_names_.erase(iter); if (required_devices_partition_names_.empty()) { return COLDBOOT_STOP; // Found all partitions, stop coldboot. } else { return COLDBOOT_CREATE; // Creates this device and continue to find others.",
+        "resolved": true
+    },
+    {
+        "a_contents": "        if (uevent->device_name == device_name) {",
+        "b_contents": "        if (uevent->device_name && uevent->device_name == device_name) {",
+        "base_contents": "        if (uevent->device_name && device_name == uevent->device_name) {",
+        "res_region": "        if (uevent->device_name == device_name) {",
+        "lookback": "    const std::string syspath = \"/sys/block/\" + device_name;\n\n    device_init(syspath.c_str(), [&](uevent* uevent) -> coldboot_action_t {",
+        "lookahead": "            LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n            return COLDBOOT_STOP;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 270,
+        "end_line": 276,
+        "merge_gen_region": "if (uevent->device_name == device_name) { LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;",
+        "resolved": false
+    },
+    {
+        "a_contents": "coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {\n    // Invokes the parent function to see if any desired partition has been found.\n    // If yes, record the by-name symlink for creating FsManagerAvbHandle later.\n    coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent);\n\n    // Skips the uevent if the parent function returns COLDBOOT_CONTINUE (meaning\n    // that the uevent was skipped) or there is no uevent->partition_name to\n    // create the by-name symlink.\n    if (parent_callback_ret != COLDBOOT_CONTINUE && !uevent->partition_name.empty()) {\n        // get_block_device_symlinks() will return three symlinks at most, depending on\n        // the content of uevent. by-name symlink will be at [0] if uevent->partition_name\n        // is not empty. e.g.,\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-name/modem\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-num/p1\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/mmcblk0p1\n        std::vector<std::string> links = get_block_device_symlinks(uevent);\n        if (!links.empty()) {\n            auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]);\n            if (!inserted) {\n                LOG(ERROR) << \"Partition '\" << uevent->partition_name\n                           << \"' already existed in the by-name symlink map with a value of '\"\n                           << it->second << \"', new value '\" << links[0] << \"' will be ignored.\";\n            }\n        }\n    }\n\n    return parent_callback_ret;\n}\n",
+        "b_contents": "coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {\n    // Invokes the parent function to see if any desired partition has been found.\n    // If yes, record the by-name symlink for creating FsManagerAvbHandle later.\n    coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent);\n\n    // Skips the uevent if the parent function returns COLDBOOT_CONTINUE (meaning\n    // that the uevent was skipped) or there is no uevent->partition_name to\n    // create the by-name symlink.\n    if (parent_callback_ret != COLDBOOT_CONTINUE && uevent->partition_name) {\n        // get_block_device_symlinks() will return three symlinks at most, depending on\n        // the content of uevent. by-name symlink will be at [0] if uevent->partition_name\n        // is not empty. e.g.,\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-name/modem\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-num/p1\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/mmcblk0p1\n        char** links = get_block_device_symlinks(uevent);\n        if (links && links[0]) {\n            auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]);\n            if (!inserted) {\n                LOG(ERROR) << \"Partition '\" << uevent->partition_name\n                           << \"' already existed in the by-name symlink map with a value of '\"\n                           << it->second << \"', new value '\" << links[0] << \"' will be ignored.\";\n            }\n        }\n    }\n\n    return parent_callback_ret;\n}\n",
+        "base_contents": "",
+        "res_region": "coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {\n    // Invokes the parent function to see if any desired partition has been found.\n    // If yes, record the by-name symlink for creating FsManagerAvbHandle later.\n    coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent);\n\n    // Skips the uevent if the parent function returns COLDBOOT_CONTINUE (meaning\n    // that the uevent was skipped) or there is no uevent->partition_name to\n    // create the by-name symlink.\n    if (parent_callback_ret != COLDBOOT_CONTINUE && !uevent->partition_name.empty()) {\n        // get_block_device_symlinks() will return three symlinks at most, depending on\n        // the content of uevent. by-name symlink will be at [0] if uevent->partition_name\n        // is not empty. e.g.,\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-name/modem\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/by-num/p1\n        //   - /dev/block/platform/soc.0/f9824900.sdhci/mmcblk0p1\n        std::vector<std::string> links = get_block_device_symlinks(uevent);\n        if (!links.empty()) {\n            auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]);\n            if (!inserted) {\n                LOG(ERROR) << \"Partition '\" << uevent->partition_name\n                           << \"' already existed in the by-name symlink map with a value of '\"\n                           << it->second << \"', new value '\" << links[0] << \"' will be ignored.\";\n            }\n        }\n    }\n\n    return parent_callback_ret;\n}\n",
+        "lookback": "    return true;\n}\n",
+        "lookahead": "bool FirstStageMountVBootV2::SetUpDmVerity(fstab_rec* fstab_rec) {\n    if (fs_mgr_is_avb(fstab_rec)) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 408,
+        "end_line": 469,
+        "merge_gen_region": "coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) { // Invokes the parent function to see if any desired partition has been found. // If yes, record the by-name symlink for creating FsManagerAvbHandle later. coldboot_action_t parent_callback_ret = FirstStageMount::ColdbootCallback(uevent); // Skips the uevent if the parent function returns COLDBOOT_CONTINUE (meaning // that the uevent was skipped) or there is no uevent->partition_name to // create the by-name symlink. if (parent_callback_ret != COLDBOOT_CONTINUE && !uevent->partition_name.empty()) { // get_block_device_symlinks() will return three symlinks at most, depending on // the content of uevent. by-name symlink will be at [0] if uevent->partition_name // is not empty. e.g., // - /dev/block/platform/soc.0/f9824900.sdhci/by-name/modem // - /dev/block/platform/soc.0/f9824900.sdhci/by-num/p1 // - /dev/block/platform/soc.0/f9824900.sdhci/mmcblk0p1 std::vector<std::string> links = get_block_device_symlinks(uevent); if (!links.empty()) { auto[it, inserted] = by_name_symlink_map_.emplace(uevent->partition_name, links[0]); if (!inserted) { LOG(ERROR) << \"Partition '\" << uevent->partition_name << \"' already existed in the by-name symlink map with a value of '\" << it->second << \"', new value '\" << links[0] << \"' will be ignored",
+        "resolved": false
+    }
+]

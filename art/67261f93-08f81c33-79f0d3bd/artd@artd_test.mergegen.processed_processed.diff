@@ -1,0 +1,59 @@
+--- a/./output/art/67261f93-08f81c33-79f0d3bd/artd@artd_test.no_comments_mergegen.cc
++++ b/./output/art/67261f93-08f81c33-79f0d3bd/artd@artd_test.no_comments_merged.cc
+@@ -360 +361,39 @@ class ArtdTest : public CommonArtTest {
+-template <bool kExpectOk> using RunCopyAndRewriteProfileResult = Result< std::pair<std::conditional_t<kExpectOk, CopyAndRewriteProfileResult, ndk::ScopedAStatus>, OutputProfile>>;
++  template <bool kExpectOk>
++  using RunCopyAndRewriteProfileResult = Result<
++      std::pair<std::conditional_t<kExpectOk, CopyAndRewriteProfileResult, ndk::ScopedAStatus>,
++                OutputProfile>>;
++  template <bool kExpectOk = true>
++  RunCopyAndRewriteProfileResult<kExpectOk> RunCopyAndRewriteProfile() {
++    OutputProfile dst{.profilePath = tmp_profile_path_,
++                      .fsPermission = FsPermission{.uid = -1, .gid = -1}};
++    dst.profilePath.id = "";
++    dst.profilePath.tmpPath = "";
++    CopyAndRewriteProfileResult result;
++    ndk::ScopedAStatus status =
++        artd_->copyAndRewriteProfile(tmp_profile_path_, &dst, dex_file_, &result);
++    if constexpr (kExpectOk) {
++      if (!status.isOk()) {
++        return Error() << status.getMessage();
++      }
++      return std::make_pair(std::move(result), std::move(dst));
++    } else {
++      return std::make_pair(std::move(status), std::move(dst));
++    }
++  }
++  template <bool kExpectOk = true>
++  RunCopyAndRewriteProfileResult<kExpectOk> RunCopyAndRewriteEmbeddedProfile() {
++    OutputProfile dst{.profilePath = tmp_profile_path_,
++                      .fsPermission = FsPermission{.uid = -1, .gid = -1}};
++    dst.profilePath.id = "";
++    dst.profilePath.tmpPath = "";
++    CopyAndRewriteProfileResult result;
++    ndk::ScopedAStatus status = artd_->copyAndRewriteEmbeddedProfile(&dst, dex_file_, &result);
++    if constexpr (kExpectOk) {
++      if (!status.isOk()) {
++        return Error() << status.getMessage();
++      }
++      return std::make_pair(std::move(result), std::move(dst));
++    } else {
++      return std::make_pair(std::move(status), std::move(dst));
++    }
++  }
+@@ -366 +405,14 @@ template <bool kExpectOk> using RunCopyAndRewriteProfileResult = Result< std::pa
+-void CreateZipWithSingleEntry(const std::string& filename, const std::string& entry_name, const std::string& content = "") { std::filesystem::path path(filename); std::filesystem::create_directories(path.parent_path()); std::unique_ptr<File> file(OS::CreateEmptyFileWriteOnly(filename.c_str())); ASSERT_NE(file, nullptr) << strerror(errno); file->MarkUnchecked();
++  void CreateZipWithSingleEntry(const std::string& filename,
++                                const std::string& entry_name,
++                                const std::string& content = "") {
++    std::filesystem::path path(filename);
++    std::filesystem::create_directories(path.parent_path());
++    std::unique_ptr<File> file(OS::CreateEmptyFileWriteOnly(filename.c_str()));
++    ASSERT_NE(file, nullptr) << strerror(errno);
++    file->MarkUnchecked();
++    ZipWriter writer(fdopen(file->Fd(), "wb"));
++    ASSERT_EQ(writer.StartEntry(entry_name, 0), 0);
++    ASSERT_EQ(writer.WriteBytes(content.c_str(), content.size()), 0);
++    ASSERT_EQ(writer.FinishEntry(), 0);
++    ASSERT_EQ(writer.Finish(), 0);
++  }

@@ -1,0 +1,210 @@
+[
+    {
+        "a_contents": "#include <aidl/android/media/IResourceManagerClient.h>\n#include <aidl/android/media/IResourceManagerService.h>\n#include <aidl/android/media/MediaResourceParcel.h>\n#include <android/binder_ibinder.h>\n#include <android/binder_manager.h>\n#include <cutils/properties.h>\n#include <mediadrm/DrmUtils.h>",
+        "b_contents": "#include <binder/IPCThreadState.h>\n#include <binder/IProcessInfoService.h>\n#include <binder/IServiceManager.h>\n#include <cutils/properties.h>\n#include <media/IResourceManagerClient.h>\n#include <media/MediaResource.h>",
+        "base_contents": "#include <binder/IPCThreadState.h>\n#include <binder/IProcessInfoService.h>\n#include <binder/IServiceManager.h>\n#include <media/stagefright/ProcessInfo.h>\n#include <mediadrm/DrmSessionClientInterface.h>",
+        "res_region": "#include <aidl/android/media/IResourceManagerClient.h>\n#include <aidl/android/media/IResourceManagerService.h>\n#include <aidl/android/media/MediaResourceParcel.h>\n#include <android/binder_ibinder.h>\n#include <android/binder_manager.h>\n#include <cutils/properties.h>\n#include <mediadrm/DrmUtils.h>",
+        "lookback": "#define LOG_TAG \"DrmSessionManager\"\n#include <utils/Log.h>\n",
+        "lookahead": "#include <mediadrm/DrmSessionManager.h>\n#include <unistd.h>",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 20,
+        "end_line": 41,
+        "merge_gen_region": "#include <aidl/android/media/MediaResourceParcel.h> #include <android/binder_ibinder.h> #include <android/binder_manager.h> #include <cutils/properties.h> #include <media/MediaResource.h>",
+        "resolved": false
+    },
+    {
+        "a_contents": "#include <vector>\n",
+        "b_contents": "#include <vector>\n\n#include \"ResourceManagerService.h\"\n",
+        "base_contents": "",
+        "res_region": "#include <vector>\n",
+        "lookback": "#include <unistd.h>\n#include <utils/String8.h>\n",
+        "lookahead": "namespace android {\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 46,
+        "end_line": 55,
+        "merge_gen_region": "#include <vector> #include <vector>",
+        "resolved": false
+    },
+    {
+        "a_contents": "template <typename Byte = uint8_t>\nstatic std::vector<Byte> toStdVec(const Vector<uint8_t> &vector) {\n    auto v = reinterpret_cast<const Byte *>(vector.array());\n    std::vector<Byte> vec(v, v + vector.size());\n    return vec;\n}\n\nstatic std::vector<MediaResourceParcel> toResourceVec(\n        const Vector<uint8_t> &sessionId, int64_t value) {\n    using Type = aidl::android::media::MediaResourceType;\n    using SubType = aidl::android::media::MediaResourceSubType;\n    std::vector<MediaResourceParcel> resources;\n    MediaResourceParcel resource{\n            Type::kDrmSession, SubType::kUnspecifiedSubType,\n            toStdVec<int8_t>(sessionId), value};\n    resources.push_back(resource);\n    return resources;\n}\n\nstatic std::shared_ptr<IResourceManagerService> getResourceManagerService() {\n    ::ndk::SpAIBinder binder(AServiceManager_getService(\"media.resource_manager\"));\n    return IResourceManagerService::fromBinder(binder);\n}\n",
+        "b_contents": "static std::vector<uint8_t> toStdVec(const Vector<uint8_t> &vector) {\n    const uint8_t *v = vector.array();\n    std::vector<uint8_t> vec(v, v + vector.size());\n    return vec;\n}\n\nstatic uint64_t toClientId(const sp<IResourceManagerClient>& drm) {\n    return reinterpret_cast<int64_t>(drm.get());\n}\n\nstatic Vector<MediaResource> toResourceVec(const Vector<uint8_t> &sessionId) {\n    Vector<MediaResource> resources;\n    // use UINT64_MAX to decrement through addition overflow\n    resources.push_back(MediaResource(MediaResource::kDrmSession, toStdVec(sessionId), UINT64_MAX));\n    return resources;\n}\n\nstatic sp<IResourceManagerService> getResourceManagerService() {\n    if (property_get_bool(\"persist.device_config.media_native.mediadrmserver\", 1)) {\n        return new ResourceManagerService();\n    }\n    sp<IServiceManager> sm = defaultServiceManager();\n    if (sm == NULL) {\n        return NULL;\n    }\n    sp<IBinder> binder = sm->getService(String16(\"media.resource_manager\"));\n    return interface_cast<IResourceManagerService>(binder);\n}\n",
+        "base_contents": "",
+        "res_region": "template <typename Byte = uint8_t>\nstatic std::vector<Byte> toStdVec(const Vector<uint8_t> &vector) {\n    auto v = reinterpret_cast<const Byte *>(vector.array());\n    std::vector<Byte> vec(v, v + vector.size());\n    return vec;\n}\n\nstatic std::vector<MediaResourceParcel> toResourceVec(\n        const Vector<uint8_t> &sessionId, int64_t value) {\n    using Type = aidl::android::media::MediaResourceType;\n    using SubType = aidl::android::media::MediaResourceSubType;\n    std::vector<MediaResourceParcel> resources;\n    MediaResourceParcel resource{\n            Type::kDrmSession, SubType::kUnspecifiedSubType,\n            toStdVec<int8_t>(sessionId), value};\n    resources.push_back(resource);\n    return resources;\n}\n\nstatic std::shared_ptr<IResourceManagerService> getResourceManagerService() {\n    ::ndk::SpAIBinder binder(AServiceManager_getService(\"media.resource_manager\"));\n    return IResourceManagerService::fromBinder(binder);\n}\n",
+        "lookback": "    return sessionIdStr;\n}\n",
+        "lookahead": "bool isEqualSessionId(const Vector<uint8_t> &sessionId1, const Vector<uint8_t> &sessionId2) {\n    if (sessionId1.size() != sessionId2.size()) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 77,
+        "end_line": 133,
+        "merge_gen_region": "template <typename Byte = uint8_t> static std::vector<Byte> toStdVec(const Vector<uint8_t> &vector) { auto v = reinterpret_cast<const Byte *>(vector.array()); std::vector<Byte> vec(v, v + vector.size()); return vec; } static std::vector<MediaResourceParcel> toResourceVec( const Vector<uint8_t> &sessionId, int64_t value) { using Type = aidl::android::media::MediaResourceType; using SubType = aidl::android::media::MediaResourceSubType; std::vector<MediaResourceParcel> resources; MediaResourceParcel resource{ Type::kDrmSession, SubType::kUnspecifiedSubType, toStdVec<int8_t>(sessionId), value}; resources.push_back(resource); return resources; } static std::shared_ptr<IResourceManagerService> getResourceManagerService() { ::ndk::SpAIBinder binder(AServiceManager_getService(\"media.resource_manager\")); return IResourceManagerService::fromBinder(binder); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "    auto drmSessionManager = new DrmSessionManager();\n    drmSessionManager->init();",
+        "b_contents": "    static sp<DrmSessionManager> drmSessionManager = new DrmSessionManager();\n    drmSessionManager->init();",
+        "base_contents": "    static sp<DrmSessionManager> drmSessionManager = new DrmSessionManager();",
+        "res_region": "    auto drmSessionManager = new DrmSessionManager();\n    drmSessionManager->init();",
+        "lookback": "}\n\nsp<DrmSessionManager> DrmSessionManager::Instance() {",
+        "lookahead": "    return drmSessionManager;\n}",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 147,
+        "end_line": 155,
+        "merge_gen_region": "auto drmSessionManager = new DrmSessionManager(); drmSessionManager->init();",
+        "resolved": true
+    },
+    {
+        "a_contents": "DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service)\n    : mService(service),\n      mInitialized(false),\n      mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) {\n    if (mService == NULL) {\n        ALOGE(\"Failed to init ResourceManagerService\");\n    }\n}",
+        "b_contents": "DrmSessionManager::DrmSessionManager(const sp<IResourceManagerService> &service)\n    : mService(service),\n      mInitialized(false) {\n    if (mService == NULL) {\n        ALOGE(\"Failed to init ResourceManagerService\");\n    }\n}",
+        "base_contents": "DrmSessionManager::DrmSessionManager(sp<ProcessInfoInterface> processInfo)\n    : mProcessInfo(processInfo),\n      mTime(0) {}",
+        "res_region": "DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service)\n    : mService(service),\n      mInitialized(false),\n      mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) {\n    if (mService == NULL) {\n        ALOGE(\"Failed to init ResourceManagerService\");\n    }\n}",
+        "lookback": "    : DrmSessionManager(getResourceManagerService()) {\n}\n",
+        "lookahead": "\nDrmSessionManager::~DrmSessionManager() {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 163,
+        "end_line": 184,
+        "merge_gen_region": "DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service) : mService(service), mInitialized(false), mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) { if (mService == NULL) { ALOGE(\"Failed to init ResourceManagerService\"); }",
+        "resolved": false
+    },
+    {
+        "a_contents": "DrmSessionManager::~DrmSessionManager() {\n    if (mService != NULL) {\n        AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);\n    }\n}",
+        "b_contents": "DrmSessionManager::~DrmSessionManager() {\n    if (mService != NULL) {\n        IInterface::asBinder(mService)->unlinkToDeath(this);\n    }\n}",
+        "base_contents": "DrmSessionManager::~DrmSessionManager() {}",
+        "res_region": "DrmSessionManager::~DrmSessionManager() {\n    if (mService != NULL) {\n        AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);\n    }\n}",
+        "lookback": "    }\n}\n",
+        "lookahead": "\nvoid DrmSessionManager::init() {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 186,
+        "end_line": 200,
+        "merge_gen_region": "DrmSessionManager::~DrmSessionManager() { if (mService != NULL) { AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } }",
+        "resolved": true
+    },
+    {
+        "a_contents": "void DrmSessionManager::init() {\n    Mutex::Autolock lock(mLock);\n    if (mInitialized) {\n        return;\n    }\n    mInitialized = true;\n    if (mService != NULL) {\n        AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);\n    }\n}\n\nvoid DrmSessionManager::addSession(int pid,\n        const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {\n    uid_t uid = AIBinder_getCallingUid();\n    ALOGV(\"addSession(pid %d, uid %d, drm %p, sessionId %s)\", pid, uid, drm.get(),",
+        "b_contents": "void DrmSessionManager::init() {\n    Mutex::Autolock lock(mLock);\n    if (mInitialized) {\n        return;\n    }\n    mInitialized = true;\n    if (mService != NULL) {\n        IInterface::asBinder(mService)->linkToDeath(this);\n    }\n}\n\nvoid DrmSessionManager::addSession(int pid,\n        const sp<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {\n    uid_t uid = IPCThreadState::self()->getCallingUid();\n    ALOGV(\"addSession(pid %d, uid %d, drm %p, sessionId %s)\", pid, uid, drm.get(),",
+        "base_contents": "void DrmSessionManager::addSession(\n        int pid, const sp<DrmSessionClientInterface>& drm, const Vector<uint8_t> &sessionId) {\n    ALOGV(\"addSession(pid %d, drm %p, sessionId %s)\", pid, drm.get(),",
+        "res_region": "void DrmSessionManager::init() {\n    Mutex::Autolock lock(mLock);\n    if (mInitialized) {\n        return;\n    }\n    mInitialized = true;\n    if (mService != NULL) {\n        AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);\n    }\n}\n\nvoid DrmSessionManager::addSession(int pid,\n        const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {\n    uid_t uid = AIBinder_getCallingUid();\n    ALOGV(\"addSession(pid %d, uid %d, drm %p, sessionId %s)\", pid, uid, drm.get(),",
+        "lookback": "    }\n}\n",
+        "lookahead": "            GetSessionIdString(sessionId).string());\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 202,
+        "end_line": 238,
+        "merge_gen_region": "void DrmSessionManager::init() { Mutex::Autolock lock(mLock); if (mInitialized) { return; } mInitialized = true; if (mService != NULL) { AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } } void DrmSessionManager::addSession(int pid, const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) { uid_t uid = AIBinder_getCallingUid();",
+        "resolved": false
+    },
+    {
+        "a_contents": "\n    static int64_t clientId = 0;\n    mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId};\n    mService->addResource(pid, uid, clientId++, drm, toResourceVec(sessionId, INT64_MAX));",
+        "b_contents": "\n    int64_t clientId = toClientId(drm);\n    mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId};\n    mService->addResource(pid, uid, clientId, drm, toResourceVec(sessionId));",
+        "base_contents": "",
+        "res_region": "\n    static int64_t clientId = 0;\n    mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId};\n    mService->addResource(pid, uid, clientId++, drm, toResourceVec(sessionId, INT64_MAX));",
+        "lookback": "    if (mService == NULL) {\n        return;\n    }",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 245,
+        "end_line": 256,
+        "merge_gen_region": "static int64_t clientId = 0; mSessionMap[toStdVec(sessionId)] = (SessionInfo){pid, uid, clientId}; mService->addResource(pid, uid, clientId++, drm, toResourceVec(sessionId, INT64_MAX));",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n    auto info = it->second;\n    mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId, -1));",
+        "b_contents": "\n    auto info = it->second;\n    mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId));",
+        "base_contents": "",
+        "res_region": "\n    auto info = it->second;\n    mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId, INT64_MAX));\n    mSessionMap.erase(it);",
+        "lookback": "    if (mService == NULL || it == mSessionMap.end()) {\n        return;\n    }",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 267,
+        "end_line": 276,
+        "merge_gen_region": "auto info = it->second; mService->addResource(info.pid, info.uid, info.clientId, NULL, toResourceVec(sessionId, -1));",
+        "resolved": false
+    },
+    {
+        "a_contents": "    auto info = it->second;\n    mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId, INT64_MAX));\n    mSessionMap.erase(it);",
+        "b_contents": "    auto info = it->second;\n    mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId));\n    mSessionMap.erase(it);",
+        "base_contents": "void DrmSessionManager::removeDrm(const sp<DrmSessionClientInterface>& drm) {\n    ALOGV(\"removeDrm(%p)\", drm.get());\n\n    Mutex::Autolock lock(mLock);\n    bool found = false;\n    for (size_t i = 0; i < mSessionMap.size(); ++i) {\n        SessionInfos& infos = mSessionMap.editValueAt(i);\n        for (size_t j = 0; j < infos.size();) {\n            if (infos[j].drm == drm) {\n                ALOGV(\"removed session (%s)\", GetSessionIdString(infos[j].sessionId).string());\n                j = infos.removeAt(j);\n                found = true;\n            } else {\n                ++j;\n            }\n        }\n        if (found) {\n            break;\n        }\n    }",
+        "res_region": "    // cannot update mSessionMap because we do not know which sessionId is reclaimed;\n    // we rely on IResourceManagerClient to removeSession in reclaimResource\n    Vector<uint8_t> dummy;\n    bool success;\n    ScopedAStatus status = service->reclaimResource(callingPid, toResourceVec(dummy, INT64_MAX), &success);\n    return status.isOk() && success;",
+        "lookback": "        return false;\n    }\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 288,
+        "end_line": 317,
+        "merge_gen_region": "auto info = it->second; mService->removeResource(info.pid, info.clientId, toResourceVec(sessionId, INT64_MAX)); mSessionMap.erase(it);",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // unlock early because reclaimResource might callback into removeSession\n    mLock.lock();\n    std::shared_ptr<IResourceManagerService> service(mService);\n    mLock.unlock();",
+        "b_contents": "    // unlock early because reclaimResource might callback into removeSession\n    mLock.lock();\n    sp<IResourceManagerService> service(mService);\n    mLock.unlock();",
+        "base_contents": "    sp<DrmSessionClientInterface> drm;\n    Vector<uint8_t> sessionId;\n    int lowestPriorityPid;\n    int lowestPriority;\n    {\n        Mutex::Autolock lock(mLock);\n        int callingPriority;\n        if (!mProcessInfo->getPriority(callingPid, &callingPriority)) {\n            return false;\n        }\n        if (!getLowestPriority_l(&lowestPriorityPid, &lowestPriority)) {\n            return false;\n        }\n        if (lowestPriority <= callingPriority) {\n            return false;\n        }",
+        "res_region": "size_t DrmSessionManager::getSessionCount() const {\n    Mutex::Autolock lock(mLock);\n    return mSessionMap.size();\n}",
+        "lookback": "    return status.isOk() && success;\n}\n",
+        "lookahead": "\nbool DrmSessionManager::containsSession(const Vector<uint8_t>& sessionId) const {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 323,
+        "end_line": 350,
+        "merge_gen_region": "// unlock early because reclaimResource might callback into removeSession mLock.lock(); std::shared_ptr<IResourceManagerService> service(mService); mLock.unlock();",
+        "resolved": false
+    },
+    {
+        "a_contents": "    // cannot update mSessionMap because we do not know which sessionId is reclaimed;\n    // we rely on IResourceManagerClient to removeSession in reclaimResource\n    Vector<uint8_t> dummy;\n    bool success;\n    ScopedAStatus status = service->reclaimResource(callingPid, toResourceVec(dummy, INT64_MAX), &success);\n    return status.isOk() && success;",
+        "b_contents": "    // cannot update mSessionMap because we do not know which sessionId is reclaimed;\n    // we rely on IResourceManagerClient to removeSession in reclaimResource\n    Vector<uint8_t> dummy;\n    return service->reclaimResource(callingPid, toResourceVec(dummy));",
+        "base_contents": "    ALOGV(\"reclaim session(%s) opened by pid %d\",\n            GetSessionIdString(sessionId).string(), lowestPriorityPid);\n\n    return drm->reclaimSession(sessionId);",
+        "res_region": "bool DrmSessionManager::containsSession(const Vector<uint8_t>& sessionId) const {\n    Mutex::Autolock lock(mLock);\n    return mSessionMap.count(toStdVec(sessionId));",
+        "lookback": "    return mSessionMap.size();\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 356,
+        "end_line": 373,
+        "merge_gen_region": "// cannot update mSessionMap because we do not know which sessionId is reclaimed; // we rely on IResourceManagerClient to removeSession in reclaimResource Vector<uint8_t> dummy; bool success; ScopedAStatus status = service->reclaimResource(callingPid, toResourceVec(dummy, INT64_MAX), &success); return status.isOk() && success;",
+        "resolved": false
+    },
+    {
+        "a_contents": "void DrmSessionManager::binderDied() {\n    ALOGW(\"ResourceManagerService died.\");\n    Mutex::Autolock lock(mLock);\n    mService.reset();",
+        "b_contents": "void DrmSessionManager::binderDied(const wp<IBinder>& /*who*/) {\n    ALOGW(\"ResourceManagerService died.\");\n    Mutex::Autolock lock(mLock);\n    mService.clear();",
+        "base_contents": "bool DrmSessionManager::getLeastUsedSession_l(\n        int pid, sp<DrmSessionClientInterface>* drm, Vector<uint8_t>* sessionId) {\n    ssize_t index = mSessionMap.indexOfKey(pid);\n    if (index < 0) {\n        return false;\n    }\n\n    int leastUsedIndex = -1;\n    int64_t minTs = LLONG_MAX;\n    const SessionInfos& infos = mSessionMap.valueAt(index);\n    for (size_t j = 0; j < infos.size(); ++j) {\n        if (leastUsedIndex == -1) {\n            leastUsedIndex = j;\n            minTs = infos[j].timeStamp;\n        } else {\n            if (infos[j].timeStamp < minTs) {\n                leastUsedIndex = j;\n                minTs = infos[j].timeStamp;\n            }\n        }\n    }\n    if (leastUsedIndex != -1) {\n        *drm = infos[leastUsedIndex].drm;\n        *sessionId = infos[leastUsedIndex].sessionId;\n    }\n    return (leastUsedIndex != -1);",
+        "res_region": "void DrmSessionManager::binderDied() {\n    ALOGW(\"ResourceManagerService died.\");\n    Mutex::Autolock lock(mLock);\n    mService.reset();",
+        "lookback": "    return mSessionMap.count(toStdVec(sessionId));\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 386,
+        "end_line": 423,
+        "merge_gen_region": "void DrmSessionManager::binderDied() { ALOGW(\"ResourceManagerService died.\"); Mutex::Autolock lock(mLock); mService.reset();",
+        "resolved": true
+    }
+]

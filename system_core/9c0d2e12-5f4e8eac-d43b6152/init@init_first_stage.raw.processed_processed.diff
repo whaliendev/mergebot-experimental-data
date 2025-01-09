@@ -1,0 +1,114 @@
+--- a/./output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@init_first_stage.no_comments_conflict.cpp
++++ b/./output/system_core/9c0d2e12-5f4e8eac-d43b6152/init@init_first_stage.no_comments_merged.cpp
+@@ -91 +90,0 @@ bool FirstStageMount::DoFirstStageMount() {
+-<<<<<<< HEAD
+@@ -95,15 +93,0 @@ bool FirstStageMount::InitDevices() {
+-||||||| d43b61521
+-bool FirstStageMount::InitDevices() {
+-    if (!GetRequiredDevices()) return false;
+-    InitRequiredDevices();
+-    if (!required_devices_partition_names_.empty()) {
+-        LOG(ERROR) << __FUNCTION__ << "(): partition(s) not found: "
+-                   << android::base::Join(required_devices_partition_names_, ", ");
+-        return false;
+-    } else {
+-        return true;
+-    }
+-}
+-=======
+-bool FirstStageMount::InitDevices() { return GetRequiredDevices() && InitRequiredDevices(); }
+->>>>>>> 5f4e8eac
+@@ -116 +99,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-<<<<<<< HEAD
+@@ -134,23 +116,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-||||||| d43b61521
+-        device_init(("/sys" + dm_path).c_str(), [&dm_path](uevent* uevent) -> coldboot_action_t {
+-            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;
+-            return COLDBOOT_CONTINUE;
+-        });
+-=======
+-        bool found = false;
+-        auto dm_callback = [&dm_path, &found](uevent* uevent) -> coldboot_action_t {
+-            if (uevent->path && uevent->path == dm_path) {
+-                found = true;
+-                return COLDBOOT_STOP;
+-            }
+-            return COLDBOOT_CONTINUE;
+-        };
+-        device_init(("/sys" + dm_path).c_str(), dm_callback);
+-        if (!found) {
+-            device_poll(dm_callback, 10s);
+-        }
+-        if (!found) {
+-            LOG(ERROR) << "device-mapper device not found";
+-            return false;
+-        }
+->>>>>>> 5f4e8eac
+@@ -158 +117,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-<<<<<<< HEAD
+@@ -161,18 +119,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-||||||| d43b61521
+-    device_init(nullptr,
+-                [this](uevent* uevent) -> coldboot_action_t { return ColdbootCallback(uevent); });
+-=======
+-    auto uevent_callback = [this](uevent* uevent) -> coldboot_action_t {
+-        return ColdbootCallback(uevent);
+-    };
+-    device_init(nullptr, uevent_callback);
+-    if (!required_devices_partition_names_.empty()) {
+-        device_poll(uevent_callback, 10s);
+-    }
+-    if (!required_devices_partition_names_.empty()) {
+-        LOG(ERROR) << __PRETTY_FUNCTION__ << ": partition(s) not found: "
+-                   << android::base::Join(required_devices_partition_names_, ", ");
+-        return false;
+-    }
+->>>>>>> 5f4e8eac
+-<<<<<<< HEAD
+@@ -188,6 +128,0 @@ bool FirstStageMount::InitRequiredDevices() {
+-||||||| d43b61521
+-    device_close();
+-=======
+-    device_close();
+-    return true;
+->>>>>>> 5f4e8eac
+@@ -218 +152,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -221,7 +154,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-||||||| d43b61521
+-    device_init(syspath.c_str(), [&](uevent* uevent) -> coldboot_action_t {
+-        if (uevent->device_name && uevent->device_name == device_name) {
+-=======
+-    auto verity_callback = [&](uevent* uevent) -> coldboot_action_t {
+-        if (uevent->device_name && uevent->device_name == device_name) {
+->>>>>>> 5f4e8eac
+@@ -229 +155,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -233,6 +158,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-||||||| d43b61521
+-            return COLDBOOT_STOP;
+-=======
+-            found = true;
+-            return COLDBOOT_STOP;
+->>>>>>> 5f4e8eac
+@@ -240 +159,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -252,18 +170,0 @@ bool FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-||||||| d43b61521
+-        return COLDBOOT_CONTINUE;
+-    });
+-    device_close();
+-=======
+-        return COLDBOOT_CONTINUE;
+-    };
+-    device_init(syspath.c_str(), verity_callback);
+-    if (!found) {
+-        device_poll(verity_callback, 10s);
+-    }
+-    if (!found) {
+-        LOG(ERROR) << "dm-verity device not found";
+-        return false;
+-    }
+-    device_close();
+-    return true;
+->>>>>>> 5f4e8eac

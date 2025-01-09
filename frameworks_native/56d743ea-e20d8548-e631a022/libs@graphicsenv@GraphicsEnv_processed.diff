@@ -1,0 +1,215 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_native/56d743ea-e20d8548-e631a022/libs@graphicsenv@GraphicsEnv.no_comments_merged.cpp
+@@ -44,9 +43,0 @@ static bool isVndkEnabled() {
+-namespace {
+-static bool isVndkEnabled() {
+-#ifdef __BIONIC__
+-    static bool isVndkEnabled = android::base::GetProperty("ro.vndk.version", "") != "";
+-    return isVndkEnabled;
+-#endif
+-    return false;
+-}
+-}
+@@ -104,0 +96,8 @@ static const std::string getSystemNativeLibraries(NativeLibrary type) {
++}
++static sp<IGpuService> getGpuService() {
++    static const sp<IBinder> binder = defaultServiceManager()->checkService(String16("gpu"));
++    if (!binder) {
++        ALOGE("Failed to get gpu service");
++        return nullptr;
++    }
++    return interface_cast<IGpuService>(binder);
+@@ -167,0 +167,39 @@ bool GraphicsEnv::linkDriverNamespaceLocked(android_namespace_t* destNamespace,
++android_namespace_t* GraphicsEnv::getDriverNamespace() {
++    std::lock_guard<std::mutex> lock(mNamespaceMutex);
++    if (mDriverNamespace) {
++        return mDriverNamespace;
++    }
++    if (mDriverPath.empty()) {
++        const char* id = getenv("UPDATABLE_GFX_DRIVER");
++        if (id == nullptr || std::strcmp(id, "1") != 0) {
++            return nullptr;
++        }
++        const sp<IGpuService> gpuService = getGpuService();
++        if (!gpuService) {
++            return nullptr;
++        }
++        mDriverPath = gpuService->getUpdatableDriverPath();
++        if (mDriverPath.empty()) {
++            return nullptr;
++        }
++        mDriverPath.append(UPDATABLE_DRIVER_ABI);
++        ALOGI("Driver path is setup via UPDATABLE_GFX_DRIVER: %s", mDriverPath.c_str());
++    }
++    auto vndkNamespace = android_get_exported_namespace("vndk");
++    if (!vndkNamespace) {
++        return nullptr;
++    }
++    mDriverNamespace = android_create_namespace("updatable gfx driver",
++                                                mDriverPath.c_str(),
++                                                mDriverPath.c_str(),
++                                                ANDROID_NAMESPACE_TYPE_ISOLATED,
++                                                nullptr,
++                                                nullptr);
++    if (!linkDriverNamespaceLocked(mDriverNamespace, vndkNamespace, mSphalLibraries)) {
++        mDriverNamespace = nullptr;
++    }
++    return mDriverNamespace;
++}
++std::string GraphicsEnv::getDriverPath() const {
++    return mDriverPath;
++}
+@@ -295,10 +333,2 @@ void GraphicsEnv::setVulkanDeviceExtensions(uint32_t enabledExtensionCount,
+-    setTargetStatsArray(android::GpuStatsInfo::Stats::VULKAN_DEVICE_EXTENSION, extensionHashes,
+-                        numStats);
+-}
+-static sp<IGpuService> getGpuService() {
+-    static const sp<IBinder> binder = defaultServiceManager()->checkService(String16("gpu"));
+-    if (!binder) {
+-        ALOGE("Failed to get gpu service");
+-        return nullptr;
+-    }
+-    return interface_cast<IGpuService>(binder);
++    setTargetStatsArray(android::GpuStatsInfo::Stats::VULKAN_DEVICE_EXTENSION,
++                        extensionHashes, numStats);
+@@ -370 +399,0 @@ bool GraphicsEnv::shouldUseAngle() {
+-<<<<<<< HEAD
+@@ -372,9 +401,2 @@ bool GraphicsEnv::shouldUseAngle() {
+-|||||||
+-    return (mUseAngle == YES) ? true : false;
+-=======
+-    return (mShouldUseAngle == YES) ? true : false;
+->>>>>>> e20d85480a8bf5f62954cede949426ae5cdc6420
+-}
+-void GraphicsEnv::setAngleInfo(const std::string path, const std::string appName,
+-                               const std::string developerOptIn, const std::string& developerOptIn,
+-                               const std::string& path, const bool shouldUseNativeDriver,
++}
++void GraphicsEnv::setAngleInfo(const std::string& path, const bool shouldUseNativeDriver,
+@@ -383 +404,0 @@ void GraphicsEnv::setAngleInfo(const std::string path, const std::string appName
+-<<<<<<< HEAD
+@@ -386,9 +406,0 @@ void GraphicsEnv::setAngleInfo(const std::string path, const std::string appName
+-|||||||
+-    if (mUseAngle != UNKNOWN) {
+-        ALOGV("Already evaluated the rules file for '%s': use ANGLE = %s", appName.c_str(),
+-              (mUseAngle == YES) ? "true" : "false");
+-=======
+-    if (mShouldUseAngle != UNKNOWN) {
+-        ALOGV("Already evaluated the rules file for '%s': use ANGLE = %s", packageName.c_str(),
+-              (mShouldUseAngle == YES) ? "true" : "false");
+->>>>>>> e20d85480a8bf5f62954cede949426ae5cdc6420
+@@ -399 +410,0 @@ void GraphicsEnv::setAngleInfo(const std::string path, const std::string appName
+-<<<<<<< HEAD
+@@ -410,28 +420,0 @@ void GraphicsEnv::setAngleInfo(const std::string path, const std::string appName
+-|||||||
+-    mAnglePath = path;
+-    ALOGV("setting ANGLE app name to '%s'", appName.c_str());
+-    mAngleAppName = appName;
+-    ALOGV("setting ANGLE application opt-in to '%s'", developerOptIn.c_str());
+-    mAngleDeveloperOptIn = developerOptIn;
+-    updateUseAngle();
+-=======
+-    mAnglePath = path;
+-    ALOGV("setting app package name to '%s'", packageName.c_str());
+-    mPackageName = packageName;
+-    ALOGV("setting ANGLE application opt-in to '%s'", developerOptIn.c_str());
+-    mAngleDeveloperOptIn = developerOptIn;
+-    updateShouldUseAngle();
+->>>>>>> e20d85480a8bf5f62954cede949426ae5cdc6420
+-}
+-void GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,
+-                                const std::string& layerPaths) {
+-    if (mLayerPaths.empty()) {
+-        mLayerPaths = layerPaths;
+-        mAppNamespace = appNamespace;
+-    } else {
+-        ALOGV("Vulkan layer search path already set, not clobbering with '%s' for namespace %p'",
+-              layerPaths.c_str(), appNamespace);
+-    }
+-}
+-NativeLoaderNamespace* GraphicsEnv::getAppNamespace() {
+-    return mAppNamespace;
+@@ -445,54 +427,0 @@ const std::vector<std::string>& GraphicsEnv::getAngleEglFeatures() {
+-const std::string& GraphicsEnv::getLayerPaths() {
+-    return mLayerPaths;
+-}
+-const std::string& GraphicsEnv::getDebugLayers() {
+-    return mDebugLayers;
+-}
+-const std::string& GraphicsEnv::getDebugLayersGLES() {
+-    return mDebugLayersGLES;
+-}
+-void GraphicsEnv::setDebugLayers(const std::string& layers, const std::string layers) {
+-    mDebugLayers = layers;
+-}
+-void GraphicsEnv::setDebugLayersGLES(const std::string& layers, const std::string layers) {
+-    mDebugLayersGLES = layers;
+-}
+-android_namespace_t* GraphicsEnv::getDriverNamespace() {
+-    std::lock_guard<std::mutex> lock(mNamespaceMutex);
+-    if (mDriverNamespace) {
+-        return mDriverNamespace;
+-    }
+-    if (mDriverPath.empty()) {
+-        const char* id = getenv("UPDATABLE_GFX_DRIVER");
+-        if (id == nullptr || std::strcmp(id, "1") != 0) {
+-            return nullptr;
+-        }
+-        const sp<IGpuService> gpuService = getGpuService();
+-        if (!gpuService) {
+-            return nullptr;
+-        }
+-        mDriverPath = gpuService->getUpdatableDriverPath();
+-        if (mDriverPath.empty()) {
+-            return nullptr;
+-        }
+-        mDriverPath.append(UPDATABLE_DRIVER_ABI);
+-        ALOGI("Driver path is setup via UPDATABLE_GFX_DRIVER: %s", mDriverPath.c_str());
+-    }
+-    auto vndkNamespace = android_get_exported_namespace("vndk");
+-    if (!vndkNamespace) {
+-        return nullptr;
+-    }
+-    mDriverNamespace = android_create_namespace("updatable gfx driver",
+-                                                mDriverPath.c_str(),
+-                                                mDriverPath.c_str(),
+-                                                ANDROID_NAMESPACE_TYPE_ISOLATED,
+-                                                nullptr,
+-                                                nullptr);
+-    if (!linkDriverNamespaceLocked(mDriverNamespace, vndkNamespace, mSphalLibraries)) {
+-        mDriverNamespace = nullptr;
+-    }
+-    return mDriverNamespace;
+-}
+-std::string GraphicsEnv::getDriverPath() const {
+-    return mDriverPath;
+-}
+@@ -551,0 +481,28 @@ bool GraphicsEnv::shouldUseNativeDriver() {
++void GraphicsEnv::setLayerPaths(NativeLoaderNamespace* appNamespace,
++                                const std::string& layerPaths) {
++    if (mLayerPaths.empty()) {
++        mLayerPaths = layerPaths;
++        mAppNamespace = appNamespace;
++    } else {
++        ALOGV("Vulkan layer search path already set, not clobbering with '%s' for namespace %p'",
++              layerPaths.c_str(), appNamespace);
++    }
++}
++NativeLoaderNamespace* GraphicsEnv::getAppNamespace() {
++    return mAppNamespace;
++}
++const std::string& GraphicsEnv::getLayerPaths() {
++    return mLayerPaths;
++}
++const std::string& GraphicsEnv::getDebugLayers() {
++    return mDebugLayers;
++}
++const std::string& GraphicsEnv::getDebugLayersGLES() {
++    return mDebugLayersGLES;
++}
++void GraphicsEnv::setDebugLayers(const std::string& layers) {
++    mDebugLayers = layers;
++}
++void GraphicsEnv::setDebugLayersGLES(const std::string& layers) {
++    mDebugLayersGLES = layers;
++}

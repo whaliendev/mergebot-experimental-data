@@ -1,0 +1,109 @@
+--- a/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@parallel@pipeline_executor.no_comments_conflict.cpp
++++ b/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@parallel@pipeline_executor.no_comments_merged.cpp
+@@ -37 +37 @@ OperatorResultType PipelineExecutor::FlushCachingOperatorsPush() {
+-  if (!pipeline.operators[flushing_idx]->RequiresFinalExecute()) {
++  if (!pipeline.operators[flushing_idx].RequiresFinalExecute()) {
+@@ -48 +48 @@ OperatorResultType PipelineExecutor::FlushCachingOperatorsPush() {
+-   finalize_result = current_operator->FinalExecute(context, curr_chunk, *current_operator->op_state,
++   finalize_result = current_operator.FinalExecute(context, curr_chunk, *current_operator->op_state,
+@@ -166,5 +165,0 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-<<<<<<< HEAD
+-   StartOperator(pipeline.sink);
+-||||||| e8610c85fb
+-   StartOperator(pipeline.sink);
+-=======
+@@ -172 +166,0 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+->>>>>>> 65cfcd58
+@@ -175 +168,0 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-<<<<<<< HEAD
+@@ -178 +171 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-   EndOperator(pipeline.sink, nullptr);
++   EndOperator(*pipeline.sink, nullptr);
+@@ -185,9 +177,0 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-||||||| e8610c85fb
+-   auto sink_result = pipeline.sink->Sink(context, *pipeline.sink->sink_state, *local_sink_state, sink_chunk);
+-   EndOperator(pipeline.sink, nullptr);
+-   if (sink_result == SinkResultType::FINISHED) {
+-=======
+-   auto sink_result = pipeline.sink->Sink(context, *pipeline.sink->sink_state, *local_sink_state, sink_chunk);
+-   EndOperator(*pipeline.sink, nullptr);
+-   if (sink_result == SinkResultType::FINISHED) {
+->>>>>>> 65cfcd58
+@@ -203,52 +186,0 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-<<<<<<< HEAD
+-||||||| e8610c85fb
+-void PipelineExecutor::FlushCachingOperatorsPush() {
+- idx_t start_idx = IsFinished() ? idx_t(finished_processing_idx) : 0;
+- for (idx_t op_idx = start_idx; op_idx < pipeline.operators.size(); op_idx++) {
+-  if (!pipeline.operators[op_idx]->RequiresFinalExecute()) {
+-   continue;
+-  }
+-  OperatorFinalizeResultType finalize_result;
+-  OperatorResultType push_result;
+-  do {
+-   auto &curr_chunk =
+-       op_idx + 1 >= intermediate_chunks.size() ? final_chunk : *intermediate_chunks[op_idx + 1];
+-   auto current_operator = pipeline.operators[op_idx];
+-   StartOperator(current_operator);
+-   finalize_result = current_operator->FinalExecute(context, curr_chunk, *current_operator->op_state,
+-                                                    *intermediate_states[op_idx]);
+-   EndOperator(current_operator, &curr_chunk);
+-   push_result = ExecutePushInternal(curr_chunk, op_idx + 1);
+-  } while (finalize_result != OperatorFinalizeResultType::FINISHED &&
+-           push_result != OperatorResultType::FINISHED);
+-  if (push_result == OperatorResultType::FINISHED) {
+-   break;
+-  }
+- }
+-}
+-=======
+-void PipelineExecutor::FlushCachingOperatorsPush() {
+- idx_t start_idx = IsFinished() ? idx_t(finished_processing_idx) : 0;
+- for (idx_t op_idx = start_idx; op_idx < pipeline.operators.size(); op_idx++) {
+-  if (!pipeline.operators[op_idx].get().RequiresFinalExecute()) {
+-   continue;
+-  }
+-  OperatorFinalizeResultType finalize_result;
+-  OperatorResultType push_result;
+-  do {
+-   auto &curr_chunk =
+-       op_idx + 1 >= intermediate_chunks.size() ? final_chunk : *intermediate_chunks[op_idx + 1];
+-   auto &current_operator = pipeline.operators[op_idx].get();
+-   StartOperator(current_operator);
+-   finalize_result = current_operator.FinalExecute(context, curr_chunk, *current_operator.op_state,
+-                                                   *intermediate_states[op_idx]);
+-   EndOperator(current_operator, &curr_chunk);
+-   push_result = ExecutePushInternal(curr_chunk, op_idx + 1);
+-  } while (finalize_result != OperatorFinalizeResultType::FINISHED &&
+-           push_result != OperatorResultType::FINISHED);
+-  if (push_result == OperatorResultType::FINISHED) {
+-   break;
+-  }
+- }
+-}
+->>>>>>> 65cfcd58
+@@ -391 +322,0 @@ OperatorResultType PipelineExecutor::Execute(DataChunk &input, DataChunk &result
+-<<<<<<< HEAD
+@@ -422 +353 @@ SourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {
+- StartOperator(pipeline.source);
++ StartOperator(*pipeline.source);
+@@ -427,9 +357,0 @@ SourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {
+-||||||| e8610c85fb
+-void PipelineExecutor::FetchFromSource(DataChunk &result) {
+- StartOperator(pipeline.source);
+- pipeline.source->GetData(context, result, *pipeline.source_state, *local_source_state);
+-=======
+-void PipelineExecutor::FetchFromSource(DataChunk &result) {
+- StartOperator(*pipeline.source);
+- pipeline.source->GetData(context, result, *pipeline.source_state, *local_source_state);
+->>>>>>> 65cfcd58
+@@ -444,6 +365,0 @@ void PipelineExecutor::FetchFromSource(DataChunk &result) {
+-<<<<<<< HEAD
+- EndOperator(pipeline.source, &result);
+- return res;
+-||||||| e8610c85fb
+- EndOperator(pipeline.source, &result);
+-=======
+@@ -451 +367 @@ void PipelineExecutor::FetchFromSource(DataChunk &result) {
+->>>>>>> 65cfcd58
++ return res;

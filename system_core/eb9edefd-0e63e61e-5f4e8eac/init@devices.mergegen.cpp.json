@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "#include <sys/sysmacros.h>",
+        "b_contents": "#include <libgen.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/sendfile.h>\n#include <sys/socket.h>\n#include <sys/stat.h>\n#include <sys/time.h>\n#include <sys/types.h>\n#include <sys/un.h>\n#include <sys/wait.h>",
+        "base_contents": "#include <libgen.h>\n#include <poll.h>\n#include <stddef.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/sendfile.h>\n#include <sys/socket.h>\n#include <sys/stat.h>\n#include <sys/time.h>\n#include <sys/types.h>\n#include <sys/un.h>\n#include <sys/wait.h>",
+        "res_region": "#include <sys/sysmacros.h>",
+        "lookback": "\n#include <errno.h>\n#include <fnmatch.h>",
+        "lookahead": "#include <unistd.h>\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 20,
+        "end_line": 49,
+        "merge_gen_region": "",
+        "resolved": false
+    },
+    {
+        "a_contents": "        HandleGenericDeviceEvent(uevent);\n    }",
+        "b_contents": "        act = coldboot(path, fn);\n    }\n\n    // If we have a callback, then do as it says. If no, then the default is\n    // to always create COLDBOOT_DONE file.\n    if (!fn || (act == COLDBOOT_FINISH)) {\n        close(open(COLDBOOT_DONE, O_WRONLY|O_CREAT|O_CLOEXEC, 0000));\n    }\n\n    LOG(INFO) << \"Coldboot took \" << t;\n}\n\nvoid device_close() {\n    device_fd.reset();\n    selinux_status_close();\n}\n\nint get_device_fd() {\n    return device_fd;",
+        "base_contents": "        act = coldboot(path, fn);\n    }\n\n    // If we have a callback, then do as it says. If no, then the default is\n    // to always create COLDBOOT_DONE file.\n    if (!fn || (act == COLDBOOT_FINISH)) {\n        close(open(COLDBOOT_DONE, O_WRONLY|O_CREAT|O_CLOEXEC, 0000));\n    }\n\n    LOG(INFO) << \"Coldboot took \" << t;\n}\n\nvoid device_close() {\n    device_fd.reset();\n    selinux_status_close();\n}\n\nvoid device_poll(const coldboot_callback& callback,\n                 const std::optional<std::chrono::milliseconds> relative_timeout) {\n    using namespace std::chrono;\n\n    pollfd ufd;\n    ufd.events = POLLIN;\n    ufd.fd = device_fd;\n\n    auto start_time = steady_clock::now();\n\n    while (true) {\n        ufd.revents = 0;\n\n        int timeout_ms = -1;\n        if (relative_timeout) {\n            auto now = steady_clock::now();\n            auto time_elapsed = duration_cast<milliseconds>(now - start_time);\n            if (time_elapsed > *relative_timeout) return;\n\n            auto remaining_timeout = *relative_timeout - time_elapsed;\n            timeout_ms = remaining_timeout.count();\n        }\n\n        int nr = poll(&ufd, 1, timeout_ms);\n        if (nr == 0) return;\n        if (nr < 0) {\n            continue;\n        }\n        if (ufd.revents & POLLIN) {\n            auto ret = handle_device_fd(callback);\n            if (should_stop_coldboot(ret)) return;\n        }\n    }",
+        "res_region": "        HandleGenericDeviceEvent(uevent);\n    }",
+        "lookback": "    } else if (uevent.subsystem == \"platform\") {\n        HandlePlatformDeviceEvent(uevent);\n    } else {",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 492,
+        "end_line": 566,
+        "merge_gen_region": " HandleGenericDeviceEvent(uevent); }",
+        "resolved": true
+    }
+]

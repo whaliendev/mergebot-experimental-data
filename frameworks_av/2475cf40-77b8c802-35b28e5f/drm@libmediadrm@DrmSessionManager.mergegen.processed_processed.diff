@@ -1,0 +1,54 @@
+--- a/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/2475cf40-77b8c802-35b28e5f/drm@libmediadrm@DrmSessionManager.no_comments_merged.cpp
+@@ -3 +3,7 @@
+-#include <aidl/android/media/MediaResourceParcel.h> #include <android/binder_ibinder.h> #include <android/binder_manager.h> #include <cutils/properties.h> #include <media/MediaResource.h>
++#include <aidl/android/media/IResourceManagerClient.h>
++#include <aidl/android/media/IResourceManagerService.h>
++#include <aidl/android/media/MediaResourceParcel.h>
++#include <android/binder_ibinder.h>
++#include <android/binder_manager.h>
++#include <cutils/properties.h>
++#include <mediadrm/DrmUtils.h>
+@@ -7 +13 @@
+-#include <vector> #include <vector>
++#include <vector>
+@@ -43,3 +70,27 @@ DrmSessionManager::DrmSessionManager()
+-DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service) : mService(service), mInitialized(false), mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) { if (mService == NULL) { ALOGE("Failed to init ResourceManagerService"); }
+-DrmSessionManager::~DrmSessionManager() { if (mService != NULL) { AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } }
+-void DrmSessionManager::init() { Mutex::Autolock lock(mLock); if (mInitialized) { return; } mInitialized = true; if (mService != NULL) { AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this); } } void DrmSessionManager::addSession(int pid, const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) { uid_t uid = AIBinder_getCallingUid();
++DrmSessionManager::DrmSessionManager(const std::shared_ptr<IResourceManagerService> &service)
++    : mService(service),
++      mInitialized(false),
++      mDeathRecipient(AIBinder_DeathRecipient_new(ResourceManagerServiceDied)) {
++    if (mService == NULL) {
++        ALOGE("Failed to init ResourceManagerService");
++    }
++}
++DrmSessionManager::~DrmSessionManager() {
++    if (mService != NULL) {
++        AIBinder_unlinkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);
++    }
++}
++void DrmSessionManager::init() {
++    Mutex::Autolock lock(mLock);
++    if (mInitialized) {
++        return;
++    }
++    mInitialized = true;
++    if (mService != NULL) {
++        AIBinder_linkToDeath(mService->asBinder().get(), mDeathRecipient.get(), this);
++    }
++}
++void DrmSessionManager::addSession(int pid,
++        const std::shared_ptr<IResourceManagerClient>& drm, const Vector<uint8_t> &sessionId) {
++    uid_t uid = AIBinder_getCallingUid();
++    ALOGV("addSession(pid %d, uid %d, drm %p, sessionId %s)", pid, uid, drm.get(),
+@@ -72,0 +129,3 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
++    mLock.lock();
++    std::shared_ptr<IResourceManagerService> service(mService);
++    mLock.unlock();
+@@ -75,0 +135,4 @@ bool DrmSessionManager::reclaimSession(int callingPid) {
++    Vector<uint8_t> dummy;
++    bool success;
++    ScopedAStatus status = service->reclaimResource(callingPid, toResourceVec(dummy, INT64_MAX), &success);
++    return status.isOk() && success;

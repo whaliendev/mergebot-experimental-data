@@ -1,0 +1,93 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/0bb51f76-8cbbc2dc-d61ce22b/init@property_service.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/0bb51f76-8cbbc2dc-d61ce22b/init@property_service.no_comments_merged.cpp
+@@ -40 +39,0 @@
+-#include <private/android_filesystem_config.h>
+@@ -87,0 +87 @@ static bool persistent_properties_loaded = false;
++static int property_set_fd = -1;
+@@ -93 +92,0 @@ static std::thread property_service_thread;
+-static std::thread property_service_for_system_thread;
+@@ -181,3 +176,3 @@ class SocketConnection {
+-  SocketConnection() SocketConnection(int socket, const ucred& cred)
+-      : socket_(socket), cred_(cred) {}
+-  SocketConnection(SocketConnection&&)
++    SocketConnection() = default;
++    SocketConnection(int socket, const ucred& cred) : socket_(socket), cred_(cred) {}
++    SocketConnection(SocketConnection&&) = default;
+@@ -230,2 +224,3 @@ class SocketConnection {
+-  SocketConnection& operator=(SocketConnection&&) = default
+-      private : bool PollIn(uint32_t * timeout_ms) {
++    SocketConnection& operator=(SocketConnection&&) = default;
++  private:
++    bool PollIn(uint32_t* timeout_ms) {
+@@ -294,0 +289 @@ class PersistWriteThread {
++  private:
+@@ -313,2 +305,0 @@ static std::optional<uint32_t> PropertySet(const std::string& name,
+-  if (name == "sys.powerctl") {
+-  } else {
+@@ -338 +326,0 @@ static std::optional<uint32_t> PropertySet(const std::string& name,
+-  }
+@@ -467 +439 @@ uint32_t HandlePropertySetNoSocket(const std::string& name,
+-static void handle_property_set_fd(int fd) {
++static void handle_property_set_fd() {
+@@ -469 +441 @@ static void handle_property_set_fd(int fd) {
+-  int s = accept4(fd, nullptr, nullptr, SOCK_CLOEXEC);
++    int s = accept4(property_set_fd, nullptr, nullptr, SOCK_CLOEXEC);
+@@ -494,2 +466 @@ static void handle_property_set_fd(int fd) {
+-        PLOG(ERROR) << "sys_prop(PROP_MSG_SETPROP): error while reading "
+-                       "name/value from the socket";
++          PLOG(ERROR) << "sys_prop(PROP_MSG_SETPROP): error while reading name/value from the socket";
+@@ -522,2 +490 @@ static void handle_property_set_fd(int fd) {
+-        PLOG(ERROR) << "sys_prop(PROP_MSG_SETPROP2): error while reading "
+-                       "name/value from the socket";
++          PLOG(ERROR) << "sys_prop(PROP_MSG_SETPROP2): error while reading name/value from the socket";
+@@ -1188 +1103 @@ static void HandleInitSocket() {
+-static void PropertyServiceThread(int fd, bool listen_init) {
++static void PropertyServiceThread() {
+@@ -1193,2 +1108 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-  if (auto result =
+-          epoll.RegisterHandler(fd, std::bind(handle_property_set_fd, fd));
++    if (auto result = epoll.RegisterHandler(property_set_fd, handle_property_set_fd);
+@@ -1198,3 +1112 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-  if (listen_init) {
+-    if (auto result = epoll.RegisterHandler(init_socket, HandleInitSocket);
+-        !result.ok()) {
++    if (auto result = epoll.RegisterHandler(init_socket, HandleInitSocket); !result.ok()) {
+@@ -1203 +1114,0 @@ static void PropertyServiceThread(int fd, bool listen_init) {
+-  }
+@@ -1241,17 +1150,0 @@ void PersistWriteThread::Write(std::string name, std::string value,
+-void StartThread(const char* name, int mode, int gid, std::thread& t,
+-                 bool listen_init) {
+-  int fd = -1;
+-  if (auto result = CreateSocket(
+-          name, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
+-                       false, false, mode, 0,
+-                  gid, {});
+-      result.ok()) {
+-    fd = *result;
+-  } else {
+-    LOG(FATAL) << "start_property_service socket creation failed: "
+-               << result.error();
+-  }
+-  listen(fd, 8);
+-  auto new_thread = std::thread(PropertyServiceThread, fd, listen_init);
+-  t.swap(new_thread);
+-}
+@@ -1267,5 +1160,13 @@ void StartPropertyService(int* epoll_socket) {
+-  StartThread(PROP_SERVICE_FOR_SYSTEM_NAME, 0660, AID_SYSTEM,
+-              property_service_for_system_thread, true);
+-  StartThread(PROP_SERVICE_NAME, 0666, 0, property_service_thread, false);
+-  auto async_persist_writes = android::base::GetBoolProperty(
+-      "ro.property_service.async_persist_writes", false);
++    if (auto result = CreateSocket(PROP_SERVICE_NAME, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK,
++                                                false, false, 0666, 0,
++                                           0, {});
++        result.ok()) {
++        property_set_fd = *result;
++    } else {
++        LOG(FATAL) << "start_property_service socket creation failed: " << result.error();
++    }
++    listen(property_set_fd, 8);
++    auto new_thread = std::thread{PropertyServiceThread};
++    property_service_thread.swap(new_thread);
++    auto async_persist_writes =
++            android::base::GetBoolProperty("ro.property_service.async_persist_writes", false);

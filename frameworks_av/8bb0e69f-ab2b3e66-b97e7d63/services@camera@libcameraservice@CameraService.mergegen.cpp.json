@@ -1,0 +1,226 @@
+[
+    {
+        "a_contents": "#include <android_companion_virtualdevice_flags.h>\n#include <android/companion/virtualnative/IVirtualDeviceManagerNative.h>",
+        "b_contents": "#include <android/permission/PermissionChecker.h>",
+        "base_contents": "",
+        "res_region": "#include <android_companion_virtualdevice_flags.h>\n#include <android/companion/virtualnative/IVirtualDeviceManagerNative.h>",
+        "lookback": "#include <aidl/AidlCameraService.h>\n#include <android-base/macros.h>\n#include <android-base/parseint.h>",
+        "lookahead": "#include <binder/ActivityManager.h>\n#include <binder/AppOpsManager.h>",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 40,
+        "end_line": 46,
+        "merge_gen_region": "#include <android_companion_virtualdevice_flags.h> #include <android/companion/virtualnative/IVirtualDeviceManagerNative.h>",
+        "resolved": true
+    },
+    {
+        "a_contents": "        std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper,\n        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils) :\n        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils == nullptr ?\n                std::make_shared<AttributionAndPermissionUtils>()\\\n                : attributionAndPermissionUtils),",
+        "b_contents": "        std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper) :",
+        "base_contents": "        std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper,\n        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils) :",
+        "res_region": "        std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper,\n        std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils) :\n        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils == nullptr ?\n                std::make_shared<AttributionAndPermissionUtils>()\\\n                : attributionAndPermissionUtils),",
+        "lookback": "static std::set<std::string> sServiceErrorEventSet;\n\nCameraService::CameraService(",
+        "lookahead": "        mCameraServiceProxyWrapper(cameraServiceProxyWrapper == nullptr ?\n                std::make_shared<CameraServiceProxyWrapper>() : cameraServiceProxyWrapper),",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 183,
+        "end_line": 194,
+        "merge_gen_region": "std::shared_ptr<CameraServiceProxyWrapper> cameraServiceProxyWrapper, std::shared_ptr<AttributionAndPermissionUtils> attributionAndPermissionUtils) : AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils == nullptr ? std::make_shared<AttributionAndPermissionUtils>()\\ : attributionAndPermissionUtils),",
+        "resolved": true
+    },
+    {
+        "a_contents": "bool CameraService::isAutomotiveExteriorSystemCamera(const std::string& cam_id) const {",
+        "b_contents": "static bool isAutomotiveDevice() {\n    // Checks the property ro.hardware.type and returns true if it is\n    // automotive.\n    char value[PROPERTY_VALUE_MAX] = {0};\n    property_get(\"ro.hardware.type\", value, \"\");\n    return strncmp(value, \"automotive\", PROPERTY_VALUE_MAX) == 0;\n}\n\nstatic bool isHeadlessSystemUserMode() {\n    // Checks if the device is running in headless system user mode\n    // by checking the property ro.fw.mu.headless_system_user.\n    char value[PROPERTY_VALUE_MAX] = {0};\n    property_get(\"ro.fw.mu.headless_system_user\", value, \"\");\n    return strncmp(value, \"true\", PROPERTY_VALUE_MAX) == 0;\n}\n\nstatic bool isAutomotivePrivilegedClient(int32_t uid) {\n    // Returns false if this is not an automotive device type.\n    if (!isAutomotiveDevice())\n        return false;\n\n    // Returns true if the uid is AID_AUTOMOTIVE_EVS which is a\n    // privileged client uid used for safety critical use cases such as\n    // rear view and surround view.\n    return uid == AID_AUTOMOTIVE_EVS;\n}\n\nbool CameraService::isAutomotiveExteriorSystemCamera(const std::string& cam_id) const{",
+        "base_contents": "bool CameraService::isAutomotiveDevice() const {\n    return mAttributionAndPermissionUtils->isAutomotiveDevice();\n}\n\nbool CameraService::isAutomotivePrivilegedClient(int32_t uid) const {\n    return mAttributionAndPermissionUtils->isAutomotivePrivilegedClient(uid);\n}\n\nbool CameraService::isAutomotiveExteriorSystemCamera(const std::string& cam_id) const {",
+        "res_region": "bool CameraService::isAutomotiveExteriorSystemCamera(const std::string& cam_id) const {",
+        "lookback": "    broadcastTorchModeStatus(cameraId, newStatus, systemCameraKind);\n}\n",
+        "lookahead": "    // Returns false if this is not an automotive device type.\n    if (!isAutomotiveDevice())",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 756,
+        "end_line": 797,
+        "merge_gen_region": "bool CameraService::isAutomotiveExteriorSystemCamera(const std::string& cam_id) const {",
+        "resolved": true
+    },
+    {
+        "a_contents": "Status CameraService::getNumberOfCameras(int32_t type, int32_t deviceId, int32_t devicePolicy,\n        int32_t* numCameras) {",
+        "b_contents": "bool CameraService::checkPermission(const std::string& cameraId, const std::string& permission,\n        const AttributionSourceState& attributionSource, const std::string& message,\n        int32_t attributedOpCode) const{\n    if (isAutomotivePrivilegedClient(attributionSource.uid)) {\n        // If cameraId is empty, then it means that this check is not used for the\n        // purpose of accessing a specific camera, hence grant permission just\n        // based on uid to the automotive privileged client.\n        if (cameraId.empty())\n            return true;\n        // If this call is used for accessing a specific camera then cam_id must be provided.\n        // In that case, only pre-grants the permission for accessing the exterior system only\n        // camera.\n        return isAutomotiveExteriorSystemCamera(cameraId);\n    }\n\n    permission::PermissionChecker permissionChecker;\n    return permissionChecker.checkPermissionForPreflight(toString16(permission), attributionSource,\n            toString16(message), attributedOpCode)\n            != permission::PermissionChecker::PERMISSION_HARD_DENIED;\n}\n\nbool CameraService::hasPermissionsForSystemCamera(const std::string& cameraId, int callingPid,\n        int callingUid) const{\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    bool checkPermissionForSystemCamera = checkPermission(cameraId,\n            sSystemCameraPermission, attributionSource, std::string(), AppOpsManager::OP_NONE);\n    bool checkPermissionForCamera = checkPermission(cameraId,\n            sCameraPermission, attributionSource, std::string(), AppOpsManager::OP_NONE);\n    return checkPermissionForSystemCamera && checkPermissionForCamera;\n}\n\nbool CameraService::hasPermissionsForCameraHeadlessSystemUser(const std::string& cameraId,\n        int callingPid, int callingUid) const{\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    return checkPermission(cameraId, sCameraHeadlessSystemUserPermission, attributionSource,\n            std::string(), AppOpsManager::OP_NONE);\n}\n\nbool CameraService::hasPermissionsForCameraPrivacyAllowlist(int callingPid, int callingUid) const{\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    return checkPermission(std::string(), sCameraPrivacyAllowlistPermission, attributionSource,\n            std::string(), AppOpsManager::OP_NONE);\n}\n\nStatus CameraService::getNumberOfCameras(int32_t type, int32_t* numCameras) {",
+        "base_contents": "static AttributionSourceState attributionSourceFromPidAndUid(int callingPid, int callingUid) {\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    return attributionSource;\n}\n\nbool CameraService::hasPermissionsForCamera(int callingPid, int callingUid) const {\n    return hasPermissionsForCamera(std::string(), callingPid, callingUid);\n}\n\nbool CameraService::hasPermissionsForCamera(const std::string& cameraId, int callingPid,\n        int callingUid) const {\n    auto attributionSource = attributionSourceFromPidAndUid(callingPid, callingUid);\n    return mAttributionAndPermissionUtils->hasPermissionsForCamera(cameraId, attributionSource);\n}\n\nbool CameraService::hasPermissionsForSystemCamera(const std::string& cameraId, int callingPid,\n        int callingUid, bool checkCameraPermissions) const {\n    auto attributionSource = attributionSourceFromPidAndUid(callingPid, callingUid);\n    return mAttributionAndPermissionUtils->hasPermissionsForSystemCamera(\n                cameraId, attributionSource, checkCameraPermissions);\n}\n\nbool CameraService::hasPermissionsForCameraHeadlessSystemUser(const std::string& cameraId,\n        int callingPid, int callingUid) const {\n    auto attributionSource = attributionSourceFromPidAndUid(callingPid, callingUid);\n    return mAttributionAndPermissionUtils->hasPermissionsForCameraHeadlessSystemUser(\n                cameraId, attributionSource);\n}\n\nbool CameraService::hasPermissionsForCameraPrivacyAllowlist(int callingPid, int callingUid) const {\n    auto attributionSource = attributionSourceFromPidAndUid(callingPid, callingUid);\n    return mAttributionAndPermissionUtils->hasPermissionsForCameraPrivacyAllowlist(\n            attributionSource);\n}\n\nbool CameraService::hasPermissionsForOpenCloseListener(int callingPid, int callingUid) const {\n    auto attributionSource = attributionSourceFromPidAndUid(callingPid, callingUid);\n    return mAttributionAndPermissionUtils->hasPermissionsForOpenCloseListener(\n            attributionSource);\n}\n\nStatus CameraService::getNumberOfCameras(int32_t type, int32_t* numCameras) {",
+        "res_region": "Status CameraService::getNumberOfCameras(int32_t type, int32_t deviceId, int32_t devicePolicy,\n        int32_t* numCameras) {",
+        "lookback": "    return true;\n}\n",
+        "lookahead": "    ATRACE_CALL();\n    if (vd_flags::camera_device_awareness() && (deviceId != kDefaultDeviceId)",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 842,
+        "end_line": 942,
+        "merge_gen_region": "Status CameraService::getNumberOfCameras(int32_t type, int32_t deviceId, int32_t devicePolicy, int32_t* numCameras) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "std::string CameraService::cameraIdIntToStrLocked(int cameraIdInt,\n        int32_t deviceId, int32_t devicePolicy) {\n    if (vd_flags::camera_device_awareness() && (deviceId != kDefaultDeviceId)\n            && (devicePolicy != IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT)) {\n        std::optional<std::string> cameraIdOptional =\n                mVirtualDeviceCameraIdMapper.getActualCameraId(cameraIdInt, deviceId);\n        return cameraIdOptional.has_value() ? cameraIdOptional.value() : std::string{};\n    }\n\n    const std::vector<std::string> *cameraIds = &mNormalDeviceIdsWithoutSystemCamera;\n    auto callingPid = getCallingPid();\n    auto callingUid = getCallingUid();\n    bool systemCameraPermissions = hasPermissionsForSystemCamera(std::to_string(cameraIdInt),\n            callingPid, callingUid, /* checkCameraPermissions= */ false);\n    if (systemCameraPermissions || getpid() == callingPid) {\n        cameraIds = &mNormalDeviceIds;",
+        "b_contents": "std::string CameraService::cameraIdIntToStrLocked(int cameraIdInt) {\n    const std::vector<std::string> *deviceIds = &mNormalDeviceIdsWithoutSystemCamera;\n    auto callingPid = CameraThreadState::getCallingPid();\n    auto callingUid = CameraThreadState::getCallingUid();\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    bool checkPermissionForSystemCamera = checkPermission(std::to_string(cameraIdInt),\n                sSystemCameraPermission, attributionSource, std::string(),\n                AppOpsManager::OP_NONE);\n    if (checkPermissionForSystemCamera || getpid() == callingPid) {\n        deviceIds = &mNormalDeviceIds;",
+        "base_contents": "std::string CameraService::cameraIdIntToStrLocked(int cameraIdInt) {\n    const std::vector<std::string> *deviceIds = &mNormalDeviceIdsWithoutSystemCamera;\n    auto callingPid = CameraThreadState::getCallingPid();\n    auto callingUid = CameraThreadState::getCallingUid();\n    bool systemCameraPermissions = hasPermissionsForSystemCamera(std::to_string(cameraIdInt),\n            callingPid, callingUid, /* checkCameraPermissions= */ false);\n    if (systemCameraPermissions || getpid() == callingPid) {\n        deviceIds = &mNormalDeviceIds;",
+        "res_region": "std::string CameraService::cameraIdIntToStrLocked(int cameraIdInt,\n        int32_t deviceId, int32_t devicePolicy) {\n    if (vd_flags::camera_device_awareness() && (deviceId != kDefaultDeviceId)\n            && (devicePolicy != IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT)) {\n        std::optional<std::string> cameraIdOptional =\n                mVirtualDeviceCameraIdMapper.getActualCameraId(cameraIdInt, deviceId);\n        return cameraIdOptional.has_value() ? cameraIdOptional.value() : std::string{};\n    }\n\n    const std::vector<std::string> *cameraIds = &mNormalDeviceIdsWithoutSystemCamera;\n    auto callingPid = getCallingPid();\n    auto callingUid = getCallingUid();\n    bool systemCameraPermissions = hasPermissionsForSystemCamera(std::to_string(cameraIdInt),\n            callingPid, callingUid, /* checkCameraPermissions= */ false);\n    if (systemCameraPermissions || getpid() == callingPid) {\n        cameraIds = &mNormalDeviceIds;",
+        "lookback": "    return ret;\n}\n",
+        "lookahead": "    }\n    if (cameraIdInt < 0 || cameraIdInt >= static_cast<int>(cameraIds->size())) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1401,
+        "end_line": 1440,
+        "merge_gen_region": "std::string CameraService::cameraIdIntToStrLocked(int cameraIdInt, int32_t deviceId, int32_t devicePolicy) { if (vd_flags::camera_device_awareness() && (deviceId != kDefaultDeviceId) && (devicePolicy != IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT)) { std::optional<std::string> cameraIdOptional = mVirtualDeviceCameraIdMapper.getActualCameraId(cameraIdInt, deviceId); return cameraIdOptional.has_value() ? cameraIdOptional.value() : std::string{}; } const std::vector<std::string> *cameraIds = &mNormalDeviceIdsWithoutSystemCamera; auto callingPid = getCallingPid(); auto callingUid = getCallingUid(); bool systemCameraPermissions = hasPermissionsForSystemCamera(std::to_string(cameraIdInt), callingPid, callingUid, /* checkCameraPermissions= */ false); /* checkPermissionForSystemCameraPermissions= */ false);",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "    SystemCameraKind deviceKind = SystemCameraKind::PUBLIC;\n    if (getSystemCameraKind(cameraId, &deviceKind) != OK) {\n        ALOGE(\"%s: Invalid camera id %s, skipping\", __FUNCTION__, cameraId.c_str());\n        return STATUS_ERROR_FMT(ERROR_INVALID_OPERATION, \"Unable to retrieve camera kind \"\n                \"for device %s\", cameraId.c_str());\n    }\n    int callingPid = CameraThreadState::getCallingPid();\n    int callingUid = CameraThreadState::getCallingUid();\n    std::vector<int32_t> tagsRemoved;\n    // If it's not calling from cameraserver, check the permission only if\n    // android.permission.CAMERA is required. If android.permission.SYSTEM_CAMERA was needed,\n    // it would've already been checked in shouldRejectSystemCameraConnection.\n    AttributionSourceState attributionSource{};\n    attributionSource.pid = callingPid;\n    attributionSource.uid = callingUid;\n    bool checkPermissionForCamera = checkPermission(cameraId, sCameraPermission,\n            attributionSource, std::string(), AppOpsManager::OP_NONE);\n    if ((callingPid != getpid()) &&\n            (deviceKind != SystemCameraKind::SYSTEM_ONLY_CAMERA) &&\n            !checkPermissionForCamera) {\n        res = cameraInfo->removePermissionEntries(\n                mCameraProviderManager->getProviderTagIdLocked(cameraId),\n                &tagsRemoved);\n        if (res != OK) {\n            cameraInfo->clear();\n            return STATUS_ERROR_FMT(ERROR_INVALID_OPERATION, \"Failed to remove camera\"\n                    \" characteristics needing camera permission for device %s: %s (%d)\",\n                    cameraId.c_str(), strerror(-res), res);\n        }\n    }",
+        "base_contents": "    SystemCameraKind deviceKind = SystemCameraKind::PUBLIC;\n    if (getSystemCameraKind(cameraId, &deviceKind) != OK) {\n        ALOGE(\"%s: Invalid camera id %s, skipping\", __FUNCTION__, cameraId.c_str());\n        return STATUS_ERROR_FMT(ERROR_INVALID_OPERATION, \"Unable to retrieve camera kind \"\n                \"for device %s\", cameraId.c_str());\n    }\n    int callingPid = CameraThreadState::getCallingPid();\n    int callingUid = CameraThreadState::getCallingUid();\n    std::vector<int32_t> tagsRemoved;\n    // If it's not calling from cameraserver, check the permission only if\n    // android.permission.CAMERA is required. If android.permission.SYSTEM_CAMERA was needed,\n    // it would've already been checked in shouldRejectSystemCameraConnection.\n    bool checkPermissionForCamera = hasPermissionsForCamera(cameraId, callingPid, callingUid);\n    if ((callingPid != getpid()) &&\n            (deviceKind != SystemCameraKind::SYSTEM_ONLY_CAMERA) &&\n            !checkPermissionForCamera) {\n        res = cameraInfo->removePermissionEntries(\n                mCameraProviderManager->getProviderTagIdLocked(cameraId),\n                &tagsRemoved);\n        if (res != OK) {\n            cameraInfo->clear();\n            return STATUS_ERROR_FMT(ERROR_INVALID_OPERATION, \"Failed to remove camera\"\n                    \" characteristics needing camera permission for device %s: %s (%d)\",\n                    cameraId.c_str(), strerror(-res), res);\n        }\n    }",
+        "res_region": "",
+        "lookback": "                    strerror(-res), res);\n        }\n    }",
+        "lookahead": "\n    return filterSensitiveMetadataIfNeeded(cameraId, cameraInfo);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1507,
+        "end_line": 1566,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "// Can camera service trust the caller based on the calling UID?\nstatic bool isTrustedCallingUid(uid_t uid) {\n    switch (uid) {\n        case AID_MEDIA:        // mediaserver\n        case AID_CAMERASERVER: // cameraserver\n        case AID_RADIO:        // telephony\n            return true;\n        default:\n            return false;\n    }\n}\n\nstatic status_t getUidForPackage(const std::string &packageName, int userId, /*inout*/uid_t& uid,\n        int err) {\n    PermissionController pc;\n    uid = pc.getPackageUid(toString16(packageName), 0);\n    if (uid <= 0) {\n        ALOGE(\"Unknown package: '%s'\", packageName.c_str());\n        dprintf(err, \"Unknown package: '%s'\\n\", packageName.c_str());\n        return BAD_VALUE;\n    }\n\n    if (userId < 0) {\n        ALOGE(\"Invalid user: %d\", userId);\n        dprintf(err, \"Invalid user: %d\\n\", userId);\n        return BAD_VALUE;\n    }\n\n    uid = multiuser_get_uid(userId, uid);\n    return NO_ERROR;\n}\n",
+        "base_contents": "// Can camera service trust the caller based on the calling UID?\nbool CameraService::isTrustedCallingUid(uid_t uid) const {\n    return mAttributionAndPermissionUtils->isTrustedCallingUid(uid);\n}\n\nstatus_t CameraService::getUidForPackage(const std::string &packageName, int userId,\n        /*inout*/uid_t& uid, int err) const {\n    return mAttributionAndPermissionUtils->getUidForPackage(packageName, userId, uid, err);\n}\n",
+        "res_region": "",
+        "lookback": "    return STATUS_ERROR(ERROR_INVALID_OPERATION, \"Unable to initialize legacy parameters\");\n}\n",
+        "lookahead": "Status CameraService::validateConnectLocked(const std::string& cameraId,\n        const std::string& clientName8, /*inout*/int& clientUid, /*inout*/int& clientPid,",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 1911,
+        "end_line": 1956,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    int callingPid = getCallingPid();\n    int callingUid = getCallingUid();",
+        "b_contents": "    AttributionSourceState attributionSource{};\n\n    int callingPid = CameraThreadState::getCallingPid();\n    int callingUid = CameraThreadState::getCallingUid();",
+        "base_contents": "    int callingPid = CameraThreadState::getCallingPid();\n    int callingUid = CameraThreadState::getCallingUid();",
+        "res_region": "    int callingPid = getCallingPid();\n    int callingUid = getCallingUid();",
+        "lookback": "Status CameraService::validateClientPermissionsLocked(const std::string& cameraId,\n        const std::string& clientName, int& clientUid, int& clientPid,\n        /*out*/int& originalClientPid) const {",
+        "lookahead": "\n    // Check if we can trust clientUid",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2008,
+        "end_line": 2019,
+        "merge_gen_region": "int callingPid = getCallingPid(); int callingUid = getCallingUid();",
+        "resolved": true
+    },
+    {
+        "a_contents": "    bool checkPermissionForCamera =\n            hasPermissionsForCamera(cameraId, clientPid, clientUid, clientName, deviceId);",
+        "b_contents": "    attributionSource.pid = clientPid;\n    attributionSource.uid = clientUid;\n    attributionSource.packageName = clientName;\n    bool checkPermissionForCamera = checkPermission(cameraId, sCameraPermission, attributionSource,\n            std::string(), AppOpsManager::OP_NONE);",
+        "base_contents": "    bool checkPermissionForCamera = hasPermissionsForCamera(cameraId, clientPid, clientUid);",
+        "res_region": "    bool checkPermissionForCamera =\n            hasPermissionsForCamera(cameraId, clientPid, clientUid, clientName, deviceId);",
+        "lookback": "    // If it's not calling from cameraserver, check the permission if the\n    // device isn't a system only camera (shouldRejectSystemCameraConnection already checks for\n    // android.permission.SYSTEM_CAMERA for system only camera devices).",
+        "lookahead": "    if (callingPid != getpid() &&\n                (deviceKind != SystemCameraKind::SYSTEM_ONLY_CAMERA) && !checkPermissionForCamera) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2066,
+        "end_line": 2077,
+        "merge_gen_region": "bool checkPermissionForCamera = hasPermissionsForCamera(cameraId, clientPid, clientUid, clientName, deviceId);",
+        "resolved": true
+    },
+    {
+        "a_contents": "        if (isHeadlessSystemUserMode()\n                && (clientUserId == USER_SYSTEM)\n                && !hasPermissionsForCameraHeadlessSystemUser(cameraId, callingPid, callingUid)) {",
+        "b_contents": "        if (isHeadlessSystemUserMode() && (clientUserId == USER_SYSTEM) &&\n                !hasPermissionsForCameraHeadlessSystemUser(cameraId, callingPid, callingUid)) {",
+        "base_contents": "        if (mAttributionAndPermissionUtils->isHeadlessSystemUserMode()\n                && (clientUserId == USER_SYSTEM)\n                && !hasPermissionsForCameraHeadlessSystemUser(cameraId, callingPid, callingUid)) {",
+        "res_region": "        if (isHeadlessSystemUserMode()\n                && (clientUserId == USER_SYSTEM)\n                && !hasPermissionsForCameraHeadlessSystemUser(cameraId, callingPid, callingUid)) {",
+        "lookback": "        // If the System User tries to access the camera when the device is running in\n        // headless system user mode, ensure that client has the required permission\n        // CAMERA_HEADLESS_SYSTEM_USER.",
+        "lookahead": "            ALOGE(\"Permission Denial: can't use the camera pid=%d, uid=%d\", clientPid, clientUid);\n            return STATUS_ERROR_FMT(ERROR_PERMISSION_DENIED,",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 2133,
+        "end_line": 2144,
+        "merge_gen_region": "if (isHeadlessSystemUserMode() && (clientUserId == USER_SYSTEM) && !hasPermissionsForCameraHeadlessSystemUser(cameraId, callingPid, callingUid)) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    if (isCallerCameraServerNotDelegating()) {",
+        "b_contents": "    if (CameraThreadState::getCallingPid() == getpid()) {",
+        "base_contents": "    if (mAttributionAndPermissionUtils->isCallerCameraServerNotDelegating()) {",
+        "res_region": "    if (isCallerCameraServerNotDelegating()) {",
+        "lookback": "    }\n\n    // (1) Cameraserver trying to connect, accept.",
+        "lookahead": "        return false;\n    }",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 2514,
+        "end_line": 2520,
+        "merge_gen_region": "if (isCallerCameraServerNotDelegating()) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    int callingPid = getCallingPid();\n    int callingUid = getCallingUid();\n    bool hasCameraPermission = ((callingPid == getpid()) ||\n            hasPermissionsForCamera(callingPid, callingUid,\n                    devicePolicy == IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT\n                        ? kDefaultDeviceId : deviceId));\n    if (!hasCameraPermission) {",
+        "b_contents": "    if (!hasCameraPermissions()) {",
+        "base_contents": "    int callingPid = CameraThreadState::getCallingPid();\n    int callingUid = CameraThreadState::getCallingUid();\n    bool hasCameraPermission = ((callingPid == getpid()) ||\n            hasPermissionsForCamera(callingPid, callingUid));\n    if (!hasCameraPermission) {",
+        "res_region": "    int callingPid = getCallingPid();\n    int callingUid = getCallingUid();\n    bool hasCameraPermission = ((callingPid == getpid()) ||\n            hasPermissionsForCamera(callingPid, callingUid,\n                    devicePolicy == IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT\n                        ? kDefaultDeviceId : deviceId));\n    if (!hasCameraPermission) {",
+        "lookback": "    }\n\n    // Check for camera permissions",
+        "lookahead": "        return STATUS_ERROR(ERROR_PERMISSION_DENIED,\n                \"android.permission.CAMERA needed to call\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3663,
+        "end_line": 3679,
+        "merge_gen_region": "int callingPid = getCallingPid(); int callingUid = getCallingUid(); bool hasCameraPermission = ((callingPid == getpid()) || hasPermissionsForCamera(callingPid, callingUid, devicePolicy == IVirtualDeviceManagerNative::DEVICE_POLICY_DEFAULT ? kDefaultDeviceId : deviceId)); if (!hasCameraPermission) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "    auto clientPid = getCallingPid();\n    auto clientUid = getCallingUid();\n    bool openCloseCallbackAllowed = hasPermissionsForOpenCloseListener(clientPid, clientUid);",
+        "b_contents": "    auto clientUid = CameraThreadState::getCallingUid();\n    auto clientPid = CameraThreadState::getCallingPid();\n    AttributionSourceState attributionSource{};\n    attributionSource.uid = clientUid;\n    attributionSource.pid = clientPid;\n\n   bool openCloseCallbackAllowed = checkPermission(std::string(),\n            sCameraOpenCloseListenerPermission, attributionSource, std::string(),\n            AppOpsManager::OP_NONE);",
+        "base_contents": "    auto clientPid = CameraThreadState::getCallingPid();\n    auto clientUid = CameraThreadState::getCallingUid();\n    bool openCloseCallbackAllowed = hasPermissionsForOpenCloseListener(clientPid, clientUid);",
+        "res_region": "    auto clientPid = getCallingPid();\n    auto clientUid = getCallingUid();\n    bool openCloseCallbackAllowed = hasPermissionsForOpenCloseListener(clientPid, clientUid);",
+        "lookback": "        return STATUS_ERROR(ERROR_ILLEGAL_ARGUMENT, \"Null listener given to addListener\");\n    }\n",
+        "lookahead": "\n    Mutex::Autolock lock(mServiceLock);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3722,
+        "end_line": 3740,
+        "merge_gen_region": "auto clientPid = getCallingPid(); auto clientUid = getCallingUid(); bool openCloseCallbackAllowed = hasPermissionsForOpenCloseListener(clientPid, clientUid);",
+        "resolved": true
+    },
+    {
+        "a_contents": "        int servicePid, int rotationOverride):\n        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils),",
+        "b_contents": "        int servicePid, bool overrideToPortrait):",
+        "base_contents": "        int servicePid, bool overrideToPortrait):\n        mAttributionAndPermissionUtils(attributionAndPermissionUtils),",
+        "res_region": "        int servicePid, int rotationOverride):\n        AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils),",
+        "lookback": "        const std::string& clientPackageName, bool nativeClient,\n        const std::optional<std::string>& clientFeatureId, const std::string& cameraIdStr,\n        int cameraFacing, int sensorOrientation, int clientPid, uid_t clientUid,",
+        "lookahead": "        mDestructionStarted(false),\n        mCameraIdStr(cameraIdStr), mCameraFacing(cameraFacing), mOrientation(sensorOrientation),",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 4457,
+        "end_line": 4465,
+        "merge_gen_region": "int servicePid, int rotationOverride): AttributionAndPermissionUtilsEncapsulator(attributionAndPermissionUtils),",
+        "resolved": true
+    }
+]

@@ -1,0 +1,110 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/redis/28e95c7c-7239e9ca-b67f0276/src@blocked.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/redis/28e95c7c-7239e9ca-b67f0276/src@blocked.no_comments_merged.c
+index 975e26d..be47ced 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/redis/28e95c7c-7239e9ca-b67f0276/src@blocked.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/redis/28e95c7c-7239e9ca-b67f0276/src@blocked.no_comments_merged.c
+@@ -2,4 +2,2 @@
+-int serveClientBlockedOnList(client *receiver, robj *key, robj *dstkey,
+-                             redisDb *db, robj *value, int where);
+-int getTimeoutFromObjectOrReply(client *c, robj *object, mstime_t *timeout,
+-                                int unit) {
++int serveClientBlockedOnList(client *receiver, robj *key, robj *dstkey, redisDb *db, robj *value, int where);
++int getTimeoutFromObjectOrReply(client *c, robj *object, mstime_t *timeout, int unit) {
+@@ -7,3 +5,2 @@ int getTimeoutFromObjectOrReply(client *c, robj *object, mstime_t *timeout,
+-  if (getLongLongFromObjectOrReply(
+-          c, object, &tval, "timeout is not an integer or out of range") !=
+-      C_OK)
++    if (getLongLongFromObjectOrReply(c,object,&tval,
++        "timeout is not an integer or out of range") != C_OK)
+@@ -45 +42,2 @@ void unblockClient(client *c) {
+-  if (c->btype == BLOCKED_LIST || c->btype == BLOCKED_ZSET ||
++    if (c->btype == BLOCKED_LIST ||
++        c->btype == BLOCKED_ZSET ||
+@@ -65 +63,2 @@ void replyToBlockedClientTimedOut(client *c) {
+-  if (c->btype == BLOCKED_LIST || c->btype == BLOCKED_ZSET ||
++    if (c->btype == BLOCKED_LIST ||
++        c->btype == BLOCKED_ZSET ||
+@@ -83 +82,2 @@ void disconnectAllBlockedClients(void) {
+-      addReplySds(c, sdsnew("-UNBLOCKED force unblock from blocking operation, "
++            addReplySds(c,sdsnew(
++                "-UNBLOCKED force unblock from blocking operation, "
+@@ -115,4 +115,3 @@ void handleClientsBlockedOnKeys(void) {
+-            int where =
+-                (receiver->lastcmd && receiver->lastcmd->proc == blpopCommand)
+-                    ? LIST_HEAD
+-                    : LIST_TAIL;
++                        int where = (receiver->lastcmd &&
++                                     receiver->lastcmd->proc == blpopCommand) ?
++                                    LIST_HEAD : LIST_TAIL;
+@@ -123,2 +122,4 @@ void handleClientsBlockedOnKeys(void) {
+-              if (serveClientBlockedOnList(receiver, rl->key, dstkey, rl->db,
+-                                           value, where) == C_ERR) {
++                            if (serveClientBlockedOnList(receiver,
++                                rl->key,dstkey,rl->db,value,
++                                where) == C_ERR)
++                            {
+@@ -156,2 +157 @@ void handleClientsBlockedOnKeys(void) {
+-                            ? ZSET_MIN
+-                            : ZSET_MAX;
++                                     ? ZSET_MIN : ZSET_MAX;
+@@ -162,3 +162,3 @@ void handleClientsBlockedOnKeys(void) {
+-            struct redisCommand *cmd = where == ZSET_MIN
+-                                           ? server.zpopminCommand
+-                                           : server.zpopmaxCommand;
++                        struct redisCommand *cmd = where == ZSET_MIN ?
++                                                   server.zpopminCommand :
++                                                   server.zpopmaxCommand;
+@@ -168,2 +168,2 @@ void handleClientsBlockedOnKeys(void) {
+-            propagate(cmd, receiver->db->id, argv, 2,
+-                      PROPAGATE_AOF | PROPAGATE_REPL);
++                        propagate(cmd,receiver->db->id,
++                                  argv,2,PROPAGATE_AOF|PROPAGATE_REPL);
+@@ -186 +186,2 @@ void handleClientsBlockedOnKeys(void) {
+-            streamID *gt = dictFetchValue(receiver->bpop.keys, rl->key);
++                        streamID *gt = dictFetchValue(receiver->bpop.keys,
++                                                      rl->key);
+@@ -189 +190,2 @@ void handleClientsBlockedOnKeys(void) {
+-              group = streamLookupCG(s, receiver->bpop.xread_group->ptr);
++                            group = streamLookupCG(s,
++                                    receiver->bpop.xread_group->ptr);
+@@ -201 +203,3 @@ void handleClientsBlockedOnKeys(void) {
+-                (s->last_id.ms == gt->ms && s->last_id.seq > gt->seq)) {
++                            (s->last_id.ms == gt->ms &&
++                             s->last_id.seq > gt->seq))
++                        {
+@@ -205,6 +208,0 @@ void handleClientsBlockedOnKeys(void) {
+-<<<<<<< HEAD
+-|||||||
+-              if (receiver->bpop.xread_group) {
+-                group = streamLookupCG(s, receiver->bpop.xread_group->ptr);
+-              }
+-=======
+@@ -212,4 +209,0 @@ void handleClientsBlockedOnKeys(void) {
+-              if (receiver->bpop.xread_group) {
+-                group = streamLookupCG(s, receiver->bpop.xread_group->ptr);
+-              }
+->>>>>>> 7239e9ca5ff9dd430d5d7c7bda934a43b13fd8ad
+@@ -217,2 +211,3 @@ void handleClientsBlockedOnKeys(void) {
+-                consumer = streamLookupConsumer(
+-                    group, receiver->bpop.xread_consumer->ptr, 1);
++                                consumer = streamLookupConsumer(group,
++                                           receiver->bpop.xread_consumer->ptr,
++                                           1);
+@@ -224 +219,4 @@ void handleClientsBlockedOnKeys(void) {
+-              streamPropInfo pi = {rl->key, receiver->bpop.xread_group};
++                            streamPropInfo pi = {
++                                rl->key,
++                                receiver->bpop.xread_group
++                            };
+@@ -226,2 +224,2 @@ void handleClientsBlockedOnKeys(void) {
+-                                   receiver->bpop.xread_count, 0, group,
+-                                   consumer, noack, &pi);
++                                                 receiver->bpop.xread_count,
++                                                 0, group, consumer, noack, &pi);
+@@ -240,2 +238 @@ void handleClientsBlockedOnKeys(void) {
+-void blockForKeys(client *c, int btype, robj **keys, int numkeys,
+-                  mstime_t timeout, robj *target, streamID *ids) {
++void blockForKeys(client *c, int btype, robj **keys, int numkeys, mstime_t timeout, robj *target, streamID *ids) {
+@@ -284 +281,2 @@ void unblockClientWaitingData(client *c) {
+-    if (listLength(l) == 0) dictDelete(c->db->blocking_keys, key);
++        if (listLength(l) == 0)
++            dictDelete(c->db->blocking_keys,key);

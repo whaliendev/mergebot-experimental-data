@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "  // We initialize the start_time_ from the timestamp counter. This may not match\n  // with the monotonic timer but we only use this time to calculate the elapsed\n  // time from this point which should be the same for both cases.\n  // We record monotonic time at the start of the trace, because Android Studio\n  // fetches the monotonic timer from other places and matches these times to\n  // construct a cpu profile. See b/318052824 for more context.\n  uint64_t start_time_monotonic = start_time_ + (MicroTime() - GetMicroTime(GetTimestamp()));\n  uint16_t trace_version = GetTraceVersion(clock_source_, trace_format_version_);",
+        "b_contents": "  CHECK_IMPLIES(trace_file == nullptr, output_mode == TraceOutputMode::kDDMS);\n\n  uint16_t trace_version = GetTraceVersion(clock_source_);\n\n  // We initialize the start_time_ from the timestamp counter. This may not match\n  // with the monotonic timer but we only use this time to calculate the elapsed\n  // time from this point which should be the same for both cases.\n  // We record monotonic time at the start of the trace, because Android Studio\n  // fetches the monotonic timer from other places and matches these times to\n  // construct a cpu profile. See b/318052824 for more context.\n  uint64_t start_time_monotonic = start_time_ + (MicroTime() - GetMicroTime(GetTimestamp()));\n",
+        "base_contents": "  CHECK_IMPLIES(trace_file == nullptr, output_mode == TraceOutputMode::kDDMS);\n\n  uint16_t trace_version = GetTraceVersion(clock_source_);",
+        "res_region": "  // We initialize the start_time_ from the timestamp counter. This may not match\n  // with the monotonic timer but we only use this time to calculate the elapsed\n  // time from this point which should be the same for both cases.\n  // We record monotonic time at the start of the trace, because Android Studio\n  // fetches the monotonic timer from other places and matches these times to\n  // construct a cpu profile. See b/318052824 for more context.\n  uint64_t start_time_monotonic = start_time_ + (MicroTime() - GetMicroTime(GetTimestamp()));\n  uint16_t trace_version = GetTraceVersion(clock_source_, trace_format_version_);",
+        "lookback": "      clock_overhead_ns_(clock_overhead_ns),\n      owner_tids_(num_trace_buffers),\n      tracing_lock_(\"tracing lock\", LockLevel::kTracingStreamingLock) {",
+        "lookahead": "  if (output_mode == TraceOutputMode::kStreaming) {\n    trace_version |= 0xF0U;",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 860,
+        "end_line": 886,
+        "merge_gen_region": "// construct a cpu profile. See b/318052824 for more context. uint64_t start_time_monotonic = start_time_ + (MicroTime() - GetMicroTime(GetTimestamp())); uint16_t trace_version = GetTraceVersion(clock_source_, trace_format_version_);",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  // Set up the beginning of the trace.\n  memset(buf_.get(), 0, kTraceHeaderLength);\n  Append4LE(buf_.get(), kTraceMagicValue);\n  Append2LE(buf_.get() + 4, trace_version);\n  Append2LE(buf_.get() + 6, kTraceHeaderLength);\n  Append8LE(buf_.get() + 8, start_time_monotonic);\n  if (trace_version >= kTraceVersionDualClock) {\n    uint16_t record_size = GetRecordSize(clock_source_);\n    Append2LE(buf_.get() + 16, record_size);\n  }\n  static_assert(18 <= kMinBufSize, \"Minimum buffer size not large enough for trace header\");",
+        "base_contents": "  // Set up the beginning of the trace.\n  memset(buf_.get(), 0, kTraceHeaderLength);\n  Append4LE(buf_.get(), kTraceMagicValue);\n  Append2LE(buf_.get() + 4, trace_version);\n  Append2LE(buf_.get() + 6, kTraceHeaderLength);\n  Append8LE(buf_.get() + 8, start_time_);\n  if (trace_version >= kTraceVersionDualClock) {\n    uint16_t record_size = GetRecordSize(clock_source_);\n    Append2LE(buf_.get() + 16, record_size);\n  }\n  static_assert(18 <= kMinBufSize, \"Minimum buffer size not large enough for trace header\");",
+        "res_region": "",
+        "lookback": "  if (output_mode == TraceOutputMode::kStreaming) {\n    trace_version |= 0xF0U;\n  }",
+        "lookahead": "\n  // Set up the beginning of the trace.",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 890,
+        "end_line": 915,
+        "merge_gen_region": "",
+        "resolved": true
+    }
+]

@@ -1,0 +1,514 @@
+[
+    {
+        "a_contents": "const std::string default_column_family_name(\"default\");\n\nvoid dumpLeveldbBuildVersion(Logger * log);",
+        "b_contents": "void DumpLeveldbBuildVersion(Logger * log);",
+        "base_contents": "void dumpLeveldbBuildVersion(Logger * log);",
+        "res_region": "const std::string default_column_family_name(\"default\");\n\nvoid DumpLeveldbBuildVersion(Logger * log);",
+        "lookback": "\nnamespace rocksdb {\n",
+        "lookahead": "\n// Information kept for every waiting writer",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 67,
+        "end_line": 75,
+        "merge_gen_region": "const std::string default_column_family_name(\"default\"); void DumpLeveldbBuildVersion(Logger * log);",
+        "resolved": true
+    },
+    {
+        "a_contents": "  auto db_options = SanitizeOptions(dbname, DBOptions(src));\n  auto cf_options = SanitizeOptions(icmp, ipolicy, ColumnFamilyOptions(src));\n  return Options(db_options, cf_options);\n}",
+        "b_contents": "  Options result = src;\n  result.filter_policy = (src.filter_policy != nullptr) ? ipolicy : nullptr;\n  // result.max_open_files means an \"infinite\" open files.\n  if (result.max_open_files != -1) {\n    ClipToRange(&result.max_open_files,            20,     1000000);\n  }\n  ClipToRange(&result.write_buffer_size,         ((size_t)64)<<10,\n                                                 ((size_t)64)<<30);\n  ClipToRange(&result.block_size,                1<<10,  4<<20);",
+        "base_contents": "  Options result = src;\n  result.comparator = icmp;\n  result.filter_policy = (src.filter_policy != nullptr) ? ipolicy : nullptr;\n  ClipToRange(&result.max_open_files,            20,     1000000);\n  ClipToRange(&result.write_buffer_size,         ((size_t)64)<<10,\n                                                 ((size_t)64)<<30);\n  ClipToRange(&result.block_size,                1<<10,  4<<20);",
+        "res_region": "  auto db_options = SanitizeOptions(dbname, DBOptions(src));\n  auto cf_options = SanitizeOptions(icmp, ipolicy, ColumnFamilyOptions(src));\n  return Options(db_options, cf_options);\n}",
+        "lookback": "                        const InternalKeyComparator* icmp,\n                        const InternalFilterPolicy* ipolicy,\n                        const Options& src) {",
+        "lookahead": "\nDBOptions SanitizeOptions(const std::string& dbname, const DBOptions& src) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 142,
+        "end_line": 165,
+        "merge_gen_region": "auto db_options = SanitizeOptions(dbname, DBOptions(src)); auto cf_options = SanitizeOptions(icmp, ipolicy, ColumnFamilyOptions(src)); return Options(db_options, cf_options); }",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  mem_->Ref();",
+        "base_contents": "\n  mem_->Ref();\n",
+        "res_region": "",
+        "lookback": "      storage_options_(options),\n      bg_work_gate_closed_(false),\n      refitting_level_(false) {",
+        "lookahead": "  env_->GetAbsolutePath(dbname, &db_absolute_path_);\n",
+        "label": [
+            "ours",
+            "base_underutilized"
+        ],
+        "start_line": 264,
+        "end_line": 272,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  versions_.reset(\n      new VersionSet(dbname_, &options_, storage_options_, table_cache_.get()));\n  column_family_memtables_.reset(\n      new ColumnFamilyMemTablesImpl(versions_->GetColumnFamilySet()));",
+        "b_contents": "  // Reserve ten files or so for other uses and give the rest to TableCache.\n  // Give a large number for setting of \"infinite\" open files.\n  const int table_cache_size =\n      (options_.max_open_files == -1) ?\n          4194304 : options_.max_open_files - 10;\n  table_cache_.reset(new TableCache(dbname_, &options_,\n                                    storage_options_, table_cache_size));\n  versions_.reset(new VersionSet(dbname_, &options_, storage_options_,\n                                 table_cache_.get(), &internal_comparator_));",
+        "base_contents": "  // Reserve ten files or so for other uses and give the rest to TableCache.\n  const int table_cache_size = options_.max_open_files - 10;\n  table_cache_.reset(new TableCache(dbname_, &options_,\n                                    storage_options_, table_cache_size));\n\n  versions_.reset(new VersionSet(dbname_, &options_, storage_options_,\n                                 table_cache_.get(), &internal_comparator_));",
+        "res_region": "  // Reserve ten files or so for other uses and give the rest to TableCache.\n  // Give a large number for setting of \"infinite\" open files.\n  const int table_cache_size =\n      (options_.max_open_files == -1) ? 4194304 : options_.max_open_files - 10;\n  // Reserve ten files or so for other uses and give the rest to TableCache.\n  table_cache_ =\n      NewLRUCache(table_cache_size, options_.table_cache_numshardbits,\n                  options_.table_cache_remove_scan_count_limit);",
+        "lookback": "\n  env_->GetAbsolutePath(dbname, &db_absolute_path_);\n",
+        "lookahead": "\n  versions_.reset(",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 275,
+        "end_line": 298,
+        "merge_gen_region": " lda_.reset( new VersionSet(dbname_, &options_, storage_options_, table_cache_.get())); column_family_memtables_.reset( new ColumnFamilyMemTablesImpl(versions_->GetColumnFamilySet()));",
+        "resolved": false
+    },
+    {
+        "a_contents": "  dumpLeveldbBuildVersion(options_.info_log.get());\n  // TODO(icanadi) dump DBOptions and ColumnFamilyOptions separately\n  // options_.Dump(options_.info_log.get());",
+        "b_contents": "  DumpLeveldbBuildVersion(options_.info_log.get());\n  options_.Dump(options_.info_log.get());",
+        "base_contents": "  dumpLeveldbBuildVersion(options_.info_log.get());\n  options_.Dump(options_.info_log.get());",
+        "res_region": "  versions_.reset(\n      new VersionSet(dbname_, &options_, storage_options_, table_cache_.get()));\n  column_family_memtables_.reset(\n      new ColumnFamilyMemTablesImpl(versions_->GetColumnFamilySet()));\n\n  DumpLeveldbBuildVersion(options_.info_log.get());\n  // TODO(icanadi) dump DBOptions and ColumnFamilyOptions separately\n  // options_.Dump(options_.info_log.get());",
+        "lookback": "      NewLRUCache(table_cache_size, options_.table_cache_numshardbits,\n                  options_.table_cache_remove_scan_count_limit);\n",
+        "lookahead": "\n  char name[100];",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 300,
+        "end_line": 310,
+        "merge_gen_region": " DumpLeveldbBuildVersion(options_.info_log.get()); // TODO(icanadi) dump DBOptions and ColumnFamilyOptions separately",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  autovector<MemTable*> to_delete;\n",
+        "base_contents": "  std::vector<MemTable*> to_delete;\n  to_delete.reserve(options_.max_write_buffer_number);\n",
+        "res_region": "",
+        "lookback": "}\n\nDBImpl::~DBImpl() {",
+        "lookahead": "  // Wait for background work to finish\n  if (flush_on_destroy_) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 326,
+        "end_line": 334,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  if (mem_ != nullptr) {\n    delete mem_->Unref();\n  }\n\n  imm_.current()->Unref(&to_delete);\n  for (MemTable* m: to_delete) {\n    delete m;\n  }\n  // versions need to be destroyed before table_cache since it can holds\n  // references to table_cache.\n  versions_.reset();",
+        "base_contents": "  if (mem_ != nullptr) {\n    delete mem_->Unref();\n  }\n\n  imm_.current()->Unref(&to_delete);\n  for (MemTable* m: to_delete) {\n    delete m;\n  }",
+        "res_region": "  // versions need to be destroyed before table_cache since it can hold\n  // references to table_cache.\n  versions_.reset();\n",
+        "lookback": "    env_->UnlockFile(db_lock_);\n  }\n",
+        "lookahead": "  LogFlush(options_.info_log);\n}",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 356,
+        "end_line": 378,
+        "merge_gen_region": "} // versions need to be destroyed before table_cache since it can holds // references to table_cache. versions_.reset();",
+        "resolved": false
+    },
+    {
+        "a_contents": "",
+        "b_contents": "// DBImpl::SuperVersion methods\nDBImpl::SuperVersion::~SuperVersion() {\n  for (auto td : to_delete) {\n    delete td;\n  }\n}\n\nDBImpl::SuperVersion* DBImpl::SuperVersion::Ref() {\n  refs.fetch_add(1, std::memory_order_relaxed);\n  return this;\n}\n\nbool DBImpl::SuperVersion::Unref() {\n  assert(refs > 0);\n  // fetch_sub returns the previous value of ref\n  return refs.fetch_sub(1, std::memory_order_relaxed) == 1;\n}\n\nvoid DBImpl::SuperVersion::Cleanup() {\n  assert(refs.load(std::memory_order_relaxed) == 0);\n  imm->Unref(&to_delete);\n  MemTable* m = mem->Unref();\n  if (m != nullptr) {\n    to_delete.push_back(m);\n  }\n  current->Unref();\n}\n\nvoid DBImpl::SuperVersion::Init(MemTable* new_mem, MemTableListVersion* new_imm,\n                                Version* new_current) {\n  mem = new_mem;\n  imm = new_imm;\n  current = new_current;\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n  refs.store(1, std::memory_order_relaxed);\n}\n",
+        "base_contents": "// DBImpl::SuperVersion methods\nDBImpl::SuperVersion::SuperVersion(const int num_memtables) {\n  to_delete.resize(num_memtables);\n}\n\nDBImpl::SuperVersion::~SuperVersion() {\n  for (auto td : to_delete) {\n    delete td;\n  }\n}\n\nDBImpl::SuperVersion* DBImpl::SuperVersion::Ref() {\n  refs.fetch_add(1, std::memory_order_relaxed);\n  return this;\n}\n\nbool DBImpl::SuperVersion::Unref() {\n  assert(refs > 0);\n  // fetch_sub returns the previous value of ref\n  return refs.fetch_sub(1, std::memory_order_relaxed) == 1;\n}\n\nvoid DBImpl::SuperVersion::Cleanup() {\n  assert(refs.load(std::memory_order_relaxed) == 0);\n  imm->Unref(&to_delete);\n  MemTable* m = mem->Unref();\n  if (m != nullptr) {\n    to_delete.push_back(m);\n  }\n  current->Unref();\n}\n\nvoid DBImpl::SuperVersion::Init(MemTable* new_mem, MemTableListVersion* new_imm,\n                                Version* new_current) {\n  mem = new_mem;\n  imm = new_imm;\n  current = new_current;\n  mem->Ref();\n  imm->Ref();\n  current->Ref();\n  refs.store(1, std::memory_order_relaxed);\n}\n",
+        "res_region": "",
+        "lookback": "  }\n}\n",
+        "lookahead": "// Returns the list of live files in 'sst_live' and the list\n// of all files in the filesystem in 'candidate_files'.",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 491,
+        "end_line": 576,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      if (!keep) {\n        if (type == kTableFile) {\n          // evict from cache\n          TableCache::Evict(table_cache_.get(), number);",
+        "b_contents": "    bool keep = true;\n    switch (type) {\n      case kLogFile:\n        keep = ((number >= state.log_number) ||\n                (number == state.prev_log_number));\n        break;\n      case kDescriptorFile:\n        // Keep my manifest file, and any newer incarnations'\n        // (in case there is a race that allows other incarnations)\n        keep = (number >= state.manifest_file_number);\n        break;\n      case kTableFile:\n        keep = (sst_live.find(number) != sst_live.end());\n        break;\n      case kTempFile:\n        // Any temp files that are currently being written to must\n        // be recorded in pending_outputs_, which is inserted into \"live\"\n        keep = (sst_live.find(number) != sst_live.end());\n        break;\n      case kInfoLogFile:\n        keep = true;\n        if (number != 0) {\n          old_log_files.push_back(to_delete);",
+        "base_contents": "      if (!keep) {\n        if (type == kTableFile) {\n          // evict from cache\n          table_cache_->Evict(number);",
+        "res_region": "    bool keep = true;\n    switch (type) {\n      case kLogFile:\n        keep = ((number >= state.log_number) ||\n                (number == state.prev_log_number));\n        break;\n      case kDescriptorFile:\n        // Keep my manifest file, and any newer incarnations'\n        // (in case there is a race that allows other incarnations)\n        keep = (number >= state.manifest_file_number);\n        break;\n      case kTableFile:\n        keep = (sst_live.find(number) != sst_live.end());\n        break;\n      case kTempFile:\n        // Any temp files that are currently being written to must\n        // be recorded in pending_outputs_, which is inserted into \"live\"\n        keep = (sst_live.find(number) != sst_live.end());\n        break;\n      case kInfoLogFile:\n        keep = true;\n        if (number != 0) {\n          old_log_files.push_back(to_delete);",
+        "lookback": "      continue;\n    }\n",
+        "lookahead": "        }\n        break;",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 713,
+        "end_line": 747,
+        "merge_gen_region": "bool keep = true; switch (type) { case kLogFile: keep = ((number >= state.log_number) || (number == state.prev_log_number)); break; case kDescriptorFile: // Keep my manifest file, and any newer incarnations' // (in case there is a race that allows other incarnations) keep = (number >= state.manifest_file_number); break; case kTableFile: keep = (sst_live.find(number) != sst_live.end()); break; case kTempFile: // Any temp files that are currently being written to must // be recorded in pending_outputs_, which is inserted into \"live\" keep = (sst_live.find(number) != sst_live.end()); break; case kInfoLogFile: keep = true; if (number != 0) { old_log_files.push_back(to_delete); }",
+        "resolved": false
+    },
+    {
+        "a_contents": "    s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_,\n                   cfd->table_cache(), iter, &meta, cfd->user_comparator(),\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(*cfd->full_options()));",
+        "b_contents": "    s = BuildTable(dbname_, env_, options_, storage_options_,\n                   table_cache_.get(), iter, &meta, internal_comparator_,\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(options_));",
+        "base_contents": "    s = BuildTable(dbname_, env_, options_, storage_options_,\n                   table_cache_.get(), iter, &meta,\n                   user_comparator(), newest_snapshot,\n                   earliest_seqno_in_memtable,\n                   GetCompressionFlush(options_));",
+        "res_region": "    s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_,\n                   cfd->table_cache(), iter, &meta, cfd->internal_comparator(),\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(*cfd->full_options()));",
+        "lookback": "  Status s;\n  {\n    mutex_.Unlock();",
+        "lookahead": "    LogFlush(options_.info_log);\n    mutex_.Lock();",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1221,
+        "end_line": 1237,
+        "merge_gen_region": "s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_, cfd->table_cache(), iter, &meta, cfd->user_comparator_, newest_snapshot, earliest_seqno_in_memtable, GetCompressionFlush(*cfd->full_options()));",
+        "resolved": false
+    },
+    {
+        "a_contents": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd,\n                                std::vector<MemTable*>& mems, VersionEdit* edit,",
+        "b_contents": "\nStatus DBImpl::WriteLevel0Table(autovector<MemTable*>& mems, VersionEdit* edit,",
+        "base_contents": "\nStatus DBImpl::WriteLevel0Table(std::vector<MemTable*> &mems, VersionEdit* edit,",
+        "res_region": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd,\n                                autovector<MemTable*>& mems, VersionEdit* edit,",
+        "lookback": "  return s;\n}\n",
+        "lookahead": "                                uint64_t* filenumber) {\n  mutex_.AssertHeld();",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1268,
+        "end_line": 1277,
+        "merge_gen_region": "Status DBImpl::WriteLevel0Table(ColumnFamilyData* cfd, std::vector<MemTable*>& mems, VersionEdit* edit, uint64_t* filenumber) {",
+        "resolved": false
+    },
+    {
+        "a_contents": "    Iterator* iter =\n        NewMergingIterator(&cfd->internal_comparator(), &list[0], list.size());",
+        "b_contents": "    Iterator* iter = NewMergingIterator(\n        env_, &internal_comparator_, &memtables[0], memtables.size());",
+        "base_contents": "    Iterator* iter = NewMergingIterator(&internal_comparator_, &list[0],\n                                        list.size());",
+        "res_region": "    Iterator* iter = NewMergingIterator(env_, &cfd->internal_comparator(),\n                                        &memtables[0], memtables.size());\n    Log(options_.info_log, \"Level-0 flush table #%lu: started\",\n        (unsigned long)meta.number);\n\n    s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_,\n                   cfd->table_cache(), iter, &meta, cfd->internal_comparator(),\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(*cfd->full_options()));\n    LogFlush(options_.info_log);\n    delete iter;\n    Log(options_.info_log, \"Level-0 flush table #%lu: %lu bytes %s\",\n        (unsigned long) meta.number,\n        (unsigned long) meta.file_size,\n        s.ToString().c_str());\n    if (!options_.disableDataSync) {\n      db_directory_->Fsync();\n    }\n    mutex_.Lock();\n  }\n  base->Unref();\n\n  // re-acquire the most current version\n  base = cfd->current();\n\n  // There could be multiple threads writing to its own level-0 file.\n  // The pending_outputs cannot be cleared here, otherwise this newly\n  // created file might not be considered as a live-file by another\n  // compaction thread that is concurrently deleting obselete files.\n  // The pending_outputs can be cleared only after the new version is\n  // committed so that other threads can recognize this file as a\n  // valid one.\n  // pending_outputs_.erase(meta.number);\n\n  // Note that if file_size is zero, the file has been deleted and\n  // should not be added to the manifest.\n  int level = 0;\n  if (s.ok() && meta.file_size > 0) {\n    const Slice min_user_key = meta.smallest.user_key();\n    const Slice max_user_key = meta.largest.user_key();\n    // if we have more than 1 background thread, then we cannot\n    // insert files directly into higher levels because some other\n    // threads could be concurrently producing compacted files for\n    // that key range.\n    if (base != nullptr && options_.max_background_compactions <= 1 &&\n        cfd->options()->compaction_style == kCompactionStyleLevel) {\n      level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);\n    }\n    edit->AddFile(level, meta.number, meta.file_size,\n                  meta.smallest, meta.largest,\n                  meta.smallest_seqno, meta.largest_seqno);\n  }\n\n  InternalStats::CompactionStats stats;\n  stats.micros = env_->NowMicros() - start_micros;\n  stats.bytes_written = meta.file_size;\n  cfd->internal_stats()->AddCompactionStats(level, stats);\n  RecordTick(options_.statistics.get(), COMPACT_WRITE_BYTES, meta.file_size);\n  return s;\n}\n\nStatus DBImpl::FlushMemTableToOutputFile(ColumnFamilyData* cfd,\n                                         bool* madeProgress,\n                                         DeletionState& deletion_state) {\n  mutex_.AssertHeld();\n  assert(cfd->imm()->size() != 0);\n\n  if (!cfd->imm()->IsFlushPending()) {\n    Log(options_.info_log, \"FlushMemTableToOutputFile already in progress\");\n    return Status::IOError(\"FlushMemTableToOutputFile already in progress\");\n  }\n\n  // Save the contents of the earliest memtable as a new Table\n  uint64_t file_number;\n  autovector<MemTable*> mems;\n  cfd->imm()->PickMemtablesToFlush(&mems);\n  if (mems.empty()) {\n    Log(options_.info_log, \"Nothing in memstore to flush\");\n    return Status::IOError(\"Nothing in memstore to flush\");\n  }\n\n  // record the logfile_number_ before we release the mutex\n  // entries mems are (implicitly) sorted in ascending order by their created\n  // time. We will use the first memtable's `edit` to keep the meta info for\n  // this flush.\n  MemTable* m = mems[0];\n  VersionEdit* edit = m->GetEdits();\n  edit->SetPrevLogNumber(0);\n  // SetLogNumber(log_num) indicates logs with number smaller than log_num\n  // will no longer be picked up for recovery.\n  edit->SetLogNumber(mems.back()->GetNextLogNumber());\n  edit->SetColumnFamily(cfd->GetID());\n\n  std::vector<uint64_t> logs_to_delete;\n  for (auto mem : mems) {\n    logs_to_delete.push_back(mem->GetLogNumber());\n  }\n\n  // This will release and re-acquire the mutex.\n  Status s = WriteLevel0Table(cfd, mems, edit, &file_number);\n\n  if (s.ok() && shutting_down_.Acquire_Load()) {\n    s = Status::IOError(\n      \"Database shutdown started during memtable compaction\"\n    );\n  }\n\n  // Replace immutable memtable with the generated Table\n  s = cfd->imm()->InstallMemtableFlushResults(\n      cfd, mems, versions_.get(), s, &mutex_, options_.info_log.get(),\n      file_number, pending_outputs_, &deletion_state.memtables_to_free,\n      db_directory_.get());\n\n  if (s.ok()) {\n    InstallSuperVersion(cfd, deletion_state);\n    if (madeProgress) {\n      *madeProgress = 1;\n    }\n\n    MaybeScheduleLogDBDeployStats();\n\n    if (disable_delete_obsolete_files_ == 0) {\n      // add to deletion state\n      deletion_state.log_delete_files.insert(\n          deletion_state.log_delete_files.end(),\n          logs_to_delete.begin(),\n          logs_to_delete.end());\n    }\n  }\n  return s;\n}\n\nStatus DBImpl::CompactRange(const ColumnFamilyHandle& column_family,\n                            const Slice* begin, const Slice* end,\n                            bool reduce_level, int target_level) {\n  mutex_.Lock();\n  auto cfd = versions_->GetColumnFamilySet()->GetColumnFamily(column_family.id);\n  mutex_.Unlock();\n  // this is asserting because client calling DB methods with undefined\n  // ColumnFamilyHandle is undefined behavior.\n  assert(cfd != nullptr);\n\n  Status s = FlushMemTable(cfd, FlushOptions());\n  if (!s.ok()) {\n    LogFlush(options_.info_log);\n    return s;\n  }\n\n  int max_level_with_files = 1;\n  {\n    MutexLock l(&mutex_);\n    Version* base = cfd->current();\n    for (int level = 1; level < cfd->NumberLevels(); level++) {\n      if (base->OverlapInLevel(level, begin, end)) {\n        max_level_with_files = level;\n      }\n    }\n  }\n  for (int level = 0; level <= max_level_with_files; level++) {\n    // in case the compaction is unversal or if we're compacting the\n    // bottom-most level, the output level will be the same as input one\n    if (cfd->options()->compaction_style == kCompactionStyleUniversal ||\n        level == max_level_with_files) {\n      s = RunManualCompaction(cfd, level, level, begin, end);\n    } else {\n      s = RunManualCompaction(cfd, level, level + 1, begin, end);\n    }\n    if (!s.ok()) {\n      LogFlush(options_.info_log);\n      return s;\n    }\n  }\n\n  if (reduce_level) {\n    s = ReFitLevel(cfd, max_level_with_files, target_level);\n  }\n  LogFlush(options_.info_log);\n\n  return s;\n}\n\n// return the same level if it cannot be moved\nint DBImpl::FindMinimumEmptyLevelFitting(ColumnFamilyData* cfd, int level) {\n  mutex_.AssertHeld();\n  Version* current = cfd->current();\n  int minimum_level = level;\n  for (int i = level - 1; i > 0; --i) {\n    // stop if level i is not empty\n    if (current->NumLevelFiles(i) > 0) break;\n    // stop if level i is too small (cannot fit the level files)\n    if (cfd->compaction_picker()->MaxBytesForLevel(i) <\n        current->NumLevelBytes(level)) {\n      break;\n    }\n\n    minimum_level = i;\n  }\n  return minimum_level;\n}\n\nStatus DBImpl::ReFitLevel(ColumnFamilyData* cfd, int level, int target_level) {\n  assert(level < cfd->NumberLevels());\n\n  SuperVersion* superversion_to_free = nullptr;\n  SuperVersion* new_superversion = new SuperVersion();\n\n  mutex_.Lock();\n\n  // only allow one thread refitting\n  if (refitting_level_) {\n    mutex_.Unlock();\n    Log(options_.info_log, \"ReFitLevel: another thread is refitting\");\n    delete new_superversion;\n    return Status::NotSupported(\"another thread is refitting\");\n  }\n  refitting_level_ = true;\n\n  // wait for all background threads to stop\n  bg_work_gate_closed_ = true;\n  while (bg_compaction_scheduled_ > 0 || bg_flush_scheduled_) {",
+        "lookback": "          (unsigned long)m->GetLogNumber());\n      memtables.push_back(m->NewIterator());\n    }",
+        "lookahead": "    Log(options_.info_log,\n        \"RefitLevel: waiting for background threads to stop: %d %d\",",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1301,
+        "end_line": 1310,
+        "merge_gen_region": " Iterator* iter = NewMergingIterator( env_, &internal_comparator(), &memtables[0], memtables.size());",
+        "resolved": false
+    },
+    {
+        "a_contents": "    s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_,\n                   cfd->table_cache(), iter, &meta, cfd->user_comparator(),\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(*cfd->full_options()));",
+        "b_contents": "    s = BuildTable(dbname_, env_, options_, storage_options_,\n                   table_cache_.get(), iter, &meta, internal_comparator_,\n                   newest_snapshot, earliest_seqno_in_memtable,\n                   GetCompressionFlush(options_));",
+        "base_contents": "    s = BuildTable(dbname_, env_, options_, storage_options_,\n                   table_cache_.get(), iter, &meta,\n                   user_comparator(), newest_snapshot,\n                   earliest_seqno_in_memtable, GetCompressionFlush(options_));",
+        "res_region": "",
+        "lookback": "    bg_cv_.Wait();\n  }\n",
+        "lookahead": "  // move to a smaller level\n  int to_level = target_level;",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 1315,
+        "end_line": 1330,
+        "merge_gen_region": "s = BuildTable(dbname_, env_, *cfd->full_options(), storage_options_, cfd->table_cache(), iter, &meta, cfd->user_comparator_, newest_snapshot, earliest_seqno_in_memtable, GetCompressionFlush(*cfd->full_options()));",
+        "resolved": false
+    },
+    {
+        "a_contents": "  std::vector<MemTable*> mems;\n  cfd->imm()->PickMemtablesToFlush(&mems);",
+        "b_contents": "  autovector<MemTable*> mems;\n  imm_.PickMemtablesToFlush(&mems);",
+        "base_contents": "  std::vector<MemTable*> mems;\n  imm_.PickMemtablesToFlush(&mems);",
+        "res_region": "",
+        "lookback": "  assert(compact != nullptr);\n  assert(compact->builder == nullptr);\n  uint64_t file_number;",
+        "lookahead": "  // If we have not yet exhausted the pre-allocated file numbers,\n  // then use the one from the front. Otherwise, we have to acquire",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 1396,
+        "end_line": 1405,
+        "merge_gen_region": "autovector<MemTable*> mems; cfd->imm()->PickMemtablesToFlush(&mems);",
+        "resolved": false
+    },
+    {
+        "a_contents": "  return FlushMemTable(cfd, options);",
+        "b_contents": "Status DBImpl::Flush(const FlushOptions& options) {\n  return FlushMemTable(options);",
+        "base_contents": "Status DBImpl::Flush(const FlushOptions& options) {\n  Status status = FlushMemTable(options);\n  return status;",
+        "res_region": "  // Make the output file\n  std::string fname = TableFileName(dbname_, file_number);\n  Status s = env_->NewWritableFile(fname, &compact->outfile, storage_options_);\n\n  if (s.ok()) {\n    // Over-estimate slightly so we don't end up just barely crossing\n    // the threshold.\n    ColumnFamilyData* cfd = compact->compaction->column_family_data();\n    compact->outfile->SetPreallocationBlockSize(\n        1.1 * cfd->compaction_picker()->MaxFileSizeForLevel(\n                  compact->compaction->output_level()));\n\n    CompressionType compression_type = GetCompressionType(\n        *cfd->full_options(), compact->compaction->output_level(),\n        compact->compaction->enable_compression());\n\n    compact->builder.reset(\n        NewTableBuilder(*cfd->full_options(), cfd->internal_comparator(),\n                        compact->outfile.get(), compression_type));\n  }\n  LogFlush(options_.info_log);\n  return s;",
+        "lookback": "  out.smallest_seqno = out.largest_seqno = 0;\n  compact->outputs.push_back(out);\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1631,
+        "end_line": 1640,
+        "merge_gen_region": "return FlushMemTable(cfd, options);",
+        "resolved": false
+    },
+    {
+        "a_contents": "  DeletionState deletion_state(default_cfd_->options()->max_write_buffer_number,\n                               true);",
+        "b_contents": "  DeletionState deletion_state(true);",
+        "base_contents": "  DeletionState deletion_state(options_.max_write_buffer_number, true);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2031,
+        "end_line": 2038,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  DeletionState deletion_state(default_cfd_->options()->max_write_buffer_number,\n                               true);",
+        "b_contents": "  DeletionState deletion_state(true);",
+        "base_contents": "  DeletionState deletion_state(options_.max_write_buffer_number, true);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2089,
+        "end_line": 2096,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    compact->builder.reset(GetTableBuilder(\n        *cfd->full_options(), compact->outfile.get(), compression_type));",
+        "b_contents": "    compact->builder.reset(NewTableBuilder(options_, internal_comparator_,\n                                           compact->outfile.get(),\n                                           compression_type));",
+        "base_contents": "    compact->builder.reset(\n        GetTableBuilder(options_, compact->outfile.get(), compression_type));",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2357,
+        "end_line": 2367,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    ColumnFamilyData* cfd = compact->compaction->column_family_data();\n    Iterator* iter = cfd->table_cache()->NewIterator(\n        ReadOptions(), storage_options_, output_number, current_bytes);",
+        "b_contents": "    FileMetaData meta(output_number, current_bytes);\n    Iterator* iter = table_cache_->NewIterator(ReadOptions(), storage_options_,\n                                               internal_comparator_, meta);",
+        "base_contents": "    Iterator* iter = table_cache_->NewIterator(ReadOptions(),\n                                               storage_options_,\n                                               output_number,\n                                               current_bytes);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2414,
+        "end_line": 2427,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      &cfd->internal_comparator(), &iterator_list[0], iterator_list.size());",
+        "b_contents": "      env_, &internal_comparator_, &iterator_list[0], iterator_list.size());",
+        "base_contents": "      &internal_comparator_, &iterator_list[0], iterator_list.size());",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2942,
+        "end_line": 2948,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      NewMergingIterator(&cfd->internal_comparator(), &list[0], list.size());",
+        "b_contents": "    NewMergingIterator(env_, &internal_comparator_, &list[0], list.size());",
+        "base_contents": "    NewMergingIterator(&internal_comparator_, &list[0], list.size());",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 2984,
+        "end_line": 2990,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n  mutex_.Lock();\n  auto cfd = versions_->GetColumnFamilySet()->GetColumnFamily(column_family.id);\n  // this is asserting because client calling DB methods with undefined\n  // ColumnFamilyHandle is undefined behavior.\n  assert(cfd != nullptr);\n  SuperVersion* get_version = cfd->GetSuperVersion()->Ref();\n  mutex_.Unlock();\n",
+        "b_contents": "  StopWatchNano snapshot_timer(env_, false);\n  StartPerfTimer(&snapshot_timer);",
+        "base_contents": "",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "base",
+            "complex_conflict"
+        ],
+        "start_line": 3051,
+        "end_line": 3065,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  if (get_version->mem->Get(lkey, value, &s, merge_context,\n                            *cfd->full_options())) {",
+        "b_contents": "  BumpPerfTime(&perf_context.get_snapshot_time, &snapshot_timer);\n  if (get_version->mem->Get(lkey, value, &s, merge_context, options_)) {",
+        "base_contents": "  if (get_version->mem->Get(lkey, value, &s, merge_context, options_)) {",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3085,
+        "end_line": 3093,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "std::vector<Status> DBImpl::MultiGet(\n    const ReadOptions& options,\n    const std::vector<ColumnFamilyHandle>& column_family,\n    const std::vector<Slice>& keys, std::vector<std::string>* values) {\n",
+        "b_contents": "std::vector<Status> DBImpl::MultiGet(const ReadOptions& options,\n                                     const std::vector<Slice>& keys,\n                                     std::vector<std::string>* values) {",
+        "base_contents": "std::vector<Status> DBImpl::MultiGet(const ReadOptions& options,\n                                     const std::vector<Slice>& keys,\n                                     std::vector<std::string>* values) {\n",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "base_underutilized"
+        ],
+        "start_line": 3145,
+        "end_line": 3160,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  uint64_t bytes_read = 0;",
+        "b_contents": "  uint64_t bytesRead = 0;\n  BumpPerfTime(&perf_context.get_snapshot_time, &snapshot_timer);",
+        "base_contents": "  uint64_t bytesRead = 0;",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3204,
+        "end_line": 3211,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  autovector<SuperVersion*> superversions_to_delete;\n\n  bool schedule_flush_or_compaction = false;\n  mutex_.Lock();\n  for (auto mgd_iter : multiget_cf_data) {\n    auto mgd = mgd_iter.second;\n    auto cfd = mgd->cfd;\n    if (!cfd->options()->disable_seek_compaction && mgd->have_stat_update) {\n      if (mgd->super_version->current->UpdateStats(mgd->stats)) {\n        schedule_flush_or_compaction = true;\n      }",
+        "b_contents": "  // Post processing (decrement reference counts and record statistics)\n  StopWatchNano post_process_timer(env_, false);\n  StartPerfTimer(&post_process_timer);\n  bool delete_get_version = false;\n  if (!options_.disable_seek_compaction && have_stat_update) {\n    mutex_.Lock();\n    if (get_version->current->UpdateStats(stats)) {\n      MaybeScheduleFlushOrCompaction();",
+        "base_contents": "  bool delete_get_version = false;\n  if (!options_.disable_seek_compaction && have_stat_update) {\n    mutex_.Lock();\n    if (get_version->current->UpdateStats(stats)) {\n      MaybeScheduleFlushOrCompaction();",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3245,
+        "end_line": 3272,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_KEYS_READ, num_keys);\n  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_BYTES_READ, bytes_read);",
+        "b_contents": "  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_KEYS_READ, numKeys);\n  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_BYTES_READ, bytesRead);\n  BumpPerfTime(&perf_context.get_post_process_time, &post_process_timer);",
+        "base_contents": "  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_KEYS_READ, numKeys);\n  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_BYTES_READ, bytesRead);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3292,
+        "end_line": 3302,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "        // reading the column family set outside of DB mutex -- should lock\n        versions_->GetColumnFamilySet()->Lock();\n        status = WriteBatchInternal::InsertInto(\n            updates, column_family_memtables_.get(), 0, this, false);\n        versions_->GetColumnFamilySet()->Unlock();\n",
+        "b_contents": "        StopWatchNano write_memtable_timer(env_, false);\n        StartPerfTimer(&write_memtable_timer);\n        status = WriteBatchInternal::InsertInto(updates, mem_, &options_, this,\n                                                options_.filter_deletes);\n        BumpPerfTime(&perf_context.write_memtable_time, &write_memtable_timer);",
+        "base_contents": "        status = WriteBatchInternal::InsertInto(updates, mem_, &options_, this,\n                                                options_.filter_deletes);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3554,
+        "end_line": 3570,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "  delete superversion_to_free;\n  BumpPerfTime(&perf_context.write_pre_and_post_process_time,\n               &pre_post_process_timer);",
+        "base_contents": "  delete superversion_to_free;",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 3609,
+        "end_line": 3616,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "          lfile->SetPreallocationBlockSize(1.1 *\n                                           cfd->options()->write_buffer_size);\n          memtmp = new MemTable(cfd->internal_comparator(), *cfd->options());\n          new_superversion = new SuperVersion();",
+        "b_contents": "          lfile->SetPreallocationBlockSize(1.1 * options_.write_buffer_size);\n          new_mem = new MemTable(internal_comparator_, options_);\n          new_superversion = new SuperVersion();",
+        "base_contents": "          lfile->SetPreallocationBlockSize(1.1 * options_.write_buffer_size);\n          memtmp = new MemTable(internal_comparator_, options_);\n          new_superversion = new SuperVersion(options_.max_write_buffer_number);",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3843,
+        "end_line": 3856,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "      memtmp->Ref();\n      memtmp->SetLogNumber(logfile_number_);\n      cfd->SetMemtable(memtmp);\n      Log(options_.info_log, \"New memtable created with log file: #%lu\\n\",",
+        "b_contents": "      mem_ = new_mem;\n      mem_->Ref();\n      Log(options_.info_log,\n          \"New memtable created with log file: #%lu\\n\",",
+        "base_contents": "      mem_ = memtmp;\n      mem_->Ref();\n      Log(options_.info_log,\n          \"New memtable created with log file: #%lu\\n\",",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3873,
+        "end_line": 3888,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "  FileMetaData metadata;\n  ColumnFamilyData* cfd;",
+        "b_contents": "  FileMetaData* metadata;\n  int maxlevel = NumberLevels();",
+        "base_contents": "  FileMetaData metadata;\n  int maxlevel = NumberLevels();",
+        "res_region": "",
+        "lookback": "}\n\n}  // namespace rocksdb",
+        "lookahead": "",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 3980,
+        "end_line": 3989,
+        "merge_gen_region": "",
+        "resolved": true
+    }
+]

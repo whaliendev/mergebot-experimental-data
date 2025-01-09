@@ -100,10 +100,7 @@ static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
   if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
 }
 }
-Options SanitizeOptions(const std::string& dbname,
-                        const InternalKeyComparator* icmp,
-                        const InternalFilterPolicy* ipolicy,
-                        const Options& src) {
+Options SanitizeOptions(const std::string& dbname, const InternalKeyComparator* icmp, const InternalFilterPolicy* ipolicy, const Options& src) {
   auto db_options = SanitizeOptions(dbname, DBOptions(src));
   auto cf_options = SanitizeOptions(icmp, ipolicy, ColumnFamilyOptions(src));
   return Options(db_options, cf_options);
@@ -154,35 +151,7 @@ CompressionType GetCompressionFlush(const Options& options) {
     return kNoCompression;
   }
 }
-DBImpl::DBImpl(const DBOptions& options, const std::string& dbname)
-    : env_(options.env),
-      dbname_(dbname),
-      options_(SanitizeOptions(dbname, options)),
-      db_lock_(nullptr),
-      mutex_(options.use_adaptive_mutex),
-      shutting_down_(nullptr),
-      bg_cv_(&mutex_),
-      logfile_number_(0),
-      default_cf_handle_(nullptr),
-      tmp_batch_(),
-      bg_schedule_needed_(false),
-      bg_compaction_scheduled_(0),
-      bg_manual_only_(0),
-      bg_flush_scheduled_(0),
-      bg_logstats_scheduled_(false),
-      manual_compaction_(nullptr),
-      logger_(nullptr),
-      disable_delete_obsolete_files_(0),
-      delete_obsolete_files_last_run_(options.env->NowMicros()),
-      purge_wal_files_last_run_(0),
-      last_stats_dump_time_microsec_(0),
-      default_interval_to_delete_obsolete_WAL_(600),
-      flush_on_destroy_(false),
-      delayed_writes_(0),
-      storage_options_(options),
-      bg_work_gate_closed_(false),
-      refitting_level_(false),
-      opened_successfully_(false) {
+DBImpl::DBImpl(const DBOptions& options, const std::string& dbname): env_(options.env), dbname_(dbname), options_(SanitizeOptions(dbname, options)), db_lock_(nullptr), mutex_(options.use_adaptive_mutex), shutting_down_(nullptr), bg_cv_(&mutex_), logfile_number_(0), default_cf_handle_(nullptr), tmp_batch_(), bg_schedule_needed_(false), bg_compaction_scheduled_(0), bg_manual_only_(0), bg_flush_scheduled_(0), bg_logstats_scheduled_(false), manual_compaction_(nullptr), logger_(nullptr), disable_delete_obsolete_files_(0), delete_obsolete_files_last_run_(options.env->NowMicros()), purge_wal_files_last_run_(0), last_stats_dump_time_microsec_(0), default_interval_to_delete_obsolete_WAL_(600), flush_on_destroy_(false), delayed_writes_(0), storage_options_(options), bg_work_gate_closed_(false), refitting_level_(false), opened_successfully_(false) {
   env_->GetAbsolutePath(dbname, &db_absolute_path_);
   const int table_cache_size =
       (options_.max_open_files == -1) ? 4194304 : options_.max_open_files - 10;
@@ -1216,25 +1185,6 @@ Status DBImpl::TEST_CompactRange(int level, const Slice* begin,
           : level + 1;
   return RunManualCompaction(cfd, level, output_level, begin, end);
 }
-Status DBImpl::FlushMemTable(ColumnFamilyData* cfd,
-                             const FlushOptions& options) {
-  Status s = Write(WriteOptions(), nullptr);
-  if (s.ok() && options.wait) {
-    s = WaitForFlushMemTable(cfd);
-  }
-  return s;
-}
-Status DBImpl::WaitForFlushMemTable(ColumnFamilyData* cfd) {
-  Status s;
-  MutexLock l(&mutex_);
-  while (cfd->imm()->size() > 0 && bg_error_.ok()) {
-    bg_cv_.Wait();
-  }
-  if (!bg_error_.ok()) {
-    s = bg_error_;
-  }
-  return s;
-}
 Status DBImpl::TEST_FlushMemTable() {
   return FlushMemTable(default_cf_handle_->cfd(), FlushOptions());
 }
@@ -1968,7 +1918,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
 }
 namespace {
 struct IterState {
-  IterState(DBImpl* db, port::Mutex* mu, SuperVersion* super_version): db(db), mu(mu), super_version(super_version) {}
+  IterState(DBImpl* db, port::Mutex* mu, SuperVersion* super_version)
+      : db(db), mu(mu), super_version(super_version) {}
   DBImpl* db;
   port::Mutex* mu;
   SuperVersion* super_version;
@@ -1989,63 +1940,6 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
   }
   delete state;
 }
-}
-namespace {
-struct IterState {
-  IterState(DBImpl* db, port::Mutex* mu, DBImpl::SuperVersion* super_version): db(db), mu(mu), super_version(super_version) {}
-  DBImpl* db;
-  port::Mutex* mu;
-  DBImpl::SuperVersion* super_version;
-};
-static void CleanupIteratorState(void* arg1, void* arg2) {
-  IterState* state = reinterpret_cast<IterState*>(arg1);
-  bool need_cleanup = state->super_version->Unref();
-  if (need_cleanup) {
-    DBImpl::DeletionState deletion_state;
-    state->mu->Lock();
-    state->super_version->Cleanup();
-    state->db->FindObsoleteFiles(deletion_state, false, true);
-    state->mu->Unlock();
-    delete state->super_version;
-    if (deletion_state.HaveSomethingToDelete()) {
-      state->db->PurgeObsoleteFiles(deletion_state);
-    }
-  }
-  delete state;
-}
-}
-Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
-                                      ColumnFamilyData* cfd,
-                                      SuperVersion* super_version) {
-  std::vector<Iterator*> iterator_list;
-  iterator_list.push_back(super_version->mem->NewIterator(options));
-  super_version->imm->AddIterators(options, &iterator_list);
-  super_version->current->AddIterators(options, storage_options_,
-                                       &iterator_list);
-  Iterator* internal_iter =
-      NewMergingIterator(env_, &cfd->internal_comparator(), &iterator_list[0],
-                         iterator_list.size());
-  IterState* cleanup = new IterState(this, &mutex_, super_version);
-  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
-  return internal_iter;
-}
-ColumnFamilyHandle* DBImpl::DefaultColumnFamily() const {
-  return default_cf_handle_;
-}
-Iterator* DBImpl::TEST_NewInternalIterator(ColumnFamilyHandle* column_family) {
-  ColumnFamilyData* cfd;
-  if (column_family == nullptr) {
-    cfd = default_cf_handle_->cfd();
-  } else {
-    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
-    cfd = cfh->cfd();
-  }
-  mutex_.Lock();
-  SuperVersion* super_version = cfd->GetSuperVersion()->Ref();
-  mutex_.Unlock();
-  ReadOptions roptions;
-  roptions.prefix_seek = true;
-  return NewInternalIterator(roptions, cfd, super_version);
 }
 std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(
     const ReadOptions& options, ColumnFamilyData* cfd,
@@ -2074,52 +1968,10 @@ std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(
     new IterState(this, &mutex_, super_version->Ref()), nullptr);
   return std::make_pair(mutable_iter, immutable_iter);
 }
-int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes(
-    ColumnFamilyHandle* column_family) {
-  ColumnFamilyData* cfd;
-  if (column_family == nullptr) {
-    cfd = default_cf_handle_->cfd();
-  } else {
-    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
-    cfd = cfh->cfd();
-  }
-  MutexLock l(&mutex_);
-  return cfd->current()->MaxNextLevelOverlappingBytes();
-}
 Status DBImpl::Get(const ReadOptions& options,
                    ColumnFamilyHandle* column_family, const Slice& key,
                    std::string* value) {
   return GetImpl(options, column_family, key, value);
-}
-DBImpl::SuperVersion* DBImpl::InstallSuperVersion(
-    SuperVersion* new_superversion) {
-  mutex_.AssertHeld();
-  new_superversion->Init(mem_, imm_.current(), versions_->current());
-  SuperVersion* old_superversion = super_version_;
-  super_version_ = new_superversion;
-  super_version_->db = this;
-  ++super_version_number_;
-  super_version_->version_number = super_version_number_;
-  if (old_superversion != nullptr && old_superversion->Unref()) {
-    old_superversion->Cleanup();
-    return old_superversion;
-  }
-  return nullptr;
-}
-DBImpl::SuperVersion* DBImpl::InstallSuperVersion(
-    SuperVersion* new_superversion) {
-  mutex_.AssertHeld();
-  new_superversion->Init(mem_, imm_.current(), versions_->current());
-  SuperVersion* old_superversion = super_version_;
-  super_version_ = new_superversion;
-  super_version_->db = this;
-  ++super_version_number_;
-  super_version_->version_number = super_version_number_;
-  if (old_superversion != nullptr && old_superversion->Unref()) {
-    old_superversion->Cleanup();
-    return old_superversion;
-  }
-  return nullptr;
 }
 Status DBImpl::GetImpl(const ReadOptions& options,
                        ColumnFamilyHandle* column_family, const Slice& key,
@@ -2215,163 +2067,6 @@ Status DBImpl::GetImpl(const ReadOptions& options,
   BumpPerfTime(&perf_context.get_post_process_time, &post_process_timer);
   return s;
 }
-std::vector<Status> DBImpl::MultiGet(
-    const ReadOptions& options,
-    const std::vector<ColumnFamilyHandle*>& column_family,
-    const std::vector<Slice>& keys, std::vector<std::string>* values) {
-  StopWatch sw(env_, options_.statistics.get(), DB_MULTIGET, false);
-  StopWatchNano snapshot_timer(env_, false);
-  StartPerfTimer(&snapshot_timer);
-  SequenceNumber snapshot;
-  struct MultiGetColumnFamilyData {
-    ColumnFamilyData* cfd;
-    SuperVersion* super_version;
-    Version::GetStats stats;
-    bool have_stat_update = false;
-  };
-  std::unordered_map<uint32_t, MultiGetColumnFamilyData*> multiget_cf_data;
-  for (auto cf : column_family) {
-    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(cf);
-    auto cfd = cfh->cfd();
-    if (multiget_cf_data.find(cfd->GetID()) == multiget_cf_data.end()) {
-      auto mgcfd = new MultiGetColumnFamilyData();
-      mgcfd->cfd = cfd;
-      multiget_cf_data.insert({cfd->GetID(), mgcfd});
-    }
-  }
-  mutex_.Lock();
-  if (options.snapshot != nullptr) {
-    snapshot = reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_;
-  } else {
-    snapshot = versions_->LastSequence();
-  }
-  for (auto mgd_iter : multiget_cf_data) {
-    mgd_iter.second->super_version =
-        mgd_iter.second->cfd->GetSuperVersion()->Ref();
-  }
-  mutex_.Unlock();
-  MergeContext merge_context;
-  size_t num_keys = keys.size();
-  std::vector<Status> stat_list(num_keys);
-  values->resize(num_keys);
-  uint64_t bytes_read = 0;
-  BumpPerfTime(&perf_context.get_snapshot_time, &snapshot_timer);
-  for (size_t i = 0; i < num_keys; ++i) {
-    merge_context.Clear();
-    Status& s = stat_list[i];
-    std::string* value = &(*values)[i];
-    LookupKey lkey(keys[i], snapshot);
-    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family[i]);
-    auto mgd_iter = multiget_cf_data.find(cfh->cfd()->GetID());
-    assert(mgd_iter != multiget_cf_data.end());
-    auto mgd = mgd_iter->second;
-    auto super_version = mgd->super_version;
-    auto cfd = mgd->cfd;
-    if (super_version->mem->Get(lkey, value, &s, merge_context,
-                                *cfd->options())) {
-    } else if (super_version->imm->Get(lkey, value, &s, merge_context,
-                                       *cfd->options())) {
-    } else {
-      super_version->current->Get(options, lkey, value, &s, &merge_context,
-                                  &mgd->stats, *cfd->options());
-      mgd->have_stat_update = true;
-    }
-    if (s.ok()) {
-      bytes_read += value->size();
-    }
-  }
-  StopWatchNano post_process_timer(env_, false);
-  StartPerfTimer(&post_process_timer);
-  autovector<SuperVersion*> superversions_to_delete;
-  bool schedule_flush_or_compaction = false;
-  mutex_.Lock();
-  for (auto mgd_iter : multiget_cf_data) {
-    auto mgd = mgd_iter.second;
-    auto cfd = mgd->cfd;
-    if (!cfd->options()->disable_seek_compaction && mgd->have_stat_update) {
-      if (mgd->super_version->current->UpdateStats(mgd->stats)) {
-        schedule_flush_or_compaction = true;
-      }
-    }
-    if (mgd->super_version->Unref()) {
-      mgd->super_version->Cleanup();
-      superversions_to_delete.push_back(mgd->super_version);
-    }
-  }
-  if (schedule_flush_or_compaction) {
-    MaybeScheduleFlushOrCompaction();
-  }
-  mutex_.Unlock();
-  for (auto td : superversions_to_delete) {
-    delete td;
-  }
-  for (auto mgd : multiget_cf_data) {
-    delete mgd.second;
-  }
-  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_CALLS);
-  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_KEYS_READ, num_keys);
-  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_BYTES_READ, bytes_read);
-  BumpPerfTime(&perf_context.get_post_process_time, &post_process_timer);
-  return stat_list;
-}
-Status DBImpl::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
-  *handle = nullptr;
-  MutexLock l(&mutex_);
-  if (versions_->GetColumnFamilySet()->GetColumnFamily(column_family_name) !=
-      nullptr) {
-    return Status::InvalidArgument("Column family already exists");
-  }
-  VersionEdit edit;
-  edit.AddColumnFamily(column_family_name);
-  uint32_t new_id = versions_->GetColumnFamilySet()->GetNextColumnFamilyID();
-  edit.SetColumnFamily(new_id);
-  edit.SetLogNumber(logfile_number_);
-  edit.SetComparatorName(options.comparator->Name());
-  Status s = versions_->LogAndApply(nullptr, &edit, &mutex_,
-                                    db_directory_.get(), false, &options);
-  if (s.ok()) {
-    auto cfd =
-        versions_->GetColumnFamilySet()->GetColumnFamily(column_family_name);
-    assert(cfd != nullptr);
-    delete cfd->InstallSuperVersion(new SuperVersion(), &mutex_);
-    *handle = new ColumnFamilyHandleImpl(cfd, this, &mutex_);
-    Log(options_.info_log, "Created column family \"%s\" (ID %u)",
-        column_family_name.c_str(), (unsigned)cfd->GetID());
-  } else {
-    Log(options_.info_log, "Creating column family \"%s\" FAILED -- %s",
-        column_family_name.c_str(), s.ToString().c_str());
-  }
-  return s;
-}
-Status DBImpl::DropColumnFamily(ColumnFamilyHandle* column_family) {
-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
-  auto cfd = cfh->cfd();
-  if (cfd->GetID() == 0) {
-    return Status::InvalidArgument("Can't drop default column family");
-  }
-  VersionEdit edit;
-  edit.DropColumnFamily();
-  edit.SetColumnFamily(cfd->GetID());
-  Status s;
-  {
-    MutexLock l(&mutex_);
-    if (cfd->IsDropped()) {
-      s = Status::InvalidArgument("Column family already dropped!\n");
-    }
-    if (s.ok()) {
-      s = versions_->LogAndApply(cfd, &edit, &mutex_);
-    }
-  }
-  if (s.ok()) {
-    assert(cfd->IsDropped());
-    Log(options_.info_log, "Dropped column family with id %u\n", cfd->GetID());
-    Write(WriteOptions(), nullptr);
-  } else {
-    Log(options_.info_log, "Dropping column family with id %u FAILED -- %s\n",
-        cfd->GetID(), s.ToString().c_str());
-  }
-  return s;
-}
 bool DBImpl::KeyMayExist(const ReadOptions& options,
                          ColumnFamilyHandle* column_family, const Slice& key,
                          std::string* value, bool* value_found) {
@@ -2383,76 +2078,6 @@ bool DBImpl::KeyMayExist(const ReadOptions& options,
   auto s = GetImpl(roptions, column_family, key, value, value_found);
   return s.ok() || s.IsIncomplete();
 }
-Iterator* DBImpl::NewIterator(const ReadOptions& options,
-                              ColumnFamilyHandle* column_family) {
-  SequenceNumber latest_snapshot = 0;
-  SuperVersion* super_version = nullptr;
-  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
-  auto cfd = cfh->cfd();
-  if (!options.tailing) {
-    mutex_.Lock();
-    super_version = cfd->GetSuperVersion()->Ref();
-    latest_snapshot = versions_->LastSequence();
-    mutex_.Unlock();
-  }
-  Iterator* iter;
-  if (options.tailing) {
-    iter = new TailingIterator(this, options, cfd);
-  } else {
-    iter = NewInternalIterator(options, cfd, super_version);
-    auto snapshot =
-        options.snapshot != nullptr
-            ? reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_
-            : latest_snapshot;
-    iter = NewDBIterator(&dbname_, env_, *cfd->options(),
-                         cfd->user_comparator(), iter, snapshot);
-  }
-  if (options.prefix) {
-    iter = new PrefixFilterIterator(iter, *options.prefix,
-                                    cfd->options()->prefix_extractor.get());
-  }
-  return iter;
-}
-Status DBImpl::NewIterators(const ReadOptions& options, const std::vector<ColumnFamilyHandle*>& column_families, std::vector<Iterator*>* iterators) {
-  if (options.prefix) {
-    return Status::NotSupported(
-        "NewIterators doesn't support ReadOptions::prefix");
-  }
-  iterators->clear();
-  iterators->reserve(column_families.size());
-  SequenceNumber latest_snapshot = 0;
-  std::vector<SuperVersion*> super_versions;
-  super_versions.reserve(column_families.size());
-  if (!options.tailing) {
-    mutex_.Lock();
-    latest_snapshot = versions_->LastSequence();
-    for (auto cfh : column_families) {
-      auto cfd = reinterpret_cast<ColumnFamilyHandleImpl*>(cfh)->cfd();
-      super_versions.push_back(cfd->GetSuperVersion()->Ref());
-    }
-    mutex_.Unlock();
-  }
-  if (options.tailing) {
-    for (auto cfh : column_families) {
-      auto cfd = reinterpret_cast<ColumnFamilyHandleImpl*>(cfh)->cfd();
-      iterators->push_back(new TailingIterator(this, options, cfd));
-    }
-  } else {
-    for (size_t i = 0; i < column_families.size(); ++i) {
-      auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_families[i]);
-      auto cfd = cfh->cfd();
-      auto snapshot =
-          options.snapshot != nullptr
-              ? reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_
-              : latest_snapshot;
-      auto iter = NewInternalIterator(options, cfd, super_versions[i]);
-      iter = NewDBIterator(&dbname_, env_, *cfd->options(),
-                           cfd->user_comparator(), iter, snapshot);
-      iterators->push_back(iter);
-    }
-  }
-  return Status::OK();
-}
 const Snapshot* DBImpl::GetSnapshot() {
   MutexLock l(&mutex_);
   return snapshots_.New(versions_->LastSequence());
@@ -2461,8 +2086,7 @@ void DBImpl::ReleaseSnapshot(const Snapshot* s) {
   MutexLock l(&mutex_);
   snapshots_.Delete(reinterpret_cast<const SnapshotImpl*>(s));
 }
-Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
-                   const Slice& key, const Slice& val) {
+Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family, const Slice& key, const Slice& val) {
   return DB::Put(o, column_family, key, val);
 }
 Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
@@ -2474,8 +2098,7 @@ Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
     return DB::Merge(o, column_family, key, val);
   }
 }
-Status DBImpl::Delete(const WriteOptions& options,
-                      ColumnFamilyHandle* column_family, const Slice& key) {
+Status DBImpl::Delete(const WriteOptions& options, ColumnFamilyHandle* column_family, const Slice& key) {
   return DB::Delete(options, column_family, key);
 }
 Status DBImpl::Write(const WriteOptions& options, WriteBatch* my_batch) {
@@ -2772,8 +2395,7 @@ Status DBImpl::MakeRoomForWrite(ColumnFamilyData* cfd, bool force) {
       {
         DelayLoggingAndReset();
         s = env_->NewWritableFile(LogFileName(options_.wal_dir, new_log_number),
-                                  &lfile,
-                                  env_->OptimizeForLogWrite(storage_options_));
+                                  &lfile, storage_options_.AdaptForLogWrite());
         if (s.ok()) {
           lfile->SetPreallocationBlockSize(1.1 *
                                            cfd->options()->write_buffer_size);
@@ -2813,8 +2435,7 @@ Status DBImpl::MakeRoomForWrite(ColumnFamilyData* cfd, bool force) {
   }
   return s;
 }
-Status DBImpl::GetPropertiesOfAllTables(ColumnFamilyHandle* column_family,
-                                        TablePropertiesCollection* props) {
+Status DBImpl::GetPropertiesOfAllTables(ColumnFamilyHandle* column_family, TablePropertiesCollection* props) {
   auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
   auto cfd = cfh->cfd();
   mutex_.Lock();
@@ -2837,16 +2458,14 @@ const Options& DBImpl::GetOptions(ColumnFamilyHandle* column_family) const {
   auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
   return *cfh->cfd()->options();
 }
-bool DBImpl::GetProperty(ColumnFamilyHandle* column_family,
-                         const Slice& property, std::string* value) {
+bool DBImpl::GetProperty(ColumnFamilyHandle* column_family, const Slice& property, std::string* value) {
   value->clear();
   auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
   auto cfd = cfh->cfd();
   MutexLock l(&mutex_);
   return cfd->internal_stats()->GetProperty(property, value, cfd);
 }
-void DBImpl::GetApproximateSizes(ColumnFamilyHandle* column_family,
-                                 const Range* range, int n, uint64_t* sizes) {
+void DBImpl::GetApproximateSizes(ColumnFamilyHandle* column_family, const Range* range, int n, uint64_t* sizes) {
   Version* v;
   auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
   auto cfd = cfh->cfd();
@@ -2958,71 +2577,32 @@ void DBImpl::TEST_GetFilesMetaData(
     }
   }
 }
-Status DBImpl::GetDbIdentity(std::string& identity) {
-  std::string idfilename = IdentityFileName(dbname_);
-  unique_ptr<SequentialFile> idfile;
-  const EnvOptions soptions;
-  Status s = env_->NewSequentialFile(idfilename, &idfile, soptions);
-  if (!s.ok()) {
-    return s;
-  }
-  uint64_t file_size;
-  s = env_->GetFileSize(idfilename, &file_size);
-  if (!s.ok()) {
-    return s;
-  }
-  char buffer[file_size];
-  Slice id;
-  s = idfile->Read(file_size, &id, buffer);
-  if (!s.ok()) {
-    return s;
-  }
-  identity.assign(id.ToString());
-  if (identity.size() > 0 && identity.back() == '\n') {
-    identity.pop_back();
-  }
-  return s;
-}
-Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
-               const Slice& key, const Slice& value) {
-  WriteBatch batch(key.size() + value.size() + 24);
-  batch.Put(column_family, key, value);
-  return Write(opt, &batch);
-}
-Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
-                  const Slice& key) {
-  WriteBatch batch;
-  batch.Delete(column_family, key);
-  return Write(opt, &batch);
-}
 Status DB::Merge(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                  const Slice& key, const Slice& value) {
   WriteBatch batch;
   batch.Merge(column_family, key, value);
   return Write(opt, &batch);
 }
-Status DB::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
-  return Status::NotSupported("");
-}
-Status DB::DropColumnFamily(ColumnFamilyHandle* column_family) {
-  return Status::NotSupported("");
-}
 DB::~DB() { }
-Status DB::Open(const DBOptions& db_options, const std::string& dbname,
-                const std::vector<ColumnFamilyDescriptor>& column_families,
-                std::vector<ColumnFamilyHandle*>* handles, DB** dbptr) {
+Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
+<<<<<<< HEAD
+  DBOptions db_options(options);
+  ColumnFamilyOptions cf_options(options);
+  std::vector<ColumnFamilyDescriptor> column_families;
+  column_families.push_back(
+      ColumnFamilyDescriptor(default_column_family_name, cf_options));
+  std::vector<ColumnFamilyHandle*> handles;
+  Status s = DB::Open(db_options, dbname, column_families, &handles, dbptr);
+  if (s.ok()) {
+    assert(handles.size() == 1);
+    delete handles[0];
+||||||| 5601bc461
   *dbptr = nullptr;
-  handles->clear();
-  size_t max_write_buffer_size = 0;
-  for (auto cf : column_families) {
-    max_write_buffer_size =
-        std::max(max_write_buffer_size, cf.options.write_buffer_size);
-    if (cf.options.block_cache != nullptr && cf.options.no_block_cache) {
-      return Status::InvalidArgument(
-          "no_block_cache is true while block_cache is not nullptr");
-    }
+  if (options.block_cache != nullptr && options.no_block_cache) {
+    return Status::InvalidArgument(
+        "no_block_cache is true while block_cache is not nullptr");
   }
-  DBImpl* impl = new DBImpl(db_options, dbname);
+  DBImpl* impl = new DBImpl(options, dbname);
   Status s = impl->env_->CreateDirIfMissing(impl->options_.wal_dir);
   if (!s.ok()) {
     delete impl;
@@ -3034,54 +2614,39 @@ Status DB::Open(const DBOptions& db_options, const std::string& dbname,
     return s;
   }
   impl->mutex_.Lock();
-  s = impl->Recover(column_families);
+  s = impl->Recover();
   if (s.ok()) {
     uint64_t new_log_number = impl->versions_->NewFileNumber();
     unique_ptr<WritableFile> lfile;
-    EnvOptions soptions(db_options);
+    EnvOptions soptions(options);
     s = impl->options_.env->NewWritableFile(
         LogFileName(impl->options_.wal_dir, new_log_number), &lfile,
-        impl->options_.env->OptimizeForLogWrite(soptions));
+        soptions.AdaptForLogWrite());
     if (s.ok()) {
-      lfile->SetPreallocationBlockSize(1.1 * max_write_buffer_size);
+      lfile->SetPreallocationBlockSize(1.1 * impl->options_.write_buffer_size);
+      VersionEdit edit;
+      edit.SetLogNumber(new_log_number);
       impl->logfile_number_ = new_log_number;
       impl->log_.reset(new log::Writer(std::move(lfile)));
-      for (auto cf : column_families) {
-        auto cfd =
-            impl->versions_->GetColumnFamilySet()->GetColumnFamily(cf.name);
-        if (cfd == nullptr) {
-          s = Status::InvalidArgument("Column family not found: ", cf.name);
-          break;
-        }
-        handles->push_back(
-            new ColumnFamilyHandleImpl(cfd, impl, &impl->mutex_));
-      }
+      s = impl->versions_->LogAndApply(&edit, &impl->mutex_,
+                                       impl->db_directory_.get());
     }
     if (s.ok()) {
-      for (auto cfd : *impl->versions_->GetColumnFamilySet()) {
-        delete cfd->InstallSuperVersion(new SuperVersion(), &impl->mutex_);
-        impl->alive_log_files_.push_back(impl->logfile_number_);
-      }
+      delete impl->InstallSuperVersion(new DBImpl::SuperVersion());
+      impl->mem_->SetLogNumber(impl->logfile_number_);
       impl->DeleteObsoleteFiles();
       impl->MaybeScheduleFlushOrCompaction();
       impl->MaybeScheduleLogDBDeployStats();
       s = impl->db_directory_->Fsync();
     }
   }
-  if (s.ok()) {
-    for (auto cfd : *impl->versions_->GetColumnFamilySet()) {
-      if (cfd->options()->compaction_style == kCompactionStyleUniversal) {
-        Version* current = cfd->current();
-        for (int i = 1; i < current->NumberLevels(); ++i) {
-          int num_files = current->NumLevelFiles(i);
-          if (num_files > 0) {
-            s = Status::InvalidArgument("Not all files are at level 0. Cannot "
-                "open with universal compaction style.");
-            break;
-          }
-        }
-      }
-      if (!s.ok()) {
+  if (s.ok() && impl->options_.compaction_style == kCompactionStyleUniversal) {
+    Version* current = impl->versions_->current();
+    for (int i = 1; i < impl->NumberLevels(); i++) {
+      int num_files = current->NumLevelFiles(i);
+      if (num_files > 0) {
+        s = Status::InvalidArgument("Not all files are at level 0. Cannot "
+          "open with universal compaction style.");
         break;
       }
     }
@@ -3091,16 +2656,71 @@ Status DB::Open(const DBOptions& db_options, const std::string& dbname,
     impl->opened_successfully_ = true;
     *dbptr = impl;
   } else {
-    for (auto h : *handles) {
-      delete h;
-    }
-    handles->clear();
     delete impl;
+=======
+  *dbptr = nullptr;
+  if (options.block_cache != nullptr && options.no_block_cache) {
+    return Status::InvalidArgument(
+        "no_block_cache is true while block_cache is not nullptr");
+  }
+  DBImpl* impl = new DBImpl(options, dbname);
+  Status s = impl->env_->CreateDirIfMissing(impl->options_.wal_dir);
+  if (!s.ok()) {
+    delete impl;
+    return s;
+  }
+  s = impl->CreateArchivalDirectory();
+  if (!s.ok()) {
+    delete impl;
+    return s;
+  }
+  impl->mutex_.Lock();
+  s = impl->Recover();
+  if (s.ok()) {
+    uint64_t new_log_number = impl->versions_->NewFileNumber();
+    unique_ptr<WritableFile> lfile;
+    EnvOptions soptions(options);
+    s = impl->options_.env->NewWritableFile(
+        LogFileName(impl->options_.wal_dir, new_log_number), &lfile,
+        impl->options_.env->OptimizeForLogWrite(soptions));
+    if (s.ok()) {
+      lfile->SetPreallocationBlockSize(1.1 * impl->options_.write_buffer_size);
+      VersionEdit edit;
+      edit.SetLogNumber(new_log_number);
+      impl->logfile_number_ = new_log_number;
+      impl->log_.reset(new log::Writer(std::move(lfile)));
+      s = impl->versions_->LogAndApply(&edit, &impl->mutex_,
+                                       impl->db_directory_.get());
+    }
+    if (s.ok()) {
+      delete impl->InstallSuperVersion(new DBImpl::SuperVersion());
+      impl->mem_->SetLogNumber(impl->logfile_number_);
+      impl->DeleteObsoleteFiles();
+      impl->MaybeScheduleFlushOrCompaction();
+      impl->MaybeScheduleLogDBDeployStats();
+      s = impl->db_directory_->Fsync();
+    }
+  }
+  if (s.ok() && impl->options_.compaction_style == kCompactionStyleUniversal) {
+    Version* current = impl->versions_->current();
+    for (int i = 1; i < impl->NumberLevels(); i++) {
+      int num_files = current->NumLevelFiles(i);
+      if (num_files > 0) {
+        s = Status::InvalidArgument("Not all files are at level 0. Cannot "
+          "open with universal compaction style.");
+        break;
+      }
+    }
+  }
+  impl->mutex_.Unlock();
+  if (s.ok()) {
+    impl->opened_successfully_ = true;
+    *dbptr = impl;
+  } else {
+    delete impl;
+>>>>>>> 63cef90078a324233686ce0d9bb5c255545f2d3d
   }
   return s;
-}
-Status DB::ListColumnFamilies(const DBOptions& db_options, const std::string& name, std::vector<std::string>* column_families) {
-  return VersionSet::ListColumnFamilies(column_families, name, db_options.env);
 }
 Snapshot::~Snapshot() {
 }
@@ -3236,5 +2856,434 @@ int DBImpl::Level0StopWriteTrigger(ColumnFamilyHandle* column_family) {
 Status DBImpl::Flush(const FlushOptions& options, ColumnFamilyHandle* column_family) {
   auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
   return FlushMemTable(cfh->cfd(), options);
+}
+Status DBImpl::FlushMemTable(ColumnFamilyData* cfd, const FlushOptions& options) {
+  Status s = Write(WriteOptions(), nullptr);
+  if (s.ok() && options.wait) {
+    s = WaitForFlushMemTable(cfd);
+  }
+  return s;
+}
+Status DBImpl::WaitForFlushMemTable(ColumnFamilyData* cfd) {
+  Status s;
+  MutexLock l(&mutex_);
+  while (cfd->imm()->size() > 0 && bg_error_.ok()) {
+    bg_cv_.Wait();
+  }
+  if (!bg_error_.ok()) {
+    s = bg_error_;
+  }
+  return s;
+}
+Iterator* DBImpl::NewInternalIterator(const ReadOptions& options, ColumnFamilyData* cfd, SuperVersion* super_version) {
+  std::vector<Iterator*> iterator_list;
+  iterator_list.push_back(super_version->mem->NewIterator(options));
+  super_version->imm->AddIterators(options, &iterator_list);
+  super_version->current->AddIterators(options, storage_options_,
+                                       &iterator_list);
+  Iterator* internal_iter =
+      NewMergingIterator(env_, &cfd->internal_comparator(), &iterator_list[0],
+                         iterator_list.size());
+  IterState* cleanup = new IterState(this, &mutex_, super_version);
+  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
+  return internal_iter;
+}
+ColumnFamilyHandle* DBImpl::DefaultColumnFamily() const {
+  return default_cf_handle_;
+}
+Iterator* DBImpl::TEST_NewInternalIterator(ColumnFamilyHandle* column_family) {
+  ColumnFamilyData* cfd;
+  if (column_family == nullptr) {
+    cfd = default_cf_handle_->cfd();
+  } else {
+    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+    cfd = cfh->cfd();
+  }
+  mutex_.Lock();
+  SuperVersion* super_version = cfd->GetSuperVersion()->Ref();
+  mutex_.Unlock();
+  ReadOptions roptions;
+  roptions.prefix_seek = true;
+  return NewInternalIterator(roptions, cfd, super_version);
+}
+int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes(ColumnFamilyHandle* column_family) {
+  ColumnFamilyData* cfd;
+  if (column_family == nullptr) {
+    cfd = default_cf_handle_->cfd();
+  } else {
+    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+    cfd = cfh->cfd();
+  }
+  MutexLock l(&mutex_);
+  return cfd->current()->MaxNextLevelOverlappingBytes();
+}
+void DBImpl::InstallSuperVersion(ColumnFamilyData* cfd, DeletionState& deletion_state) {
+  mutex_.AssertHeld();
+  SuperVersion* new_superversion =
+    (deletion_state.new_superversion != nullptr) ?
+    deletion_state.new_superversion : new SuperVersion();
+  SuperVersion* old_superversion =
+      cfd->InstallSuperVersion(new_superversion, &mutex_);
+  deletion_state.new_superversion = nullptr;
+  deletion_state.superversions_to_free.push_back(old_superversion);
+  if (options_.allow_thread_local) {
+    cfd->ResetThreadLocalSuperVersions();
+  }
+}
+std::vector<Status> DBImpl::MultiGet(const ReadOptions& options, const std::vector<ColumnFamilyHandle*>& column_family, const std::vector<Slice>& keys, std::vector<std::string>* values) {
+  StopWatch sw(env_, options_.statistics.get(), DB_MULTIGET, false);
+  StopWatchNano snapshot_timer(env_, false);
+  StartPerfTimer(&snapshot_timer);
+  SequenceNumber snapshot;
+  struct MultiGetColumnFamilyData {
+    ColumnFamilyData* cfd;
+    SuperVersion* super_version;
+    Version::GetStats stats;
+    bool have_stat_update = false;
+  };
+  std::unordered_map<uint32_t, MultiGetColumnFamilyData*> multiget_cf_data;
+  for (auto cf : column_family) {
+    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(cf);
+    auto cfd = cfh->cfd();
+    if (multiget_cf_data.find(cfd->GetID()) == multiget_cf_data.end()) {
+      auto mgcfd = new MultiGetColumnFamilyData();
+      mgcfd->cfd = cfd;
+      multiget_cf_data.insert({cfd->GetID(), mgcfd});
+    }
+  }
+  mutex_.Lock();
+  if (options.snapshot != nullptr) {
+    snapshot = reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_;
+  } else {
+    snapshot = versions_->LastSequence();
+  }
+  for (auto mgd_iter : multiget_cf_data) {
+    mgd_iter.second->super_version =
+        mgd_iter.second->cfd->GetSuperVersion()->Ref();
+  }
+  mutex_.Unlock();
+  MergeContext merge_context;
+  size_t num_keys = keys.size();
+  std::vector<Status> stat_list(num_keys);
+  values->resize(num_keys);
+  uint64_t bytes_read = 0;
+  BumpPerfTime(&perf_context.get_snapshot_time, &snapshot_timer);
+  for (size_t i = 0; i < num_keys; ++i) {
+    merge_context.Clear();
+    Status& s = stat_list[i];
+    std::string* value = &(*values)[i];
+    LookupKey lkey(keys[i], snapshot);
+    auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family[i]);
+    auto mgd_iter = multiget_cf_data.find(cfh->cfd()->GetID());
+    assert(mgd_iter != multiget_cf_data.end());
+    auto mgd = mgd_iter->second;
+    auto super_version = mgd->super_version;
+    auto cfd = mgd->cfd;
+    if (super_version->mem->Get(lkey, value, &s, merge_context,
+                                *cfd->options())) {
+    } else if (super_version->imm->Get(lkey, value, &s, merge_context,
+                                       *cfd->options())) {
+    } else {
+      super_version->current->Get(options, lkey, value, &s, &merge_context,
+                                  &mgd->stats, *cfd->options());
+      mgd->have_stat_update = true;
+    }
+    if (s.ok()) {
+      bytes_read += value->size();
+    }
+  }
+  StopWatchNano post_process_timer(env_, false);
+  StartPerfTimer(&post_process_timer);
+  autovector<SuperVersion*> superversions_to_delete;
+  bool schedule_flush_or_compaction = false;
+  mutex_.Lock();
+  for (auto mgd_iter : multiget_cf_data) {
+    auto mgd = mgd_iter.second;
+    auto cfd = mgd->cfd;
+    if (!cfd->options()->disable_seek_compaction && mgd->have_stat_update) {
+      if (mgd->super_version->current->UpdateStats(mgd->stats)) {
+        schedule_flush_or_compaction = true;
+      }
+    }
+    if (mgd->super_version->Unref()) {
+      mgd->super_version->Cleanup();
+      superversions_to_delete.push_back(mgd->super_version);
+    }
+  }
+  if (schedule_flush_or_compaction) {
+    MaybeScheduleFlushOrCompaction();
+  }
+  mutex_.Unlock();
+  for (auto td : superversions_to_delete) {
+    delete td;
+  }
+  for (auto mgd : multiget_cf_data) {
+    delete mgd.second;
+  }
+  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_CALLS);
+  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_KEYS_READ, num_keys);
+  RecordTick(options_.statistics.get(), NUMBER_MULTIGET_BYTES_READ, bytes_read);
+  BumpPerfTime(&perf_context.get_post_process_time, &post_process_timer);
+  return stat_list;
+}
+Status DBImpl::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
+  *handle = nullptr;
+  MutexLock l(&mutex_);
+  if (versions_->GetColumnFamilySet()->GetColumnFamily(column_family_name) !=
+      nullptr) {
+    return Status::InvalidArgument("Column family already exists");
+  }
+  VersionEdit edit;
+  edit.AddColumnFamily(column_family_name);
+  uint32_t new_id = versions_->GetColumnFamilySet()->GetNextColumnFamilyID();
+  edit.SetColumnFamily(new_id);
+  edit.SetLogNumber(logfile_number_);
+  edit.SetComparatorName(options.comparator->Name());
+  Status s = versions_->LogAndApply(nullptr, &edit, &mutex_,
+                                    db_directory_.get(), false, &options);
+  if (s.ok()) {
+    auto cfd =
+        versions_->GetColumnFamilySet()->GetColumnFamily(column_family_name);
+    assert(cfd != nullptr);
+    delete cfd->InstallSuperVersion(new SuperVersion(), &mutex_);
+    *handle = new ColumnFamilyHandleImpl(cfd, this, &mutex_);
+    Log(options_.info_log, "Created column family \"%s\" (ID %u)",
+        column_family_name.c_str(), (unsigned)cfd->GetID());
+  } else {
+    Log(options_.info_log, "Creating column family \"%s\" FAILED -- %s",
+        column_family_name.c_str(), s.ToString().c_str());
+  }
+  return s;
+}
+Status DBImpl::DropColumnFamily(ColumnFamilyHandle* column_family) {
+  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+  auto cfd = cfh->cfd();
+  if (cfd->GetID() == 0) {
+    return Status::InvalidArgument("Can't drop default column family");
+  }
+  VersionEdit edit;
+  edit.DropColumnFamily();
+  edit.SetColumnFamily(cfd->GetID());
+  Status s;
+  {
+    MutexLock l(&mutex_);
+    if (cfd->IsDropped()) {
+      s = Status::InvalidArgument("Column family already dropped!\n");
+    }
+    if (s.ok()) {
+      s = versions_->LogAndApply(cfd, &edit, &mutex_);
+    }
+  }
+  if (s.ok()) {
+    assert(cfd->IsDropped());
+    Log(options_.info_log, "Dropped column family with id %u\n", cfd->GetID());
+    Write(WriteOptions(), nullptr);
+  } else {
+    Log(options_.info_log, "Dropping column family with id %u FAILED -- %s\n",
+        cfd->GetID(), s.ToString().c_str());
+  }
+  return s;
+}
+Iterator* DBImpl::NewIterator(const ReadOptions& options, ColumnFamilyHandle* column_family) {
+  SequenceNumber latest_snapshot = 0;
+  SuperVersion* super_version = nullptr;
+  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);
+  auto cfd = cfh->cfd();
+  if (!options.tailing) {
+    mutex_.Lock();
+    super_version = cfd->GetSuperVersion()->Ref();
+    latest_snapshot = versions_->LastSequence();
+    mutex_.Unlock();
+  }
+  Iterator* iter;
+  if (options.tailing) {
+    iter = new TailingIterator(this, options, cfd);
+  } else {
+    iter = NewInternalIterator(options, cfd, super_version);
+    auto snapshot =
+        options.snapshot != nullptr
+            ? reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_
+            : latest_snapshot;
+    iter = NewDBIterator(&dbname_, env_, *cfd->options(),
+                         cfd->user_comparator(), iter, snapshot);
+  }
+  if (options.prefix) {
+    iter = new PrefixFilterIterator(iter, *options.prefix,
+                                    cfd->options()->prefix_extractor.get());
+  }
+  return iter;
+}
+Status DBImpl::NewIterators(const ReadOptions& options, const std::vector<ColumnFamilyHandle*>& column_families, std::vector<Iterator*>* iterators) {
+  if (options.prefix) {
+    return Status::NotSupported(
+        "NewIterators doesn't support ReadOptions::prefix");
+  }
+  iterators->clear();
+  iterators->reserve(column_families.size());
+  SequenceNumber latest_snapshot = 0;
+  std::vector<SuperVersion*> super_versions;
+  super_versions.reserve(column_families.size());
+  if (!options.tailing) {
+    mutex_.Lock();
+    latest_snapshot = versions_->LastSequence();
+    for (auto cfh : column_families) {
+      auto cfd = reinterpret_cast<ColumnFamilyHandleImpl*>(cfh)->cfd();
+      super_versions.push_back(cfd->GetSuperVersion()->Ref());
+    }
+    mutex_.Unlock();
+  }
+  if (options.tailing) {
+    for (auto cfh : column_families) {
+      auto cfd = reinterpret_cast<ColumnFamilyHandleImpl*>(cfh)->cfd();
+      iterators->push_back(new TailingIterator(this, options, cfd));
+    }
+  } else {
+    for (size_t i = 0; i < column_families.size(); ++i) {
+      auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_families[i]);
+      auto cfd = cfh->cfd();
+      auto snapshot =
+          options.snapshot != nullptr
+              ? reinterpret_cast<const SnapshotImpl*>(options.snapshot)->number_
+              : latest_snapshot;
+      auto iter = NewInternalIterator(options, cfd, super_versions[i]);
+      iter = NewDBIterator(&dbname_, env_, *cfd->options(),
+                           cfd->user_comparator(), iter, snapshot);
+      iterators->push_back(iter);
+    }
+  }
+  return Status::OK();
+}
+Status DBImpl::GetDbIdentity(std::string& identity) {
+  std::string idfilename = IdentityFileName(dbname_);
+  unique_ptr<SequentialFile> idfile;
+  const EnvOptions soptions;
+  Status s = env_->NewSequentialFile(idfilename, &idfile, soptions);
+  if (!s.ok()) {
+    return s;
+  }
+  uint64_t file_size;
+  s = env_->GetFileSize(idfilename, &file_size);
+  if (!s.ok()) {
+    return s;
+  }
+  char buffer[file_size];
+  Slice id;
+  s = idfile->Read(file_size, &id, buffer);
+  if (!s.ok()) {
+    return s;
+  }
+  identity.assign(id.ToString());
+  if (identity.size() > 0 && identity.back() == '\n') {
+    identity.pop_back();
+  }
+  return s;
+}
+Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family, const Slice& key, const Slice& value) {
+  WriteBatch batch(key.size() + value.size() + 24);
+  batch.Put(column_family, key, value);
+  return Write(opt, &batch);
+}
+Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family, const Slice& key) {
+  WriteBatch batch;
+  batch.Delete(column_family, key);
+  return Write(opt, &batch);
+}
+Status DB::CreateColumnFamily(const ColumnFamilyOptions& options, const std::string& column_family_name, ColumnFamilyHandle** handle) {
+  return Status::NotSupported("");
+}
+Status DB::DropColumnFamily(ColumnFamilyHandle* column_family) {
+  return Status::NotSupported("");
+}
+Status DB::Open(const DBOptions& db_options, const std::string& dbname, const std::vector<ColumnFamilyDescriptor>& column_families, std::vector<ColumnFamilyHandle*>* handles, DB** dbptr) {
+  *dbptr = nullptr;
+  handles->clear();
+  size_t max_write_buffer_size = 0;
+  for (auto cf : column_families) {
+    max_write_buffer_size =
+        std::max(max_write_buffer_size, cf.options.write_buffer_size);
+    if (cf.options.block_cache != nullptr && cf.options.no_block_cache) {
+      return Status::InvalidArgument(
+          "no_block_cache is true while block_cache is not nullptr");
+    }
+  }
+  DBImpl* impl = new DBImpl(db_options, dbname);
+  Status s = impl->env_->CreateDirIfMissing(impl->options_.wal_dir);
+  if (!s.ok()) {
+    delete impl;
+    return s;
+  }
+  s = impl->CreateArchivalDirectory();
+  if (!s.ok()) {
+    delete impl;
+    return s;
+  }
+  impl->mutex_.Lock();
+  s = impl->Recover(column_families);
+  if (s.ok()) {
+    uint64_t new_log_number = impl->versions_->NewFileNumber();
+    unique_ptr<WritableFile> lfile;
+    EnvOptions soptions(db_options);
+    s = impl->options_.env->NewWritableFile(
+        LogFileName(impl->options_.wal_dir, new_log_number), &lfile,
+        soptions.AdaptForLogWrite());
+    if (s.ok()) {
+      lfile->SetPreallocationBlockSize(1.1 * max_write_buffer_size);
+      impl->logfile_number_ = new_log_number;
+      impl->log_.reset(new log::Writer(std::move(lfile)));
+      for (auto cf : column_families) {
+        auto cfd =
+            impl->versions_->GetColumnFamilySet()->GetColumnFamily(cf.name);
+        if (cfd == nullptr) {
+          s = Status::InvalidArgument("Column family not found: ", cf.name);
+          break;
+        }
+        handles->push_back(
+            new ColumnFamilyHandleImpl(cfd, impl, &impl->mutex_));
+      }
+    }
+    if (s.ok()) {
+      for (auto cfd : *impl->versions_->GetColumnFamilySet()) {
+        delete cfd->InstallSuperVersion(new SuperVersion(), &impl->mutex_);
+        impl->alive_log_files_.push_back(impl->logfile_number_);
+      }
+      impl->DeleteObsoleteFiles();
+      impl->MaybeScheduleFlushOrCompaction();
+      impl->MaybeScheduleLogDBDeployStats();
+      s = impl->db_directory_->Fsync();
+    }
+  }
+  if (s.ok()) {
+    for (auto cfd : *impl->versions_->GetColumnFamilySet()) {
+      if (cfd->options()->compaction_style == kCompactionStyleUniversal) {
+        Version* current = cfd->current();
+        for (int i = 1; i < current->NumberLevels(); ++i) {
+          int num_files = current->NumLevelFiles(i);
+          if (num_files > 0) {
+            s = Status::InvalidArgument("Not all files are at level 0. Cannot "
+                "open with universal compaction style.");
+            break;
+          }
+        }
+      }
+      if (!s.ok()) {
+        break;
+      }
+    }
+  }
+  impl->mutex_.Unlock();
+  if (s.ok()) {
+    impl->opened_successfully_ = true;
+    *dbptr = impl;
+  } else {
+    for (auto h : *handles) {
+      delete h;
+    }
+    handles->clear();
+    delete impl;
+  }
+  return s;
+}
+Status DB::ListColumnFamilies(const DBOptions& db_options, const std::string& name, std::vector<std::string>* column_families) {
+  return VersionSet::ListColumnFamilies(column_families, name, db_options.env);
 }
 }

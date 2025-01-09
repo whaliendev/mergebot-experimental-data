@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "#define __STDC_FORMAT_MACROS\n\n#include <inttypes.h>",
+        "b_contents": "#define __STDC_FORMAT_MACROS\n#include <inttypes.h>",
+        "base_contents": "",
+        "res_region": "#define __STDC_FORMAT_MACROS\n#include <inttypes.h>",
+        "lookback": "\n#include \"db/db_impl.h\"\n",
+        "lookahead": "#include <algorithm>\n#include <climits>",
+        "label": [
+            "ours",
+            "style_related"
+        ],
+        "start_line": 11,
+        "end_line": 19,
+        "merge_gen_region": "#include <inttypes.h>",
+        "resolved": false
+    },
+    {
+        "a_contents": "Status DBImpl::TEST_FlushMemTable() {\n  return FlushMemTable(default_cf_handle_->cfd(), FlushOptions());",
+        "b_contents": "Status DBImpl::TEST_FlushMemTable(bool wait) {\n  FlushOptions fo;\n  fo.wait = wait;\n  return FlushMemTable(fo);",
+        "base_contents": "Status DBImpl::TEST_FlushMemTable() {\n  return FlushMemTable(FlushOptions());",
+        "res_region": "Status DBImpl::TEST_FlushMemTable(bool wait) {\n  FlushOptions fo;\n  fo.wait = wait;\n  return FlushMemTable(default_cf_handle_->cfd(), fo);",
+        "lookback": "  return s;\n}\n",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 1719,
+        "end_line": 1730,
+        "merge_gen_region": "Status DBImpl::TEST_FlushMemTable(bool wait) { FlushOptions fo; fo.wait = wait; return FlushMemTable(default_cf_handle_->cfd(), FlushOptions());",
+        "resolved": false
+    },
+    {
+        "a_contents": "  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);\n  auto cfd = cfh->cfd();",
+        "b_contents": "  DBPropertyType property_type = GetPropertyType(property);",
+        "base_contents": "",
+        "res_region": "  auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family);\n  auto cfd = cfh->cfd();\n  DBPropertyType property_type = GetPropertyType(property);",
+        "lookback": "bool DBImpl::GetProperty(ColumnFamilyHandle* column_family,\n                         const Slice& property, std::string* value) {\n  value->clear();",
+        "lookahead": "  MutexLock l(&mutex_);\n  return cfd->internal_stats()->GetProperty(property_type, property, value,",
+        "label": [
+            "concat",
+            "complex_conflict"
+        ],
+        "start_line": 3842,
+        "end_line": 3848,
+        "merge_gen_region": "auto cfh = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family); auto cfd = cfh->cfd();",
+        "resolved": false
+    },
+    {
+        "a_contents": "  return cfd->internal_stats()->GetProperty(property, value, cfd);",
+        "b_contents": "  return internal_stats_.GetProperty(property_type, property, value,\n                                     versions_.get(), imm_);",
+        "base_contents": "  return internal_stats_.GetProperty(property, value, versions_.get(),\n                                     imm_.size());",
+        "res_region": "  return cfd->internal_stats()->GetProperty(property_type, property, value,\n                                            cfd);",
+        "lookback": "  auto cfd = cfh->cfd();\n  DBPropertyType property_type = GetPropertyType(property);\n  MutexLock l(&mutex_);",
+        "lookahead": "}\n",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 3850,
+        "end_line": 3858,
+        "merge_gen_region": "return cfd->internal_stats()->GetProperty(property_type, property, value, cfd);",
+        "resolved": true
+    }
+]

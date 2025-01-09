@@ -1,0 +1,245 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/redis/51eb6cb3-62a4b817-75fa7879/src@debug.no_comments_merged.c
+@@ -189,6 +190,0 @@ void debugCommand(client *c) {
+-<<<<<<< HEAD
+-  if (c->argc == 1) {
+-    addReplyError(
+-        c, "You must specify a subcommand for DEBUG. Try DEBUG HELP for info.");
+-    return;
+-  }
+@@ -198,11 +194,6 @@ void debugCommand(client *c) {
+-        "crash-and-recovery <milliseconds> -- Hard crash and restart after "
+-        "<milliseconds> delay.",
+-        "digest -- Outputs an hex signature representing the current DB "
+-        "content.",
+-        "htstats <dbid> -- Return hash table statistics of the specified Redis "
+-        "database.",
+-        "loadaof -- Flush the AOF buffers on disk and reload the AOF in "
+-        "memory.",
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.",
++            "change-repl-id -- Change the replication IDs of the instance. Dangerous, should be used only for testing the replication subsystem.",
++            "crash-and-recovery <milliseconds> -- Hard crash and restart after <milliseconds> delay.",
++            "digest -- Outputs an hex signature representing the current DB content.",
++            "htstats <dbid> -- Return hash table statistics of the specified Redis database.",
++            "loadaof -- Flush the AOF buffers on disk and reload the AOF in memory.",
++            "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua replication defaulting to replicating single commands, without the script having to enable effects replication.",
+@@ -211,3 +202 @@ void debugCommand(client *c) {
+-        "populate <count> [prefix] [size] -- Create <count> string keys named "
+-        "key:<num>. If a prefix is specified is used instead of the 'key' "
+-        "prefix.",
++            "populate <count> [prefix] [size] -- Create <count> string keys named key:<num>. If a prefix is specified is used instead of the 'key' prefix.",
+@@ -216,2 +205 @@ void debugCommand(client *c) {
+-        "sdslen <key> -- Show low level SDS string info representing key and "
+-        "value.",
++            "sdslen <key> -- Show low level SDS string info representing key and value.",
+@@ -219,3 +207 @@ void debugCommand(client *c) {
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.",
++            "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in background when they are not accessed (otherwise the Redis behavior). Setting it to 1 reenables back the default.",
+@@ -225,3 +211,3 @@ void debugCommand(client *c) {
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.",
+-        NULL};
++            "error <string> -- Return a Redis protocol error with <string> as message. Useful for clients unit tests to simulate Redis errors.",
++            NULL
++        };
+@@ -229,163 +214,0 @@ void debugCommand(client *c) {
+-|||||||
+-  if (c->argc == 1) {
+-    addReplyError(
+-        c, "You must specify a subcommand for DEBUG. Try DEBUG HELP for info.");
+-    return;
+-  }
+-  if (!strcasecmp(c->argv[1]->ptr, "help")) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "DEBUG <subcommand> arg arg ... arg. Subcommands:");
+-    blen++;
+-    addReplyStatus(c, "segfault -- Crash the server with sigsegv.");
+-    blen++;
+-    addReplyStatus(c, "panic -- Crash the server simulating a panic.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "restart  -- Graceful restart: save config, db, restart.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "crash-and-recovery <milliseconds> -- Hard crash and "
+-                   "restart after <milliseconds> delay.");
+-    blen++;
+-    addReplyStatus(c, "assert   -- Crash by assertion failed.");
+-    blen++;
+-    addReplyStatus(
+-        c, "reload   -- Save the RDB on disk and reload it back in memory.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "loadaof  -- Flush the AOF buffers on disk and reload the "
+-                   "AOF in memory.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "object <key> -- Show low level info about key and associated value.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "sdslen <key> -- Show low level SDS string info "
+-                   "representing key and value.");
+-    blen++;
+-    addReplyStatus(
+-        c, "ziplist <key> -- Show low level info about the ziplist encoding.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "populate <count> [prefix] [size] -- Create <count> string "
+-                   "keys named key:<num>. If a prefix is specified is used "
+-                   "instead of the 'key' prefix.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "digest   -- Outputs an hex signature representing the "
+-                   "current DB content.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "sleep <seconds> -- Stop the server for <seconds>. Decimals allowed.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "structsize -- Return the size of different Redis core C structures.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "htstats <dbid> -- Return hash table statistics of the "
+-                   "specified Redis database.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+-=======
+-  if (!strcasecmp(c->argv[1]->ptr, "help")) {
+-    void *blenp = addDeferredMultiBulkLength(c);
+-    int blen = 0;
+-    blen++;
+-    addReplyStatus(c, "DEBUG <subcommand> arg arg ... arg. Subcommands:");
+-    blen++;
+-    addReplyStatus(c, "segfault -- Crash the server with sigsegv.");
+-    blen++;
+-    addReplyStatus(c, "panic -- Crash the server simulating a panic.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "restart  -- Graceful restart: save config, db, restart.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "crash-and-recovery <milliseconds> -- Hard crash and "
+-                   "restart after <milliseconds> delay.");
+-    blen++;
+-    addReplyStatus(c, "assert   -- Crash by assertion failed.");
+-    blen++;
+-    addReplyStatus(
+-        c, "reload   -- Save the RDB on disk and reload it back in memory.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "loadaof  -- Flush the AOF buffers on disk and reload the "
+-                   "AOF in memory.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "object <key> -- Show low level info about key and associated value.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "sdslen <key> -- Show low level SDS string info "
+-                   "representing key and value.");
+-    blen++;
+-    addReplyStatus(
+-        c, "ziplist <key> -- Show low level info about the ziplist encoding.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "populate <count> [prefix] [size] -- Create <count> string "
+-                   "keys named key:<num>. If a prefix is specified is used "
+-                   "instead of the 'key' prefix.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "digest   -- Outputs an hex signature representing the "
+-                   "current DB content.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "sleep <seconds> -- Stop the server for <seconds>. Decimals allowed.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "set-active-expire (0|1) -- Setting it to 0 disables expiring keys in "
+-        "background when they are not accessed (otherwise the Redis behavior). "
+-        "Setting it to 1 reenables back the default.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "lua-always-replicate-commands (0|1) -- Setting it to 1 makes Lua "
+-        "replication defaulting to replicating single commands, without the "
+-        "script having to enable effects replication.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "error <string> -- Return a Redis protocol error with <string> as "
+-        "message. Useful for clients unit tests to simulate Redis errors.");
+-    blen++;
+-    addReplyStatus(
+-        c,
+-        "structsize -- Return the size of different Redis core C structures.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "htstats <dbid> -- Return hash table statistics of the "
+-                   "specified Redis database.");
+-    blen++;
+-    addReplyStatus(c,
+-                   "change-repl-id -- Change the replication IDs of the "
+-                   "instance. Dangerous, should be used only for testing the "
+-                   "replication subsystem.");
+-    setDeferredMultiBulkLength(c, blenp, blen);
+->>>>>>> 62a4b817c6e83eedf96a451f45dd943099258fd0
+@@ -614,3 +441 @@ void debugCommand(client *c) {
+-    addReplyErrorFormat(c,
+-                        "Unknown subcommand or wrong number of arguments for "
+-                        "'%s'. Try DEBUG help",
++        addReplyErrorFormat(c, "Unknown subcommand or wrong number of arguments for '%s'. Try DEBUG help",
+@@ -977,4 +798 @@ int memtest_test_linux_anonymous_maps(void) {
+-    if (write(fd, errors ? "E" : "O", 1) == -1) {
+-    }
+-  }
+-  if (write(fd, "\n", 1) == -1) {
++        if (write(fd, errors ? "E" : "O",1) == -1) { }
+@@ -981,0 +800 @@ int memtest_test_linux_anonymous_maps(void) {
++    if (write(fd,"\n",1) == -1) { }
+@@ -1041,4 +864,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-    serverLogRaw(
+-        LL_WARNING | LL_RAW,
+-        "Fast memory test PASSED, however your memory can still be broken. "
+-        "Please run a memory test for several hours if possible.\n");
++        serverLogRaw(LL_WARNING|LL_RAW,
++            "Fast memory test PASSED, however your memory can still be broken. Please run a memory test for several hours if possible.\n");
+@@ -1055,2 +876 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-                "$ objdump --adjust-vma=%p -D -b binary -m i386:x86-64 "
+-                "/tmp/dump.bin\n"
++                "$ objdump --adjust-vma=%p -D -b binary -m i386:x86-64 /tmp/dump.bin\n"
+@@ -1072,4 +893,2 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
+-  serverLogRaw(
+-      LL_WARNING | LL_RAW,
+-      "\n=== REDIS BUG REPORT END. Make sure to include from START to END. "
+-      "===\n\n"
++    serverLogRaw(LL_WARNING|LL_RAW,
++"\n=== REDIS BUG REPORT END. Make sure to include from START to END. ===\n\n"
+@@ -1106,0 +927 @@ void serverLogHexDump(int level, char *descr, void *value, size_t len) {
++#include <sys/time.h>

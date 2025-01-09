@@ -1,0 +1,66 @@
+[
+    {
+        "a_contents": "    if (setTypeAdd(set,c->argv[2])) {",
+        "b_contents": "    if (dictAdd(set->ptr,c->argv[2],NULL) == DICT_OK) {\n        incrRefCount(c->argv[2]);\n        touchWatchedKey(c->db,c->argv[1]);",
+        "base_contents": "    if (dictAdd(set->ptr,c->argv[2],NULL) == DICT_OK) {\n        incrRefCount(c->argv[2]);",
+        "res_region": "    if (setTypeAdd(set,c->argv[2])) {\n        touchWatchedKey(c->db,c->argv[1]);",
+        "lookback": "            return;\n        }\n    }",
+        "lookahead": "        server.dirty++;\n        addReply(c,shared.cone);",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 189,
+        "end_line": 198,
+        "merge_gen_region": "if (setTypeAdd(set,c->argv[2])) { touchWatchedKey(c->db,c->argv[1]);",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "        touchWatchedKey(c->db,c->argv[1]);\n        if (htNeedsResize(set->ptr)) dictResize(set->ptr);\n        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);",
+        "base_contents": "        if (htNeedsResize(set->ptr)) dictResize(set->ptr);\n        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);",
+        "res_region": "",
+        "lookback": "    if (setTypeAdd(set,c->argv[2])) {\n        touchWatchedKey(c->db,c->argv[1]);\n        server.dirty++;",
+        "lookahead": "        addReply(c,shared.cone);\n    } else {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 215,
+        "end_line": 223,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "\n    /* If the source key has the wrong type, or the destination key\n     * is set and has the wrong type, return with an error. */\n    if (checkType(c,srcset,REDIS_SET) ||\n        (dstset && checkType(c,dstset,REDIS_SET))) return;\n\n    /* If srcset and dstset are equal, SMOVE is a no-op */\n    if (srcset == dstset) {\n        addReply(c,shared.cone);\n        return;\n    }\n\n    /* If the element cannot be removed from the src set, return 0. */\n    if (!setTypeRemove(srcset,ele)) {\n        addReply(c,shared.czero);\n        return;\n    }\n\n    /* Remove the src set from the database when empty */\n    if (setTypeSize(srcset) == 0) dbDelete(c->db,c->argv[1]);",
+        "b_contents": "    if (dictSize((dict*)srcset->ptr) == 0 && srcset != dstset)\n        dbDelete(c->db,c->argv[1]);\n    touchWatchedKey(c->db,c->argv[1]);\n    touchWatchedKey(c->db,c->argv[2]);",
+        "base_contents": "    if (dictSize((dict*)srcset->ptr) == 0 && srcset != dstset)\n        dbDelete(c->db,c->argv[1]);",
+        "res_region": "\n    /* If the source key has the wrong type, or the destination key\n     * is set and has the wrong type, return with an error. */\n    if (checkType(c,srcset,REDIS_SET) ||\n        (dstset && checkType(c,dstset,REDIS_SET))) return;\n\n    /* If srcset and dstset are equal, SMOVE is a no-op */\n    if (srcset == dstset) {\n        addReply(c,shared.cone);\n        return;\n    }\n\n    /* If the element cannot be removed from the src set, return 0. */\n    if (!setTypeRemove(srcset,ele)) {\n        addReply(c,shared.czero);\n        return;\n    }\n\n    /* Remove the src set from the database when empty */\n    if (setTypeSize(srcset) == 0) dbDelete(c->db,c->argv[1]);\n    touchWatchedKey(c->db,c->argv[1]);\n    touchWatchedKey(c->db,c->argv[2]);",
+        "lookback": "        addReply(c,shared.czero);\n        return;\n    }",
+        "lookahead": "    server.dirty++;\n",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 241,
+        "end_line": 270,
+        "merge_gen_region": "/* If the source key has the wrong type, or the destination key * is set and has the wrong type, return with an error. */ if (checkType(c,srcset,REDIS_SET) || (dstset && checkType(c,dstset,REDIS_SET))) return; /* If srcset and dstset are equal, SMOVE is a no-op */ if (srcset == dstset) { addReply(c,shared.cone); return; } /* If the element cannot be removed from the src set, return 0. */ if (!setTypeRemove(srcset,ele)) { addReply(c,shared.czero); return; } /* Remove the src set from the database when empty */ if (setTypeSize(srcset) == 0) dbDelete(c->db,c->argv[1]); touchWatchedKey(c->db,c->argv[1]);",
+        "resolved": false
+    },
+    {
+        "a_contents": "        decrRefCount(ele);\n        if (setTypeSize(set) == 0) dbDelete(c->db,c->argv[1]);",
+        "b_contents": "        dictDelete(set->ptr,ele);\n        if (htNeedsResize(set->ptr)) dictResize(set->ptr);\n        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);\n        touchWatchedKey(c->db,c->argv[1]);",
+        "base_contents": "        dictDelete(set->ptr,ele);\n        if (htNeedsResize(set->ptr)) dictResize(set->ptr);\n        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);",
+        "res_region": "        decrRefCount(ele);\n        if (setTypeSize(set) == 0) dbDelete(c->db,c->argv[1]);\n        touchWatchedKey(c->db,c->argv[1]);",
+        "lookback": "    } else {\n        setTypeRemove(set,ele);\n        addReplyBulk(c,ele);",
+        "lookahead": "        server.dirty++;\n    }",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 317,
+        "end_line": 329,
+        "merge_gen_region": "decrRefCount(ele); if (setTypeSize(set) == 0) dbDelete(c->db,c->argv[1]); touchWatchedKey(c->db,c->argv[1]);",
+        "resolved": true
+    }
+]

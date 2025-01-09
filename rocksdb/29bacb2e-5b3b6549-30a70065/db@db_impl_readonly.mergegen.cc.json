@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "  MemTable* mem = GetDefaultColumnFamily()->mem();\n  Version* current = GetDefaultColumnFamily()->current();",
+        "b_contents": "",
+        "base_contents": "  MemTable* mem = GetMemTable();\n  Version* current = versions_->current();",
+        "res_region": "",
+        "lookback": "                           const ColumnFamilyHandle& column_family,\n                           const Slice& key, std::string* value) {\n  Status s;",
+        "lookahead": "  SequenceNumber snapshot = versions_->LastSequence();\n  SuperVersion* super_version = GetDefaultColumnFamily()->GetSuperVersion();",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 58,
+        "end_line": 65,
+        "merge_gen_region": "mediaTable* mem = GetDefaultColumnFamily()->mem(); Version* current = GetDefaultColumnFamily()->current(); SequenceNumber snapshot = versions_->LastSequence();",
+        "resolved": false
+    },
+    {
+        "a_contents": "  DBOptions db_options(options);\n  ColumnFamilyOptions cf_options(options);\n  std::vector<ColumnFamilyDescriptor> column_families;\n  column_families.push_back(\n      ColumnFamilyDescriptor(default_column_family_name, cf_options));\n  Status s = impl->Recover(column_families, true /* read only */,\n                           error_if_log_file_exist);",
+        "b_contents": "  Status s = impl->Recover(true /* read only */, error_if_log_file_exist);\n  if (s.ok()) {\n    delete impl->InstallSuperVersion(new DBImpl::SuperVersion());\n  }",
+        "base_contents": "  Status s = impl->Recover(true /* read only */, error_if_log_file_exist);",
+        "res_region": "  DBOptions db_options(options);\n  ColumnFamilyOptions cf_options(options);\n  std::vector<ColumnFamilyDescriptor> column_families;\n  column_families.push_back(\n      ColumnFamilyDescriptor(default_column_family_name, cf_options));\n  Status s = impl->Recover(column_families, true /* read only */,\n                           error_if_log_file_exist);\n  if (s.ok()) {\n    for (auto cfd : *impl->versions_->GetColumnFamilySet()) {\n      delete cfd->InstallSuperVersion(new SuperVersion());\n    }\n  }",
+        "lookback": "\n  DBImplReadOnly* impl = new DBImplReadOnly(options, dbname);\n  impl->mutex_.Lock();",
+        "lookahead": "  impl->mutex_.Unlock();\n  if (s.ok()) {",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 95,
+        "end_line": 110,
+        "merge_gen_region": "std::vector<ColumnFamilyDescriptor> column_families; column_families.push_back( ColumnFamilyDescriptor(default_column_family_name, cf_options)); Status s = impl->Recover(column_families, true /* read only */, error_if_log_file_exist); if (s.ok()) { delete impl->InstallSuperVersion(new DBImpl::SuperVersion());",
+        "resolved": false
+    }
+]

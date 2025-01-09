@@ -1,0 +1,37 @@
+--- a/./output/frameworks_av/5b7f6327-b4efe510-99c77e68/services@audiopolicy@service@AudioPolicyEffects.no_comments_mergegen.h
++++ b/./output/frameworks_av/5b7f6327-b4efe510-99c77e68/services@audiopolicy@service@AudioPolicyEffects.no_comments_merged.h
+@@ -49,0 +50 @@ public:
++    void initDefaultDeviceEffects() EXCLUDES(mDeviceEffectsMutex) EXCLUDES_EffectHandle_Mutex;
+@@ -110,0 +112,7 @@ private:
++    status_t loadAudioEffectConfig_ll(const sp<EffectsFactoryHalInterface>& effectsFactoryHal)
++            REQUIRES(mMutex, mDeviceEffectsMutex);
++    status_t loadAudioEffectConfigLegacy_l(const char* path) REQUIRES(mMutex);
++    status_t loadInputEffectConfigurations_l(cnode* root,
++            const EffectDescVector& effects) REQUIRES(mMutex);
++    status_t loadStreamEffectConfigurations_l(cnode* root,
++            const EffectDescVector& effects) REQUIRES(mMutex);
+@@ -113,2 +121,8 @@ private:
+-static EffectDescVector loadEffects(cnode* root loadEffects(cnode* root); static std::shared_ptr<AudioPolicyEffects::EffectDesc> loadEffect(cnode* root); static std::shared_ptr<EffectDescVector> loadEffect(cnode* root); static std::shared_ptr<EffectDescVector> loadEffectConfig(cnode* root, const EffectDescVector& effects);
+-static void loadEffectParameters( cnode* root, std::vector<std::shared_ptr<const effect_param_t>>& params);
++    static EffectDescVector loadEffects(cnode* root);
++    static std::shared_ptr<AudioPolicyEffects::EffectDesc> loadEffect(cnode* root);
++    static std::shared_ptr<EffectDescVector> loadEffectConfig(cnode* root,
++            const EffectDescVector& effects);
++    static void loadEffectParameters(
++            cnode* root, std::vector<std::shared_ptr<const effect_param_t>>& params);
++    static std::shared_ptr<const effect_param_t> loadEffectParameter(cnode* root);
++    static size_t readParamValue(cnode* node,
+@@ -123,2 +137,11 @@ static void loadEffectParameters( cnode* root, std::vector<std::shared_ptr<const
+-std::map<audio_source_t, std::shared_ptr<EffectDescVector>> mInputSources GUARDED_BY(mMutex);
+-std::map<audio_stream_type_t, std::shared_ptr<EffectDescVector>> mOutputStreams GUARDED_BY(mMutex);
++    std::map<audio_source_t, std::shared_ptr<EffectDescVector>> mInputSources
++            GUARDED_BY(mMutex);
++    std::map<audio_session_t, std::shared_ptr<EffectVector>> mInputSessions
++            GUARDED_BY(mMutex);
++    std::map<audio_stream_type_t, std::shared_ptr<EffectDescVector>> mOutputStreams
++            GUARDED_BY(mMutex);
++    std::map<audio_session_t, std::shared_ptr<EffectVector>> mOutputSessions
++            GUARDED_BY(mMutex);
++    std::mutex mDeviceEffectsMutex;
++    std::map<std::string, std::unique_ptr<DeviceEffects>> mDeviceEffects
++            GUARDED_BY(mDeviceEffectsMutex);

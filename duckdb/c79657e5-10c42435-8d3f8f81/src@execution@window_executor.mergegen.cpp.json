@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "\t\t\t\tconst auto target_limit = MinValue(partition_end[i], row_end) - row_idx;\n\t\t\t\tauto width = MinValue(source_limit, target_limit);\n\t\t\t\t// We may have to scan multiple blocks here, so loop until we have copied everything\n\t\t\t\tconst idx_t col_idx = 0;\n\t\t\t\twhile (width) {\n\t\t\t\t\tconst auto source_offset = cursor.Seek(index);\n\t\t\t\t\tauto &source = cursor.chunk.data[col_idx];\n\t\t\t\t\tconst auto copied = MinValue<idx_t>(cursor.chunk.size() - source_offset, width);\n\t\t\t\t\tVectorOperations::Copy(source, result, source_offset + copied, source_offset, i);\n\t\t\t\t\ti += copied;\n\t\t\t\t\trow_idx += copied;\n\t\t\t\t\tindex += copied;\n\t\t\t\t\twidth -= copied;\n\t\t\t\t}",
+        "b_contents": "\t\t\t\tconst auto width = MinValue(source_limit, target_limit);\n\t\t\t\tauto &source = payload_collection.data[0];\n\t\t\t\tVectorOperations::Copy(source, result, index + width, index, i);\n\t\t\t\ti += width;\n\t\t\t\trow_idx += width;",
+        "base_contents": "\t\t\t\tconst auto target_limit = MinValue(partition_end[i], row_end) - row_idx;\n\t\t\t\tconst auto width = MinValue(source_limit, target_limit);\n\t\t\t\tauto &source = payload_collection.data[0];\n\t\t\t\tVectorOperations::Copy(source, result, index + width, index, i);\n\t\t\t\ti += width;\n\t\t\t\trow_idx += width;",
+        "res_region": "\t\t\t\tauto width = MinValue(source_limit, target_limit);\n\t\t\t\t// We may have to scan multiple blocks here, so loop until we have copied everything\n\t\t\t\tconst idx_t col_idx = 0;\n\t\t\t\twhile (width) {\n\t\t\t\t\tconst auto source_offset = cursor.Seek(index);\n\t\t\t\t\tauto &source = cursor.chunk.data[col_idx];\n\t\t\t\t\tconst auto copied = MinValue<idx_t>(cursor.chunk.size() - source_offset, width);\n\t\t\t\t\tVectorOperations::Copy(source, result, source_offset + copied, source_offset, i);\n\t\t\t\t\ti += copied;\n\t\t\t\t\trow_idx += copied;\n\t\t\t\t\tindex += copied;\n\t\t\t\t\twidth -= copied;\n\t\t\t\t}",
+        "lookback": "\t\t\t\t//\tCopy source[index:index+width] => result[i:]\n\t\t\t\tauto index = NumericCast<idx_t>(val_idx);\n\t\t\t\tconst auto source_limit = partition_end[i] - index;",
+        "lookahead": "\t\t\t} else if (wexpr.default_expr) {\n\t\t\t\tconst auto width = MinValue(delta, target_limit);",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 1680,
+        "end_line": 1708,
+        "merge_gen_region": "const auto width = MinValue(source_limit, target_limit); // We may have to scan multiple blocks here, so loop until we have copied everything const idx_t col_idx = 0; while (width) { const auto source_offset = cursor.Seek(index); auto &source = cursor.chunk.data[col_idx]; const auto copied = MinValue<idx_t>(cursor.chunk.size() - source_offset, width); VectorOperations::Copy(source, result, source_offset + copied, source_offset, i); i += copied; row_idx += copied; index += copied; width -= copied; }",
+        "resolved": false
+    }
+]

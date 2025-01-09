@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "  std::map<StringView, double, StringLess> result;\n  size_t i = UPB_MAP_BEGIN;\n  while (true) {\n    const auto* entry = entry_func(msg, &i);\n    if (entry == nullptr) break;\n    upb_strview key_view = key_func(entry);",
+        "b_contents": "  std::map<absl::string_view, double, StringLess> result;\n  size_t size;\n  const auto* const* entries = entry_func(msg, &size);\n  for (size_t i = 0; i < size; ++i) {\n    upb_strview key_view = key_func(entries[i]);",
+        "base_contents": "  std::map<StringView, double, StringLess> result;\n  size_t size;\n  const auto* const* entries = entry_func(msg, &size);\n  for (size_t i = 0; i < size; ++i) {\n    upb_strview key_view = key_func(entries[i]);",
+        "res_region": "",
+        "lookback": "                                   size_t*),\n    upb_strview (*key_func)(const EntryType*),\n    double (*value_func)(const EntryType*), Arena* arena) {",
+        "lookahead": "  std::map<absl::string_view, double, StringLess> result;\n  size_t i = UPB_MAP_BEGIN;",
+        "label": [
+            "deletion",
+            "complex_conflict"
+        ],
+        "start_line": 37,
+        "end_line": 56,
+        "merge_gen_region": "while (true) { const auto* entry = entry_func(msg, &i); if (entry == nullptr) break; upb_strview key_view = key_func(entry);",
+        "resolved": false
+    },
+    {
+        "a_contents": "    result[StringView(key, key_view.size)] = value_func(entry);",
+        "b_contents": "    result[absl::string_view(key, key_view.size)] = value_func(entries[i]);",
+        "base_contents": "    result[StringView(key, key_view.size)] = value_func(entries[i]);",
+        "res_region": "    result[absl::string_view(key, key_view.size)] = value_func(entry);",
+        "lookback": "    upb_strview key_view = key_func(entry);\n    char* key = static_cast<char*>(arena->Alloc(key_view.size));\n    memcpy(key, key_view.data, key_view.size);",
+        "lookahead": "  }\n  return result;",
+        "label": [
+            "newcode",
+            "complex_conflict"
+        ],
+        "start_line": 59,
+        "end_line": 65,
+        "merge_gen_region": "char*>(arena->Alloc(key_view.size)); memcpy(key, key_view.data, key_view.size); result[absl::string_view(key, key_view.size)] = value_func(entry);",
+        "resolved": false
+    }
+]

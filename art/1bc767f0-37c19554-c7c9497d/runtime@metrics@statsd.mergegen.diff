@@ -1,0 +1,34 @@
+diff --git a/./output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@statsd.no_comments_mergegen.cc b/./output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@statsd.no_comments_merged.cc
+index dbfd598..00362f5 100644
+--- a/./output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@statsd.no_comments_mergegen.cc
++++ b/./output/art/1bc767f0-37c19554-c7c9497d/runtime@metrics@statsd.no_comments_merged.cc
+@@ -316 +316,28 @@ class StatsdBackend : public MetricsBackend {
+-int32_t atom; switch (counter_type) { #define EVENT_METRIC_CASE(name, ...) case DatumId::k##name: ART_EVENT_METRICS(EVENT_METRIC_CASE) #undef EVENT_METRIC_CASE atom = statsd::ART_DATUM_REPORTED; break; #define VALUE_METRIC_CASE(name, type, ...) case DatumId::k##name: ART_VALUE_METRICS(VALUE_METRIC_CASE) #undef VALUE_METRIC_CASE atom = statsd::ART_DATUM_DELTA_REPORTED; break; } statsd::stats_write( atom, session_data_.session_id, session_data_.uid, EncodeCompileFilter(session_data_.compiler_filter), EncodeCompilationReason(session_data_.compilation_reason), current_timestamp_, 0,
++    int32_t atom;
++    switch (counter_type) {
++#define EVENT_METRIC_CASE(name,...) case DatumId::k ##name:
++      ART_EVENT_METRICS(EVENT_METRIC_CASE)
++#undef EVENT_METRIC_CASE
++      atom = statsd::ART_DATUM_REPORTED;
++      break;
++#define VALUE_METRIC_CASE(name,type,...) case DatumId::k ##name:
++      ART_VALUE_METRICS(VALUE_METRIC_CASE)
++#undef VALUE_METRIC_CASE
++      atom = statsd::ART_DATUM_DELTA_REPORTED;
++      break;
++    }
++    statsd::stats_write(
++        atom,
++        session_data_.session_id,
++        session_data_.uid,
++        EncodeCompileFilter(session_data_.compiler_filter),
++        EncodeCompilationReason(session_data_.compilation_reason),
++        current_timestamp_,
++        0,
++        datum_id.value(),
++        static_cast<int64_t>(value),
++        statsd::ART_DATUM_REPORTED__DEX_METADATA_TYPE__ART_DEX_METADATA_TYPE_UNKNOWN,
++        statsd::ART_DATUM_REPORTED__APK_TYPE__ART_APK_TYPE_UNKNOWN,
++        EncodeInstructionSet(kRuntimeISA),
++        EncodeGcCollectorType(Runtime::Current()->GetHeap()->GetForegroundCollectorType()),
++        EncodeUffdMinorFaultSupport());

@@ -1,0 +1,313 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/2a32565e-7c0789d2-09afc6c8/utf8.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/2a32565e-7c0789d2-09afc6c8/utf8.no_comments_merged.c
+index 75fb3b1..fd054e4 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/2a32565e-7c0789d2-09afc6c8/utf8.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/2a32565e-7c0789d2-09afc6c8/utf8.no_comments_merged.c
+@@ -6 +5,0 @@
+-#include <vis.h>
+@@ -10,4 +9 @@ struct utf8_item {
+-  data_entry;
+-  data_entry;
+-  index_entry;
+-  data_entry;
++ RB_ENTRY(utf8_item) index_entry;
+@@ -15,2 +11 @@ struct utf8_item {
+-  data_entry;
+-  data_entry;
++ RB_ENTRY(utf8_item) data_entry;
+@@ -20,3 +15,7 @@ struct utf8_item {
+-static int utf8_data_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
+-  if (ui1->size < ui2->size) return (-1);
+-  if (ui1->size > ui2->size) return (1);
++static int
++utf8_data_cmp(struct utf8_item *ui1, struct utf8_item *ui2)
++{
++ if (ui1->size < ui2->size)
++  return (-1);
++ if (ui1->size > ui2->size)
++  return (1);
+@@ -24,0 +24,2 @@ static int utf8_data_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
++RB_HEAD(utf8_data_tree, utf8_item);
++RB_GENERATE_STATIC(utf8_data_tree, utf8_item, data_entry, utf8_data_cmp);
+@@ -26,3 +27,7 @@ static struct utf8_data_tree utf8_data_tree = RB_INITIALIZER(utf8_data_tree);
+-static int utf8_index_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
+-  if (ui1->index < ui2->index) return (-1);
+-  if (ui1->index > ui2->index) return (1);
++static int
++utf8_index_cmp(struct utf8_item *ui1, struct utf8_item *ui2)
++{
++ if (ui1->index < ui2->index)
++  return (-1);
++ if (ui1->index > ui2->index)
++  return (1);
+@@ -30,0 +36,2 @@ static int utf8_index_cmp(struct utf8_item *ui1, struct utf8_item *ui2) {
++RB_HEAD(utf8_index_tree, utf8_item);
++RB_GENERATE_STATIC(utf8_index_tree, utf8_item, index_entry, utf8_index_cmp);
+@@ -33 +40,7 @@ static u_int utf8_next_index;
+-static struct utf8_item *utf8_item_by_data(const char *data, size_t size) {
++#define UTF8_GET_SIZE(uc) (((uc) >> 24) & 0x1f)
++#define UTF8_GET_WIDTH(uc) (((uc) >> 29) - 1)
++#define UTF8_SET_SIZE(size) (((utf8_char)(size)) << 24)
++#define UTF8_SET_WIDTH(width) ((((utf8_char)(width)) + 1) << 29)
++static struct utf8_item *
++utf8_item_by_data(const char *data, size_t size)
++{
+@@ -39 +52,3 @@ static struct utf8_item *utf8_item_by_data(const char *data, size_t size) {
+-static struct utf8_item *utf8_item_by_index(u_int index) {
++static struct utf8_item *
++utf8_item_by_index(u_int index)
++{
+@@ -44 +59,3 @@ static struct utf8_item *utf8_item_by_index(u_int index) {
+-static int utf8_put_item(const char *data, size_t size, u_int *index) {
++static int
++utf8_put_item(const char *data, size_t size, u_int *index)
++{
+@@ -49 +66,2 @@ static int utf8_put_item(const char *data, size_t size, u_int *index) {
+-    log_debug("%s: found %.*s = %u", __func__, (int)size, data, *index);
++  log_debug("%s: found %.*s = %u", __func__, (int)size, data,
++      *index);
+@@ -52 +70,2 @@ static int utf8_put_item(const char *data, size_t size, u_int *index) {
+-  if (utf8_next_index == 0xffffff + 1) return (-1);
++ if (utf8_next_index == 0xffffff + 1)
++  return (-1);
+@@ -63 +82,3 @@ static int utf8_put_item(const char *data, size_t size, u_int *index) {
+-enum utf8_state utf8_from_data(const struct utf8_data *ud, utf8_char *uc) {
++enum utf8_state
++utf8_from_data(const struct utf8_data *ud, utf8_char *uc)
++{
+@@ -65,2 +86,4 @@ enum utf8_state utf8_from_data(const struct utf8_data *ud, utf8_char *uc) {
+-  if (ud->width > 2) fatalx("invalid UTF-8 width: %u", ud->width);
+-  if (ud->size > UTF8_SIZE) goto fail;
++ if (ud->width > 2)
++  fatalx("invalid UTF-8 width: %u", ud->width);
++ if (ud->size > UTF8_SIZE)
++  goto fail;
+@@ -68 +91,2 @@ enum utf8_state utf8_from_data(const struct utf8_data *ud, utf8_char *uc) {
+-    index = (((utf8_char)ud->data[2] << 16) | ((utf8_char)ud->data[1] << 8) |
++  index = (((utf8_char)ud->data[2] << 16)|
++            ((utf8_char)ud->data[1] << 8)|
+@@ -85 +109,3 @@ fail:
+-void utf8_to_data(utf8_char uc, struct utf8_data *ud) {
++void
++utf8_to_data(utf8_char uc, struct utf8_data *ud)
++{
+@@ -105 +131,3 @@ void utf8_to_data(utf8_char uc, struct utf8_data *ud) {
+-u_int utf8_build_one(u_char ch) {
++u_int
++utf8_build_one(u_char ch)
++{
+@@ -108 +136,3 @@ u_int utf8_build_one(u_char ch) {
+-void utf8_set(struct utf8_data *ud, u_char ch) {
++void
++utf8_set(struct utf8_data *ud, u_char ch)
++{
+@@ -113 +143,3 @@ void utf8_set(struct utf8_data *ud, u_char ch) {
+-void utf8_copy(struct utf8_data *to, const struct utf8_data *from) {
++void
++utf8_copy(struct utf8_data *to, const struct utf8_data *from)
++{
+@@ -116 +148,2 @@ void utf8_copy(struct utf8_data *to, const struct utf8_data *from) {
+-  for (i = to->size; i < sizeof to->data; i++) to->data[i] = '\0';
++ for (i = to->size; i < sizeof to->data; i++)
++  to->data[i] = '\0';
+@@ -118 +151,3 @@ void utf8_copy(struct utf8_data *to, const struct utf8_data *from) {
+-static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
++static enum utf8_state
++utf8_width(struct utf8_data *ud, int *width)
++{
+@@ -126 +161,2 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-      log_debug("UTF-8 %.*s, mbtowc() %d", (int)ud->size, ud->data, errno);
++  log_debug("UTF-8 %.*s, mbtowc() %d", (int)ud->size, ud->data,
++      errno);
+@@ -132 +167,0 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-<<<<<<< HEAD
+@@ -133,0 +169 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
++<<<<<<< HEAD
+@@ -138 +173,0 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-  |||||||
+@@ -140,2 +175 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-  log_debug("UTF-8 %.*s is %08X", (int)ud->size, ud->data, (u_int)wc);
+->>>>>>> 7c0789d2d2721b70e04fe6a589f644797d2b5e1f
++>>>>>>> obsd-master
+@@ -143 +176,0 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-<<<<<<< HEAD
+@@ -147,0 +181 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
++<<<<<<< HEAD
+@@ -149,2 +182,0 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-  ||||||| log_debug("UTF-8 %.*s %#x, wcwidth() %d", (int)ud->size, ud->data,
+-               (u_int)wc, *width);
+@@ -152,6 +184,3 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-  log_debug("wcwidth(%08X) returned %d", (u_int)wc, *width);
+-  if (*width < 0) {
+-    *width = (wc >= 0x80 && wc <= 0x9f) ? 0 : 1;
+-  }
+->>>>>>> 7c0789d2d2721b70e04fe6a589f644797d2b5e1f
+-  if (*width >= 0 && *width <= 0xff) return (UTF8_DONE);
++>>>>>>> obsd-master
++ if (*width >= 0 && *width <= 0xff)
++  return (UTF8_DONE);
+@@ -160 +189,3 @@ static enum utf8_state utf8_width(struct utf8_data *ud, int *width) {
+-enum utf8_state utf8_open(struct utf8_data *ud, u_char ch) {
++enum utf8_state
++utf8_open(struct utf8_data *ud, u_char ch)
++{
+@@ -173 +204,3 @@ enum utf8_state utf8_open(struct utf8_data *ud, u_char ch) {
+-enum utf8_state utf8_append(struct utf8_data *ud, u_char ch) {
++enum utf8_state
++utf8_append(struct utf8_data *ud, u_char ch)
++{
+@@ -175,3 +208,6 @@ enum utf8_state utf8_append(struct utf8_data *ud, u_char ch) {
+-  if (ud->have >= ud->size) fatalx("UTF-8 character overflow");
+-  if (ud->size > sizeof ud->data) fatalx("UTF-8 character size too large");
+-  if (ud->have != 0 && (ch & 0xc0) != 0x80) ud->width = 0xff;
++ if (ud->have >= ud->size)
++  fatalx("UTF-8 character overflow");
++ if (ud->size > sizeof ud->data)
++  fatalx("UTF-8 character size too large");
++ if (ud->have != 0 && (ch & 0xc0) != 0x80)
++  ud->width = 0xff;
+@@ -179,3 +215,6 @@ enum utf8_state utf8_append(struct utf8_data *ud, u_char ch) {
+-  if (ud->have != ud->size) return (UTF8_MORE);
+-  if (ud->width == 0xff) return (UTF8_ERROR);
+-  if (utf8_width(ud, &width) != UTF8_DONE) return (UTF8_ERROR);
++ if (ud->have != ud->size)
++  return (UTF8_MORE);
++ if (ud->width == 0xff)
++  return (UTF8_ERROR);
++ if (utf8_width(ud, &width) != UTF8_DONE)
++  return (UTF8_ERROR);
+@@ -185 +224,3 @@ enum utf8_state utf8_append(struct utf8_data *ud, u_char ch) {
+-int utf8_strvis(char *dst, const char *src, size_t len, int flag) {
++int
++utf8_strvis(char *dst, const char *src, size_t len, int flag)
++{
+@@ -192 +233,2 @@ int utf8_strvis(char *dst, const char *src, size_t len, int flag) {
+-      while (++src < end && more == UTF8_MORE) more = utf8_append(&ud, *src);
++   while (++src < end && more == UTF8_MORE)
++    more = utf8_append(&ud, *src);
+@@ -194 +236,2 @@ int utf8_strvis(char *dst, const char *src, size_t len, int flag) {
+-        for (i = 0; i < ud.size; i++) *dst++ = ud.data[i];
++    for (i = 0; i < ud.size; i++)
++     *dst++ = ud.data[i];
+@@ -200 +243,3 @@ int utf8_strvis(char *dst, const char *src, size_t len, int flag) {
+-      if (isalpha((u_char)src[1]) || src[1] == '_' || src[1] == '{')
++   if (isalpha((u_char)src[1]) ||
++       src[1] == '_' ||
++       src[1] == '{')
+@@ -212 +257,3 @@ int utf8_strvis(char *dst, const char *src, size_t len, int flag) {
+-int utf8_stravis(char **dst, const char *src, int flag) {
++int
++utf8_stravis(char **dst, const char *src, int flag)
++{
+@@ -220 +267,3 @@ int utf8_stravis(char **dst, const char *src, int flag) {
+-int utf8_stravisx(char **dst, const char *src, size_t srclen, int flag) {
++int
++utf8_stravisx(char **dst, const char *src, size_t srclen, int flag)
++{
+@@ -228 +277,3 @@ int utf8_stravisx(char **dst, const char *src, size_t srclen, int flag) {
+-int utf8_isvalid(const char *s) {
++int
++utf8_isvalid(const char *s)
++{
+@@ -235,2 +286,4 @@ int utf8_isvalid(const char *s) {
+-      while (++s < end && more == UTF8_MORE) more = utf8_append(&ud, *s);
+-      if (more == UTF8_DONE) continue;
++   while (++s < end && more == UTF8_MORE)
++    more = utf8_append(&ud, *s);
++   if (more == UTF8_DONE)
++    continue;
+@@ -239 +292,2 @@ int utf8_isvalid(const char *s) {
+-    if (*s < 0x20 || *s > 0x7e) return (0);
++  if (*s < 0x20 || *s > 0x7e)
++   return (0);
+@@ -244 +298,3 @@ int utf8_isvalid(const char *s) {
+-char *utf8_sanitize(const char *src) {
++char *
++utf8_sanitize(const char *src)
++{
+@@ -253 +309,2 @@ char *utf8_sanitize(const char *src) {
+-      while (*++src != '\0' && more == UTF8_MORE) more = utf8_append(&ud, *src);
++   while (*++src != '\0' && more == UTF8_MORE)
++    more = utf8_append(&ud, *src);
+@@ -255,2 +312,4 @@ char *utf8_sanitize(const char *src) {
+-        dst = xreallocarray(dst, n + ud.width, sizeof *dst);
+-        for (i = 0; i < ud.width; i++) dst[n++] = '_';
++    dst = xreallocarray(dst, n + ud.width,
++        sizeof *dst);
++    for (i = 0; i < ud.width; i++)
++     dst[n++] = '_';
+@@ -271 +330,3 @@ char *utf8_sanitize(const char *src) {
+-size_t utf8_strlen(const struct utf8_data *s) {
++size_t
++utf8_strlen(const struct utf8_data *s)
++{
+@@ -273 +334,2 @@ size_t utf8_strlen(const struct utf8_data *s) {
+-  for (i = 0; s[i].size != 0; i++) ;
++ for (i = 0; s[i].size != 0; i++)
++               ;
+@@ -276 +338,3 @@ size_t utf8_strlen(const struct utf8_data *s) {
+-u_int utf8_strwidth(const struct utf8_data *s, ssize_t n) {
++u_int
++utf8_strwidth(const struct utf8_data *s, ssize_t n)
++{
+@@ -280 +344,2 @@ u_int utf8_strwidth(const struct utf8_data *s, ssize_t n) {
+-    if (n != -1 && n == i) break;
++  if (n != -1 && n == i)
++   break;
+@@ -285 +350,3 @@ u_int utf8_strwidth(const struct utf8_data *s, ssize_t n) {
+-struct utf8_data *utf8_fromcstr(const char *src) {
++struct utf8_data *
++utf8_fromcstr(const char *src)
++{
+@@ -308 +375,3 @@ struct utf8_data *utf8_fromcstr(const char *src) {
+-char *utf8_tocstr(struct utf8_data *src) {
++char *
++utf8_tocstr(struct utf8_data *src)
++{
+@@ -320 +389,3 @@ char *utf8_tocstr(struct utf8_data *src) {
+-u_int utf8_cstrwidth(const char *s) {
++u_int
++utf8_cstrwidth(const char *s)
++{
+@@ -327 +398,2 @@ u_int utf8_cstrwidth(const char *s) {
+-      while (*++s != '\0' && more == UTF8_MORE) more = utf8_append(&tmp, *s);
++   while (*++s != '\0' && more == UTF8_MORE)
++    more = utf8_append(&tmp, *s);
+@@ -334 +406,2 @@ u_int utf8_cstrwidth(const char *s) {
+-    if (*s > 0x1f && *s != 0x7f) width++;
++  if (*s > 0x1f && *s != 0x7f)
++   width++;
+@@ -339 +412,3 @@ u_int utf8_cstrwidth(const char *s) {
+-char *utf8_padcstr(const char *s, u_int width) {
++char *
++utf8_padcstr(const char *s, u_int width)
++{
+@@ -344 +419,2 @@ char *utf8_padcstr(const char *s, u_int width) {
+-  if (n >= width) return (xstrdup(s));
++ if (n >= width)
++  return (xstrdup(s));
+@@ -348 +424,2 @@ char *utf8_padcstr(const char *s, u_int width) {
+-  for (i = n; i < width; i++) out[slen++] = ' ';
++ for (i = n; i < width; i++)
++  out[slen++] = ' ';
+@@ -352 +429,3 @@ char *utf8_padcstr(const char *s, u_int width) {
+-char *utf8_rpadcstr(const char *s, u_int width) {
++char *
++utf8_rpadcstr(const char *s, u_int width)
++{
+@@ -357 +436,2 @@ char *utf8_rpadcstr(const char *s, u_int width) {
+-  if (n >= width) return (xstrdup(s));
++ if (n >= width)
++  return (xstrdup(s));
+@@ -360 +440,2 @@ char *utf8_rpadcstr(const char *s, u_int width) {
+-  for (i = 0; i < width - n; i++) out[i] = ' ';
++ for (i = 0; i < width - n; i++)
++  out[i] = ' ';
+@@ -365 +446,3 @@ char *utf8_rpadcstr(const char *s, u_int width) {
+-int utf8_cstrhas(const char *s, const struct utf8_data *ud) {
++int
++utf8_cstrhas(const char *s, const struct utf8_data *ud)
++{
+@@ -370 +453,2 @@ int utf8_cstrhas(const char *s, const struct utf8_data *ud) {
+-    if (loop->size != ud->size) continue;
++  if (loop->size != ud->size)
++   continue;

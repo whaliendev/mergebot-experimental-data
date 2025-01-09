@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "        if (config.tty) printf(\"%d. \", c);\n        if (cliReadReply(fd)) return 1;\n        if (elements) printf(\"%c\",config.mb_sep);",
+        "b_contents": "        printf(\"%d. \", c);\n        if (cliReadReply(fd)) retval = 1;",
+        "base_contents": "        printf(\"%d. \", c);\n        if (cliReadReply(fd)) return 1;",
+        "res_region": "        if (config.tty) printf(\"%d. \", c);\n        if (cliReadReply(fd)) retval = 1;\n        if (elements) printf(\"%c\",config.mb_sep);",
+        "lookback": "        printf(\"(empty list or set)\\n\");\n    }\n    while(elements--) {",
+        "lookahead": "        c++;\n    }",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 189,
+        "end_line": 199,
+        "merge_gen_region": "if (config.tty) printf(\"%d. \", c); if (cliReadReply(fd)) retval = 1; if (elements) printf(\"%c\",config.mb_sep);",
+        "resolved": true
+    },
+    {
+        "a_contents": "static char **splitArguments(char *line, int *argc) {\n    char *p = line;\n    char *current = NULL;\n    char **vector = NULL;\n\n    *argc = 0;\n    while(1) {\n        /* skip blanks */\n        while(*p && isspace(*p)) p++;\n        if (*p) {\n            /* get a token */\n            int inq=0; /* set to 1 if we are in \"quotes\" */\n            int done=0;\n\n            if (current == NULL) current = sdsempty();\n            while(!done) {\n                if (inq) {\n                    if (*p == '\\\\' && *(p+1)) {\n                        char c;\n\n                        p++;\n                        switch(*p) {\n                        case 'n': c = '\\n'; break;\n                        case 'r': c = '\\r'; break;\n                        case 't': c = '\\t'; break;\n                        case 'b': c = '\\b'; break;\n                        case 'a': c = '\\a'; break;\n                        default: c = *p; break;\n                        }\n                        current = sdscatlen(current,&c,1);\n                    } else if (*p == '\"') {\n                        /* closing quote must be followed by a space */\n                        if (*(p+1) && !isspace(*(p+1))) goto err;\n                        done=1;\n                    } else if (!*p) {\n                        /* unterminated quotes */\n                        goto err;\n                    } else {\n                        current = sdscatlen(current,p,1);\n                    }\n                } else {\n                    switch(*p) {\n                    case ' ':\n                    case '\\n':\n                    case '\\r':\n                    case '\\t':\n                    case '\\0':\n                        done=1;\n                        break;\n                    case '\"':\n                        inq=1;\n                        break;\n                    default:\n                        current = sdscatlen(current,p,1);\n                        break;\n                    }\n                }\n                if (*p) p++;\n            }\n            /* add the token to the vector */\n            vector = zrealloc(vector,((*argc)+1)*sizeof(char*));\n            vector[*argc] = current;\n            (*argc)++;\n            current = NULL;\n        } else {\n            return vector;\n        }\n    }\n\nerr:\n    while(*argc--)\n        sdsfree(vector[*argc]);\n    zfree(vector);\n    if (current) sdsfree(current);\n    return NULL;\n}\n",
+        "b_contents": "",
+        "base_contents": "static char **splitArguments(char *line, int *argc) {\n    char *p = line;\n    char *current = NULL;\n    char **vector = NULL;\n\n    *argc = 0;\n    while(1) {\n        /* skip blanks */\n        while(*p && isspace(*p)) p++;\n        if (*p) {\n            /* get a token */\n            int inq=0; /* set to 1 if we are in \"quotes\" */\n            int done = 0;\n\n            if (current == NULL) current = sdsempty();\n            while(!done) {\n                if (inq) {\n                    if (*p == '\\\\' && *(p+1)) {\n                        char c;\n\n                        p++;\n                        switch(*p) {\n                        case 'n': c = '\\n'; break;\n                        case 'r': c = '\\r'; break;\n                        case 't': c = '\\t'; break;\n                        case 'b': c = '\\b'; break;\n                        case 'a': c = '\\a'; break;\n                        default: c = *p; break;\n                        }\n                        current = sdscatlen(current,&c,1);\n                    } else if (*p == '\"') {\n                        done = 1;\n                    } else {\n                        current = sdscatlen(current,p,1);\n                    }\n                } else {\n                    switch(*p) {\n                    case ' ':\n                    case '\\n':\n                    case '\\r':\n                    case '\\t':\n                    case '\\0':\n                        done=1;\n                        break;\n                    case '\"':\n                        inq=1;\n                        break;\n                    default:\n                        current = sdscatlen(current,p,1);\n                        break;\n                    }\n                }\n                if (*p) p++;\n            }\n            /* add the token to the vector */\n            vector = zrealloc(vector,((*argc)+1)*sizeof(char*));\n            vector[*argc] = current;\n            (*argc)++;\n            current = NULL;\n        } else {\n            return vector;\n        }\n    }\n}\n",
+        "res_region": "",
+        "lookback": "  return sds;\n}\n",
+        "lookahead": "#define LINE_BUFLEN 4096\nstatic void repl() {",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 397,
+        "end_line": 542,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "    /* Start interactive mode when no command is provided */\n    if (argc == 0) repl();",
+        "b_contents": "    if (argc == 0) config.interactive = 1;\n    if (config.interactive) repl();",
+        "base_contents": "    if (argc == 0 || config.interactive == 1) repl();",
+        "res_region": "    /* Start interactive mode when no command is provided */\n    if (argc == 0) repl();",
+        "lookback": "        cliSendCommand(2, convertToSds(2, authargv), 1);\n    }\n",
+        "lookahead": "\n    argvcopy = convertToSds(argc+1, argv);",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 623,
+        "end_line": 631,
+        "merge_gen_region": "/* Start interactive mode when no command is provided */ if (argc == 0) repl();",
+        "resolved": true
+    }
+]

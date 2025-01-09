@@ -13,1406 +13,170 @@
 
 namespace rocksdb {
 
-CompactionPicker::~CompactionPicker() {}
+TailingIterator::TailingIterator(DBImpl* db, const ReadOptions& options,
+                                 ColumnFamilyData* cfd)
+    : db_(db),
+      options_(options),
+      cfd_(cfd),
+      version_number_(0),
+      current_(nullptr),
+      status_(Status::InvalidArgument("Seek() not called on this iterator")) {}
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+bool TailingIterator::Valid() const { return current_ != nullptr; }
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
+void TailingIterator::SeekToFirst() {
+  if (!IsCurrentVersion()) {
+    CreateIterators();
   }
 
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  mutable_->SeekToFirst();
+  immutable_->SeekToFirst();
+  UpdateCurrent();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
+void TailingIterator::Seek(const Slice& target) {
+  if (!IsCurrentVersion()) {
+    CreateIterators();
   }
 
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
+  mutable_->Seek(target);
 
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
+  // We maintain the interval (prev_key_, immutable_->key()] such that there
+  // are no records with keys within that range in immutable_ other than
+  // immutable_->key(). Since immutable_ can't change in this version, we don't
+  // need to do a seek if 'target' belongs to that interval (i.e. immutable_ is
+  // already at the correct position)!
+  //
+  // If options.prefix_seek is used and immutable_ is not valid, seek if target
+  // has a different prefix than prev_key.
+  //
+  // prev_key_ is updated by Next(). SeekImmutable() sets prev_key_ to
+  // 'target' -- in this case, prev_key_ is included in the interval, so
+  // prev_inclusive_ has to be set.
+
+  const Comparator* cmp = cfd_->user_comparator();
+  if (!is_prev_set_ || cmp->Compare(prev_key_, target) >= !is_prev_inclusive_ ||
+      (immutable_->Valid() && cmp->Compare(target, immutable_->key()) > 0) ||
+      (options_.prefix_seek && !IsSamePrefix(target))) {
+    SeekImmutable(target);
   }
 
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  UpdateCurrent();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+void TailingIterator::Next() {
+  assert(Valid());
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
+  if (!IsCurrentVersion()) {
+    // save the current key, create new iterators and then seek
+    std::string current_key = key().ToString();
+    Slice key_slice(current_key.data(), current_key.size());
 
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
+    CreateIterators();
+    Seek(key_slice);
 
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
+    if (!Valid() || key().compare(key_slice) != 0) {
+      // record with current_key no longer exists
+      return;
     }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
+
+  } else if (current_ == immutable_.get()) {
+    // immutable iterator is advanced -- update prev_key_
+    prev_key_ = key().ToString();
+    is_prev_inclusive_ = false;
+    is_prev_set_ = true;
   }
 
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  current_->Next();
+  UpdateCurrent();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+Slice TailingIterator::key() const {
+  assert(Valid());
+  return current_->key();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+Slice TailingIterator::value() const {
+  assert(Valid());
+  return current_->value();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
+Status TailingIterator::status() const {
+  if (!status_.ok()) {
+    return status_;
+  } else if (!mutable_->status().ok()) {
+    return mutable_->status();
   } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
+    return immutable_->status();
   }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+void TailingIterator::Prev() {
+  status_ = Status::NotSupported("This iterator doesn't support Prev()");
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+void TailingIterator::SeekToLast() {
+  status_ = Status::NotSupported("This iterator doesn't support SeekToLast()");
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+void TailingIterator::CreateIterators() {
+  std::pair<Iterator*, Iterator*> iters =
+      db_->GetTailingIteratorPair(options_, cfd_, &version_number_);
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
+  assert(iters.first && iters.second);
 
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  mutable_.reset(iters.first);
+  immutable_.reset(iters.second);
+  current_ = nullptr;
+  is_prev_set_ = false;
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+void TailingIterator::UpdateCurrent() {
+  current_ = nullptr;
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
+  if (mutable_->Valid()) {
+    current_ = mutable_.get();
   }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
+  const Comparator* cmp = cfd_->user_comparator();
+  if (immutable_->Valid() &&
+      (current_ == nullptr ||
+       cmp->Compare(immutable_->key(), current_->key()) < 0)) {
+    current_ = immutable_.get();
   }
 
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
+  if (!status_.ok()) {
+    // reset status that was set by Prev() or SeekToLast()
+    status_ = Status::OK();
   }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+bool TailingIterator::IsCurrentVersion() const {
+  return mutable_ != nullptr && immutable_ != nullptr &&
+         version_number_ == cfd_->GetSuperVersionNumber();
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+bool TailingIterator::IsSamePrefix(const Slice& target) const {
+<<<<<<< HEAD
+  const SliceTransform* extractor = cfd_->options()->prefix_extractor;
+||||||| e5fa4944f
+  const SliceTransform* extractor = db_->options_.prefix_extractor;
+=======
+  const SliceTransform* extractor = db_->options_.prefix_extractor.get();
+>>>>>>> d5de22dc099311b59a9e3d735702b6b9f18c7855
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
+  assert(extractor);
+  assert(is_prev_set_);
 
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  return extractor->Transform(target).compare(
+             extractor->Transform(prev_key_)) == 0;
 }
 
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
+void TailingIterator::SeekImmutable(const Slice& target) {
+  prev_key_ = target.ToString();
+  is_prev_inclusive_ = true;
+  is_prev_set_ = true;
 
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
-}
-
-// Look at overall size amplification. If size amplification
-// exceeeds the configured value, then do a compaction
-// of the candidate files all the way upto the earliest
-// base file (overrides configured values of file-size ratios,
-// min_merge_width and max_merge_width).
-//
-Compaction* UniversalCompactionPicker::PickCompactionUniversalSizeAmp(
-    Version* version, double score, LogBuffer* log_buffer) {
-  int level = 0;
-
-  // percentage flexibilty while reducing size amplification
-  uint64_t ratio =
-      options_->compaction_options_universal.max_size_amplification_percent;
-
-  // The files are sorted from newest first to oldest last.
-  std::vector<int>& file_by_time = version->files_by_size_[level];
-  assert(file_by_time.size() == version->files_[level].size());
-
-  unsigned int candidate_count = 0;
-  uint64_t candidate_size = 0;
-  unsigned int start_index = 0;
-  FileMetaData* f = nullptr;
-
-  // Skip files that are already being compacted
-  for (unsigned int loop = 0; loop < file_by_time.size() - 1; loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (!f->being_compacted) {
-      start_index = loop;  // Consider this as the first candidate.
-      break;
-    }
-    LogToBuffer(log_buffer, "Universal: skipping file %lu[%d] compacted %s",
-                (unsigned long)f->number, loop,
-                " cannot be a candidate to reduce size amp.\n");
-    f = nullptr;
-  }
-  if (f == nullptr) {
-    return nullptr;  // no candidate files
-  }
-
-  LogToBuffer(log_buffer, "Universal: First candidate file %lu[%d] %s",
-              (unsigned long)f->number, start_index, " to reduce size amp.\n");
-
-  // keep adding up all the remaining files
-  for (unsigned int loop = start_index; loop < file_by_time.size() - 1;
-       loop++) {
-    int index = file_by_time[loop];
-    f = version->files_[level][index];
-    if (f->being_compacted) {
-      LogToBuffer(
-          log_buffer, "Universal: Possible candidate file %lu[%d] %s.",
-          (unsigned long)f->number, loop,
-          " is already being compacted. No size amp reduction possible.\n");
-      return nullptr;
-    }
-    candidate_size += f->file_size;
-    candidate_count++;
-  }
-  if (candidate_count == 0) {
-    return nullptr;
-  }
-
-  // size of earliest file
-  int index = file_by_time[file_by_time.size() - 1];
-  uint64_t earliest_file_size = version->files_[level][index]->file_size;
-
-  // size amplification = percentage of additional size
-  if (candidate_size * 100 < ratio * earliest_file_size) {
-    LogToBuffer(log_buffer,
-                "Universal: size amp not needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-    return nullptr;
-  } else {
-    LogToBuffer(log_buffer,
-                "Universal: size amp needed. newer-files-total-size %lu "
-                "earliest-file-size %lu",
-                (unsigned long)candidate_size,
-                (unsigned long)earliest_file_size);
-  }
-  assert(start_index >= 0 && start_index < file_by_time.size() - 1);
-
-  // create a compaction request
-  // We always compact all the files, so always compress.
-  Compaction* c =
-      new Compaction(version, level, level, MaxFileSizeForLevel(level),
-                     LLONG_MAX, false, true);
-  c->score_ = score;
-  for (unsigned int loop = start_index; loop < file_by_time.size(); loop++) {
-    int index = file_by_time[loop];
-    f = c->input_version_->files_[level][index];
-    c->inputs_[0].push_back(f);
-    LogToBuffer(log_buffer,
-                "Universal: size amp picking file %lu[%d] with size %lu",
-                (unsigned long)f->number, index, (unsigned long)f->file_size);
-  }
-  return c;
+  immutable_->Seek(target);
 }
 
 }  // namespace rocksdb

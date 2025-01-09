@@ -1,0 +1,19 @@
+--- a/./output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_mergegen.c
++++ b/./output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_merged.c
+@@ -163,0 +165 @@ void sremCommand(redisClient *c) {
++        touchWatchedKey(c->db,c->argv[1]);
+@@ -179 +181,13 @@ void smoveCommand(redisClient *c) {
+-                                                                                                                          if (checkType(c,srcset,REDIS_SET) || (dstset && checkType(c,dstset,REDIS_SET))) return; if (srcset == dstset) { addReply(c,shared.cone); return; } if (!setTypeRemove(srcset,ele)) { addReply(c,shared.czero); return; } if (setTypeSize(srcset) == 0) dbDelete(c->db,c->argv[1]); touchWatchedKey(c->db,c->argv[1]);
++    if (checkType(c,srcset,REDIS_SET) ||
++        (dstset && checkType(c,dstset,REDIS_SET))) return;
++    if (srcset == dstset) {
++        addReply(c,shared.cone);
++        return;
++    }
++    if (!setTypeRemove(srcset,ele)) {
++        addReply(c,shared.czero);
++        return;
++    }
++    if (setTypeSize(srcset) == 0) dbDelete(c->db,c->argv[1]);
++    touchWatchedKey(c->db,c->argv[1]);
++    touchWatchedKey(c->db,c->argv[2]);

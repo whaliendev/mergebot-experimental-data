@@ -1,0 +1,389 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_merged.c
+index f38966a..b85fddd 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/796162d7-50e44460-5d1d32dc/lmkd@lmkd.no_comments_merged.c
+@@ -76 +76,5 @@ enum vmpressure_level {
+-static const char *level_name[] = {"low", "medium", "critical"};
++static const char *level_name[] = {
++    "low",
++    "medium",
++    "critical"
++};
+@@ -134,2 +138,6 @@ static const char *const zoneinfo_field_names[ZI_FIELD_COUNT] = {
+-    "nr_free_pages", "nr_file_pages", "nr_shmem",
+-    "nr_unevictable", "workingset_refault", "high",
++    "nr_free_pages",
++    "nr_file_pages",
++    "nr_shmem",
++    "nr_unevictable",
++    "workingset_refault",
++    "high",
+@@ -172,5 +180,19 @@ static const char *const meminfo_field_names[MI_FIELD_COUNT] = {
+-    "MemFree:", "Cached:", "SwapCached:", "Buffers:",
+-    "Shmem:", "Unevictable:", "SwapTotal:", "SwapFree:",
+-    "Active(anon):", "Inactive(anon):", "Active(file):", "Inactive(file):",
+-    "SReclaimable:", "SUnreclaim:", "KernelStack:", "PageTables:",
+-    "ION_heap:", "ION_heap_pool:", "CmaFree:",
++    "MemFree:",
++    "Cached:",
++    "SwapCached:",
++    "Buffers:",
++    "Shmem:",
++    "Unevictable:",
++    "SwapTotal:",
++    "SwapFree:",
++    "Active(anon):",
++    "Inactive(anon):",
++    "Active(file):",
++    "Inactive(file):",
++    "SReclaimable:",
++    "SUnreclaim:",
++    "KernelStack:",
++    "PageTables:",
++    "ION_heap:",
++    "ION_heap_pool:",
++    "CmaFree:",
+@@ -203 +225,5 @@ union meminfo {
+-enum field_match_result { NO_MATCH, PARSE_FAIL, PARSE_SUCCESS };
++enum field_match_result {
++    NO_MATCH,
++    PARSE_FAIL,
++    PARSE_SUCCESS
++};
+@@ -224,0 +251,2 @@ static struct proc *pidhash[PIDHASH_SZ];
++#define pid_hashfn(x) ((((x) >> 8) ^ (x)) & (PIDHASH_SZ - 1))
++#define ADJTOSLOT(adj) ((adj) + -OOM_SCORE_ADJ_MIN)
+@@ -257 +285,2 @@ static enum field_match_result match_field(const char *cp, const char *ap,
+-static ssize_t read_all(int fd, char *buf, size_t max_len) {
++static ssize_t read_all(int fd, char *buf, size_t max_len)
++{
+@@ -302,2 +331,2 @@ static struct proc *pid_lookup(int pid) {
+-static void adjslot_insert(struct adjslot_list *head,
+-                           struct adjslot_list *new) {
++static void adjslot_insert(struct adjslot_list *head, struct adjslot_list *new)
++{
+@@ -310 +339,2 @@ static void adjslot_insert(struct adjslot_list *head,
+-static void adjslot_remove(struct adjslot_list *old) {
++static void adjslot_remove(struct adjslot_list *old)
++{
+@@ -324 +354,3 @@ static void proc_slot(struct proc *procp) {
+-static void proc_unslot(struct proc *procp) { adjslot_remove(&procp->asl); }
++static void proc_unslot(struct proc *procp) {
++    adjslot_remove(&procp->asl);
++}
+@@ -338 +370,2 @@ static int pid_remove(int pid) {
+-  if (!procp) return -1;
++    if (!procp)
++        return -1;
+@@ -366,0 +400,5 @@ static bool writefilestring(const char *path, const char *s,
++static inline long get_time_diff_ms(struct timespec *from,
++                                    struct timespec *to) {
++    return (to->tv_sec - from->tv_sec) * (long)MS_PER_SEC +
++           (to->tv_nsec - from->tv_nsec) / (long)NS_PER_MS;
++}
+@@ -376 +414,2 @@ static void cmd_procprio(LMKD_CTRL_PACKET packet) {
+-  if (params.oomadj < OOM_SCORE_ADJ_MIN || params.oomadj > OOM_SCORE_ADJ_MAX) {
++    if (params.oomadj < OOM_SCORE_ADJ_MIN ||
++        params.oomadj > OOM_SCORE_ADJ_MAX) {
+@@ -415,2 +454,2 @@ static void cmd_procprio(LMKD_CTRL_PACKET packet) {
+-    snprintf(path, sizeof(path),
+-             MEMCG_SYSFS_PATH "apps/uid_%d/pid_%d/memory.soft_limit_in_bytes",
++        snprintf(path, sizeof(path), MEMCG_SYSFS_PATH
++                 "apps/uid_%d/pid_%d/memory.soft_limit_in_bytes",
+@@ -419,2 +458,2 @@ static void cmd_procprio(LMKD_CTRL_PACKET packet) {
+-    is_system_server =
+-        (params.oomadj == SYSTEM_ADJ && (pwdrec = getpwnam("system")) != NULL &&
++        is_system_server = (params.oomadj == SYSTEM_ADJ &&
++                            (pwdrec = getpwnam("system")) != NULL &&
+@@ -489,2 +528,4 @@ static int get_killcnt(int min_oomadj, int max_oomadj) {
+-  if (min_oomadj > max_oomadj) return 0;
+-  if (min_oomadj > OOM_SCORE_ADJ_MAX) return killcnt_total;
++    if (min_oomadj > max_oomadj)
++        return 0;
++    if (min_oomadj > OOM_SCORE_ADJ_MAX)
++        return killcnt_total;
+@@ -517 +558,2 @@ static void cmd_target(int ntargets, LMKD_CTRL_PACKET packet) {
+-  if (ntargets < 1 || ntargets > (int)ARRAY_SIZE(lowmem_adj)) return;
++    if (ntargets < 1 || ntargets > (int)ARRAY_SIZE(lowmem_adj))
++        return;
+@@ -553,2 +595 @@ static void cmd_target(int ntargets, LMKD_CTRL_PACKET packet) {
+-      snprintf(val, sizeof(val), "%d",
+-               use_inkernel_interface ? lowmem_minfree[i] : 0);
++            snprintf(val, sizeof(val), "%d", use_inkernel_interface ? lowmem_minfree[i] : 0);
+@@ -556,2 +597 @@ static void cmd_target(int ntargets, LMKD_CTRL_PACKET packet) {
+-      snprintf(val, sizeof(val), "%d",
+-               use_inkernel_interface ? lowmem_adj[i] : 0);
++            snprintf(val, sizeof(val), "%d", use_inkernel_interface ? lowmem_adj[i] : 0);
+@@ -567,2 +607 @@ static void ctrl_data_close(int dsock_idx) {
+-  if (epoll_ctl(epollfd, EPOLL_CTL_DEL, data_sock[dsock_idx].sock, &epev) ==
+-      -1) {
++    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, data_sock[dsock_idx].sock, &epev) == -1) {
+@@ -605 +644,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-  if (len <= 0) return;
++    if (len <= 0)
++        return;
+@@ -612 +652,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-  if (nargs < 0) goto wronglen;
++    if (nargs < 0)
++        goto wronglen;
+@@ -616 +657,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (nargs & 0x1 || targets > (int)ARRAY_SIZE(lowmem_adj)) goto wronglen;
++        if (nargs & 0x1 || targets > (int)ARRAY_SIZE(lowmem_adj))
++            goto wronglen;
+@@ -620 +662,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (nargs != 3) goto wronglen;
++        if (nargs != 3)
++            goto wronglen;
+@@ -624 +667,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (nargs != 1) goto wronglen;
++        if (nargs != 1)
++            goto wronglen;
+@@ -628 +672,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (nargs != 0) goto wronglen;
++        if (nargs != 0)
++            goto wronglen;
+@@ -632 +677,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (nargs != 2) goto wronglen;
++        if (nargs != 2)
++            goto wronglen;
+@@ -635 +681,2 @@ static void ctrl_command_handler(int dsock_idx) {
+-      if (ctrl_data_write(dsock_idx, (char *)packet, len) != len) return;
++        if (ctrl_data_write(dsock_idx, (char *)packet, len) != len)
++            return;
+@@ -677,2 +724 @@ static void ctrl_connect_handler(int data __unused, uint32_t events __unused) {
+-  if (epoll_ctl(epollfd, EPOLL_CTL_ADD, data_sock[free_dscock_idx].sock,
+-                &epev) == -1) {
++    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, data_sock[free_dscock_idx].sock, &epev) == -1) {
+@@ -704,2 +750 @@ static void memory_stat_parse_line(char *line, struct memory_stat *mem_st) {
+-static int memory_stat_from_cgroup(struct memory_stat *mem_st, int pid,
+-                                   uid_t uid) {
++static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {
+@@ -747,2 +792 @@ static int memory_stat_from_procfs(struct memory_stat *mem_st, int pid) {
+-  mem_st->process_start_time_ns =
+-      starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));
++    mem_st->process_start_time_ns = starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));
+@@ -783,2 +827,2 @@ static bool zoneinfo_parse_line(char *line, union zoneinfo *zi) {
+-  switch (match_field(cp, ap, zoneinfo_field_names, ZI_FIELD_COUNT, &val,
+-                      &field_idx)) {
++    switch (match_field(cp, ap, zoneinfo_field_names,
++                        ZI_FIELD_COUNT, &val, &field_idx)) {
+@@ -790 +834,2 @@ static bool zoneinfo_parse_line(char *line, union zoneinfo *zi) {
+-        zi->field.totalreserve_pages += zoneinfo_parse_protection(ap);
++            zi->field.totalreserve_pages +=
++                zoneinfo_parse_protection(ap);
+@@ -836,2 +881,2 @@ static bool meminfo_parse_line(char *line, union meminfo *mi) {
+-  match_res = match_field(cp, ap, meminfo_field_names, MI_FIELD_COUNT, &val,
+-                          &field_idx);
++    match_res = match_field(cp, ap, meminfo_field_names, MI_FIELD_COUNT,
++        &val, &field_idx);
+@@ -862,2 +907,2 @@ static int meminfo_parse(union meminfo *mi) {
+-  mi->field.nr_file_pages =
+-      mi->field.cached + mi->field.swap_cached + mi->field.buffers;
++    mi->field.nr_file_pages = mi->field.cached + mi->field.swap_cached +
++        mi->field.buffers;
+@@ -868,2 +913 @@ static void meminfo_log(union meminfo *mi) {
+-    android_log_write_int32(
+-        ctx, (int32_t)min(mi->arr[field_idx] * page_k, INT32_MAX));
++        android_log_write_int32(ctx, (int32_t)min(mi->arr[field_idx] * page_k, INT32_MAX));
+@@ -883 +927,2 @@ static int proc_get_size(int pid) {
+-  if (fd == -1) return -1;
++    if (fd == -1)
++        return -1;
+@@ -901 +946,2 @@ static char *proc_get_name(int pid) {
+-  if (fd == -1) return NULL;
++    if (fd == -1)
++        return NULL;
+@@ -908 +954,2 @@ static char *proc_get_name(int pid) {
+-  if (cp) *cp = '\0';
++    if (cp)
++        *cp = '\0';
+@@ -942,2 +989,2 @@ static void set_process_group_and_prio(int pid, SchedPolicy sp, int prio) {
+-    ALOGW("Failed to open %s; errno=%d: process pid(%d) might have died",
+-          proc_path, errno, pid);
++        ALOGW("Failed to open %s; errno=%d: process pid(%d) might have died", proc_path, errno,
++              pid);
+@@ -955,2 +1002 @@ static void set_process_group_and_prio(int pid, SchedPolicy sp, int prio) {
+-      ALOGW("Unable to raise priority of killing t_pid (%d): errno=%d", t_pid,
+-            errno);
++            ALOGW("Unable to raise priority of killing t_pid (%d): errno=%d", t_pid, errno);
+@@ -959,2 +1005 @@ static void set_process_group_and_prio(int pid, SchedPolicy sp, int prio) {
+-      ALOGW("Failed to set_cpuset_policy on pid(%d) t_pid(%d) to %d", pid,
+-            t_pid, (int)sp);
++            ALOGW("Failed to set_cpuset_policy on pid(%d) t_pid(%d) to %d", pid, t_pid, (int)sp);
+@@ -999 +1043,0 @@ static int kill_one_process(struct proc *procp, int min_oom_score) {
+-<<<<<<< HEAD
+@@ -1002,6 +1046,2 @@ static int kill_one_process(struct proc *procp, int min_oom_score) {
+-|||||||
+-=======
+-  set_process_group_and_prio(pid, SP_FOREGROUND, ANDROID_PRIORITY_HIGHEST);
+->>>>>>> 50e44460e76c950df2ae58ada53a86ba74f1fdc9
+-  ALOGI("Kill '%s' (%d), uid %d, oom_adj %d to free %ldkB", taskname, pid, uid,
+-        procp->oomadj, tasksize * page_k);
++    ALOGI("Kill '%s' (%d), uid %d, oom_adj %d to free %ldkB",
++        taskname, pid, uid, procp->oomadj, tasksize * page_k);
+@@ -1016,5 +1056,4 @@ static int kill_one_process(struct proc *procp, int min_oom_score) {
+-      stats_write_lmk_kill_occurred(
+-          log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,
+-          mem_st.pgfault, mem_st.pgmajfault, mem_st.rss_in_bytes,
+-          mem_st.cache_in_bytes, mem_st.swap_in_bytes,
+-          mem_st.process_start_time_ns, min_oom_score);
++            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname,
++                    procp->oomadj, mem_st.pgfault, mem_st.pgmajfault, mem_st.rss_in_bytes,
++                    mem_st.cache_in_bytes, mem_st.swap_in_bytes, mem_st.process_start_time_ns,
++                    min_oom_score);
+@@ -1022,3 +1061,3 @@ static int kill_one_process(struct proc *procp, int min_oom_score) {
+-      stats_write_lmk_kill_occurred(
+-          log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj, -1, -1,
+-          tasksize * BYTES_IN_KILOBYTE, -1, -1, -1, min_oom_score);
++            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,
++                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1, -1,
++                                          min_oom_score);
+@@ -1042,2 +1081,4 @@ static int find_and_kill_process(int min_score_adj) {
+-      procp = kill_heaviest_task ? proc_get_heaviest(i) : proc_adj_lru(i);
+-      if (!procp) break;
++            procp = kill_heaviest_task ?
++                proc_get_heaviest(i) : proc_adj_lru(i);
++            if (!procp)
++                break;
+@@ -1062,2 +1103 @@ static int find_and_kill_process(int min_score_adj) {
+-    stats_write_lmk_state_changed(log_ctx, LMK_STATE_CHANGED,
+-                                  LMK_STATE_CHANGE_STOP);
++        stats_write_lmk_state_changed(log_ctx, LMK_STATE_CHANGED, LMK_STATE_CHANGE_STOP);
+@@ -1106,2 +1146,2 @@ enum vmpressure_level upgrade_level(enum vmpressure_level level) {
+-  return (enum vmpressure_level)((level < VMPRESS_LEVEL_CRITICAL) ? level + 1
+-                                                                  : level);
++    return (enum vmpressure_level)((level < VMPRESS_LEVEL_CRITICAL) ?
++        level + 1 : level);
+@@ -1110,7 +1150,2 @@ enum vmpressure_level downgrade_level(enum vmpressure_level level) {
+-  return (enum vmpressure_level)((level > VMPRESS_LEVEL_LOW) ? level - 1
+-                                                             : level);
+-}
+-static inline long get_time_diff_ms(struct timespec *from,
+-                                    struct timespec *to) {
+-  return (to->tv_sec - from->tv_sec) * (long)MS_PER_SEC +
+-         (to->tv_nsec - from->tv_nsec) / (long)NS_PER_MS;
++    return (enum vmpressure_level)((level > VMPRESS_LEVEL_LOW) ?
++        level - 1 : level);
+@@ -1159,2 +1194,2 @@ static void mp_event_common(int data, uint32_t events __unused) {
+-          TEMP_FAILURE_RETRY(read(mpevfd[lvl], &evcount, sizeof(evcount))) >
+-              0 &&
++                TEMP_FAILURE_RETRY(read(mpevfd[lvl],
++                                   &evcount, sizeof(evcount))) > 0 &&
+@@ -1189,2 +1224 @@ static void mp_event_common(int data, uint32_t events __unused) {
+-    if (mi.field.nr_file_pages >
+-        (mi.field.shmem + mi.field.unevictable + mi.field.swap_cached)) {
++        if (mi.field.nr_file_pages > (mi.field.shmem + mi.field.unevictable + mi.field.swap_cached)) {
+@@ -1206,2 +1240 @@ static void mp_event_common(int data, uint32_t events __unused) {
+-        ALOGI(
+-            "Ignore %s memory pressure event "
++                ALOGI("Ignore %s memory pressure event "
+@@ -1244,2 +1277 @@ static void mp_event_common(int data, uint32_t events __unused) {
+-    } else if (level == VMPRESS_LEVEL_CRITICAL &&
+-               mem_pressure > upgrade_pressure) {
++        } else if (level == VMPRESS_LEVEL_CRITICAL && mem_pressure > upgrade_pressure) {
+@@ -1268,2 +1300 @@ do_kill:
+-          ALOGI(
+-              "Ignoring pressure since more memory is "
++                    ALOGI("Ignoring pressure since more memory is "
+@@ -1288,6 +1319,5 @@ do_kill:
+-      ALOGI(
+-          "Reclaimed %ldkB, cache(%ldkB) and "
+-          "free(%" PRId64 "kB)-reserved(%" PRId64
+-          "kB) below min(%ldkB) for oom_adj %d",
+-          pages_freed * page_k, other_file * page_k,
+-          mi.field.nr_free_pages * page_k, zi.field.totalreserve_pages * page_k,
++            ALOGI("Reclaimed %ldkB, cache(%ldkB) and "
++                "free(%" PRId64 "kB)-reserved(%" PRId64 "kB) below min(%ldkB) for oom_adj %d",
++                pages_freed * page_k,
++                other_file * page_k, mi.field.nr_free_pages * page_k,
++                zi.field.totalreserve_pages * page_k,
+@@ -1296,2 +1326,2 @@ do_kill:
+-      ALOGI("Reclaimed %ldkB at oom_adj %d", pages_freed * page_k,
+-            min_score_adj);
++            ALOGI("Reclaimed %ldkB at oom_adj %d",
++                pages_freed * page_k, min_score_adj);
+@@ -1378,2 +1408,2 @@ static bool init_mp_common(enum vmpressure_level level) {
+-    ALOGE("cgroup.event_control write failed for level %s; errno=%d", levelstr,
+-          errno);
++        ALOGE("cgroup.event_control write failed for level %s; errno=%d",
++              levelstr, errno);
+@@ -1412,2 +1442,2 @@ static void poll_kernel() {
+-    int bytes_read = TEMP_FAILURE_RETRY(
+-        pread(kernel_poll_fd, (void *)rd_buf, sizeof(rd_buf), 0));
++        int bytes_read =
++                TEMP_FAILURE_RETRY(pread(kernel_poll_fd, (void*)rd_buf, sizeof(rd_buf), 0));
+@@ -1426,2 +1456 @@ static void poll_kernel() {
+-    int fields_read =
+-        sscanf(rd_buf,
++        int fields_read = sscanf(rd_buf,
+@@ -1433,5 +1462,3 @@ static void poll_kernel() {
+-      int64_t process_start_time_ns =
+-          starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));
+-      stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname,
+-                                    oom_score_adj, min_flt, maj_flt,
+-                                    rss_in_pages * PAGE_SIZE, 0, 0,
++            int64_t process_start_time_ns = starttime * (NS_PER_SEC / sysconf(_SC_CLK_TCK));
++            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, oom_score_adj,
++                                          min_flt, maj_flt, rss_in_pages * PAGE_SIZE, 0, 0,
+@@ -1446,2 +1473,2 @@ static void init_poll_kernel() {
+-  kernel_poll_fd = TEMP_FAILURE_RETRY(
+-      open("/proc/lowmemorykiller", O_RDONLY | O_NONBLOCK | O_CLOEXEC));
++    kernel_poll_fd =
++            TEMP_FAILURE_RETRY(open("/proc/lowmemorykiller", O_RDONLY | O_NONBLOCK | O_CLOEXEC));
+@@ -1449,2 +1476 @@ static void init_poll_kernel() {
+-    ALOGE("kernel lmk event file could not be opened; errno=%d",
+-          kernel_poll_fd);
++        ALOGE("kernel lmk event file could not be opened; errno=%d", kernel_poll_fd);
+@@ -1469 +1495,2 @@ static int init(void) {
+-  if (page_k == -1) page_k = PAGE_SIZE;
++    if (page_k == -1)
++        page_k = PAGE_SIZE;
+@@ -1507,3 +1534,4 @@ static int init(void) {
+-    use_psi_monitors =
+-        property_get_bool("ro.lmk.use_psi", true) && init_psi_monitors();
+-    if (!use_psi_monitors && (!init_mp_common(VMPRESS_LEVEL_LOW) ||
++        use_psi_monitors = property_get_bool("ro.lmk.use_psi", true) &&
++            init_psi_monitors();
++        if (!use_psi_monitors &&
++            (!init_mp_common(VMPRESS_LEVEL_LOW) ||
+@@ -1512,3 +1540 @@ static int init(void) {
+-      ALOGE(
+-          "Kernel does not support memory pressure events or in-kernel low "
+-          "memory killer");
++            ALOGE("Kernel does not support memory pressure events or in-kernel low memory killer");
+@@ -1544,2 +1570,2 @@ static void mainloop(void) {
+-      delay = (delay < PSI_POLL_PERIOD_MS) ? PSI_POLL_PERIOD_MS - delay
+-                                           : PSI_POLL_PERIOD_MS;
++            delay = (delay < PSI_POLL_PERIOD_MS) ?
++                PSI_POLL_PERIOD_MS - delay : PSI_POLL_PERIOD_MS;
+@@ -1557 +1583,2 @@ static void mainloop(void) {
+-      if (errno == EINTR) continue;
++            if (errno == EINTR)
++                continue;
+@@ -1569 +1596,2 @@ static void mainloop(void) {
+-      if (evt->events & EPOLLERR) ALOGD("EPOLLERR on event #%d", i);
++            if (evt->events & EPOLLERR)
++                ALOGD("EPOLLERR on event #%d", i);
+@@ -1591 +1619,2 @@ int main(int argc __unused, char **argv __unused) {
+-  level_oomadj[VMPRESS_LEVEL_MEDIUM] = property_get_int32("ro.lmk.medium", 800);
++    level_oomadj[VMPRESS_LEVEL_MEDIUM] =
++        property_get_int32("ro.lmk.medium", 800);
+@@ -1595 +1624,2 @@ int main(int argc __unused, char **argv __unused) {
+-  enable_pressure_upgrade = property_get_bool("ro.lmk.critical_upgrade", false);
++    enable_pressure_upgrade =
++        property_get_bool("ro.lmk.critical_upgrade", false);
+@@ -1600 +1630,2 @@ int main(int argc __unused, char **argv __unused) {
+-  kill_heaviest_task = property_get_bool("ro.lmk.kill_heaviest_task", false);
++    kill_heaviest_task =
++        property_get_bool("ro.lmk.kill_heaviest_task", false);
+@@ -1604,2 +1635,4 @@ int main(int argc __unused, char **argv __unused) {
+-  use_minfree_levels = property_get_bool("ro.lmk.use_minfree_levels", false);
+-  per_app_memcg = property_get_bool("ro.config.per_app_memcg", low_ram_device);
++    use_minfree_levels =
++        property_get_bool("ro.lmk.use_minfree_levels", false);
++    per_app_memcg =
++        property_get_bool("ro.config.per_app_memcg", low_ram_device);
+@@ -1614,2 +1647 @@ int main(int argc __unused, char **argv __unused) {
+-      if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) &&
+-          (errno != EINVAL)) {
++            if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) && (errno != EINVAL)) {

@@ -1,0 +1,18 @@
+[
+    {
+        "a_contents": "\n  // Corrupt the last WAL file from (filesize * off) for length (filesize * len)\n  static void CorruptWAL(DBTest* test, const double off, const double len,\n                         const bool trunc = false) {\n    rocksdb::VectorLogPtr wal_files;\n    ASSERT_OK(test->dbfull()->GetSortedWalFiles(wal_files));\n    ASSERT_EQ(wal_files.size(), 1);\n    const auto logfile_path =\n        test->dbname_ + \"/\" + wal_files.front()->PathName();\n    auto size = wal_files.front()->SizeFileBytes();\n\n#ifdef OS_WIN\n    // Windows disk cache behaves differently. When we truncate\n    // the original content is still in the cache due to the original\n    // handle is still open. Generally, in Windows, one prohibits\n    // shared access to files and it is not needed for WAL but we allow\n    // it to induce corruption at various tests.\n    test->Close();\n#endif\n\n    if (trunc) {\n      ASSERT_EQ(0, truncate(logfile_path.c_str(), size * off));\n    } else {\n      InduceCorruption(logfile_path, size * off, size * len);\n    }\n  }",
+        "b_contents": "",
+        "base_contents": "\n  // Corrupt the last WAL file from (filesize * off) for length (filesize * len)\n  static void CorruptWAL(DBTest* test, const double off, const double len,\n                         const bool trunc = false) {\n    rocksdb::VectorLogPtr wal_files;\n    ASSERT_OK(test->dbfull()->GetSortedWalFiles(wal_files));\n    ASSERT_EQ(wal_files.size(), 1);\n    const auto logfile_path =\n        test->dbname_ + \"/\" + wal_files.front()->PathName();\n    auto size = wal_files.front()->SizeFileBytes();\n\n    if (trunc) {\n      ASSERT_EQ(0, truncate(logfile_path.c_str(), size * off));\n    } else {\n      InduceCorruption(logfile_path, size * off, size * len);\n    }\n  }",
+        "res_region": "",
+        "lookback": "\n    close(fd);\n  }",
+        "lookahead": "};\n",
+        "label": [
+            "theirs",
+            "complex_conflict"
+        ],
+        "start_line": 8824,
+        "end_line": 8870,
+        "merge_gen_region": "// Corrupt the last WAL file from (filesize * off) for length (filesize * len) static void CorruptWAL(DBTest* test, const double off, const double len, const bool trunc = false) { rocksdb::VectorLogPtr wal_files; ASSERT_OK(test->dbfull()->GetSortedWalFiles(wal_files)); ASSERT_EQ(wal_files.size(), 1); const auto logfile_path = test->dbname_ + \"/\" + wal_files.front()->PathName(); auto size = wal_files.front()->SizeFileBytes(); #ifdef OS_WIN // Windows disk cache behaves differently. When we truncate // the original content is still in the cache due to the original // handle is still open. Generally, in Windows, one prohibits // shared access to files and it is not needed for WAL but we allow // it to induce corruption at various tests. test->Close(); #endif if (trunc) { ASSERT_EQ(0, truncate(logfile_path.c_str(), size * off)); } else { InduceCorruption(logfile_path, size * off, size * len); } }",
+        "resolved": false
+    }
+]

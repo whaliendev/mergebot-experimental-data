@@ -1,0 +1,115 @@
+diff --git a/./output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@IAudioPolicyService.no_comments_mergegen.cpp b/./output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@IAudioPolicyService.no_comments_merged.cpp
+index b2fd3f1..f421082 100644
+--- a/./output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@IAudioPolicyService.no_comments_mergegen.cpp
++++ b/./output/frameworks_av/6a87ed87-0b39d3eb-fb33f9bc/media@libaudioclient@IAudioPolicyService.no_comments_merged.cpp
+@@ -86 +86,5 @@ enum {
+-template_CALL_SCREEN_MODE_SUPPORTED, SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY, REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY, GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++    SET_RTT_ENABLED,
++    IS_CALL_SCREEN_MODE_SUPPORTED,
++    SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++    REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++    GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
+@@ -1185 +1189,56 @@ public:
+-virtual bool isCallScreenModeSupported() { Parcel data, reply; data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor()); status_t status = remote()->transact(IS_CALL_SCREEN_MODE_SUPPORTED, data, &reply); if (status != NO_ERROR) { return false; } return reply.readBool(); } virtual status_t setPreferredDeviceForStrategy(product_strategy_t strategy, const AudioDeviceTypeAddr &device) { Parcel data, reply; data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor()); data.writeUint32(static_cast<uint32_t>(strategy)); status_t status = device.writeToParcel(&data); if (status != NO_ERROR) { return BAD_VALUE; } status = remote()->transact(SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY, data, &reply); if (status != NO_ERROR) { return status; } return static_cast<status_t>(reply.readInt32()); } virtual status_t removePreferredDeviceForStrategy(product_strategy_t strategy) { Parcel data, reply; data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor()); data.writeUint32(static_cast<uint32_t>(strategy)); status_t status = remote()->transact(DN_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY, data, &reply); if (status != NO_ERROR) { return status; } return static_cast<status_t>(strategy)); status_t status = remote()->transact(REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY, data, &reply); if (status != NO_ERROR) { return status; } return static_cast<status_t strategy(GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY
++    virtual bool isCallScreenModeSupported()
++    {
++        Parcel data, reply;
++        data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor());
++        status_t status = remote()->transact(IS_CALL_SCREEN_MODE_SUPPORTED, data, &reply);
++        if (status != NO_ERROR) {
++            return false;
++        }
++        return reply.readBool();
++    }
++    virtual status_t setPreferredDeviceForStrategy(product_strategy_t strategy,
++            const AudioDeviceTypeAddr &device)
++    {
++        Parcel data, reply;
++        data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor());
++        data.writeUint32(static_cast<uint32_t>(strategy));
++        status_t status = device.writeToParcel(&data);
++        if (status != NO_ERROR) {
++            return BAD_VALUE;
++        }
++        status = remote()->transact(SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++                data, &reply);
++        if (status != NO_ERROR) {
++           return status;
++        }
++        return static_cast<status_t>(reply.readInt32());
++    }
++    virtual status_t removePreferredDeviceForStrategy(product_strategy_t strategy)
++    {
++        Parcel data, reply;
++        data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor());
++        data.writeUint32(static_cast<uint32_t>(strategy));
++        status_t status = remote()->transact(REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++                data, &reply);
++        if (status != NO_ERROR) {
++           return status;
++        }
++        return static_cast<status_t>(reply.readInt32());
++    }
++    virtual status_t getPreferredDeviceForStrategy(product_strategy_t strategy,
++            AudioDeviceTypeAddr &device)
++    {
++        Parcel data, reply;
++        data.writeInterfaceToken(IAudioPolicyService::getInterfaceDescriptor());
++        data.writeUint32(static_cast<uint32_t>(strategy));
++        status_t status = remote()->transact(GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY,
++                data, &reply);
++        if (status != NO_ERROR) {
++            return status;
++        }
++        status = device.readFromParcel(&reply);
++        if (status != NO_ERROR) {
++            return status;
++        }
++        return static_cast<status_t>(reply.readInt32());
++    }
+@@ -1238 +1297,5 @@ status_t BnAudioPolicyService::onTransact(
+-case IS_CALL_SCREEN_MODE_SUPPORTED: case SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: case REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: case GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY:
++        case SET_RTT_ENABLED:
++        case IS_CALL_SCREEN_MODE_SUPPORTED:
++        case SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY:
++        case REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY:
++        case GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: {
+@@ -2180 +2243,37 @@ case IS_CALL_SCREEN_MODE_SUPPORTED: case SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATE
+-case IS_CALL_SCREEN_MODE_SUPPORTED: { CHECK_INTERFACE(IAudioPolicyService, data, reply); bool isAvailable = isCallScreenModeSupported(); reply->writeBool(isAvailable); return NO_ERROR; } case SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: { CHECK_INTERFACE(IAudioPolicyService, data, reply); product_strategy_t strategy = (product_strategy_t) data.readUint32(); AudioDeviceTypeAddr device; status_t status = device.readFromParcel((Parcel*)&data); if (status != NO_ERROR) { return status; } status = setPreferredDeviceForStrategy(strategy, device); reply->writeInt32(status); return NO_ERROR; } case REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: { CHECK_INTERFACE(IAudioPolicyService, data, reply); product_strategy_t strategy = (product_strategy_t) data.readUint32(); status_t status = removePreferredDeviceForStrategy(strategy); reply->writeInt32(status); return NO_ERROR; } case GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: { CHECK_INTERFACE(IAudioPolicyService, data, reply); product_strategy_t strategy = (product_strategy_t) data.readUint32(); status_t status = getPreferredDeviceForStrategy(strategy, device); status_t marshall_status = device.writeToParcel(reply); if (marshall_status != NO_ERROR) { return marshall_status; } reply->writeInt32(status); return NO_ERROR; }
++        case IS_CALL_SCREEN_MODE_SUPPORTED: {
++            CHECK_INTERFACE(IAudioPolicyService, data, reply);
++            bool isAvailable = isCallScreenModeSupported();
++            reply->writeBool(isAvailable);
++            return NO_ERROR;
++        }
++        case SET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: {
++            CHECK_INTERFACE(IAudioPolicyService, data, reply);
++            product_strategy_t strategy = (product_strategy_t) data.readUint32();
++            AudioDeviceTypeAddr device;
++            status_t status = device.readFromParcel((Parcel*)&data);
++            if (status != NO_ERROR) {
++                return status;
++            }
++            status = setPreferredDeviceForStrategy(strategy, device);
++            reply->writeInt32(status);
++            return NO_ERROR;
++        }
++        case REMOVE_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: {
++            CHECK_INTERFACE(IAudioPolicyService, data, reply);
++            product_strategy_t strategy = (product_strategy_t) data.readUint32();
++            status_t status = removePreferredDeviceForStrategy(strategy);
++            reply->writeInt32(status);
++            return NO_ERROR;
++        }
++        case GET_PREFERRED_DEVICE_FOR_PRODUCT_STRATEGY: {
++            CHECK_INTERFACE(IAudioPolicyService, data, reply);
++            product_strategy_t strategy = (product_strategy_t) data.readUint32();
++            AudioDeviceTypeAddr device;
++            status_t status = getPreferredDeviceForStrategy(strategy, device);
++            status_t marshall_status = device.writeToParcel(reply);
++            if (marshall_status != NO_ERROR) {
++                return marshall_status;
++            }
++            reply->writeInt32(status);
++            return NO_ERROR;
++        }

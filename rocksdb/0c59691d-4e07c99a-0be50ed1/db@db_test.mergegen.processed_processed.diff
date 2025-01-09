@@ -1,0 +1,280 @@
+--- a/./output/rocksdb/0c59691d-4e07c99a-0be50ed1/db@db_test.no_comments_mergegen.cc
++++ b/./output/rocksdb/0c59691d-4e07c99a-0be50ed1/db@db_test.no_comments_merged.cc
+@@ -7725 +7725,276 @@ TEST_F(DBTest, PauseBackgroundWorkTest) {
+-#ifndef ROCKSDB_LITE namespace { void ValidateKeyExistence(DB* db, const std::vector<Slice>& keysMustExist, const std::vector<Slice>& keysMustNotExist) {
++#ifndef ROCKSDB_LITE
++namespace {
++  void ValidateKeyExistence(DB* db,
++    const std::vector<Slice>& keysMustExist,
++    const std::vector<Slice>& keysMustNotExist) {
++    std::vector<std::string> values;
++    if (keysMustExist.size() > 0) {
++      std::vector<Status> status_list = db->MultiGet(ReadOptions(),
++        keysMustExist,
++        &values);
++      for (size_t i = 0; i < keysMustExist.size(); i++) {
++        ASSERT_OK(status_list[i]);
++      }
++    }
++    if (keysMustNotExist.size() > 0) {
++      std::vector<Status> status_list = db->MultiGet(ReadOptions(),
++        keysMustNotExist,
++        &values);
++      for (size_t i = 0; i < keysMustNotExist.size(); i++) {
++        ASSERT_TRUE(status_list[i].IsNotFound());
++      }
++    }
++  }
++}
++TEST_F(DBTest, WalFilterTest) {
++  class TestWalFilter : public WalFilter {
++  private:
++    WalFilter::WalProcessingOption WalProcessingOption_;
++    size_t applyOptionAtRecordIndex_;
++    size_t currentRecordIndex_;
++  public:
++    TestWalFilter(WalFilter::WalProcessingOption WalProcessingOption,
++      size_t applyOptionForRecordIndex) :
++      WalProcessingOption_(WalProcessingOption),
++      applyOptionAtRecordIndex_(applyOptionForRecordIndex),
++      currentRecordIndex_(0) { }
++    virtual WalProcessingOption LogRecord(const WriteBatch & batch,
++      WriteBatch* new_batch, bool* batch_changed) const override {
++      WalFilter::WalProcessingOption optionToReturn;
++      if (currentRecordIndex_ == applyOptionAtRecordIndex_) {
++        optionToReturn = WalProcessingOption_;
++      }
++      else {
++        optionToReturn = WalProcessingOption::kContinueProcessing;
++      }
++      (const_cast<TestWalFilter*>(this)->currentRecordIndex_)++;
++      return optionToReturn;
++    }
++    virtual const char* Name() const override {
++      return "TestWalFilter";
++    }
++  };
++  std::vector<std::vector<std::string>> batchKeys(3);
++  batchKeys[0].push_back("key1");
++  batchKeys[0].push_back("key2");
++  batchKeys[1].push_back("key3");
++  batchKeys[1].push_back("key4");
++  batchKeys[2].push_back("key5");
++  batchKeys[2].push_back("key6");
++  for (int option = 0;
++    option < static_cast<int>(WalFilter::WalProcessingOption::kWalProcessingOptionMax);
++    option++) {
++    Options options = OptionsForLogIterTest();
++    DestroyAndReopen(options);
++    CreateAndReopenWithCF({ "pikachu" }, options);
++    for (size_t i = 0; i < batchKeys.size(); i++) {
++      WriteBatch batch;
++      for (size_t j = 0; j < batchKeys[i].size(); j++) {
++        batch.Put(handles_[0], batchKeys[i][j], DummyString(1024));
++      }
++      dbfull()->Write(WriteOptions(), &batch);
++    }
++    WalFilter::WalProcessingOption WalProcessingOption =
++      static_cast<WalFilter::WalProcessingOption>(option);
++    size_t applyOptionForRecordIndex = 1;
++    TestWalFilter testWalFilter(WalProcessingOption,
++      applyOptionForRecordIndex);
++    options = OptionsForLogIterTest();
++    options.wal_filter = &testWalFilter;
++    Status status = TryReopenWithColumnFamilies({ "default", "pikachu" },
++      options);
++    if (WalProcessingOption ==
++      WalFilter::WalProcessingOption::kCorruptedRecord) {
++      assert(!status.ok());
++      options.paranoid_checks = false;
++      ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++    } else {
++      assert(status.ok());
++    }
++    std::vector<Slice> keysMustExist;
++    std::vector<Slice> keysMustNotExist;
++    switch (WalProcessingOption) {
++      case WalFilter::WalProcessingOption::kCorruptedRecord:
++      case WalFilter::WalProcessingOption::kContinueProcessing: {
++        fprintf(stderr, "Testing with complete WAL processing\n");
++        for (size_t i = 0; i < batchKeys.size(); i++) {
++          for (size_t j = 0; j < batchKeys[i].size(); j++) {
++            keysMustExist.push_back(Slice(batchKeys[i][j]));
++          }
++        }
++        break;
++      }
++      case WalFilter::WalProcessingOption::kIgnoreCurrentRecord: {
++        fprintf(stderr, "Testing with ignoring record %" ROCKSDB_PRIszt " only\n",
++          applyOptionForRecordIndex);
++        for (size_t i = 0; i < batchKeys.size(); i++) {
++          for (size_t j = 0; j < batchKeys[i].size(); j++) {
++            if (i == applyOptionForRecordIndex) {
++              keysMustNotExist.push_back(Slice(batchKeys[i][j]));
++            }
++            else {
++              keysMustExist.push_back(Slice(batchKeys[i][j]));
++            }
++          }
++        }
++        break;
++      }
++      case WalFilter::WalProcessingOption::kStopReplay: {
++        fprintf(stderr, "Testing with stopping replay from record %" ROCKSDB_PRIszt "\n",
++          applyOptionForRecordIndex);
++        for (size_t i = 0; i < batchKeys.size(); i++) {
++          for (size_t j = 0; j < batchKeys[i].size(); j++) {
++            if (i >= applyOptionForRecordIndex) {
++              keysMustNotExist.push_back(Slice(batchKeys[i][j]));
++            }
++            else {
++              keysMustExist.push_back(Slice(batchKeys[i][j]));
++            }
++          }
++        }
++        break;
++      }
++      default:
++        assert(false);
++    }
++    bool checkedAfterReopen = false;
++    while (true)
++    {
++      ValidateKeyExistence(db_, keysMustExist, keysMustNotExist);
++      if (checkedAfterReopen) {
++        break;
++      }
++      options = OptionsForLogIterTest();
++      ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++      checkedAfterReopen = true;
++    }
++  }
++}
++TEST_F(DBTest, WalFilterTestWithChangeBatch) {
++  class ChangeBatchHandler : public WriteBatch::Handler {
++  private:
++    size_t m_numKeysAdded;
++    WriteBatch* newWriteBatch_;
++    size_t m_numKeysToAddInNewBatch;
++  public:
++    ChangeBatchHandler(WriteBatch* newWriteBatch,
++      size_t numKeysToAddInNewBatch) :
++      newWriteBatch_(newWriteBatch),
++      m_numKeysToAddInNewBatch(numKeysToAddInNewBatch),
++      m_numKeysAdded(0){ }
++    virtual void Put(const Slice& key, const Slice& value) override {
++      if (m_numKeysAdded < m_numKeysToAddInNewBatch) {
++        newWriteBatch_->Put(key, value);
++        ++m_numKeysAdded;
++      }
++    }
++  };
++  class TestWalFilterWithChangeBatch : public WalFilter {
++  private:
++    size_t m_changeRecordsFromIndex;
++    size_t m_numKeysToAddInNewBatch;
++    size_t currentRecordIndex_;
++  public:
++    TestWalFilterWithChangeBatch(
++      size_t changeRecordsFromIndex,
++      size_t numKeysToAddInNewBatch) :
++      m_changeRecordsFromIndex(changeRecordsFromIndex),
++      m_numKeysToAddInNewBatch(numKeysToAddInNewBatch),
++      currentRecordIndex_(0) { }
++    virtual WalProcessingOption LogRecord(const WriteBatch & batch,
++      WriteBatch* new_batch, bool* batch_changed) const override {
++      if (currentRecordIndex_ >= m_changeRecordsFromIndex) {
++        ChangeBatchHandler handler(new_batch, m_numKeysToAddInNewBatch);
++        batch.Iterate(&handler);
++        *batch_changed = true;
++      }
++      (const_cast<TestWalFilterWithChangeBatch*>(this)->currentRecordIndex_)++;
++      return WalProcessingOption::kContinueProcessing;
++    }
++    virtual const char* Name() const override {
++      return "TestWalFilterWithChangeBatch";
++    }
++  };
++  std::vector<std::vector<std::string>> batchKeys(3);
++  batchKeys[0].push_back("key1");
++  batchKeys[0].push_back("key2");
++  batchKeys[1].push_back("key3");
++  batchKeys[1].push_back("key4");
++  batchKeys[2].push_back("key5");
++  batchKeys[2].push_back("key6");
++  Options options = OptionsForLogIterTest();
++  DestroyAndReopen(options);
++  CreateAndReopenWithCF({ "pikachu" }, options);
++  for (size_t i = 0; i < batchKeys.size(); i++) {
++    WriteBatch batch;
++    for (size_t j = 0; j < batchKeys[i].size(); j++) {
++      batch.Put(handles_[0], batchKeys[i][j], DummyString(1024));
++    }
++    dbfull()->Write(WriteOptions(), &batch);
++  }
++  size_t changeRecordsFromIndex = 1;
++  size_t numKeysToAddInNewBatch = 1;
++  TestWalFilterWithChangeBatch testWalFilterWithChangeBatch(
++    changeRecordsFromIndex, numKeysToAddInNewBatch);
++  options = OptionsForLogIterTest();
++  options.wal_filter = &testWalFilterWithChangeBatch;
++  ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++  std::vector<Slice> keysMustExist;
++  std::vector<Slice> keysMustNotExist;
++  for (size_t i = 0; i < batchKeys.size(); i++) {
++    for (size_t j = 0; j < batchKeys[i].size(); j++) {
++      if (i >= changeRecordsFromIndex && j >= numKeysToAddInNewBatch) {
++        keysMustNotExist.push_back(Slice(batchKeys[i][j]));
++      }
++      else {
++        keysMustExist.push_back(Slice(batchKeys[i][j]));
++      }
++    }
++  }
++  bool checkedAfterReopen = false;
++  while (true)
++  {
++    ValidateKeyExistence(db_, keysMustExist, keysMustNotExist);
++    if (checkedAfterReopen) {
++      break;
++    }
++    options = OptionsForLogIterTest();
++    ReopenWithColumnFamilies({ "default", "pikachu" }, options);
++    checkedAfterReopen = true;
++  }
++}
++#endif
++#ifndef ROCKSDB_LITE
++class BloomStatsTestWithParam
++    : public DBTest,
++      public testing::WithParamInterface<std::tuple<bool, bool>> {
++ public:
++  BloomStatsTestWithParam() {
++    use_block_table_ = std::get<0>(GetParam());
++    use_block_based_builder_ = std::get<1>(GetParam());
++    options_.create_if_missing = true;
++    options_.prefix_extractor.reset(rocksdb::NewFixedPrefixTransform(4));
++    options_.memtable_prefix_bloom_bits = 8 * 1024;
++    if (use_block_table_) {
++      BlockBasedTableOptions table_options;
++      table_options.hash_index_allow_collision = false;
++      table_options.filter_policy.reset(
++          NewBloomFilterPolicy(10, use_block_based_builder_));
++      options_.table_factory.reset(NewBlockBasedTableFactory(table_options));
++    } else {
++      PlainTableOptions table_options;
++      options_.table_factory.reset(NewPlainTableFactory(table_options));
++    }
++    perf_context.Reset();
++    DestroyAndReopen(options_);
++  }
++  ~BloomStatsTestWithParam() {
++    perf_context.Reset();
++    Destroy(options_);
++  }
++  static void SetUpTestCase() {}
++  static void TearDownTestCase() {}
++  bool use_block_table_;
++  bool use_block_based_builder_;
++  Options options_;
++};

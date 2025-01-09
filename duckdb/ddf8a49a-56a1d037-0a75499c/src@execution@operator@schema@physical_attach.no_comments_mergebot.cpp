@@ -1,0 +1,68 @@
+#include "duckdb/execution/operator/schema/physical_attach.hpp"
+#include "duckdb/catalog/catalog.hpp"
+#include "duckdb/main/attached_database.hpp"
+#include "duckdb/main/database_manager.hpp"
+#include "duckdb/main/extension_helper.hpp"
+#include "duckdb/parser/parsed_data/attach_info.hpp"
+#include "duckdb/storage/storage_extension.hpp"
+#include "duckdb/main/database_path_and_type.hpp"
+namespace duckdb {
+SourceResultType PhysicalAttach::GetData(ExecutionContext &context, DataChunk &chunk,
+                                         OperatorSourceInput &input) const {
+ auto &config = DBConfig::GetConfig(context.client);
+ AttachOptions options(info, config.options.access_mode);
+ auto &name = info->name;
+ auto &path = info->path;
+ if (options.db_type.empty()) {
+  DBPathAndType::ExtractExtensionPrefix(path, options.db_type);
+ }
+ if (name.empty()) {
+  auto &fs = FileSystem::GetFileSystem(context.client);
+  name = AttachedDatabase::ExtractDatabaseName(path, fs);
+ }
+ auto &db_manager = DatabaseManager::Get(context.client);
+ if (info->on_conflict == OnCreateConflict::IGNORE_ON_CONFLICT) {
+  auto existing_db = db_manager.GetDatabase(context.client, name);
+  if (existing_db) {
+   if ((existing_db->IsReadOnly() && options.access_mode == AccessMode::READ_WRITE) ||
+       (!existing_db->IsReadOnly() && options.access_mode == AccessMode::READ_ONLY)) {
+    auto existing_mode = existing_db->IsReadOnly() ? AccessMode::READ_ONLY : AccessMode::READ_WRITE;
+    auto existing_mode_str = EnumUtil::ToString(existing_mode);
+    auto attached_mode = EnumUtil::ToString(options.access_mode);
+    throw BinderException("Database \"%s\" is already attached in %s mode, cannot re-attach in %s mode",
+                          name, existing_mode_str, attached_mode);
+   }
+   if (!options.default_table.name.empty()) {
+    existing_db->GetCatalog().SetDefaultTable(options.default_table.schema, options.default_table.name);
+   }
+   return SourceResultType::FINISHED;
+  }
+ }
+ string extension = "";
+ if (FileSystem::IsRemoteFile(path, extension)) {
+  if (!ExtensionHelper::TryAutoLoadExtension(context.client, extension)) {
+   throw MissingExtensionException("Attaching path '%s' requires extension '%s' to be loaded", path,
+                                   extension);
+  }
+  if (options.access_mode == AccessMode::AUTOMATIC) {
+   options.access_mode = AccessMode::READ_ONLY;
+  }
+ }
+ db_manager.GetDatabaseType(context.client, *info, config, options);
+ auto attached_db = db_manager.AttachDatabase(context.client, *info, options);
+<<<<<<< HEAD
+ const auto block_alloc_size = info->GetBlockAllocSize();
+ attached_db->Initialize(block_alloc_size);
+ if (!options.default_table.name.empty()) {
+  attached_db->GetCatalog().SetDefaultTable(options.default_table.schema, options.default_table.name);
+ }
+|||||||
+ const auto block_alloc_size = info->GetBlockAllocSize();
+ attached_db->Initialize(block_alloc_size);
+=======
+ const auto storage_options = info->GetStorageOptions();
+ attached_db->Initialize(storage_options);
+>>>>>>> 56a1d0376de5d227b5c48dcb7ad8dbb6866fece5
+ return SourceResultType::FINISHED;
+}
+}

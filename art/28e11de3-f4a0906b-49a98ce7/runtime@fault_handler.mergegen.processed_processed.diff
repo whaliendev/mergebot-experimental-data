@@ -1,0 +1,79 @@
+--- a/./output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_mergegen.cc
++++ b/./output/art/28e11de3-f4a0906b-49a98ce7/runtime@fault_handler.no_comments_merged.cc
+@@ -32 +33,26 @@ static bool art_sigbus_handler(int sig, siginfo_t* info, void* context) {
+-*)&Manager::FaultManager() : generated_code_ranges_lock_("FaultHandler generated code ranges lock", LockLevel::kGenericBottomLock), initialized_(false) {}
++FaultManager::FaultManager()
++    : generated_code_ranges_lock_("FaultHandler generated code ranges lock",
++                                  LockLevel::kGenericBottomLock),
++      initialized_(false) {}
++FaultManager::~FaultManager() {
++}
++static const char* SignalCodeName(int sig, int code) {
++  if (sig == SIGSEGV) {
++    switch (code) {
++      case SEGV_MAPERR: return "SEGV_MAPERR";
++      case SEGV_ACCERR: return "SEGV_ACCERR";
++      case 8: return "SEGV_MTEAERR";
++      case 9: return "SEGV_MTESERR";
++      default: return "SEGV_UNKNOWN";
++    }
++  } else if (sig == SIGBUS) {
++    switch (code) {
++      case BUS_ADRALN: return "BUS_ADRALN";
++      case BUS_ADRERR: return "BUS_ADRERR";
++      case BUS_OBJERR: return "BUS_OBJERR";
++      default: return "BUS_UNKNOWN";
++    }
++  } else {
++    return "UNKNOWN";
++  }
++}
+@@ -42 +68,5 @@ static std::ostream& PrintSignalInfo(std::ostream& os, siginfo_t* info) {
+-static const char* SignalCodeName(int sig, int code) { if (sig == SIGSEGV) { switch (code) { case SEGV_MAPERR: return "SEGV_MAPERR"; case SEGV_ACCERR: return "SEGV_ACCERR"; case 8: return "SEGV_MTEAERR"; case 9: return "SEGV_MTESERR"; default: return "SEGV_UNKNOWN"; } } else if (sig == SIGBUS) { switch (code) { case BUS_ADRALN: return "BUS_ADRALN"; case BUS_ADRERR: return "BUS_ADRERR"; case BUS_OBJERR: return "BUS_OBJERR"; default: return "BUS_UNKNOWN"; } } else { return "UNKNOWN"; } } static std::ostream& PrintSignalInfo(std::ostream& os, siginfo_t* info) { os << " si_signo: " << info->si_signo << " (" << strsignal(info->si_signo) << ")\n" << " si_code: " << info->si_code << " (" << SignalCodeName(info->si_signo, info->si_code) << ")"; if (info->si_signo == SIGSEGV || info->si_signo == SIGBUS) { os << "\n" << " si_addr: " << info->si_addr; } return os; } static bool InstallSigbusHandler() { return gUseUserfaultfd && Runtime::Current()->GetHeap()->MarkCompactCollector()->IsUsingSigbusFeature(); }
++static bool InstallSigbusHandler() {
++  return gUseUserfaultfd &&
++         Runtime::Current()->GetHeap()->MarkCompactCollector()->IsUsingSigbusFeature();
++}
++void FaultManager::Init(bool use_sig_chain) {
+@@ -57 +87,40 @@ static const char* SignalCodeName(int sig, int code) { if (sig == SIGSEGV) { swi
+-if (InstallSigbusHandler()) { sa.sc_sigaction = art_sigbus_handler; AddSpecialSignalHandlerFn(SIGBUS, &sa); }
++    AddSpecialSignalHandlerFn(SIGSEGV, &sa);
++    if (InstallSigbusHandler()) {
++      sa.sc_sigaction = art_sigbus_handler;
++      AddSpecialSignalHandlerFn(SIGBUS, &sa);
++    }
++    int result = art::membarrier(MembarrierCommand::kRegisterPrivateExpedited);
++    if (result != 0) {
++      LOG(WARNING) << "FaultHandler: MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED failed: "
++                   << errno << " " << strerror(errno);
++    }
++    {
++      MutexLock lock(Thread::Current(), generated_code_ranges_lock_);
++      for (size_t i = 0; i != kNumLocalGeneratedCodeRanges; ++i) {
++        GeneratedCodeRange* next = (i + 1u != kNumLocalGeneratedCodeRanges)
++            ? &generated_code_ranges_storage_[i + 1u]
++            : nullptr;
++        generated_code_ranges_storage_[i].next.store(next, std::memory_order_relaxed);
++        generated_code_ranges_storage_[i].start = nullptr;
++        generated_code_ranges_storage_[i].size = 0u;
++      }
++      free_generated_code_ranges_ = generated_code_ranges_storage_;
++    }
++    initialized_ = true;
++  } else if (InstallSigbusHandler()) {
++    struct sigaction act;
++    std::memset(&act, '\0', sizeof(act));
++    act.sa_flags = SA_SIGINFO | SA_RESTART;
++    act.sa_sigaction = [](int sig, siginfo_t* info, void* context) {
++      if (!art_sigbus_handler(sig, info, context)) {
++        std::ostringstream oss;
++        PrintSignalInfo(oss, info);
++        LOG(FATAL) << "Couldn't handle SIGBUS fault:"
++                   << "\n"
++                   << oss.str();
++      }
++    };
++    if (sigaction(SIGBUS, &act, nullptr)) {
++      LOG(FATAL) << "Fault handler for SIGBUS couldn't be setup: " << strerror(errno);
++    }
++  }

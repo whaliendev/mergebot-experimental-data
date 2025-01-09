@@ -1,0 +1,131 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_merged.cpp
+index 1fdb0c7..e9fea50 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/102265d1-f24e4b3a-7f8cca5d/adb@client@incremental_server.no_comments_merged.cpp
+@@ -30,2 +30 @@ static constexpr int8_t kCompressionLZ4 = 1;
+-static constexpr int kCompressBound =
+-    std::max(kBlockSize, LZ4_COMPRESSBOUND(kBlockSize));
++static constexpr int kCompressBound = std::max(kBlockSize, LZ4_COMPRESSBOUND(kBlockSize));
+@@ -86 +85,2 @@ static inline constexpr T readBigEndian(void* data) {
+-struct ResponseHeader {
++struct RequestCommand {
++    RequestType request_type;
+@@ -88 +88 @@ struct ResponseHeader {
+-  CompressionType compression_type;
++    union {
+@@ -90 +90,2 @@ struct ResponseHeader {
+-  BlockSize block_size;
++        NumBlocks num_blocks;
++    };
+@@ -93,0 +95 @@ struct ResponseHeader {
++    BlockType block_type;
+@@ -100,2 +102 @@ class File {
+-  File(const char* filepath, FileId id, int64_t size, unique_fd fd)
+-      : File(filepath, id, size) {
++    File(const char* filepath, FileId id, int64_t size, unique_fd fd) : File(filepath, id, size) {
+@@ -110,2 +111 @@ class File {
+-    bytes_read = adb_pread(fd_, &buf_ptr[sizeof(ResponseHeader)], kBlockSize,
+-                           offsetStart);
++        bytes_read = adb_pread(fd_, &buf_ptr[sizeof(ResponseHeader)], kBlockSize, offsetStart);
+@@ -115,3 +115 @@ class File {
+-  const std::vector<BlockIdx>& PriorityBlocks() const {
+-    return priority_blocks_;
+-  }
++    const std::vector<BlockIdx>& PriorityBlocks() const { return priority_blocks_; }
+@@ -124,2 +122 @@ class File {
+-  File(const char* filepath, FileId id, int64_t size)
+-      : filepath(filepath), id(id), size(size) {
++    File(const char* filepath, FileId id, int64_t size) : filepath(filepath), id(id), size(size) {
+@@ -133,6 +130,2 @@ class IncrementalServer {
+-  IncrementalServer(unique_fd fd, unique_fd adb_fd, unique_fd output_fd,
+-                    std::vector<File> files)
+-      : adb_fd_(std::move(fd)),
+-        adb_fd_(std::move(adb_fd)),
+-        output_fd_(std::move(output_fd)),
+-        files_(std::move(files)) {
++    IncrementalServer(unique_fd adb_fd, unique_fd output_fd, std::vector<File> files)
++        : adb_fd_(std::move(adb_fd)), output_fd_(std::move(output_fd)), files_(std::move(files)) {
+@@ -159,2 +152 @@ class IncrementalServer {
+-      return overallSent &&
+-             (priorityIndex >= (BlockIdx)file->PriorityBlocks().size());
++            return overallSent && (priorityIndex >= (BlockIdx)file->PriorityBlocks().size());
+@@ -165,3 +157 @@ class IncrementalServer {
+-  void erase_buffer_head(int count) {
+-    buffer_.erase(buffer_.begin(), buffer_.begin() + count);
+-  }
++    void erase_buffer_head(int count) { buffer_.erase(buffer_.begin(), buffer_.begin() + count); }
+@@ -175,2 +165 @@ class IncrementalServer {
+-  bool ServingComplete(std::optional<TimePoint> startTime, int missesCount,
+-                       int missesSent);
++    bool ServingComplete(std::optional<TimePoint> startTime, int missesCount, int missesSent);
+@@ -185 +174 @@ class IncrementalServer {
+-  bool servingComplete_;
++    bool servingComplete_ = false;
+@@ -187,2 +176 @@ class IncrementalServer {
+-bool IncrementalServer::SkipToRequest(void* buffer, size_t* size,
+-                                      bool blocking) {
++bool IncrementalServer::SkipToRequest(void* buffer, size_t* size, bool blocking) {
+@@ -254,2 +242 @@ std::optional<RequestCommand> IncrementalServer::ReadRequest(bool blocking) {
+-auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush)
+-    -> SendResult {
++auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush) -> SendResult {
+@@ -258,2 +245,2 @@ auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush)
+-    fprintf(stderr, "Failed to read file %s at block %" PRId32 " (past end).\n",
+-            file.filepath, blockIdx);
++        fprintf(stderr, "Failed to read file %s at block %" PRId32 " (past end).\n", file.filepath,
++                blockIdx);
+@@ -268,2 +255 @@ auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush)
+-  const int64_t bytesRead =
+-      file.ReadBlock(blockIdx, &raw, &isZipCompressed, &error);
++    const int64_t bytesRead = file.ReadBlock(blockIdx, &raw, &isZipCompressed, &error);
+@@ -271,2 +257,2 @@ auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush)
+-    fprintf(stderr, "Failed to get data for %s at blockIdx=%d (%s).\n",
+-            file.filepath, blockIdx, error.c_str());
++        fprintf(stderr, "Failed to get data for %s at blockIdx=%d (%s).\n", file.filepath, blockIdx,
++                error.c_str());
+@@ -280,2 +266,2 @@ auto IncrementalServer::SendBlock(FileId fileId, BlockIdx blockIdx, bool flush)
+-    compressedSize = LZ4_compress_default(raw + sizeof(*header), compressed,
+-                                          bytesRead, kCompressBound);
++        compressedSize =
++                LZ4_compress_default(raw + sizeof(*header), compressed, bytesRead, kCompressBound);
+@@ -324,2 +310 @@ void IncrementalServer::RunPrefetching() {
+-        if (auto res = SendBlock(file.id, priority_blocks[i]);
+-            res == SendResult::Sent) {
++                if (auto res = SendBlock(file.id, priority_blocks[i]); res == SendResult::Sent) {
+@@ -332,2 +317 @@ void IncrementalServer::RunPrefetching() {
+-    for (auto& i = prefetch.overallIndex;
+-         blocksToSend > 0 && i < prefetch.overallEnd; ++i) {
++        for (auto& i = prefetch.overallIndex; blocksToSend > 0 && i < prefetch.overallEnd; ++i) {
+@@ -368,2 +352,2 @@ void IncrementalServer::Flush() {
+-bool IncrementalServer::Exit(std::optional<TimePoint> startTime,
+-                             int missesCount, int missesSent) {
++bool IncrementalServer::ServingComplete(std::optional<TimePoint> startTime, int missesCount,
++                                        int missesSent) {
+@@ -377,5 +361,2 @@ bool IncrementalServer::Exit(std::optional<TimePoint> startTime,
+-    missesCount, missesSent, compressed_, uncompressed_,
+-    sentSize_ / 1024.0 / 1024.0,
+-    duration_cast<microseconds>(endTime - (startTime ? *startTime : endTime))
+-            .count() /
+-        1000.0);
++      missesCount, missesSent, compressed_, uncompressed_, sentSize_ / 1024.0 / 1024.0,
++      duration_cast<microseconds>(endTime - (startTime ? *startTime : endTime)).count() / 1000.0);
+@@ -433,2 +414 @@ bool IncrementalServer::Serve() {
+-          if (auto res = SendBlock(fileId, blockIdx, true);
+-              res == SendResult::Error) {
++                    if (auto res = SendBlock(fileId, blockIdx, true); res == SendResult::Error) {
+@@ -445,2 +425 @@ bool IncrementalServer::Serve() {
+-                    "Received invalid prefetch request for file_id %" PRId16
+-                    "\n",
++                                "Received invalid prefetch request for file_id %" PRId16 "\n",
+@@ -452,2 +431 @@ bool IncrementalServer::Serve() {
+-                    "Received duplicate prefetch request for file_id %" PRId16
+-                    "\n",
++                                "Received duplicate prefetch request for file_id %" PRId16 "\n",
+@@ -462,2 +440 @@ bool IncrementalServer::Serve() {
+-          fprintf(stderr,
+-                  "Invalid request %" PRId16 ",%" PRId16 ",%" PRId32 ".\n",
++                    fprintf(stderr, "Invalid request %" PRId16 ",%" PRId16 ",%" PRId32 ".\n",
+@@ -492,2 +469 @@ bool serve(int connection_fd, int output_fd, int argc, const char** argv) {
+-  IncrementalServer server(std::move(connection_ufd), std::move(output_ufd),
+-                           std::move(files));
++    IncrementalServer server(std::move(connection_ufd), std::move(output_ufd), std::move(files));

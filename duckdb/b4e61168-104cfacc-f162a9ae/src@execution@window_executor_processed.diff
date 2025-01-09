@@ -1,0 +1,154 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/duckdb/b4e61168-104cfacc-f162a9ae/src@execution@window_executor.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/duckdb/b4e61168-104cfacc-f162a9ae/src@execution@window_executor.no_comments_merged.cpp
+@@ -110,0 +111,41 @@ WindowCursor::WindowCursor(const WindowCollection &paged, vector<column_t> colum
++WindowCursor::WindowCursor(const WindowCollection &paged, column_t col_idx)
++    : WindowCursor(paged, vector<column_t>(1, col_idx)) {
++}
++struct WindowInputExpression {
++ WindowInputExpression(DataChunk &chunk, column_t col_idx)
++     : ptype(PhysicalType::INVALID), scalar(true), chunk(chunk), col_idx(col_idx) {
++  if (col_idx < chunk.data.size()) {
++   auto &col = chunk.data[col_idx];
++   ptype = col.GetType().InternalType();
++   scalar = (col.GetVectorType() == VectorType::CONSTANT_VECTOR);
++  }
++ }
++ inline PhysicalType InternalType() const {
++  return ptype;
++ }
++ template <typename T>
++ inline T GetCell(idx_t i) const {
++  D_ASSERT(!chunk.data.empty());
++  const auto data = FlatVector::GetData<T>(chunk.data[col_idx]);
++  return data[scalar ? 0 : i];
++ }
++ inline bool CellIsNull(idx_t i) const {
++  D_ASSERT(!chunk.data.empty());
++  auto &col = chunk.data[col_idx];
++  if (scalar) {
++   return ConstantVector::IsNull(col);
++  }
++  return FlatVector::IsNull(col, i);
++ }
++ inline void CopyCell(Vector &target, idx_t target_offset, idx_t width = 1) const {
++  D_ASSERT(!chunk.data.empty());
++  auto &source = chunk.data[col_idx];
++  auto source_offset = scalar ? 0 : target_offset;
++  VectorOperations::Copy(source, target, source_offset + width, source_offset, target_offset);
++ }
++private:
++ PhysicalType ptype;
++ bool scalar;
++ DataChunk &chunk;
++ const column_t col_idx;
++};
+@@ -600,4 +641,2 @@ public:
+- () = delete;
+- {}
+- () = delete;
+- {}
++ ~WindowExecutorBoundsState() override {
++ }
+@@ -882,0 +922 @@ public:
++public:
+@@ -987,0 +1028,4 @@ void WindowAggregateExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate
++WindowRowNumberExecutor::WindowRowNumberExecutor(BoundWindowExpression &wexpr, ClientContext &context,
++                                                 WindowSharedExpressions &shared)
++    : WindowExecutor(wexpr, context, shared) {
++}
+@@ -1001,0 +1046 @@ public:
++public:
+@@ -1112,0 +1158,4 @@ void WindowPercentRankExecutor::EvaluateInternal(WindowExecutorGlobalState &gsta
++WindowCumeDistExecutor::WindowCumeDistExecutor(BoundWindowExpression &wexpr, ClientContext &context,
++                                               WindowSharedExpressions &shared)
++    : WindowExecutor(wexpr, context, shared) {
++}
+@@ -1302,7 +1350,0 @@ void WindowLeadLagExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate,
+-<<<<<<< HEAD
+-    const auto width = MinValue(delta, count - i);
+-    leadlag_default.CopyCell(result, i, width);
+-|||||||
+-    const auto width = MinValue(delta, count - i);
+-    llstate.leadlag_default.CopyCell(result, i, width);
+-=======
+@@ -1310,2 +1352 @@ void WindowLeadLagExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate,
+-    llstate.leadlag_default.CopyCell(result, i, width);
+->>>>>>> 104cfacc371eb020431f5ef61ae599b8dc969f07
++    leadlag_default.CopyCell(result, i, width);
+@@ -1331,0 +1373,4 @@ void WindowLeadLagExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate,
++WindowFirstValueExecutor::WindowFirstValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
++                                                   WindowSharedExpressions &shared)
++    : WindowValueExecutor(wexpr, context, shared) {
++}
+@@ -1358,0 +1404,4 @@ void WindowFirstValueExecutor::EvaluateInternal(WindowExecutorGlobalState &gstat
++WindowLastValueExecutor::WindowLastValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
++                                                 WindowSharedExpressions &shared)
++    : WindowValueExecutor(wexpr, context, shared) {
++}
+@@ -1385,0 +1435,4 @@ void WindowLastValueExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate
++WindowNthValueExecutor::WindowNthValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
++                                               WindowSharedExpressions &shared)
++    : WindowValueExecutor(wexpr, context, shared) {
++}
+@@ -1423,61 +1475,0 @@ void WindowNthValueExecutor::EvaluateInternal(WindowExecutorGlobalState &gstate,
+-WindowCursor::WindowCursor(const WindowCollection &paged, column_t col_idx)
+-    : WindowCursor(paged, vector<column_t>(1, col_idx)) {
+-}
+-struct WindowInputExpression {
+- WindowInputExpression(DataChunk &chunk, column_t col_idx)
+-     : ptype(PhysicalType::INVALID), scalar(true), chunk(chunk), col_idx(col_idx) {
+-  if (col_idx < chunk.data.size()) {
+-   auto &col = chunk.data[col_idx];
+-   ptype = col.GetType().InternalType();
+-   scalar = (col.GetVectorType() == VectorType::CONSTANT_VECTOR);
+-  }
+- }
+- inline PhysicalType InternalType() const {
+-  return ptype;
+- }
+- template <typename T>
+- inline T GetCell(idx_t i) const {
+-  D_ASSERT(!chunk.data.empty());
+-  const auto data = FlatVector::GetData<T>(chunk.data[col_idx]);
+-  return data[scalar ? 0 : i];
+- }
+- inline bool CellIsNull(idx_t i) const {
+-  D_ASSERT(!chunk.data.empty());
+-  auto &col = chunk.data[col_idx];
+-  if (scalar) {
+-   return ConstantVector::IsNull(col);
+-  }
+-  return FlatVector::IsNull(col, i);
+- }
+- inline void CopyCell(Vector &target, idx_t target_offset, idx_t width = 1) const {
+-  D_ASSERT(!chunk.data.empty());
+-  auto &source = chunk.data[col_idx];
+-  auto source_offset = scalar ? 0 : target_offset;
+-  VectorOperations::Copy(source, target, source_offset + width, source_offset, target_offset);
+- }
+-private:
+- PhysicalType ptype;
+- bool scalar;
+- DataChunk &chunk;
+- const column_t col_idx;
+-};
+-WindowRowNumberExecutor::WindowRowNumberExecutor(BoundWindowExpression &wexpr, ClientContext &context,
+-                                                 WindowSharedExpressions &shared)
+-    : WindowExecutor(wexpr, context, shared) {
+-}
+-WindowCumeDistExecutor::WindowCumeDistExecutor(BoundWindowExpression &wexpr, ClientContext &context,
+-                                               WindowSharedExpressions &shared)
+-    : WindowExecutor(wexpr, context, shared) {
+-}
+-WindowFirstValueExecutor::WindowFirstValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
+-                                                   WindowSharedExpressions &shared)
+-    : WindowValueExecutor(wexpr, context, shared) {
+-}
+-WindowLastValueExecutor::WindowLastValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
+-                                                 WindowSharedExpressions &shared)
+-    : WindowValueExecutor(wexpr, context, shared) {
+-}
+-WindowNthValueExecutor::WindowNthValueExecutor(BoundWindowExpression &wexpr, ClientContext &context,
+-                                               WindowSharedExpressions &shared)
+-    : WindowValueExecutor(wexpr, context, shared) {
+-}

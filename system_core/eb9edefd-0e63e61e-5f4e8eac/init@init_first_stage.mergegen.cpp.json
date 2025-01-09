@@ -1,0 +1,50 @@
+[
+    {
+        "a_contents": "        uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path,\n                                                  [this, &dm_path](const Uevent& uevent) {\n                                                      if (uevent.path == dm_path) {\n                                                          device_handler_.HandleDeviceEvent(uevent);\n                                                          return RegenerationAction::kStop;\n                                                      }\n                                                      return RegenerationAction::kContinue;\n                                                  });",
+        "b_contents": "        device_init((\"/sys\" + dm_path).c_str(), [&dm_path](uevent* uevent) -> coldboot_action_t {\n            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;\n            return COLDBOOT_CONTINUE;  // dm_path not found, continue to find it.\n        });",
+        "base_contents": "        bool found = false;\n        auto dm_callback = [&dm_path, &found](uevent* uevent) -> coldboot_action_t {\n            if (uevent->path && uevent->path == dm_path) {\n                found = true;\n                return COLDBOOT_STOP;\n            }\n            return COLDBOOT_CONTINUE;  // dm_path not found, continue to find it.\n        };\n        device_init((\"/sys\" + dm_path).c_str(), dm_callback);\n        if (!found) {\n            device_poll(dm_callback, 10s);\n        }\n        if (!found) {\n            LOG(ERROR) << \"device-mapper device not found\";\n            return false;\n        }",
+        "res_region": "        uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path,\n                                                  [this, &dm_path](const Uevent& uevent) {\n                                                      if (uevent.path == dm_path) {\n                                                          device_handler_.HandleDeviceEvent(uevent);\n                                                          return RegenerationAction::kStop;\n                                                      }\n                                                      return RegenerationAction::kContinue;\n                                                  });",
+        "lookback": "\n    if (need_dm_verity_) {\n        const std::string dm_path = \"/devices/virtual/misc/device-mapper\";",
+        "lookahead": "    }\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 168,
+        "end_line": 199,
+        "merge_gen_region": "std::string dm_path = \"/devices/virtual/misc/device-mapper\"; uevent_listener_.RegenerateUeventsForPath(\"/sys\" + dm_path, [this, &dm_path](const Uevent& uevent) { if (uevent.path == dm_path) { device_handler_.HandleDeviceEvent(uevent); return RegenerationAction::kStop; } return RegenerationAction::kContinue; });",
+        "resolved": false
+    },
+    {
+        "a_contents": "    uevent_listener_.RegenerateUevents(\n        [this](const Uevent& uevent) { return UeventCallback(uevent); });",
+        "b_contents": "    device_init(nullptr,\n                [this](uevent* uevent) -> coldboot_action_t { return ColdbootCallback(uevent); });\n\n    device_close();",
+        "base_contents": "    auto uevent_callback = [this](uevent* uevent) -> coldboot_action_t {\n        return ColdbootCallback(uevent);\n    };\n\n    device_init(nullptr, uevent_callback);\n    if (!required_devices_partition_names_.empty()) {\n        device_poll(uevent_callback, 10s);\n    }\n\n    if (!required_devices_partition_names_.empty()) {\n        LOG(ERROR) << __PRETTY_FUNCTION__ << \": partition(s) not found: \"\n                   << android::base::Join(required_devices_partition_names_, \", \");\n        return false;\n    }\n\n    device_close();\n    return true;",
+        "res_region": "    uevent_listener_.RegenerateUevents(\n        [this](const Uevent& uevent) { return UeventCallback(uevent); });",
+        "lookback": "                                                  });\n    }\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 202,
+        "end_line": 228,
+        "merge_gen_region": "#uevent_listener_.RegenerateUevents( [this](const Uevent& uevent) { return UeventCallback(uevent); });",
+        "resolved": false
+    },
+    {
+        "a_contents": "    uevent_listener_.RegenerateUeventsForPath(\n        syspath, [&device_name, &verity_device, this](const Uevent& uevent) {\n            if (uevent.device_name == device_name) {\n                LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n                device_handler_.HandleDeviceEvent(uevent);\n                return RegenerationAction::kStop;\n            }\n            return RegenerationAction::kContinue;\n        });",
+        "b_contents": "    device_init(syspath.c_str(), [&](uevent* uevent) -> coldboot_action_t {\n        if (uevent->device_name && uevent->device_name == device_name) {\n            LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n            return COLDBOOT_STOP;\n        }\n        return COLDBOOT_CONTINUE;\n    });\n    device_close();",
+        "base_contents": "    auto verity_callback = [&](uevent* uevent) -> coldboot_action_t {\n        if (uevent->device_name && uevent->device_name == device_name) {\n            LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n            found = true;\n            return COLDBOOT_STOP;\n        }\n        return COLDBOOT_CONTINUE;\n    };\n\n    device_init(syspath.c_str(), verity_callback);\n    if (!found) {\n        device_poll(verity_callback, 10s);\n    }\n    if (!found) {\n        LOG(ERROR) << \"dm-verity device not found\";\n        return false;\n    }\n    device_close();\n    return true;",
+        "res_region": "    uevent_listener_.RegenerateUeventsForPath(\n        syspath, [&device_name, &verity_device, this](const Uevent& uevent) {\n            if (uevent.device_name == device_name) {\n                LOG(VERBOSE) << \"Creating dm-verity device : \" << verity_device;\n                device_handler_.HandleDeviceEvent(uevent);\n                return RegenerationAction::kStop;\n            }\n            return RegenerationAction::kContinue;\n        });",
+        "lookback": "    const std::string device_name(basename(verity_device.c_str()));\n    const std::string syspath = \"/sys/block/\" + device_name;\n",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 268,
+        "end_line": 307,
+        "merge_gen_region": "return COLDBOOT_STOP; } return COLDBOOT_CONTINUE; }; device_init(syspath.c_str(), verity_callback); if (!found) { device_poll(verity_callback, 10s); } if (!found) { LOG(ERROR) << \"dm-verity device not found\"; return false; } device_close(); return true;",
+        "resolved": false
+    }
+]

@@ -1,0 +1,12 @@
+--- a/./output/rocksdb/514e42c7-3c0dcf0e-c9eef784/db@db_impl.no_comments_mergegen.cc
++++ b/./output/rocksdb/514e42c7-3c0dcf0e-c9eef784/db@db_impl.no_comments_merged.cc
+@@ -2529 +2529,3 @@ Status DBImpl::MakeRoomForWrite(bool force,
+-} else if (default_cfd_->current()->NumLevelFiles(0) >= options_.level0_stop_writes_trigger) {
++      internal_stats_.RecordWriteStall(InternalStats::MEMTABLE_COMPACTION,
++                                       stall);
++    } else if (default_cfd_->current()->NumLevelFiles(0) >=
+@@ -2640 +2642,3 @@ bool DBImpl::GetProperty(const ColumnFamilyHandle& column_family,
+-MutexLock l(&mutex_); Version* current = default_cfd_->current(); Slice in = property; Slice prefix("rocksdb."); if (!in.starts_with(prefix)) return false; in.remove_prefix(prefix.size()); if (in.starts_with("num-files-at-level")) { in.remove_prefix(strlen("num-files-at-level")); uint64_t level; bool ok = ConsumeDecimalNumber(&in, &level) && in.empty(); if (!ok || (int)level >= NumberLevels()) { return false; } else { char buf[100]; snprintf(buf, sizeof(buf), "%d", current->NumLevelFiles(static_cast<int>(level))); *value = buf; return true; } } else if (in == "levelstats") { char buf[1000]; snprintf(buf, sizeof(buf), "Level Files Size(MB)\n" "--------------------\n"); value->append(buf); for (int level = 0; level < NumberLevels(); level++) { snprintf(buf, sizeof(buf), "%3d %8d %8.0f\n", level, current->NumLevelFiles(level), current->NumLevelBytes(level) / 1048576.0); value->append(buf); } return true;
++  return internal_stats_.GetProperty(property, value, versions_.get(),
++                                     default_cfd_->current(),
++                                     default_cfd_->imm()->size());

@@ -1,0 +1,227 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/tmux/921991c9-0084cbef-63b6eec2/arguments.no_comments_mergebot.c b/home/whalien/codebase/python/mergebot-eva/output/tmux/921991c9-0084cbef-63b6eec2/arguments.no_comments_merged.c
+index 0f39e37..2905c69 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/tmux/921991c9-0084cbef-63b6eec2/arguments.no_comments_mergebot.c
++++ b/home/whalien/codebase/python/mergebot-eva/output/tmux/921991c9-0084cbef-63b6eec2/arguments.no_comments_merged.c
+@@ -4 +3,0 @@
+-#include <vis.h>
+@@ -7,0 +7 @@
++TAILQ_HEAD(args_values, args_value);
+@@ -21 +21,4 @@ static int args_cmp(struct args_entry *, struct args_entry *);
+-static int args_cmp(struct args_entry *a1, struct args_entry *a2) {
++RB_GENERATE_STATIC(args_tree, args_entry, entry, args_cmp);
++static int
++args_cmp(struct args_entry *a1, struct args_entry *a2)
++{
+@@ -24 +27,3 @@ static int args_cmp(struct args_entry *a1, struct args_entry *a2) {
+-static struct args_entry *args_find(struct args *args, u_char flag) {
++static struct args_entry *
++args_find(struct args *args, u_char flag)
++{
+@@ -29 +34,3 @@ static struct args_entry *args_find(struct args *args, u_char flag) {
+-static voidargs_copy_value(struct args_value *to, struct args_value *from) {
++static void
++args_copy_value(struct args_value *to, struct args_value *from)
++{
+@@ -43 +50,3 @@ static voidargs_copy_value(struct args_value *to, struct args_value *from) {
+-static const char *args_value_as_string(struct args_value *value) {
++static const char *
++args_value_as_string(struct args_value *value)
++{
+@@ -55 +64,3 @@ static const char *args_value_as_string(struct args_value *value) {
+-struct args *args_create(void) {
++struct args *
++args_create(void)
++{
+@@ -61,2 +72,4 @@ struct args *args_create(void) {
+-struct args *args_parse(const struct args_parse *parse,
+-                        struct args_value *values, u_int count) {
++struct args *
++args_parse(const struct args_parse *parse, struct args_value *values,
++    u_int count)
++{
+@@ -68 +81,2 @@ struct args *args_parse(const struct args_parse *parse,
+-  if (count == 0) return (args_create());
++ if (count == 0)
++  return (args_create());
+@@ -72 +86,2 @@ struct args *args_parse(const struct args_parse *parse,
+-    if (value->type != ARGS_STRING) break;
++  if (value->type != ARGS_STRING)
++   break;
+@@ -74 +89,2 @@ struct args *args_parse(const struct args_parse *parse,
+-    if (*string++ != '-' || *string == '\0') break;
++  if (*string++ != '-' || *string == '\0')
++   break;
+@@ -76 +92,2 @@ struct args *args_parse(const struct args_parse *parse,
+-    if (string[0] == '-' && string[1] == '\0') break;
++  if (string[0] == '-' && string[1] == '\0')
++   break;
+@@ -79 +96,2 @@ struct args *args_parse(const struct args_parse *parse,
+-      if (flag == '\0') break;
++   if (flag == '\0')
++    break;
+@@ -118,2 +136,2 @@ struct args *args_parse(const struct args_parse *parse,
+-      args->values = xrecallocarray(args->values, args->count, args->count + 1,
+-                                    sizeof *args->values);
++   args->values = xrecallocarray(args->values,
++       args->count, args->count + 1, sizeof *args->values);
+@@ -130 +148,3 @@ struct args *args_parse(const struct args_parse *parse,
+-voidargs_free_value(struct args_value *value) {
++void
++args_free_value(struct args_value *value)
++{
+@@ -143 +163,3 @@ voidargs_free_value(struct args_value *value) {
+-void args_free(struct args *args) {
++void
++args_free(struct args *args)
++{
+@@ -149 +171,2 @@ void args_free(struct args *args) {
+-  for (i = 0; i < args->count; i++) args_free_value(&args->values[i]);
++ for (i = 0; i < args->count; i++)
++  args_free_value(&args->values[i]);
+@@ -162 +185,3 @@ void args_free(struct args *args) {
+-void args_vector(struct args *args, int *argc, char ***argv) {
++void
++args_vector(struct args *args, int *argc, char ***argv)
++{
+@@ -173 +198,2 @@ static void printflike(3, 4)
+-    args_print_add(char **buf, size_t *len, const char *fmt, ...) {
++args_print_add(char **buf, size_t *len, const char *fmt, ...)
++{
+@@ -185,2 +211,3 @@ static void printflike(3, 4)
+-static voidargs_print_add_value(char **buf, size_t *len,
+-                                struct args_value *value) {
++static void
++args_print_add_value(char **buf, size_t *len, struct args_value *value)
++{
+@@ -188 +215,2 @@ static voidargs_print_add_value(char **buf, size_t *len,
+-  if (**buf != '\0') args_print_add(buf, len, " ");
++ if (**buf != '\0')
++  args_print_add(buf, len, " ");
+@@ -203 +231,3 @@ static voidargs_print_add_value(char **buf, size_t *len,
+-char *args_print(struct args *args) {
++char *
++args_print(struct args *args)
++{
+@@ -212,2 +242,4 @@ char *args_print(struct args *args) {
+-    if (!TAILQ_EMPTY(&entry->values)) continue;
+-    if (*buf == '\0') args_print_add(&buf, &len, "-");
++  if (!TAILQ_EMPTY(&entry->values))
++   continue;
++  if (*buf == '\0')
++   args_print_add(&buf, &len, "-");
+@@ -230 +262,3 @@ char *args_print(struct args *args) {
+-char *args_escape(const char *s) {
++char *
++args_escape(const char *s)
++{
+@@ -243 +277,3 @@ char *args_escape(const char *s) {
+-  if (s[0] != ' ' && s[1] == '\0' && (quotes != 0 || s[0] == '~')) {
++ if (s[0] != ' ' &&
++     s[1] == '\0' &&
++     (quotes != 0 || s[0] == '~')) {
+@@ -248 +284,2 @@ char *args_escape(const char *s) {
+-  if (quotes == '"') flags |= VIS_DQ;
++ if (quotes == '"')
++  flags |= VIS_DQ;
+@@ -266 +303,3 @@ char *args_escape(const char *s) {
+-int args_has(struct args *args, u_char flag) {
++int
++args_has(struct args *args, u_char flag)
++{
+@@ -269 +308,2 @@ int args_has(struct args *args, u_char flag) {
+-  if (entry == NULL) return (0);
++ if (entry == NULL)
++  return (0);
+@@ -272 +312,3 @@ int args_has(struct args *args, u_char flag) {
+-void args_set(struct args *args, u_char flag, struct args_value *value) {
++void
++args_set(struct args *args, u_char flag, struct args_value *value)
++{
+@@ -286 +328,3 @@ void args_set(struct args *args, u_char flag, struct args_value *value) {
+-const char *args_get(struct args *args, u_char flag) {
++const char *
++args_get(struct args *args, u_char flag)
++{
+@@ -288,2 +332,4 @@ const char *args_get(struct args *args, u_char flag) {
+-  if ((entry = args_find(args, flag)) == NULL) return (NULL);
+-  if (TAILQ_EMPTY(&entry->values)) return (NULL);
++ if ((entry = args_find(args, flag)) == NULL)
++  return (NULL);
++ if (TAILQ_EMPTY(&entry->values))
++  return (NULL);
+@@ -292 +338,3 @@ const char *args_get(struct args *args, u_char flag) {
+-u_char args_first(struct args *args, struct args_entry **entry) {
++u_char
++args_first(struct args *args, struct args_entry **entry)
++{
+@@ -294 +342,2 @@ u_char args_first(struct args *args, struct args_entry **entry) {
+-  if (*entry == NULL) return (0);
++ if (*entry == NULL)
++  return (0);
+@@ -297 +346,3 @@ u_char args_first(struct args *args, struct args_entry **entry) {
+-u_char args_next(struct args_entry **entry) {
++u_char
++args_next(struct args_entry **entry)
++{
+@@ -299 +350,2 @@ u_char args_next(struct args_entry **entry) {
+-  if (*entry == NULL) return (0);
++ if (*entry == NULL)
++  return (0);
+@@ -302,3 +354,10 @@ u_char args_next(struct args_entry **entry) {
+-u_int args_count(struct args *args) { return (args->count); }
+-struct args_value *args_value(struct args *args, u_int idx) {
+-  if (idx >= args->count) return (NULL);
++u_int
++args_count(struct args *args)
++{
++ return (args->count);
++}
++struct args_value *
++args_value(struct args *args, u_int idx)
++{
++ if (idx >= args->count)
++  return (NULL);
+@@ -307,2 +366,5 @@ struct args_value *args_value(struct args *args, u_int idx) {
+-const char *args_string(struct args *args, u_int idx) {
+-  if (idx >= args->count) return (NULL);
++const char *
++args_string(struct args *args, u_int idx)
++{
++ if (idx >= args->count)
++  return (NULL);
+@@ -311 +373,3 @@ const char *args_string(struct args *args, u_int idx) {
+-struct args_value *args_first_value(struct args *args, u_char flag) {
++struct args_value *
++args_first_value(struct args *args, u_char flag)
++{
+@@ -313 +377,2 @@ struct args_value *args_first_value(struct args *args, u_char flag) {
+-  if ((entry = args_find(args, flag)) == NULL) return (NULL);
++ if ((entry = args_find(args, flag)) == NULL)
++  return (NULL);
+@@ -316 +381,3 @@ struct args_value *args_first_value(struct args *args, u_char flag) {
+-struct args_value *args_next_value(struct args_value *value) {
++struct args_value *
++args_next_value(struct args_value *value)
++{
+@@ -319,2 +386,4 @@ struct args_value *args_next_value(struct args_value *value) {
+-long long args_strtonum(struct args *args, u_char flag, long long minval,
+-                        long long maxval, char **cause) {
++long long
++args_strtonum(struct args *args, u_char flag, long long minval,
++    long long maxval, char **cause)
++{
+@@ -338,2 +407,4 @@ long long args_strtonum(struct args *args, u_char flag, long long minval,
+-long long args_percentage(struct args *args, u_char flag, long long minval,
+-                          long long maxval, long long curval, char **cause) {
++long long
++args_percentage(struct args *args, u_char flag, long long minval,
++    long long maxval, long long curval, char **cause)
++{
+@@ -349,3 +420,4 @@ long long args_percentage(struct args *args, u_char flag, long long minval,
+-long long args_string_percentage(const char *value, long long minval,
+-                                 long long maxval, long long curval,
+-                                 char **cause) {
++long long
++args_string_percentage(const char *value, long long minval, long long maxval,
++    long long curval, char **cause)
++{

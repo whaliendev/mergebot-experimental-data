@@ -1,0 +1,42 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_mergebot.cpp b/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_merged.cpp
+index 358addf..4c88401 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/763fa64d-d7846a2c-1fa02519/init@init_first_stage.no_comments_merged.cpp
+@@ -18 +18 @@ class FirstStageMount {
+-    virtual ~FirstStageMount()
++    virtual ~FirstStageMount() = default;
+@@ -36 +36,2 @@ class FirstStageMountVBootV1 : public FirstStageMount {
+-    FirstStageMountVBootV1()() = delete;
++    FirstStageMountVBootV1() = default;
++    ~FirstStageMountVBootV1() override = default;
+@@ -45,2 +46 @@ class FirstStageMountVBootV2 : public FirstStageMount {
+-    () = delete;
+-    () = delete;
++    ~FirstStageMountVBootV2() override = default;
+@@ -107 +107 @@ void FirstStageMount::InitRequiredDevices() {
+-            if (uevent->path && uevent->path == dm_path) return COLDBOOT_STOP;
++            if (uevent->path == dm_path) return COLDBOOT_STOP;
+@@ -116 +116 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-    if (!strncmp(uevent->subsystem, "platform", 8)) {
++    if (uevent->subsystem == "platform") {
+@@ -119 +119 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-    if (strncmp(uevent->subsystem, "block", 5)) {
++    if (uevent->subsystem != "block") {
+@@ -122 +122 @@ coldboot_action_t FirstStageMount::ColdbootCallback(uevent* uevent) {
+-    if (uevent->partition_name) {
++    if (!uevent->partition_name.empty()) {
+@@ -140 +139,0 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-<<<<<<< HEAD
+@@ -142,5 +140,0 @@ void FirstStageMount::InitVerityDevice(const std::string& verity_device) {
+-|||||||
+-        if (uevent->device_name && device_name == uevent->device_name) {
+-=======
+-        if (uevent->device_name && uevent->device_name == device_name) {
+->>>>>>> d7846a2c53a0f462dc29b83ff2e46e252d6e9937
+@@ -238,3 +232,3 @@ coldboot_action_t FirstStageMountVBootV2::ColdbootCallback(uevent* uevent) {
+-    if (parent_callback_ret != COLDBOOT_CONTINUE && uevent->partition_name) {
+-        char** links = get_block_device_symlinks(uevent);
+-        if (links && links[0]) {
++    if (parent_callback_ret != COLDBOOT_CONTINUE && !uevent->partition_name.empty()) {
++        std::vector<std::string> links = get_block_device_symlinks(uevent);
++        if (!links.empty()) {

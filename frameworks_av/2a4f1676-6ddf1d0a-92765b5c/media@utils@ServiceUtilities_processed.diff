@@ -1,0 +1,82 @@
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_mergebot.cpp
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/2a4f1676-6ddf1d0a-92765b5c/media@utils@ServiceUtilities.no_comments_merged.cpp
+@@ -20,0 +21 @@ static const String16 sCallAudioInterception("android.permission.CALL_AUDIO_INTE
++static const String16 sAndroidPermissionBluetoothConnect("android.permission.BLUETOOTH_CONNECT");
+@@ -73,0 +74,25 @@ std::optional<AttributionSourceState> resolveAttributionSource(
++    static bool checkRecordingInternal(const AttributionSourceState &attributionSource,
++                                       const uint32_t virtualDeviceId,
++                                       const String16 &msg, bool start, audio_source_t source) {
++    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
++    if (isAudioServerOrMediaServerOrSystemServerOrRootUid(uid)) return true;
++    std::optional<AttributionSourceState> resolvedAttributionSource =
++            resolveAttributionSource(attributionSource, virtualDeviceId);
++    if (!resolvedAttributionSource.has_value()) {
++        return false;
++    }
++    const int32_t attributedOpCode = getOpForSource(source);
++    permission::PermissionChecker permissionChecker;
++    bool permitted = false;
++    if (start) {
++        permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
++                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
++                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
++    } else {
++        permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
++                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
++                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
++    }
++    return permitted;
++}
++static constexpr int DEVICE_ID_DEFAULT = 0;
+@@ -256,0 +287,23 @@ status_t checkIMemory(const sp<IMemory>& iMemory) {
++bool mustAnonymizeBluetoothAddress(
++        const AttributionSourceState& attributionSource, const String16& caller) {
++    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
++    if (isAudioServerOrSystemServerUid(uid)) {
++        return false;
++    }
++    const std::optional<AttributionSourceState> resolvedAttributionSource =
++            resolveAttributionSource(attributionSource, DEVICE_ID_DEFAULT);
++    if (!resolvedAttributionSource.has_value()) {
++        return true;
++    }
++    permission::PermissionChecker permissionChecker;
++    return permissionChecker.checkPermissionForPreflightFromDatasource(
++            sAndroidPermissionBluetoothConnect, resolvedAttributionSource.value(), caller,
++            AppOpsManager::OP_BLUETOOTH_CONNECT)
++                != permission::PermissionChecker::PERMISSION_GRANTED;
++}
++void anonymizeBluetoothAddress(char *address) {
++    if (address == nullptr || strlen(address) != strlen("AA:BB:CC:DD:EE:FF")) {
++        return;
++    }
++    memcpy(address, "XX:XX:XX:XX", strlen("XX:XX:XX:XX"));
++}
+@@ -423,27 +475,0 @@ mediautils::UidInfo::Info mediautils::UidInfo::getInfo(uid_t uid) {
+-static bool checkRecordingInternal(const AttributionSourceState& attributionSource,
+-                                   const uint32_t virtualDeviceId, const String16& msg, bool start,
+-                                   audio_source_t source) {
+-    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(attributionSource.uid));
+-    if (isAudioServerOrMediaServerOrSystemServerOrRootUid(uid)) return true;
+-    std::optional<AttributionSourceState> resolvedAttributionSource =
+-            resolveAttributionSource(attributionSource, virtualDeviceId);
+-    if (!resolvedAttributionSource.has_value()) {
+-        return false;
+-    }
+-    const int32_t attributedOpCode = getOpForSource(source);
+-    permission::PermissionChecker permissionChecker;
+-    bool permitted = false;
+-    if (start) {
+-        permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
+-                             sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+-                             attributedOpCode) !=
+-                     permission::PermissionChecker::PERMISSION_HARD_DENIED);
+-    } else {
+-        permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
+-                             sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+-                             attributedOpCode) !=
+-                     permission::PermissionChecker::PERMISSION_HARD_DENIED);
+-    }
+-    return permitted;
+-}
+-static constexpr int DEVICE_ID_DEFAULT = 0;

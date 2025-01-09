@@ -1,0 +1,52 @@
+--- a/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@parallel@pipeline_executor.no_comments_mergegen.cpp
++++ b/./output/duckdb/8e5b98eb-65cfcd58-e8610c85/src@parallel@pipeline_executor.no_comments_merged.cpp
+@@ -37 +37 @@ OperatorResultType PipelineExecutor::FlushCachingOperatorsPush() {
+-  if (!pipeline.operators[flushing_idx]->RequiresFinalExecute()) {
++  if (!pipeline.operators[flushing_idx].RequiresFinalExecute()) {
+@@ -48 +48 @@ OperatorResultType PipelineExecutor::FlushCachingOperatorsPush() {
+-   finalize_result = current_operator->FinalExecute(context, curr_chunk, *current_operator->op_state,
++   finalize_result = current_operator.FinalExecute(context, curr_chunk, *current_operator->op_state,
+@@ -166 +166 @@ OperatorResultType PipelineExecutor::ExecutePushInternal(DataChunk &input, idx_t
+-if (sink_chunk.size() > 0) { StartOperator(*pipeline.sink);
++   StartOperator(*pipeline.sink);
+@@ -315 +323,35 @@ OperatorResultType PipelineExecutor::Execute(DataChunk &input, DataChunk &result
+-void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) { interrupt_state = InterruptState(std::move(current_task)); } SourceResultType PipelineExecutor::GetData(DataChunk &chunk, OperatorSourceInput &input) {
++void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) {
++ interrupt_state = InterruptState(std::move(current_task));
++}
++SourceResultType PipelineExecutor::GetData(DataChunk &chunk, OperatorSourceInput &input) {
++ if (context.client.config.force_async_pipelines && !debug_blocked_source) {
++  debug_blocked_source = true;
++  auto callback_state = input.interrupt_state;
++  std::thread rewake_thread([callback_state] {
++   std::this_thread::sleep_for(std::chrono::milliseconds(1));
++   callback_state.Callback();
++  });
++  rewake_thread.detach();
++  return SourceResultType::BLOCKED;
++ }
++ return pipeline.source->GetData(context, chunk, input);
++}
++SinkResultType PipelineExecutor::Sink(DataChunk &chunk, OperatorSinkInput &input) {
++ if (context.client.config.force_async_pipelines && !debug_blocked_sink) {
++  debug_blocked_sink = true;
++  auto callback_state = input.interrupt_state;
++  std::thread rewake_thread([callback_state] {
++   std::this_thread::sleep_for(std::chrono::milliseconds(1));
++   callback_state.Callback();
++  });
++  rewake_thread.detach();
++  return SinkResultType::BLOCKED;
++ }
++ return pipeline.sink->Sink(context, chunk, input);
++}
++SourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {
++ StartOperator(*pipeline.source);
++ OperatorSourceInput source_input = { *pipeline.source_state, *local_source_state, interrupt_state };
++ auto res = GetData(result, source_input);
++ D_ASSERT(res != SourceResultType::BLOCKED || result.size() == 0);
++ D_ASSERT(res != SourceResultType::FINISHED || result.size() == 0);
+@@ -324 +366,2 @@ void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) { inter
+-batch_index = next_batch_index; } EndOperator(*pipeline.source, &result); return res;
++ EndOperator(*pipeline.source, &result);
++ return res;

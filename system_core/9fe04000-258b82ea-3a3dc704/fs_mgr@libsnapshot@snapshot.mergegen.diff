@@ -1,0 +1,32 @@
+diff --git a/./output/system_core/9fe04000-258b82ea-3a3dc704/fs_mgr@libsnapshot@snapshot.no_comments_mergegen.cpp b/./output/system_core/9fe04000-258b82ea-3a3dc704/fs_mgr@libsnapshot@snapshot.no_comments_merged.cpp
+index 82bdec3..963b694 100644
+--- a/./output/system_core/9fe04000-258b82ea-3a3dc704/fs_mgr@libsnapshot@snapshot.no_comments_mergegen.cpp
++++ b/./output/system_core/9fe04000-258b82ea-3a3dc704/fs_mgr@libsnapshot@snapshot.no_comments_merged.cpp
+@@ -2444 +2444,26 @@ Return SnapshotManager::CreateUpdateSnapshots(const DeltaArchiveManifest& manife
+-bool legacy_compression = GetLegacyCompressionEnabledProperty(); std::string vabc_disable_reason; if (!dap_metadata.vabc_enabled()) { vabc_disable_reason = "not enabled metadata"; } else if (device_->IsRecovery()) { vabc_disable_reason = "recovery"; } else if (!cow_format_support) { vabc_disable_reason = "cow format not supported"; } else if (!KernelSupportsCompressedSnapshots()) { vabc_disable_reason = "kernel missing userspace block device support"; } if (!vabc_disable_reason.empty()) { if (userspace_snapshots) { LOG(INFO) << "Userspace snapshots disabled: " << vabc_disable_reason; } if (legacy_compression) { LOG(INFO) << "Compression disabled: " << vabc_disable_reason; } userspace_snapshots = false; legacy_compression = false; } const bool using_snapuserd = userspace_snapshots || legacy_compression; if (!using_snapuserd) { LOG(INFO) << "Using legacy Virtual A/B (dm-snapshot)"; }
++    bool userspace_snapshots = CanUseUserspaceSnapshots();
++    bool legacy_compression = GetLegacyCompressionEnabledProperty();
++    std::string vabc_disable_reason;
++    if (!dap_metadata.vabc_enabled()) {
++        vabc_disable_reason = "not enabled metadata";
++    } else if (device_->IsRecovery()) {
++        vabc_disable_reason = "recovery";
++    } else if (!cow_format_support) {
++        vabc_disable_reason = "cow format not supported";
++    } else if (!KernelSupportsCompressedSnapshots()) {
++        vabc_disable_reason = "kernel missing userspace block device support";
++    }
++    if (!vabc_disable_reason.empty()) {
++        if (userspace_snapshots) {
++            LOG(INFO) << "Userspace snapshots disabled: " << vabc_disable_reason;
++        }
++        if (legacy_compression) {
++            LOG(INFO) << "Compression disabled: " << vabc_disable_reason;
++        }
++        userspace_snapshots = false;
++        legacy_compression = false;
++    }
++    const bool using_snapuserd = userspace_snapshots || legacy_compression;
++    if (!using_snapuserd) {
++        LOG(INFO) << "Using legacy Virtual A/B (dm-snapshot)";
++    }

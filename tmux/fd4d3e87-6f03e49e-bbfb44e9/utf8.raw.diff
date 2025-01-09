@@ -1,0 +1,89 @@
+diff --git a/./output/tmux/fd4d3e87-6f03e49e-bbfb44e9/utf8.no_comments_conflict.c b/./output/tmux/fd4d3e87-6f03e49e-bbfb44e9/utf8.no_comments_merged.c
+index 92e71f6..c5bb997 100644
+--- a/./output/tmux/fd4d3e87-6f03e49e-bbfb44e9/utf8.no_comments_conflict.c
++++ b/./output/tmux/fd4d3e87-6f03e49e-bbfb44e9/utf8.no_comments_merged.c
+@@ -225 +224,0 @@ utf8_append(struct utf8_data *ud, u_char ch)
+-<<<<<<< HEAD
+@@ -245,78 +244,4 @@ utf8_width(wchar_t wc)
+-enum utf8_state
+-utf8_combine(const struct utf8_data *ud, wchar_t *wc)
+-{
+-#ifdef HAVE_UTF8PROC
+- switch (utf8proc_mbtowc(wc, ud->data, ud->size)) {
+-#else
+- switch (mbtowc(wc, ud->data, ud->size)) {
+-#endif
+- case -1:
+-  log_debug("UTF-8 %.*s, mbtowc() %d", (int)ud->size, ud->data,
+-      errno);
+-  mbtowc(NULL, NULL, MB_CUR_MAX);
+-  return (UTF8_ERROR);
+- case 0:
+-  return (UTF8_ERROR);
+- default:
+-  return (UTF8_DONE);
+- }
+-}
+-enum utf8_state
+-utf8_split(wchar_t wc, struct utf8_data *ud)
+-{
+- char s[MB_LEN_MAX];
+- int slen;
+-#ifdef HAVE_UTF8PROC
+- slen = utf8proc_wctomb(s, wc);
+-#else
+- slen = wctomb(s, wc);
+-#endif
+- if (slen <= 0 || slen > (int)sizeof ud->data)
+-  return (UTF8_ERROR);
+- memcpy(ud->data, s, slen);
+- ud->size = slen;
+- ud->width = utf8_width(wc);
+- return (UTF8_DONE);
+-}
+-||||||| bbfb44e9
+-static int
+-utf8_width(wchar_t wc)
+-{
+- int width;
+- width = wcwidth(wc);
+- if (width < 0 || width > 0xff) {
+-  log_debug("Unicode %04lx, wcwidth() %d", (long)wc, width);
+-  return (-1);
+- }
+- return (width);
+-}
+-enum utf8_state
+-utf8_combine(const struct utf8_data *ud, wchar_t *wc)
+-{
+- switch (mbtowc(wc, ud->data, ud->size)) {
+- case -1:
+-  log_debug("UTF-8 %.*s, mbtowc() %d", (int)ud->size, ud->data,
+-      errno);
+-  mbtowc(NULL, NULL, MB_CUR_MAX);
+-  return (UTF8_ERROR);
+- case 0:
+-  return (UTF8_ERROR);
+- default:
+-  return (UTF8_DONE);
+- }
+-}
+-enum utf8_state
+-utf8_split(wchar_t wc, struct utf8_data *ud)
+-{
+- char s[MB_LEN_MAX];
+- int slen;
+- slen = wctomb(s, wc);
+- if (slen <= 0 || slen > (int)sizeof ud->data)
+-  return (UTF8_ERROR);
+- memcpy(ud->data, s, slen);
+- ud->size = slen;
+- ud->width = utf8_width(wc);
+- return (UTF8_DONE);
+-}
+-=======
+->>>>>>> 6f03e49e
++ * Encode len characters from src into dst, which is guaranteed to have four
++ * bytes available for each character from src (for \abc or UTF-8) plus space
++ * for \0.
++ */

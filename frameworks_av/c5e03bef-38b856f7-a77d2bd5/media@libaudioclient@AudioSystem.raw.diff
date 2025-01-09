@@ -1,0 +1,149 @@
+diff --git a/./output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_conflict.cpp b/./output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+index 0b90358..c97b0e8 100644
+--- a/./output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_conflict.cpp
++++ b/./output/frameworks_av/c5e03bef-38b856f7-a77d2bd5/media@libaudioclient@AudioSystem.no_comments_merged.cpp
+@@ -52 +51,0 @@ sp<CaptureStateListenerImpl> AudioSystem::gSoundTriggerCaptureStateListener;
+-<<<<<<< HEAD
+@@ -61,12 +59,0 @@ public:
+-||||||| a77d2bd563
+-static sp<IBinder> gAudioFlingerBinder = nullptr;
+-=======
+-template <typename ServiceInterface, typename Client, typename AidlInterface,
+-        typename ServiceTraits>
+-class ServiceHandler {
+-public:
+-    sp<ServiceInterface> getService(bool canStartThreadPool = true)
+-            EXCLUDES(mMutex) NO_THREAD_SAFETY_ANALYSIS {
+-        sp<ServiceInterface> service;
+-        sp<Client> client;
+->>>>>>> 38b856f7
+@@ -116 +102,0 @@ public:
+-<<<<<<< HEAD
+@@ -121,10 +106,0 @@ public:
+-||||||| a77d2bd563
+-        afc = gAudioFlingerClient;
+-        af = gAudioFlinger;
+-        if(canStartThreadPool) {
+-=======
+-        if (mCvGetter) mCvGetter.reset();
+-        client = mClient;
+-        service = mService;
+-        if (canStartThreadPool) {
+->>>>>>> 38b856f7
+@@ -139 +114,0 @@ public:
+-<<<<<<< HEAD
+@@ -202,26 +176,0 @@ sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-||||||| a77d2bd563
+-    const int64_t token = IPCThreadState::self()->clearCallingIdentity();
+-    af->registerClient(afc);
+-    IPCThreadState::self()->restoreCallingIdentity(token);
+-    if (reportNoError) reportError(NO_ERROR);
+-    return af;
+-=======
+-    status_t setLocalService(const sp<ServiceInterface>& service) EXCLUDES(mMutex) {
+-        std::lock_guard _l(mMutex);
+-        if (mService != nullptr && service != nullptr) return INVALID_OPERATION;
+-        mLocalService = service;
+-        if (mCvGetter) mCvGetter->notify_one();
+-        return OK;
+-    }
+-    sp<Client> getClient() EXCLUDES(mMutex) {
+-        const auto service = getService();
+-        if (service == nullptr) return nullptr;
+-        std::lock_guard _l(mMutex);
+-        return mClient;
+-    }
+-    void setBinder(const sp<IBinder>& binder) EXCLUDES(mMutex) {
+-        std::lock_guard _l(mMutex);
+-        if (mService != nullptr) {
+-            ALOGW("%s: ignoring; %s connection already established.",
+-                    __func__, ServiceTraits::SERVICE_NAME);
+-            return;
+@@ -229,63 +177,0 @@ sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-        mBinder = binder;
+-        if (mCvGetter) mCvGetter->notify_one();
+-    }
+-    void clearService() EXCLUDES(mMutex) {
+-        std::lock_guard _l(mMutex);
+-        mService.clear();
+-        if (mClient) ServiceTraits::onClearService(mClient);
+-    }
+-private:
+-    std::mutex mSingleGetter;
+-    std::mutex mMutex;
+-    std::shared_ptr<std::condition_variable> mCvGetter GUARDED_BY(mMutex);
+-    sp<IBinder> mBinder GUARDED_BY(mMutex);
+-    sp<ServiceInterface> mLocalService GUARDED_BY(mMutex);
+-    sp<ServiceInterface> mService GUARDED_BY(mMutex);
+-    sp<Client> mClient GUARDED_BY(mMutex);
+-};
+-struct AudioFlingerTraits {
+-    static void onServiceCreate(
+-            const sp<IAudioFlinger>& af, const sp<AudioSystem::AudioFlingerClient>& afc) {
+-        const int64_t token = IPCThreadState::self()->clearCallingIdentity();
+-        af->registerClient(afc);
+-        IPCThreadState::self()->restoreCallingIdentity(token);
+-    }
+-    static sp<IAudioFlinger> createServiceAdapter(
+-            const sp<media::IAudioFlingerService>& aidlInterface) {
+-        return sp<AudioFlingerClientAdapter>::make(aidlInterface);
+-    }
+-    static void onClearService(const sp<AudioSystem::AudioFlingerClient>& afc) {
+-        afc->clearIoCache();
+-    }
+-    static constexpr const char* SERVICE_NAME = IAudioFlinger::DEFAULT_SERVICE_NAME;
+-};
+-[[clang::no_destroy]] static constinit ServiceHandler<IAudioFlinger,
+-        AudioSystem::AudioFlingerClient, media::IAudioFlingerService,
+-        AudioFlingerTraits> gAudioFlingerServiceHandler;
+-sp<IAudioFlinger> AudioSystem::get_audio_flinger() {
+-    return gAudioFlingerServiceHandler.getService();
+->>>>>>> 38b856f7
+-}
+-<<<<<<< HEAD
+-sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
+-    return gAudioFlingerServiceHandler.getClient();
+-||||||| a77d2bd563
+-const sp<IAudioFlinger> AudioSystem:: get_audio_flinger() {
+-    return getAudioFlingerImpl();
+-=======
+-sp<IAudioFlinger> AudioSystem::get_audio_flinger_for_fuzzer() {
+-    return gAudioFlingerServiceHandler.getService(false );
+->>>>>>> 38b856f7
+-}
+-<<<<<<< HEAD
+-void AudioSystem::setAudioFlingerBinder(const sp<IBinder>& audioFlinger) {
+-    if (audioFlinger->getInterfaceDescriptor() != media::IAudioFlingerService::descriptor) {
+-        ALOGE("%s: received a binder of type %s",
+-                __func__, String8(audioFlinger->getInterfaceDescriptor()).c_str());
+-        return;
+-    }
+-    gAudioFlingerServiceHandler.setBinder(audioFlinger);
+-||||||| a77d2bd563
+-const sp<IAudioFlinger> AudioSystem:: get_audio_flinger_for_fuzzer() {
+-    return getAudioFlingerImpl(false);
+-=======
+@@ -294 +179,0 @@ sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
+->>>>>>> 38b856f7
+@@ -296,10 +180,0 @@ sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
+-<<<<<<< HEAD
+-status_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) {
+-    return gAudioFlingerServiceHandler.setLocalService(af);
+-||||||| a77d2bd563
+-const sp<AudioSystem::AudioFlingerClient> AudioSystem::getAudioFlingerClient() {
+-    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
+-    if (af == 0) return 0;
+-    Mutex::Autolock _l(gLock);
+-    return gAudioFlingerClient;
+-=======
+@@ -316 +190,0 @@ status_t AudioSystem::setLocalAudioFlinger(const sp<IAudioFlinger>& af) {
+->>>>>>> 38b856f7
+@@ -899 +772,0 @@ void AudioSystem::clearAudioPolicyService() {
+-<<<<<<< HEAD
+@@ -905,6 +777,0 @@ void AudioSystem::disableThreadPool() {
+-||||||| a77d2bd563
+-    Mutex::Autolock _l(gLockAPS);
+-    gAudioPolicyService.clear();
+-=======
+-    gAudioPolicyServiceHandler.clearService();
+->>>>>>> 38b856f7

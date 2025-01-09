@@ -1,0 +1,246 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@include@libsnapshot@snapshot.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@include@libsnapshot@snapshot.no_comments_merged.h
+index 87b99da..eee842f 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@include@libsnapshot@snapshot.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/system_core/d7d520c9-739f4f5f-6834fe66/fs_mgr@libsnapshot@include@libsnapshot@snapshot.no_comments_merged.h
+@@ -23 +22,0 @@
+-#include <libsnapshot/snapuserd_client.h>
+@@ -54,4 +53,2 @@ static constexpr const std::string_view kCowGroupName = "cow";
+-static constexpr char kVirtualAbCompressionProp[] =
+-    "ro.virtual_ab.compression.enabled";
+-bool OptimizeSourceCopyOperation(
+-    const chromeos_update_engine::InstallOperation& operation,
++static constexpr char kVirtualAbCompressionProp[] = "ro.virtual_ab.compression.enabled";
++bool OptimizeSourceCopyOperation(const chromeos_update_engine::InstallOperation& operation,
+@@ -74,2 +71 @@ class ISnapshotManager {
+-    virtual const android::fs_mgr::IPartitionOpener& GetPartitionOpener()
+-        const = 0;
++        virtual const android::fs_mgr::IPartitionOpener& GetPartitionOpener() const = 0;
+@@ -85,2 +81 @@ class ISnapshotManager {
+-    std::unique_ptr<IImageManager> OpenImageManager(
+-        const std::string& gsid_dir) const;
++        std::unique_ptr<IImageManager> OpenImageManager(const std::string& gsid_dir) const;
+@@ -88 +83 @@ class ISnapshotManager {
+-  virtual ~ISnapshotManager()
++    virtual ~ISnapshotManager() = default;
+@@ -94,2 +89 @@ class ISnapshotManager {
+-  virtual UpdateState ProcessUpdateState(
+-      const std::function<bool()>& callback = {},
++    virtual UpdateState ProcessUpdateState(const std::function<bool()>& callback = {},
+@@ -104,2 +98 @@ class ISnapshotManager {
+-  virtual bool MapUpdateSnapshot(
+-      const android::fs_mgr::CreateLogicalPartitionParams& params,
++    virtual bool MapUpdateSnapshot(const android::fs_mgr::CreateLogicalPartitionParams& params,
+@@ -110,2 +103 @@ class ISnapshotManager {
+-  virtual bool UnmapUpdateSnapshot(
+-      const std::string& target_partition_name) = 0;
++    virtual bool UnmapUpdateSnapshot(const std::string& target_partition_name) = 0;
+@@ -114,4 +106,2 @@ class ISnapshotManager {
+-      const std::string& super_device,
+-      const std::chrono::milliseconds& timeout_ms = {}) = 0;
+-  virtual bool MapAllSnapshots(
+-      const std::chrono::milliseconds& timeout_ms = {}) = 0;
++            const std::string& super_device, const std::chrono::milliseconds& timeout_ms = {}) = 0;
++    virtual bool MapAllSnapshots(const std::chrono::milliseconds& timeout_ms = {}) = 0;
+@@ -119,2 +109 @@ class ISnapshotManager {
+-  virtual bool HandleImminentDataWipe(
+-      const std::function<void()>& callback = {}) = 0;
++    virtual bool HandleImminentDataWipe(const std::function<void()>& callback = {}) = 0;
+@@ -130,2 +119 @@ class SnapshotManager final : public ISnapshotManager {
+-  using CreateLogicalPartitionParams =
+-      android::fs_mgr::CreateLogicalPartitionParams;
++    using CreateLogicalPartitionParams = android::fs_mgr::CreateLogicalPartitionParams;
+@@ -139,2 +126,0 @@ class SnapshotManager final : public ISnapshotManager {
+- private:
+-  FRIEND_TEST(SnapshotUpdateTest, SpaceSwapUpdate);
+@@ -144,2 +130 @@ class SnapshotManager final : public ISnapshotManager {
+-  static std::unique_ptr<SnapshotManager> NewForFirstStageMount(
+-      IDeviceInfo* device = nullptr);
++    static std::unique_ptr<SnapshotManager> NewForFirstStageMount(IDeviceInfo* device = nullptr);
+@@ -156,2 +141 @@ class SnapshotManager final : public ISnapshotManager {
+-  UpdateState ProcessUpdateState(
+-      const std::function<bool()>& callback = {},
++    UpdateState ProcessUpdateState(const std::function<bool()>& callback = {},
+@@ -173,2 +157 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool HandleImminentDataWipe(
+-      const std::function<void()>& callback = {}) override;
++    bool HandleImminentDataWipe(const std::function<void()>& callback = {}) override;
+@@ -182,2 +165 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapAllSnapshots(
+-      const std::chrono::milliseconds& timeout_ms = {}) override;
++    bool MapAllSnapshots(const std::chrono::milliseconds& timeout_ms = {}) override;
+@@ -186,2 +168 @@ class SnapshotManager final : public ISnapshotManager {
+-  void SetUeventRegenCallback(
+-      std::function<bool(const std::string&)> callback) {
++    void SetUeventRegenCallback(std::function<bool(const std::string&)> callback) {
+@@ -195,2 +176,2 @@ class SnapshotManager final : public ISnapshotManager {
+-  using MergeConsistencyChecker = std::function<MergeFailureCode(
+-      const std::string& name, const SnapshotStatus& status)>;
++    using MergeConsistencyChecker =
++            std::function<MergeFailureCode(const std::string& name, const SnapshotStatus& status)>;
+@@ -200,3 +181 @@ class SnapshotManager final : public ISnapshotManager {
+-  MergeConsistencyChecker merge_consistency_checker() const {
+-    return merge_consistency_checker_;
+-  }
++    MergeConsistencyChecker merge_consistency_checker() const { return merge_consistency_checker_; }
+@@ -203,0 +183,24 @@ class SnapshotManager final : public ISnapshotManager {
++    FRIEND_TEST(SnapshotTest, CleanFirstStageMount);
++    FRIEND_TEST(SnapshotTest, CreateSnapshot);
++    FRIEND_TEST(SnapshotTest, FirstStageMountAfterRollback);
++    FRIEND_TEST(SnapshotTest, FirstStageMountAndMerge);
++    FRIEND_TEST(SnapshotTest, FlashSuperDuringMerge);
++    FRIEND_TEST(SnapshotTest, FlashSuperDuringUpdate);
++    FRIEND_TEST(SnapshotTest, MapPartialSnapshot);
++    FRIEND_TEST(SnapshotTest, MapSnapshot);
++    FRIEND_TEST(SnapshotTest, Merge);
++    FRIEND_TEST(SnapshotTest, MergeFailureCode);
++    FRIEND_TEST(SnapshotTest, NoMergeBeforeReboot);
++    FRIEND_TEST(SnapshotTest, UpdateBootControlHal);
++    FRIEND_TEST(SnapshotUpdateTest, AddPartition);
++    FRIEND_TEST(SnapshotUpdateTest, ConsistencyCheckResume);
++    FRIEND_TEST(SnapshotUpdateTest, DaemonTransition);
++    FRIEND_TEST(SnapshotUpdateTest, DataWipeAfterRollback);
++    FRIEND_TEST(SnapshotUpdateTest, DataWipeRollbackInRecovery);
++    FRIEND_TEST(SnapshotUpdateTest, DataWipeWithStaleSnapshots);
++    FRIEND_TEST(SnapshotUpdateTest, FullUpdateFlow);
++    FRIEND_TEST(SnapshotUpdateTest, MergeCannotRemoveCow);
++    FRIEND_TEST(SnapshotUpdateTest, MergeInRecovery);
++    FRIEND_TEST(SnapshotUpdateTest, QueryStatusError);
++    FRIEND_TEST(SnapshotUpdateTest, SnapshotStatusFileWithoutCow);
++    FRIEND_TEST(SnapshotUpdateTest, SpaceSwapUpdate);
+@@ -220,3 +223 @@ class SnapshotManager final : public ISnapshotManager {
+-  void set_use_first_stage_snapuserd(bool value) {
+-    use_first_stage_snapuserd_ = value;
+-  }
++    void set_use_first_stage_snapuserd(bool value) { use_first_stage_snapuserd_ = value; }
+@@ -225,2 +226 @@ class SnapshotManager final : public ISnapshotManager {
+-    LockedFile(const std::string& path, android::base::unique_fd&& fd,
+-               int lock_mode)
++        LockedFile(const std::string& path, android::base::unique_fd&& fd, int lock_mode)
+@@ -235,2 +235 @@ class SnapshotManager final : public ISnapshotManager {
+-  static std::unique_ptr<LockedFile> OpenFile(const std::string& file,
+-                                              int lock_flags);
++    static std::unique_ptr<LockedFile> OpenFile(const std::string& file, int lock_flags);
+@@ -238,2 +237 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool CreateSnapshot(LockedFile* lock, PartitionCowCreator* cow_creator,
+-                      SnapshotStatus* status);
++    bool CreateSnapshot(LockedFile* lock, PartitionCowCreator* cow_creator, SnapshotStatus* status);
+@@ -241,4 +239,2 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapSnapshot(LockedFile* lock, const std::string& name,
+-                   const std::string& base_device,
+-                   const std::string& cow_device,
+-                   const std::chrono::milliseconds& timeout_ms,
++    bool MapSnapshot(LockedFile* lock, const std::string& name, const std::string& base_device,
++                     const std::string& cow_device, const std::chrono::milliseconds& timeout_ms,
+@@ -246,5 +242,3 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapDmUserCow(LockedFile* lock, const std::string& name,
+-                    const std::string& cow_file, const std::string& base_device,
+-                    const std::string& base_path_merge,
+-                    const std::chrono::milliseconds& timeout_ms,
+-                    std::string* path);
++    bool MapDmUserCow(LockedFile* lock, const std::string& name, const std::string& cow_file,
++                      const std::string& base_device, const std::string& base_path_merge,
++                      const std::chrono::milliseconds& timeout_ms, std::string* path);
+@@ -252,4 +246,3 @@ class SnapshotManager final : public ISnapshotManager {
+-                       const std::chrono::milliseconds& timeout_ms,
+-                       std::string* path);
+-  std::optional<std::string> MapCowImage(
+-      const std::string& name, const std::chrono::milliseconds& timeout_ms);
++                         const std::chrono::milliseconds& timeout_ms, std::string* path);
++    std::optional<std::string> MapCowImage(const std::string& name,
++                                           const std::chrono::milliseconds& timeout_ms);
+@@ -263,2 +256 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool HandleCancelledUpdate(LockedFile* lock,
+-                             const std::function<bool()>& before_cancel);
++    bool HandleCancelledUpdate(LockedFile* lock, const std::function<bool()>& before_cancel);
+@@ -266,2 +258 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool GetSnapshotFlashingStatus(LockedFile* lock,
+-                                 const std::vector<std::string>& snapshots,
++    bool GetSnapshotFlashingStatus(LockedFile* lock, const std::vector<std::string>& snapshots,
+@@ -269,2 +260 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool RemoveAllUpdateState(LockedFile* lock,
+-                            const std::function<bool()>& prolog = {});
++    bool RemoveAllUpdateState(LockedFile* lock, const std::function<bool()>& prolog = {});
+@@ -279,2 +269 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool WriteSnapshotUpdateStatus(LockedFile* file,
+-                                 const SnapshotUpdateStatus& status);
++    bool WriteSnapshotUpdateStatus(LockedFile* file, const SnapshotUpdateStatus& status);
+@@ -284,2 +273 @@ class SnapshotManager final : public ISnapshotManager {
+-  MergeFailureCode SwitchSnapshotToMerge(LockedFile* lock,
+-                                         const std::string& name);
++    MergeFailureCode SwitchSnapshotToMerge(LockedFile* lock, const std::string& name);
+@@ -287,2 +275 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MarkSnapshotMergeCompleted(LockedFile* snapshot_lock,
+-                                  const std::string& snapshot_name);
++    bool MarkSnapshotMergeCompleted(LockedFile* snapshot_lock, const std::string& snapshot_name);
+@@ -302,2 +289 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool IsSnapshotDevice(const std::string& dm_name,
+-                        TargetInfo* target = nullptr);
++    bool IsSnapshotDevice(const std::string& dm_name, TargetInfo* target = nullptr);
+@@ -316,2 +302 @@ class SnapshotManager final : public ISnapshotManager {
+-  MergeResult CheckMergeState(LockedFile* lock,
+-                              const std::function<bool()>& before_cancel);
++    MergeResult CheckMergeState(LockedFile* lock, const std::function<bool()>& before_cancel);
+@@ -320,2 +305 @@ class SnapshotManager final : public ISnapshotManager {
+-  MergeFailureCode CheckMergeConsistency(LockedFile* lock,
+-                                         const std::string& name,
++    MergeFailureCode CheckMergeConsistency(LockedFile* lock, const std::string& name,
+@@ -330,2 +314 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool ReadSnapshotStatus(LockedFile* lock, const std::string& name,
+-                          SnapshotStatus* status);
++    bool ReadSnapshotStatus(LockedFile* lock, const std::string& name, SnapshotStatus* status);
+@@ -338,2 +321 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapAllPartitions(LockedFile* lock, const std::string& super_device,
+-                        uint32_t slot,
++    bool MapAllPartitions(LockedFile* lock, const std::string& super_device, uint32_t slot,
+@@ -358,2 +340 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapPartitionWithSnapshot(LockedFile* lock,
+-                                CreateLogicalPartitionParams params,
++    bool MapPartitionWithSnapshot(LockedFile* lock, CreateLogicalPartitionParams params,
+@@ -361,4 +342,3 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool MapCowDevices(LockedFile* lock,
+-                     const CreateLogicalPartitionParams& params,
+-                     const SnapshotStatus& snapshot_status,
+-                     AutoDeviceList* created_devices, std::string* cow_name);
++    bool MapCowDevices(LockedFile* lock, const CreateLogicalPartitionParams& params,
++                       const SnapshotStatus& snapshot_status, AutoDeviceList* created_devices,
++                       std::string* cow_name);
+@@ -366,2 +346 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool UnmapPartitionWithSnapshot(LockedFile* lock,
+-                                  const std::string& target_partition_name);
++    bool UnmapPartitionWithSnapshot(LockedFile* lock, const std::string& target_partition_name);
+@@ -369,2 +348 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool UnmapUserspaceSnapshotDevice(LockedFile* lock,
+-                                    const std::string& snapshot_name);
++    bool UnmapUserspaceSnapshotDevice(LockedFile* lock, const std::string& snapshot_name);
+@@ -378,2 +356 @@ class SnapshotManager final : public ISnapshotManager {
+-      const LpMetadata* exported_target_metadata,
+-      const std::string& target_suffix,
++            const LpMetadata* exported_target_metadata, const std::string& target_suffix,
+@@ -389,2 +366,2 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool ShouldDeleteSnapshot(const std::map<std::string, bool>& flashing_status,
+-                            Slot current_slot, const std::string& name);
++    bool ShouldDeleteSnapshot(const std::map<std::string, bool>& flashing_status, Slot current_slot,
++                              const std::string& name);
+@@ -392,4 +369,3 @@ class SnapshotManager final : public ISnapshotManager {
+-  UpdateState ProcessUpdateStateOnDataWipe(
+-      bool allow_forward_merge, const std::function<bool()>& callback);
+-  bool GetMappedImageDeviceStringOrPath(
+-      const std::string& device_name,
++    UpdateState ProcessUpdateStateOnDataWipe(bool allow_forward_merge,
++                                             const std::function<bool()>& callback);
++    bool GetMappedImageDeviceStringOrPath(const std::string& device_name,
+@@ -397,4 +373,2 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool GetMappedImageDevicePath(const std::string& device_name,
+-                                std::string* device_path);
+-  bool WaitForDevice(const std::string& device,
+-                     std::chrono::milliseconds timeout_ms);
++    bool GetMappedImageDevicePath(const std::string& device_name, std::string* device_path);
++    bool WaitForDevice(const std::string& device, std::chrono::milliseconds timeout_ms);
+@@ -402,2 +376 @@ class SnapshotManager final : public ISnapshotManager {
+-  bool PerformInitTransition(
+-      InitTransition transition,
++    bool PerformInitTransition(InitTransition transition,
+@@ -411 +383,0 @@ class SnapshotManager final : public ISnapshotManager {
+-  std::string metadata_dir_;
+@@ -412,0 +385 @@ class SnapshotManager final : public ISnapshotManager {
++    std::string metadata_dir_;

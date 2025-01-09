@@ -1,0 +1,34 @@
+[
+    {
+        "a_contents": "#include \"reboot_utils.h\"\n#include \"selabel.h\"",
+        "b_contents": "#include \"reboot_utils.h\"\n#include \"selinux.h\"",
+        "base_contents": "#include \"selinux.h\"",
+        "res_region": "#include \"reboot_utils.h\"\n#include \"selabel.h\"",
+        "lookback": "#include <selinux/android.h>\n\n#if defined(__ANDROID__)",
+        "lookahead": "#else\n#include \"host_init_stubs.h\"",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 42,
+        "end_line": 50,
+        "merge_gen_region": "#include \"reboot_utils.h\" #include \"selabel.h\"",
+        "resolved": true
+    },
+    {
+        "a_contents": "    dup2(fd, STDIN_FILENO);\n    dup2(fd, STDOUT_FILENO);\n    dup2(fd, STDERR_FILENO);\n    if (fd > STDERR_FILENO) close(fd);\n}\n\nvoid InitKernelLogging(char** argv) {\n    SetFatalRebootTarget();\n    android::base::InitLogging(argv, &android::base::KernelLogger, InitAborter);",
+        "b_contents": "    dup2(fd, STDIN_FILENO);\n    dup2(fd, STDOUT_FILENO);\n    dup2(fd, STDERR_FILENO);\n    if (fd > STDERR_FILENO) close(fd);\n}\n\nvoid InitKernelLogging(char** argv) {\n    android::base::InitLogging(argv, &android::base::KernelLogger, InitAborter);",
+        "base_contents": "    dup2(fd, 0);\n    dup2(fd, 1);\n    dup2(fd, 2);\n    if (fd > 2) close(fd);\n    android::base::InitLogging(argv, &android::base::KernelLogger, std::move(abort_function));",
+        "res_region": "    dup2(fd, STDIN_FILENO);\n    dup2(fd, STDOUT_FILENO);\n    dup2(fd, STDERR_FILENO);\n    if (fd > STDERR_FILENO) close(fd);\n}\n\nvoid InitKernelLogging(char** argv) {\n    SetFatalRebootTarget();\n    android::base::InitLogging(argv, &android::base::KernelLogger, InitAborter);",
+        "lookback": "        errno = saved_errno;\n        PLOG(FATAL) << \"Couldn't open /dev/null\";\n    }",
+        "lookahead": "}\n",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 470,
+        "end_line": 495,
+        "merge_gen_region": "fd2(fd, STDIN_FILENO); dup2(fd, STDOUT_FILENO); dup2(fd, STDERR_FILENO); if (fd > STDERR_FILENO) close(fd); } void InitKernelLogging(char** argv) { SetFatalRebootTarget(); android::base::InitLogging(argv, &android::base::KernelLogger, InitAborter);",
+        "resolved": false
+    }
+]

@@ -1,0 +1,240 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/grpc/c80fdb09-615cd251-1e6c9b4c/test@core@end2end@goaway_server_test.no_comments_mergebot.cc b/home/whalien/codebase/python/mergebot-eva/output/grpc/c80fdb09-615cd251-1e6c9b4c/test@core@end2end@goaway_server_test.no_comments_merged.cc
+index 59dcfdf..29af929 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/grpc/c80fdb09-615cd251-1e6c9b4c/test@core@end2end@goaway_server_test.no_comments_mergebot.cc
++++ b/home/whalien/codebase/python/mergebot-eva/output/grpc/c80fdb09-615cd251-1e6c9b4c/test@core@end2end@goaway_server_test.no_comments_merged.cc
+@@ -10,0 +11 @@
++#include "src/core/lib/iomgr/sockaddr.h"
+@@ -75,3 +76,2 @@ static grpc_ares_request* my_dns_lookup_ares_locked(
+-    bool check_grpclb, char** service_config_json, int query_timeout_ms,
+-    std::shared_ptr<grpc_core::WorkSerializer> combiner,
+-    grpc_core::Combiner* combiner) {
++    char** service_config_json, int query_timeout_ms,
++    std::shared_ptr<grpc_core::WorkSerializer> work_serializer) {
+@@ -79,10 +78,0 @@ static grpc_ares_request* my_dns_lookup_ares_locked(
+-<<<<<<< HEAD
+-    return iomgr_dns_lookup_ares_locked(dns_server, addr, default_port,
+-                                        interested_parties, on_done, addresses,
+-                                        check_grpclb, service_config_json,
+-                                        query_timeout_ms, std::move(combiner));
+-|||||||
+-    return iomgr_dns_lookup_ares_locked(
+-        dns_server, addr, default_port, interested_parties, on_done, addresses,
+-        check_grpclb, service_config_json, query_timeout_ms, combiner);
+-=======
+@@ -91,2 +81,2 @@ static grpc_ares_request* my_dns_lookup_ares_locked(
+-        balancer_addresses, service_config_json, query_timeout_ms, combiner);
+->>>>>>> 615cd251b8de723a9ff75ac46db54f5de7bd2ec8
++        balancer_addresses, service_config_json, query_timeout_ms,
++        std::move(work_serializer));
+@@ -116,0 +107,4 @@ int main(int argc, char** argv) {
++  grpc_completion_queue* cq;
++  cq_verifier* cqv;
++  grpc_op ops[6];
++  grpc_op* op;
+@@ -118 +111,0 @@ int main(int argc, char** argv) {
+-  grpc_init();
+@@ -120 +113,2 @@ int main(int argc, char** argv) {
+-  g_combiner = grpc_combiner_create();
++  grpc_init();
++  default_resolver = grpc_resolve_address_impl;
+@@ -121,0 +116,2 @@ int main(int argc, char** argv) {
++  iomgr_dns_lookup_ares_locked = grpc_dns_lookup_ares_locked;
++  iomgr_cancel_ares_request_locked = grpc_cancel_ares_request_locked;
+@@ -124,21 +120,174 @@ int main(int argc, char** argv) {
+-  {
+-    grpc_core::ExecCtx exec_ctx;
+-    ResultHandler* result_handler = new ResultHandler();
+-    grpc_core::OrphanablePtr<grpc_core::Resolver> resolver = create_resolver(
+-        "dns:test",
+-        std::unique_ptr<grpc_core::Resolver::ResultHandler>(result_handler));
+-    ResultHandler::ResolverOutput output1;
+-    result_handler->SetOutput(&output1);
+-    resolver->StartLocked();
+-    grpc_core::ExecCtx::Get()->Flush();
+-    GPR_ASSERT(wait_loop(5, &output1.ev));
+-    GPR_ASSERT(output1.result.addresses.empty());
+-    GPR_ASSERT(output1.error != GRPC_ERROR_NONE);
+-    ResultHandler::ResolverOutput output2;
+-    result_handler->SetOutput(&output2);
+-    grpc_core::ExecCtx::Get()->Flush();
+-    GPR_ASSERT(wait_loop(30, &output2.ev));
+-    GPR_ASSERT(!output2.result.addresses.empty());
+-    GPR_ASSERT(output2.error == GRPC_ERROR_NONE);
+-    GRPC_COMBINER_UNREF(g_combiner, "test");
+-  }
++  int was_cancelled1;
++  int was_cancelled2;
++  grpc_metadata_array trailing_metadata_recv1;
++  grpc_metadata_array request_metadata1;
++  grpc_call_details request_details1;
++  grpc_status_code status1;
++  grpc_slice details1;
++  grpc_metadata_array_init(&trailing_metadata_recv1);
++  grpc_metadata_array_init(&request_metadata1);
++  grpc_call_details_init(&request_details1);
++  grpc_metadata_array trailing_metadata_recv2;
++  grpc_metadata_array request_metadata2;
++  grpc_call_details request_details2;
++  grpc_status_code status2;
++  grpc_slice details2;
++  grpc_metadata_array_init(&trailing_metadata_recv2);
++  grpc_metadata_array_init(&request_metadata2);
++  grpc_call_details_init(&request_details2);
++  cq = grpc_completion_queue_create_for_next(nullptr);
++  cqv = cq_verifier_create(cq);
++  int port1 = grpc_pick_unused_port_or_die();
++  int port2 = grpc_pick_unused_port_or_die();
++  char* addr;
++  grpc_channel_args client_args;
++  grpc_arg arg_array[2];
++  arg_array[0].type = GRPC_ARG_INTEGER;
++  arg_array[0].key =
++      const_cast<char*>("grpc.testing.fixed_reconnect_backoff_ms");
++  arg_array[0].value.integer = 1000;
++  arg_array[1].type = GRPC_ARG_INTEGER;
++  arg_array[1].key =
++      const_cast<char*>(GRPC_ARG_DNS_MIN_TIME_BETWEEN_RESOLUTIONS_MS);
++  arg_array[1].value.integer = 1000;
++  client_args.args = arg_array;
++  client_args.num_args = 2;
++  grpc_channel* chan =
++      grpc_insecure_channel_create("test", &client_args, nullptr);
++  grpc_slice host = grpc_slice_from_static_string("127.0.0.1");
++  grpc_call* call1 =
++      grpc_channel_create_call(chan, nullptr, GRPC_PROPAGATE_DEFAULTS, cq,
++                               grpc_slice_from_static_string("/foo"), &host,
++                               grpc_timeout_seconds_to_deadline(20), nullptr);
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_SEND_INITIAL_METADATA;
++  op->data.send_initial_metadata.count = 0;
++  op->flags = GRPC_INITIAL_METADATA_WAIT_FOR_READY;
++  op->reserved = nullptr;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(call1, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x101), nullptr));
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_RECV_STATUS_ON_CLIENT;
++  op->data.recv_status_on_client.trailing_metadata = &trailing_metadata_recv1;
++  op->data.recv_status_on_client.status = &status1;
++  op->data.recv_status_on_client.status_details = &details1;
++  op->flags = 0;
++  op->reserved = nullptr;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(call1, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x102), nullptr));
++  grpc_server* server1 = grpc_server_create(nullptr, nullptr);
++  gpr_asprintf(&addr, "127.0.0.1:%d", port1);
++  grpc_server_add_insecure_http2_port(server1, addr);
++  grpc_server_register_completion_queue(server1, cq, nullptr);
++  gpr_free(addr);
++  grpc_server_start(server1);
++  grpc_call* server_call1;
++  GPR_ASSERT(GRPC_CALL_OK ==
++             grpc_server_request_call(server1, &server_call1, &request_details1,
++                                      &request_metadata1, cq, cq, tag(0x301)));
++  set_resolve_port(port1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x101), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x301), 1);
++  cq_verify(cqv);
++  GPR_ASSERT(GRPC_CHANNEL_READY ==
++             grpc_channel_check_connectivity_state(chan, 0));
++  grpc_channel_watch_connectivity_state(chan, GRPC_CHANNEL_READY,
++                                        gpr_inf_future(GPR_CLOCK_REALTIME), cq,
++                                        tag(0x9999));
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_RECV_CLOSE_ON_SERVER;
++  op->data.recv_close_on_server.cancelled = &was_cancelled1;
++  op->flags = 0;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(server_call1, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x302), nullptr));
++  set_resolve_port(-1);
++  grpc_server_shutdown_and_notify(server1, cq, tag(0xdead1));
++  CQ_EXPECT_COMPLETION(cqv, tag(0x9999), 1);
++  cq_verify(cqv);
++  cq_verify_empty(cqv);
++  grpc_call* call2 =
++      grpc_channel_create_call(chan, nullptr, GRPC_PROPAGATE_DEFAULTS, cq,
++                               grpc_slice_from_static_string("/foo"), &host,
++                               grpc_timeout_seconds_to_deadline(20), nullptr);
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_SEND_INITIAL_METADATA;
++  op->data.send_initial_metadata.count = 0;
++  op->flags = GRPC_INITIAL_METADATA_WAIT_FOR_READY;
++  op->reserved = nullptr;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(call2, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x201), nullptr));
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_RECV_STATUS_ON_CLIENT;
++  op->data.recv_status_on_client.trailing_metadata = &trailing_metadata_recv2;
++  op->data.recv_status_on_client.status = &status2;
++  op->data.recv_status_on_client.status_details = &details2;
++  op->flags = 0;
++  op->reserved = nullptr;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(call2, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x202), nullptr));
++  set_resolve_port(port2);
++  grpc_server* server2 = grpc_server_create(nullptr, nullptr);
++  gpr_asprintf(&addr, "127.0.0.1:%d", port2);
++  grpc_server_add_insecure_http2_port(server2, addr);
++  grpc_server_register_completion_queue(server2, cq, nullptr);
++  gpr_free(addr);
++  grpc_server_start(server2);
++  grpc_call* server_call2;
++  GPR_ASSERT(GRPC_CALL_OK ==
++             grpc_server_request_call(server2, &server_call2, &request_details2,
++                                      &request_metadata2, cq, cq, tag(0x401)));
++  CQ_EXPECT_COMPLETION(cqv, tag(0x201), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x401), 1);
++  cq_verify(cqv);
++  memset(ops, 0, sizeof(ops));
++  op = ops;
++  op->op = GRPC_OP_RECV_CLOSE_ON_SERVER;
++  op->data.recv_close_on_server.cancelled = &was_cancelled2;
++  op->flags = 0;
++  op++;
++  GPR_ASSERT(GRPC_CALL_OK == grpc_call_start_batch(server_call2, ops,
++                                                   (size_t)(op - ops),
++                                                   tag(0x402), nullptr));
++  grpc_server_shutdown_and_notify(server2, cq, tag(0xdead2));
++  cq_verify_empty(cqv);
++  grpc_call_cancel(call1, nullptr);
++  grpc_call_cancel(call2, nullptr);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x102), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x202), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x302), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0x402), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0xdead1), 1);
++  CQ_EXPECT_COMPLETION(cqv, tag(0xdead2), 1);
++  cq_verify(cqv);
++  grpc_call_unref(call1);
++  grpc_call_unref(call2);
++  grpc_call_unref(server_call1);
++  grpc_call_unref(server_call2);
++  grpc_server_destroy(server1);
++  grpc_server_destroy(server2);
++  grpc_channel_destroy(chan);
++  grpc_metadata_array_destroy(&trailing_metadata_recv1);
++  grpc_metadata_array_destroy(&request_metadata1);
++  grpc_call_details_destroy(&request_details1);
++  grpc_slice_unref(details1);
++  grpc_metadata_array_destroy(&trailing_metadata_recv2);
++  grpc_metadata_array_destroy(&request_metadata2);
++  grpc_call_details_destroy(&request_details2);
++  grpc_slice_unref(details2);
++  cq_verifier_destroy(cqv);
++  grpc_completion_queue_destroy(cq);
+@@ -146,0 +296 @@ int main(int argc, char** argv) {
++  return 0;

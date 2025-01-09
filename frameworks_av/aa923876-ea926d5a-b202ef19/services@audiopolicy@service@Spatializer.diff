@@ -1,0 +1,152 @@
+diff --git a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/aa923876-ea926d5a-b202ef19/services@audiopolicy@service@Spatializer.no_comments_mergebot.h b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/aa923876-ea926d5a-b202ef19/services@audiopolicy@service@Spatializer.no_comments_merged.h
+index 9a4644d..12b6616 100644
+--- a/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/aa923876-ea926d5a-b202ef19/services@audiopolicy@service@Spatializer.no_comments_mergebot.h
++++ b/home/whalien/codebase/python/mergebot-eva/output/frameworks_av/aa923876-ea926d5a-b202ef19/services@audiopolicy@service@Spatializer.no_comments_merged.h
+@@ -26 +26 @@ class SpatializerPolicyCallback {
+-    virtual ~SpatializerPolicyCallback()
++    virtual ~SpatializerPolicyCallback() = default;
+@@ -65,2 +65,2 @@ class Spatializer : public media::BnSpatializer,
+-    void onSupportedLatencyModesChanged(audio_io_handle_t output,
+-                                        const std::vector<audio_latency_mode_t>& modes) override;
++    void onSupportedLatencyModesChanged(
++            audio_io_handle_t output, const std::vector<audio_latency_mode_t>& modes) override;
+@@ -93,4 +93 @@ class Spatializer : public media::BnSpatializer,
+-    audio_io_handle_t getOutput() const {
+-        audio_utils::lock_guard lock(mMutex);
+-        return mOutput;
+-    }
++    audio_io_handle_t getOutput() const { audio_utils::lock_guard lock(mMutex); return mOutput; }
+@@ -104,2 +101 @@ class Spatializer : public media::BnSpatializer,
+-    NO_THREAD_SAFETY_ANALYSIS;
+-    NO_THREAD_SAFETY_ANALYSIS;
++    std::string toString(unsigned level) const NO_THREAD_SAFETY_ANALYSIS;
+@@ -108,2 +104,2 @@ class Spatializer : public media::BnSpatializer,
+-        return result.has_value() ? media::audio::common::toString(*result)
+-                                  : "unknown_latency_mode";
++        return result.has_value() ?
++                media::audio::common::toString(*result) : "unknown_latency_mode";
+@@ -111,0 +108,2 @@ class Spatializer : public media::BnSpatializer,
++    void onSupportedLatencyModesChangedMsg(
++            audio_io_handle_t output, std::vector<audio_latency_mode_t>&& modes);
+@@ -113 +111,2 @@ class Spatializer : public media::BnSpatializer,
+-    Spatializer(effect_descriptor_t engineDescriptor, SpatializerPolicyCallback* callback);
++    Spatializer(effect_descriptor_t engineDescriptor,
++                     SpatializerPolicyCallback *callback);
+@@ -119,2 +117,0 @@ class Spatializer : public media::BnSpatializer,
+-    void onSupportedLatencyModesChangedMsg(audio_io_handle_t output,
+-                                           std::vector<audio_latency_mode_t>&& modes);
+@@ -123 +120,2 @@ class Spatializer : public media::BnSpatializer,
+-    status_t getHalParameter(sp<EffectHalInterface> effect, uint32_t type, std::vector<T>* values) {
++    status_t getHalParameter(sp<EffectHalInterface> effect, uint32_t type,
++                                          std::vector<T> *values) {
+@@ -136,3 +134,3 @@ class Spatializer : public media::BnSpatializer,
+-        status_t status =
+-                effect->command(EFFECT_CMD_GET_PARAM, sizeof(effect_param_t) + sizeof(uint32_t),
+-                                cmd, &replySize, reply);
++        status_t status = effect->command(EFFECT_CMD_GET_PARAM,
++                                          sizeof(effect_param_t) + sizeof(uint32_t), cmd,
++                                          &replySize, reply);
+@@ -161 +159,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex) {
++    template<typename T>
++    status_t setEffectParameter_l(uint32_t type, const std::vector<T>& values) REQUIRES(mMutex) {
+@@ -178 +177,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex) {
++    template<typename P1, typename P2>
++    status_t setEffectParameter_l(uint32_t type, const P1 val1, const P2 val2) REQUIRES(mMutex) {
+@@ -197 +197,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex) {
++    template<typename T>
++    status_t getEffectParameter_l(uint32_t type, std::vector<T> *values) REQUIRES(mMutex) {
+@@ -217 +218,2 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex) {
++    template<typename P1, typename P2>
++    status_t getEffectParameter_l(uint32_t type, P1 *val1, P2 *val2) REQUIRES(mMutex) {
+@@ -237,8 +239,4 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
++    void checkSensorsState_l() REQUIRES(mMutex);
++    void checkPoseController_l() REQUIRES(mMutex);
++    void checkEngineState_l() REQUIRES(mMutex);
++    void resetEngineHeadPose_l() REQUIRES(mMutex);
+@@ -246,6 +244,3 @@ class Spatializer : public media::BnSpatializer,
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
+-    REQUIRES(mMutex);
++    void sortSupportedLatencyModes_l() REQUIRES(mMutex);
++    void setEngineHeadtrackingConnectionMode_l() REQUIRES(mMutex);
++    audio_latency_mode_t selectHeadtrackingConnectionMode_l() REQUIRES(mMutex);
+@@ -254 +249,2 @@ class Spatializer : public media::BnSpatializer,
+-    static constexpr const char* kDefaultMetricsId = AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER "0";
++    static constexpr const char* kDefaultMetricsId =
++            AMEDIAMETRICS_KEY_PREFIX_AUDIO_SPATIALIZER "0";
+@@ -256,3 +252,2 @@ class Spatializer : public media::BnSpatializer,
+-    GUARDED_BY(mMutex) = AUDIO_LATENCY_MODE_FREE;
+-    GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
++    mutable audio_utils::mutex mMutex{audio_utils::MutexOrder::kSpatializer_Mutex};
++    sp<AudioEffect> mEngine GUARDED_BY(mMutex);
+@@ -260,21 +255,14 @@ class Spatializer : public media::BnSpatializer,
+-    sp<media::INativeSpatializerCallback> mSpatializerCallback GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    sp<media::ISpatializerHeadTrackingCallback> mHeadTrackingCallback GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    std::shared_ptr<SpatializerPoseController> mPoseController GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    media::HeadTrackingMode mDesiredHeadTrackingModeGUARDED_BY(mMutex) =
+-            AUDIO_LATENCY_MODE_FREE;
+-    media::audio::common::HeadTracking::Mode mActualHeadTrackingMode GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    int32_t mHeadSensor GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    int32_t mScreenSensor GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    float mDisplayOrientationGUARDED_BY(mMutex) =
+-            AUDIO_LATENCY_MODE_FREE;
+-    bool mFoldedStateGUARDED_BY(mMutex) = AUDIO_LATENCY_MODE_FREE;
+-    float mHingeAngleGUARDED_BY(mMutex) =
+-            AUDIO_LATENCY_MODE_FREE;
++    sp<media::INativeSpatializerCallback> mSpatializerCallback GUARDED_BY(mMutex);
++    sp<media::ISpatializerHeadTrackingCallback> mHeadTrackingCallback GUARDED_BY(mMutex);
++    media::audio::common::Spatialization::Level mLevel GUARDED_BY(mMutex) =
++            media::audio::common::Spatialization::Level::NONE;
++    std::shared_ptr<SpatializerPoseController> mPoseController GUARDED_BY(mMutex);
++    media::HeadTrackingMode mDesiredHeadTrackingMode GUARDED_BY(mMutex)
++            = media::HeadTrackingMode::STATIC;
++    media::audio::common::HeadTracking::Mode mActualHeadTrackingMode GUARDED_BY(mMutex)
++            = media::audio::common::HeadTracking::Mode::DISABLED;
++    int32_t mHeadSensor GUARDED_BY(mMutex) = SpatializerPoseController::INVALID_SENSOR;
++    int32_t mScreenSensor GUARDED_BY(mMutex) = SpatializerPoseController::INVALID_SENSOR;
++    float mDisplayOrientation GUARDED_BY(mMutex) = 0.f;
++    bool mFoldedState GUARDED_BY(mMutex) = false;
++    float mHingeAngle GUARDED_BY(mMutex) = 0.f;
+@@ -293,4 +281,2 @@ class Spatializer : public media::BnSpatializer,
+-    size_t mNumActiveTracks GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
+-    std::vector<audio_latency_mode_t> mSupportedLatencyModes GUARDED_BY(mMutex){
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
++    size_t mNumActiveTracks GUARDED_BY(mMutex) = 0;
++    std::vector<audio_latency_mode_t> mSupportedLatencyModes GUARDED_BY(mMutex);
+@@ -298,3 +284,2 @@ class Spatializer : public media::BnSpatializer,
+-    audio_latency_mode_t mRequestedLatencyMode
+-            static const std::map<std::string, audio_latency_mode_t>
+-                    sStringToLatencyModeMap;
++    audio_latency_mode_t mRequestedLatencyMode GUARDED_BY(mMutex) = AUDIO_LATENCY_MODE_FREE;
++    static const std::map<std::string, audio_latency_mode_t> sStringToLatencyModeMap;
+@@ -305 +290 @@ class Spatializer : public media::BnSpatializer,
+-            6 , std::chrono::minutes(1), mMaxLocalLogLine, {3} };
++        6 , std::chrono::seconds(1), mMaxLocalLogLine, { 3 } };
+@@ -309 +294 @@ class Spatializer : public media::BnSpatializer,
+-}
++};

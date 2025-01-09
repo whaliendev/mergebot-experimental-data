@@ -1,0 +1,82 @@
+[
+    {
+        "a_contents": "\t\t\tStartOperator(pipeline.sink);\n",
+        "b_contents": "\t\t\tStartOperator(*pipeline.sink);",
+        "base_contents": "\t\t\tStartOperator(pipeline.sink);",
+        "res_region": "\t\t\tStartOperator(*pipeline.sink);",
+        "lookback": "\t\t}\n\t\tauto &sink_chunk = final_chunk;\n\t\tif (sink_chunk.size() > 0) {",
+        "lookahead": "\t\t\tD_ASSERT(pipeline.sink);\n\t\t\tD_ASSERT(pipeline.sink->sink_state);",
+        "label": [
+            "theirs",
+            "base_underutilized"
+        ],
+        "start_line": 232,
+        "end_line": 239,
+        "merge_gen_region": "if (sink_chunk.size() > 0) { StartOperator(*pipeline.sink);",
+        "resolved": false
+    },
+    {
+        "a_contents": "\t\t\tOperatorSinkInput sink_input { *pipeline.sink->sink_state, *local_sink_state, interrupt_state };\n\n\t\t\tauto sink_result = Sink(sink_chunk, sink_input);\n\n\t\t\tEndOperator(pipeline.sink, nullptr);\n\n\t\t\tif (sink_result == SinkResultType::BLOCKED) {\n\t\t\t\tif (result == OperatorResultType::HAVE_MORE_OUTPUT) {\n\t\t\t\t\tblocked_on_have_more_output = true;\n\t\t\t\t}\n\t\t\t\treturn OperatorResultType::BLOCKED;\n\t\t\t} else if (sink_result == SinkResultType::FINISHED) {",
+        "b_contents": "\t\t\tauto sink_result = pipeline.sink->Sink(context, *pipeline.sink->sink_state, *local_sink_state, sink_chunk);\n\t\t\tEndOperator(*pipeline.sink, nullptr);\n\t\t\tif (sink_result == SinkResultType::FINISHED) {",
+        "base_contents": "\t\t\tauto sink_result = pipeline.sink->Sink(context, *pipeline.sink->sink_state, *local_sink_state, sink_chunk);\n\t\t\tEndOperator(pipeline.sink, nullptr);\n\t\t\tif (sink_result == SinkResultType::FINISHED) {",
+        "res_region": "\t\t\tOperatorSinkInput sink_input { *pipeline.sink->sink_state, *local_sink_state, interrupt_state };\n\n\t\t\tauto sink_result = Sink(sink_chunk, sink_input);\n\n\t\t\tEndOperator(*pipeline.sink, nullptr);\n\n\t\t\tif (sink_result == SinkResultType::BLOCKED) {\n\t\t\t\tif (result == OperatorResultType::HAVE_MORE_OUTPUT) {\n\t\t\t\t\tblocked_on_have_more_output = true;\n\t\t\t\t}\n\t\t\t\treturn OperatorResultType::BLOCKED;\n\t\t\t} else if (sink_result == SinkResultType::FINISHED) {",
+        "lookback": "\t\t\tStartOperator(*pipeline.sink);\n\t\t\tD_ASSERT(pipeline.sink);\n\t\t\tD_ASSERT(pipeline.sink->sink_state);",
+        "lookahead": "\t\t\t\tFinishProcessing();\n\t\t\t\treturn OperatorResultType::FINISHED;",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 242,
+        "end_line": 263,
+        "merge_gen_region": " OperatorSinkInput sink_input { *pipeline.sink->sink_state, *local_sink_state, interrupt_state }; auto sink_result = Sink(sink_chunk, sink_input); EndOperator(*pipeline.sink, nullptr); if (sink_result == SinkResultType::BLOCKED) { if (result == OperatorResultType::HAVE_MORE_OUTPUT) { blocked_on_have_more_output = true; } return OperatorResultType::BLOCKED; } else if (sink_result == SinkResultType::FINISHED) {",
+        "resolved": true
+    },
+    {
+        "a_contents": "",
+        "b_contents": "// Push all remaining cached operator output through the pipeline\nvoid PipelineExecutor::FlushCachingOperatorsPush() {\n\tidx_t start_idx = IsFinished() ? idx_t(finished_processing_idx) : 0;\n\tfor (idx_t op_idx = start_idx; op_idx < pipeline.operators.size(); op_idx++) {\n\t\tif (!pipeline.operators[op_idx].get().RequiresFinalExecute()) {\n\t\t\tcontinue;\n\t\t}\n\n\t\tOperatorFinalizeResultType finalize_result;\n\t\tOperatorResultType push_result;\n\n\t\tdo {\n\t\t\tauto &curr_chunk =\n\t\t\t    op_idx + 1 >= intermediate_chunks.size() ? final_chunk : *intermediate_chunks[op_idx + 1];\n\t\t\tauto &current_operator = pipeline.operators[op_idx].get();\n\t\t\tStartOperator(current_operator);\n\t\t\tfinalize_result = current_operator.FinalExecute(context, curr_chunk, *current_operator.op_state,\n\t\t\t                                                *intermediate_states[op_idx]);\n\t\t\tEndOperator(current_operator, &curr_chunk);\n\t\t\tpush_result = ExecutePushInternal(curr_chunk, op_idx + 1);\n\t\t} while (finalize_result != OperatorFinalizeResultType::FINISHED &&\n\t\t         push_result != OperatorResultType::FINISHED);\n\n\t\tif (push_result == OperatorResultType::FINISHED) {\n\t\t\tbreak;\n\t\t}\n\t}\n}\n",
+        "base_contents": "// Push all remaining cached operator output through the pipeline\nvoid PipelineExecutor::FlushCachingOperatorsPush() {\n\tidx_t start_idx = IsFinished() ? idx_t(finished_processing_idx) : 0;\n\tfor (idx_t op_idx = start_idx; op_idx < pipeline.operators.size(); op_idx++) {\n\t\tif (!pipeline.operators[op_idx]->RequiresFinalExecute()) {\n\t\t\tcontinue;\n\t\t}\n\n\t\tOperatorFinalizeResultType finalize_result;\n\t\tOperatorResultType push_result;\n\n\t\tdo {\n\t\t\tauto &curr_chunk =\n\t\t\t    op_idx + 1 >= intermediate_chunks.size() ? final_chunk : *intermediate_chunks[op_idx + 1];\n\t\t\tauto current_operator = pipeline.operators[op_idx];\n\t\t\tStartOperator(current_operator);\n\t\t\tfinalize_result = current_operator->FinalExecute(context, curr_chunk, *current_operator->op_state,\n\t\t\t                                                 *intermediate_states[op_idx]);\n\t\t\tEndOperator(current_operator, &curr_chunk);\n\t\t\tpush_result = ExecutePushInternal(curr_chunk, op_idx + 1);\n\t\t} while (finalize_result != OperatorFinalizeResultType::FINISHED &&\n\t\t         push_result != OperatorResultType::FINISHED);\n\n\t\tif (push_result == OperatorResultType::FINISHED) {\n\t\t\tbreak;\n\t\t}\n\t}\n}\n",
+        "res_region": "",
+        "lookback": "\t}\n}\n",
+        "lookahead": "void PipelineExecutor::PushFinalize() {\n\tif (finalized) {",
+        "label": [
+            "ours",
+            "complex_conflict"
+        ],
+        "start_line": 274,
+        "end_line": 335,
+        "merge_gen_region": "",
+        "resolved": true
+    },
+    {
+        "a_contents": "void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) {\n\tinterrupt_state = InterruptState(std::move(current_task));\n}\n\nSourceResultType PipelineExecutor::GetData(DataChunk &chunk, OperatorSourceInput &input) {\n\t//! Testing feature to enable async source on every operator\n\tif (context.client.config.force_async_pipelines && !debug_blocked_source) {\n\t\tdebug_blocked_source = true;\n\n\t\tauto callback_state = input.interrupt_state;\n\t\tstd::thread rewake_thread([callback_state] {\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds(1));\n\t\t\tcallback_state.Callback();\n\t\t});\n\t\trewake_thread.detach();\n\n\t\treturn SourceResultType::BLOCKED;\n\t}\n\n\treturn pipeline.source->GetData(context, chunk, input);\n}\n\nSinkResultType PipelineExecutor::Sink(DataChunk &chunk, OperatorSinkInput &input) {\n\t//! Testing feature to enable async sink on every operator\n\tif (context.client.config.force_async_pipelines && !debug_blocked_sink) {\n\t\tdebug_blocked_sink = true;\n\n\t\tauto callback_state = input.interrupt_state;\n\t\tstd::thread rewake_thread([callback_state] {\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds(1));\n\t\t\tcallback_state.Callback();\n\t\t});\n\t\trewake_thread.detach();\n\n\t\treturn SinkResultType::BLOCKED;\n\t}\n\n\treturn pipeline.sink->Sink(context, chunk, input);\n}\n\nSourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {\n\tStartOperator(pipeline.source);\n\n\tOperatorSourceInput source_input = { *pipeline.source_state, *local_source_state, interrupt_state };\n\tauto res = GetData(result, source_input);\n\tD_ASSERT(res != SourceResultType::BLOCKED || result.size() == 0);\n\tD_ASSERT(res != SourceResultType::FINISHED || result.size() == 0);\n",
+        "b_contents": "void PipelineExecutor::FetchFromSource(DataChunk &result) {\n\tStartOperator(*pipeline.source);\n\tpipeline.source->GetData(context, result, *pipeline.source_state, *local_source_state);",
+        "base_contents": "void PipelineExecutor::FetchFromSource(DataChunk &result) {\n\tStartOperator(pipeline.source);\n\tpipeline.source->GetData(context, result, *pipeline.source_state, *local_source_state);",
+        "res_region": "void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) {\n\tinterrupt_state = InterruptState(std::move(current_task));\n}\n\nSourceResultType PipelineExecutor::GetData(DataChunk &chunk, OperatorSourceInput &input) {\n\t//! Testing feature to enable async source on every operator\n\tif (context.client.config.force_async_pipelines && !debug_blocked_source) {\n\t\tdebug_blocked_source = true;\n\n\t\tauto callback_state = input.interrupt_state;\n\t\tstd::thread rewake_thread([callback_state] {\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds(1));\n\t\t\tcallback_state.Callback();\n\t\t});\n\t\trewake_thread.detach();\n\n\t\treturn SourceResultType::BLOCKED;\n\t}\n\n\treturn pipeline.source->GetData(context, chunk, input);\n}\n\nSinkResultType PipelineExecutor::Sink(DataChunk &chunk, OperatorSinkInput &input) {\n\t//! Testing feature to enable async sink on every operator\n\tif (context.client.config.force_async_pipelines && !debug_blocked_sink) {\n\t\tdebug_blocked_sink = true;\n\n\t\tauto callback_state = input.interrupt_state;\n\t\tstd::thread rewake_thread([callback_state] {\n\t\t\tstd::this_thread::sleep_for(std::chrono::milliseconds(1));\n\t\t\tcallback_state.Callback();\n\t\t});\n\t\trewake_thread.detach();\n\n\t\treturn SinkResultType::BLOCKED;\n\t}\n\n\treturn pipeline.sink->Sink(context, chunk, input);\n}\n\nSourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) {\n\tStartOperator(*pipeline.source);\n\n\tOperatorSourceInput source_input = { *pipeline.source_state, *local_source_state, interrupt_state };\n\tauto res = GetData(result, source_input);\n\tD_ASSERT(res != SourceResultType::BLOCKED || result.size() == 0);\n\tD_ASSERT(res != SourceResultType::FINISHED || result.size() == 0);\n",
+        "lookback": "\treturn in_process_operators.empty() ? OperatorResultType::NEED_MORE_INPUT : OperatorResultType::HAVE_MORE_OUTPUT;\n}\n",
+        "lookahead": "\tif (result.size() != 0 && requires_batch_index) {\n\t\tauto next_batch_index =",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 518,
+        "end_line": 575,
+        "merge_gen_region": "void PipelineExecutor::SetTaskForInterrupts(weak_ptr<Task> current_task) { interrupt_state = InterruptState(std::move(current_task)); } SourceResultType PipelineExecutor::GetData(DataChunk &chunk, OperatorSourceInput &input) { //! Testing feature to enable async source on every operator if (context.client.config.force_async_pipelines && !debug_blocked_source) { debug_blocked_source = true; auto callback_state = input.interrupt_state; std::thread rewake_thread([callback_state] { std::this_thread::sleep_for(std::chrono::milliseconds(1)); callback_state.Callback(); }); rewake_thread.detach(); return SourceResultType::BLOCKED; } return pipeline.source->GetData(context, chunk, input); } SinkResultType PipelineExecutor::Sink(DataChunk &chunk, OperatorSinkInput &input) { //! Testing feature to enable async sink on every operator if (context.client.config.force_async_pipelines && !debug_blocked_sink) { debug_blocked_sink = true; auto callback_state = input.interrupt_state; std::thread rewake_thread([callback_state] { std::this_thread::sleep_for(std::chrono::milliseconds(1)); callback_state.Callback(); }); rewake_thread.detach(); return SinkResultType::BLOCKED; } return pipeline.sink->Sink(context, chunk, input); } SourceResultType PipelineExecutor::FetchFromSource(DataChunk &result) { StartOperator(pipeline.source); OperatorSourceInput source_input = { *pipeline.source_state, *local_source_state, interrupt_state }; auto res = GetData(result, source_input); D_ASSERT(res != SourceResultType::BLOCKED || result.size() == 0); D_ASSERT(res",
+        "resolved": false
+    },
+    {
+        "a_contents": "\n\tEndOperator(pipeline.source, &result);\n\n\treturn res;",
+        "b_contents": "\tEndOperator(*pipeline.source, &result);",
+        "base_contents": "\tEndOperator(pipeline.source, &result);",
+        "res_region": "\n\tEndOperator(*pipeline.source, &result);\n\n\treturn res;",
+        "lookback": "\t\t         local_sink_state->batch_index == DConstants::INVALID_INDEX);\n\t\tlocal_sink_state->batch_index = next_batch_index;\n\t}",
+        "lookahead": "}\n",
+        "label": [
+            "interleave",
+            "complex_conflict"
+        ],
+        "start_line": 584,
+        "end_line": 593,
+        "merge_gen_region": "batch_index = next_batch_index; } EndOperator(*pipeline.source, &result); return res;",
+        "resolved": false
+    }
+]

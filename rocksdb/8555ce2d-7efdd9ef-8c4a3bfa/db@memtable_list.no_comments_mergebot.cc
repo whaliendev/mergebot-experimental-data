@@ -106,6 +106,60 @@ void MemTableList::RollbackMemtableFlush(const autovector<MemTable*>& mems,
   imm_flush_needed.Release_Store(reinterpret_cast<void*>(1));
 }
 Status MemTableList::InstallMemtableFlushResults(
+    ColumnFamilyData* cfd, const autovector<MemTable*>& mems, VersionSet* vset,
+    port::Mutex* mu, Logger* info_log, uint64_t file_number,
+    std::set<uint64_t>& pending_outputs, autovector<MemTable*>* to_delete,
+    Directory* db_directory) {
+  mu->AssertHeld();
+  for (size_t i = 0; i < mems.size(); ++i) {
+    assert(i == 0 || mems[i]->GetEdits()->NumEntries() == 0);
+    mems[i]->flush_completed_ = true;
+    mems[i]->file_number_ = file_number;
+  }
+  Status s;
+  if (commit_in_progress_) {
+    return s;
+  }
+  commit_in_progress_ = true;
+  while (!current_->memlist_.empty() && s.ok()) {
+    MemTable* m = current_->memlist_.back();
+    if (!m->flush_completed_) {
+      break;
+    }
+    Log(info_log, "Level-0 commit table #%lu started",
+        (unsigned long)m->file_number_);
+    s = vset->LogAndApply(cfd, &m->edit_, mu, db_directory);
+    InstallNewVersion();
+    uint64_t mem_id = 1;
+    do {
+      if (s.ok()) {
+        Log(info_log, "Level-0 commit table #%lu: memtable #%lu done",
+            (unsigned long)m->file_number_, (unsigned long)mem_id);
+        current_->Remove(m);
+        assert(m->file_number_ > 0);
+        pending_outputs.erase(m->file_number_);
+        if (m->Unref() != nullptr) {
+          to_delete->push_back(m);
+        }
+      } else {
+        Log(info_log, "Level-0 commit table #%lu: memtable #%lu failed",
+            (unsigned long)m->file_number_, (unsigned long)mem_id);
+        m->flush_completed_ = false;
+        m->flush_in_progress_ = false;
+        m->edit_.Clear();
+        num_flush_not_started_++;
+        pending_outputs.erase(m->file_number_);
+        m->file_number_ = 0;
+        imm_flush_needed.Release_Store((void*)1);
+      }
+      ++mem_id;
+    } while (!current_->memlist_.empty() && (m = current_->memlist_.back()) &&
+             m->file_number_ == file_number);
+  }
+  commit_in_progress_ = false;
+  return s;
+}
+Status MemTableList::InstallMemtableFlushResults(
     const autovector<MemTable*>& mems, VersionSet* vset, port::Mutex* mu,
     Logger* info_log, uint64_t file_number, std::set<uint64_t>& pending_outputs,
     autovector<MemTable*>* to_delete, Directory* db_directory,
