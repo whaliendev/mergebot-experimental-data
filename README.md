@@ -1,4 +1,4 @@
-### Current Data
+### Current Data of line level effectiveness
 The following data table is aggregated from `statistics.json` in the repo: 
 | project           | precision | recall | total_diff_lines | total_merged_lines | total_mergebot_lines |
 | ----------------- | --------: | -----: | ---------------: | -----------------: | -------------------: |
