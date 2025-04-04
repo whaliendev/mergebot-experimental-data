@@ -1,0 +1,48 @@
+--- a/output/system_core/e86a2c7c-85b3fcc5-cc1de48d/adb@adb.no_comments_mergebot.h
++++ b/output/system_core/e86a2c7c-85b3fcc5-cc1de48d/adb@adb.no_comments_truth.h
+@@ -14,2 +13,0 @@
+-#define ADB_SERVER_VERSION 22
+-#define ADB_SERVER_VERSION 21
+@@ -133,0 +132,2 @@ void register_socket_transport(int s, const char *serial, int port, int local);
++void register_usb_transport(usb_handle *h, const char *serial, unsigned writeable);
++void unregister_usb_transport(usb_handle *usb);
+@@ -134,0 +135,15 @@ int service_to_fd(const char *name);
++#if ADB_HOST
++asocket *host_service_to_socket(const char* name, const char *serial);
++#endif
++#if !ADB_HOST
++int init_jdwp(void);
++asocket* create_jdwp_service_socket();
++asocket* create_jdwp_tracker_service_socket();
++int create_jdwp_connection_fd(int jdwp_pid);
++#endif
++#if !ADB_HOST
++void framebuffer_service(int fd, void *cookie);
++void log_service(int fd, void *cookie);
++void remount_service(int fd, void *cookie);
++char * get_log_file_path(const char * log_name);
++#endif
+@@ -152,0 +168,16 @@ typedef enum {
++#if ADB_TRACE
++  int adb_trace_mask;
++  void adb_trace_init(void);
++#define ADB_TRACING ((adb_trace_mask & (1 << TRACE_TAG)) != 0)
++  #define D(...) \
++        do { \
++            if (ADB_TRACING) \
++                fprintf(stderr, __VA_ARGS__ ); \
++        } while (0)
++#else
++#define D(...) ((void)0)
++#define ADB_TRACING 0
++#endif
++#if !TRACE_PACKETS
++#define print_packet(tag,p) do {} while (0)
++#endif
+@@ -165,0 +197,3 @@ void usb_kick(usb_handle *h);
++#if ADB_HOST
++int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol);
++#endif
+@@ -180,2 +213,0 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
+-void register_usb_transport(usb_handle *h, const char *serial, unsigned writeable);
+-void unregister_usb_transport(usb_handle *usb);

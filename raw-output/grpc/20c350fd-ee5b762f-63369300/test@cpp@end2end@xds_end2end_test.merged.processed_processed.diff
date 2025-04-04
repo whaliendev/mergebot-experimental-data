@@ -1,0 +1,111 @@
+--- a/./output/grpc/20c350fd-ee5b762f-63369300/test@cpp@end2end@xds_end2end_test.no_comments_merged.cc
++++ b/./output/grpc/20c350fd-ee5b762f-63369300/test@cpp@end2end@xds_end2end_test.no_comments_truth.cc
+@@ -1985 +1984,0 @@ TEST_P(XdsResolverOnlyTest, CircuitBreaking) {
+-<<<<<<< HEAD
+@@ -1987,46 +1985,0 @@ TEST_P(XdsResolverOnlyTest, CircuitBreaking) {
+-||||||| merged common ancestors
+-  class TestRpc {
+-   public:
+-    TestRpc() {}
+-    void StartRpc(grpc::testing::EchoTestService::Stub* stub) {
+-      sender_thread_ = std::thread([this, stub]() {
+-        EchoResponse response;
+-        EchoRequest request;
+-        request.mutable_param()->set_client_cancel_after_us(1 * 1000 * 1000);
+-        request.set_message(kRequestMessage);
+-        status_ = stub->Echo(&context_, request, &response);
+-      });
+-    }
+-    void CancelRpc() {
+-      context_.TryCancel();
+-      sender_thread_.join();
+-    }
+-   private:
+-    std::thread sender_thread_;
+-    ClientContext context_;
+-    Status status_;
+-  };
+-=======
+-  class TestRpc {
+-   public:
+-    TestRpc() {}
+-    void StartRpc(grpc::testing::EchoTestService::Stub* stub) {
+-      sender_thread_ = std::thread([this, stub]() {
+-        EchoResponse response;
+-        EchoRequest request;
+-        request.mutable_param()->set_client_cancel_after_us(1 * 1000 * 1000);
+-        request.set_message(kRequestMessage);
+-        status_ = stub->Echo(&context_, request, &response);
+-      });
+-    }
+-    void CancelRpc() {
+-      context_.TryCancel();
+-      sender_thread_.join();
+-    }
+-   private:
+-    std::thread sender_thread_;
+-    ClientContext context_;
+-    Status status_;
+-  };
+-  gpr_setenv("GRPC_XDS_EXPERIMENTAL_CIRCUIT_BREAKING", "true");
+->>>>>>> ee5b762f
+@@ -2066 +2018,0 @@ TEST_P(XdsResolverOnlyTest, CircuitBreaking) {
+-<<<<<<< HEAD
+@@ -2143,57 +2094,0 @@ TEST_P(XdsResolverOnlyTest, CircuitBreakingDisabled) {
+-||||||| merged common ancestors
+-=======
+-  gpr_unsetenv("GRPC_XDS_EXPERIMENTAL_CIRCUIT_BREAKING");
+-}
+-TEST_P(XdsResolverOnlyTest, CircuitBreakingDisabled) {
+-  class TestRpc {
+-   public:
+-    TestRpc() {}
+-    void StartRpc(grpc::testing::EchoTestService::Stub* stub) {
+-      sender_thread_ = std::thread([this, stub]() {
+-        EchoResponse response;
+-        EchoRequest request;
+-        request.mutable_param()->set_client_cancel_after_us(1 * 1000 * 1000);
+-        request.set_message(kRequestMessage);
+-        status_ = stub->Echo(&context_, request, &response);
+-      });
+-    }
+-    void CancelRpc() {
+-      context_.TryCancel();
+-      sender_thread_.join();
+-    }
+-   private:
+-    std::thread sender_thread_;
+-    ClientContext context_;
+-    Status status_;
+-  };
+-  constexpr size_t kMaxConcurrentRequests = 10;
+-  SetNextResolution({});
+-  SetNextResolutionForLbChannelAllBalancers();
+-  AdsServiceImpl::EdsResourceArgs args({
+-      {"locality0", GetBackendPorts(0, 1)},
+-  });
+-  balancers_[0]->ads_service()->SetEdsResource(
+-      AdsServiceImpl::BuildEdsResource(args));
+-  CircuitBreakers circuit_breaks;
+-  Cluster cluster = balancers_[0]->ads_service()->default_cluster();
+-  auto* threshold = cluster.mutable_circuit_breakers()->add_thresholds();
+-  threshold->set_priority(RoutingPriority::DEFAULT);
+-  threshold->mutable_max_requests()->set_value(kMaxConcurrentRequests);
+-  balancers_[0]->ads_service()->SetCdsResource(cluster);
+-  TestRpc rpcs[kMaxConcurrentRequests];
+-  for (size_t i = 0; i < kMaxConcurrentRequests; ++i) {
+-    rpcs[i].StartRpc(stub_.get());
+-  }
+-  while (backends_[0]->backend_service()->RpcsWaitingForClientCancel() <
+-         kMaxConcurrentRequests) {
+-    gpr_sleep_until(gpr_time_add(gpr_now(GPR_CLOCK_REALTIME),
+-                                 gpr_time_from_micros(1 * 1000, GPR_TIMESPAN)));
+-  }
+-  Status status = SendRpc();
+-  EXPECT_TRUE(status.ok());
+-  for (size_t i = 0; i < kMaxConcurrentRequests; ++i) {
+-    rpcs[i].CancelRpc();
+-  }
+-  EXPECT_EQ(kMaxConcurrentRequests + 1,
+-            backends_[0]->backend_service()->request_count());
+->>>>>>> ee5b762f

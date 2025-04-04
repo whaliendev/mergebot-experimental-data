@@ -1,0 +1,210 @@
+--- a/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_mergebot.cc
++++ b/output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_truth.cc
+@@ -187,12 +186,0 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-<<<<<<< HEAD
+-    may_match = cfd_->table_cache()->PrefixMayMatch(
+-        options, cfd_->internal_comparator(),
+-        DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-||||||| b9ce156e3
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-=======
+@@ -201,3 +189,3 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, *meta_file, internal_prefix, nullptr);
+->>>>>>> 577556d5
++    may_match = cfd_->table_cache()->PrefixMayMatch(
++        options, cfd_->internal_comparator(), *meta_file, internal_prefix,
++        nullptr);
+@@ -277,18 +265,5 @@ enum SaverState {
+-kNotFound,kFound,kDeleted,kCorrupt,kMerge
+-};
+-struct Saver {
+-  SaverState state;
+-  const Comparator* ucmp;
+-  Slice user_key;
+-bool* value_found;
+-  std::string* value;
+-  const MergeOperator* merge_operator;
+-  MergeContext* merge_context;
+-  Logger* logger;
+-bool didIO;
+-  Statistics* statistics;
+-};
+-}
+-namespace {
+-enum SaverState {
+-kNotFound,kFound,kDeleted,kCorrupt,kMerge
++  kNotFound,
++  kFound,
++  kDeleted,
++  kCorrupt,
++  kMerge
+@@ -574,14 +564,2 @@ namespace {
+-bool CompareSizeDescending(const Version::Fsize& first, const Version::Fsize& second) {
+-  return (first.file->file_size > second.file->file_size);
+-}
+-bool CompareSeqnoDescending(const Version::Fsize& first, const Version::Fsize& second) {
+-  if (first.file->smallest_seqno > second.file->smallest_seqno) {
+-    assert(first.file->largest_seqno > second.file->largest_seqno);
+-    return true;
+-  }
+-  assert(first.file->largest_seqno <= second.file->largest_seqno);
+-  return false;
+-}
+-}
+-namespace {
+-bool CompareSizeDescending(const Version::Fsize& first, const Version::Fsize& second) {
++bool CompareSizeDescending(const Version::Fsize& first,
++                           const Version::Fsize& second) {
+@@ -985 +963,0 @@ public:
+-<<<<<<< HEAD
+@@ -987,12 +964,0 @@ public:
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &cfd_->internal_comparator();
+-    for (int level = 0; level < base_->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-||||||| b9ce156e3
+-    levels_ = new LevelState[base->NumberLevels()];
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-    for (int level = 0; level < base->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-=======
+-    levels_ = new LevelState[base->NumberLevels()];
+@@ -1000 +966 @@ public:
+-        (vset_->options_->compaction_style == kCompactionStyleUniversal)
++        (cfd_->options()->compaction_style == kCompactionStyleUniversal)
+@@ -1004 +970 @@ public:
+-    level_nonzero_cmp_.internal_comparator = &vset_->icmp_;
++    level_nonzero_cmp_.internal_comparator = &cfd->internal_comparator();
+@@ -1006 +972 @@ public:
+-    for (int level = 1; level < base->NumberLevels(); level++) {
++    for (int level = 1; level < base_->NumberLevels(); level++) {
+@@ -1008 +973,0 @@ public:
+->>>>>>> 577556d5
+@@ -1044 +1009 @@ public:
+-          if (vset_->options_->compaction_style == kCompactionStyleUniversal) {
++          if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+@@ -1049,15 +1014,2 @@ public:
+-<<<<<<< HEAD
+-      if (level > 0) {
+-        for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-          const InternalKey& prev_end = v->files_[level][i-1]->largest;
+-          const InternalKey& this_begin = v->files_[level][i]->smallest;
+-          if (cfd_->internal_comparator().Compare(prev_end, this_begin) >= 0) {
+-||||||| b9ce156e3
+-      if (level > 0) {
+-        for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-          const InternalKey& prev_end = v->files_[level][i-1]->largest;
+-          const InternalKey& this_begin = v->files_[level][i]->smallest;
+-          if (vset_->icmp_.Compare(prev_end, this_begin) >= 0) {
+-=======
+-          if (vset_->icmp_.Compare(f1->largest, f2->smallest) >= 0) {
+->>>>>>> 577556d5
++          if (cfd_->internal_comparator().Compare(f1->largest, f2->smallest) >=
++              0) {
+@@ -1135,8 +1086,0 @@ public:
+-<<<<<<< HEAD
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &cfd_->internal_comparator();
+-||||||| b9ce156e3
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-=======
+->>>>>>> 577556d5
+@@ -1162,14 +1105,0 @@ public:
+-<<<<<<< HEAD
+-    if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirstBySeqNo);
+-    } else {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-    }
+-||||||| b9ce156e3
+-    if (v->vset_->options_->compaction_style == kCompactionStyleUniversal) {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirstBySeqNo);
+-    } else {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-    }
+-=======
+->>>>>>> 577556d5
+@@ -1225,6 +1154,0 @@ VersionSet::~VersionSet() {
+-}{
+-  column_family_set_.reset();
+-  for (auto file : obsolete_files_) {
+-    delete file;
+-  }
+-  obsolete_files_.clear();
+@@ -1604 +1527,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1606,8 +1528,0 @@ Status VersionSet::Recover(
+-||||||| b9ce156e3
+-      builder.Apply(&edit);
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+-=======
+-      builder.Apply(&edit);
+->>>>>>> 577556d5
+@@ -1615 +1529,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1617,6 +1530,0 @@ Status VersionSet::Recover(
+-            log_number_decrease = true;
+-||||||| b9ce156e3
+-        if (have_log_number && log_number >= edit.log_number_) {
+-          log_number_decrease = true;
+-=======
+-        if (have_log_number && log_number >= edit.log_number_) {
+@@ -1624,3 +1532,2 @@ Status VersionSet::Recover(
+-              "decreasing of log_number is detected "
+-              "in MANIFEST\n");
+->>>>>>> 577556d5
++                "MANIFEST corruption detected, but ignored - Log numbers in "
++                "records NOT monotonically increasing");
+@@ -1640,3 +1546,0 @@ Status VersionSet::Recover(
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+@@ -1659,23 +1562,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+-    if (s.ok() && log_number_decrease) {
+-      if (have_version_number) {
+-        s = Status::Corruption(
+-            "MANIFEST corruption - Log numbers in records NOT "
+-            "monotonically increasing");
+-      } else {
+-        Log(options_->info_log,
+-            "MANIFEST corruption detected, but ignored - Log numbers in "
+-            "records NOT monotonically increasing");
+-      }
+-    }
+-||||||| b9ce156e3
+-    if (s.ok() && log_number_decrease) {
+-      if (have_version_number) {
+-        s = Status::Corruption("log number decreases");
+-      } else {
+-        Log(options_->info_log, "decreasing of log_number is detected "
+-            "in MANIFEST\n");
+-      }
+-    }
+-=======
+->>>>>>> 577556d5
+@@ -2024 +1905,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-  bool first_record = false;
+@@ -2028,5 +1908,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-<<<<<<< HEAD
+-      if (first_record) {
+-        edit.SetVersionNumber();
+-        first_record = false;
+-      }
+@@ -2046,6 +1921,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-||||||| b9ce156e3
+-  edit.SetVersionNumber();
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+-=======
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+->>>>>>> 577556d5

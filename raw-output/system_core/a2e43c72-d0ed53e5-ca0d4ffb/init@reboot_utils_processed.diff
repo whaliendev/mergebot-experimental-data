@@ -1,0 +1,32 @@
+--- a/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@reboot_utils.no_comments_mergebot.cpp
++++ b/output/system_core/a2e43c72-d0ed53e5-ca0d4ffb/init@reboot_utils.no_comments_truth.cpp
+@@ -5,2 +4,0 @@
+-#include <android-base/logging.h>
+-#include <cutils/android_reboot.h>
+@@ -15,0 +14,15 @@ namespace init {
++static std::string init_fatal_reboot_target = "bootloader";
++void SetFatalRebootTarget() {
++    std::string cmdline;
++    android::base::ReadFileToString("/proc/cmdline", &cmdline);
++    cmdline = android::base::Trim(cmdline);
++    const char kRebootTargetString[] = "androidboot.init_fatal_reboot_target=";
++    auto start_pos = cmdline.find(kRebootTargetString);
++    if (start_pos == std::string::npos) {
++        return;
++    }
++    start_pos += sizeof(kRebootTargetString) - 1;
++    auto end_pos = cmdline.find(' ', start_pos);
++    auto size = end_pos == std::string::npos ? -1 : end_pos - start_pos;
++    init_fatal_reboot_target = cmdline.substr(start_pos, size);
++}
+@@ -56 +69 @@ void __attribute__((noreturn)) InitFatalReboot() {
+-        RebootSystem(ANDROID_RB_RESTART2, "bootloader");
++        RebootSystem(ANDROID_RB_RESTART2, init_fatal_reboot_target);
+@@ -59 +72 @@ void __attribute__((noreturn)) InitFatalReboot() {
+-        RebootSystem(ANDROID_RB_RESTART2, "bootloader");
++        RebootSystem(ANDROID_RB_RESTART2, init_fatal_reboot_target);
+@@ -69 +82 @@ void __attribute__((noreturn)) InitFatalReboot() {
+-    RebootSystem(ANDROID_RB_RESTART2, "bootloader");
++    RebootSystem(ANDROID_RB_RESTART2, init_fatal_reboot_target);
+@@ -93 +105,0 @@ void InstallRebootSignalHandlers() {
+-static std::string init_fatal_reboot_target = "bootloader";

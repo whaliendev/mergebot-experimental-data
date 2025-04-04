@@ -1,0 +1,119 @@
+--- a/output/redis/c469f6ad-b8e02f2b-f4d37173/src@server.no_comments_mergebot.c
++++ b/output/redis/c469f6ad-b8e02f2b-f4d37173/src@server.no_comments_truth.c
+@@ -23,0 +24 @@
++#include <sys/resource.h>
+@@ -1122,0 +1124,4 @@ void checkChildrenDone(void) {
++        if (exitcode == SERVER_CHILD_NOERROR_RETVAL) {
++            bysignal = SIGUSR1;
++            exitcode = 1;
++        }
+@@ -1125 +1130 @@ void checkChildrenDone(void) {
+-                "rdb_child_pid = %d, aof_child_pid = %d",
++                "rdb_child_pid = %d, aof_child_pid = %d, module_child_pid = %d",
+@@ -1128 +1133,2 @@ void checkChildrenDone(void) {
+-                (int) server.aof_child_pid);
++                (int) server.aof_child_pid,
++                (int) server.module_child_pid);
+@@ -1134,0 +1141,3 @@ void checkChildrenDone(void) {
++        } else if (pid == server.module_child_pid) {
++            ModuleForkDoneHandler(exitcode,bysignal);
++            if (!bysignal && exitcode == 0) receiveChildInfo();
+@@ -1224 +1232,0 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+-<<<<<<< HEAD
+@@ -1226,67 +1233,0 @@ int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
+-||||||| f4d37173f
+-        int statloc;
+-        pid_t pid;
+-        if ((pid = wait3(&statloc,WNOHANG,NULL)) != 0) {
+-            int exitcode = WEXITSTATUS(statloc);
+-            int bysignal = 0;
+-            if (WIFSIGNALED(statloc)) bysignal = WTERMSIG(statloc);
+-            if (pid == -1) {
+-                serverLog(LL_WARNING,"wait3() returned an error: %s. "
+-                    "rdb_child_pid = %d, aof_child_pid = %d",
+-                    strerror(errno),
+-                    (int) server.rdb_child_pid,
+-                    (int) server.aof_child_pid);
+-            } else if (pid == server.rdb_child_pid) {
+-                backgroundSaveDoneHandler(exitcode,bysignal);
+-                if (!bysignal && exitcode == 0) receiveChildInfo();
+-            } else if (pid == server.aof_child_pid) {
+-                backgroundRewriteDoneHandler(exitcode,bysignal);
+-                if (!bysignal && exitcode == 0) receiveChildInfo();
+-            } else {
+-                if (!ldbRemoveChild(pid)) {
+-                    serverLog(LL_WARNING,
+-                        "Warning, detected child with unmatched pid: %ld",
+-                        (long)pid);
+-                }
+-            }
+-            updateDictResizePolicy();
+-            closeChildInfoPipe();
+-        }
+-=======
+-        int statloc;
+-        pid_t pid;
+-        if ((pid = wait3(&statloc,WNOHANG,NULL)) != 0) {
+-            int exitcode = WEXITSTATUS(statloc);
+-            int bysignal = 0;
+-            if (WIFSIGNALED(statloc)) bysignal = WTERMSIG(statloc);
+-            if (exitcode == SERVER_CHILD_NOERROR_RETVAL) {
+-                bysignal = SIGUSR1;
+-                exitcode = 1;
+-            }
+-            if (pid == -1) {
+-                serverLog(LL_WARNING,"wait3() returned an error: %s. "
+-                    "rdb_child_pid = %d, aof_child_pid = %d, module_child_pid = %d",
+-                    strerror(errno),
+-                    (int) server.rdb_child_pid,
+-                    (int) server.aof_child_pid,
+-                    (int) server.module_child_pid);
+-            } else if (pid == server.rdb_child_pid) {
+-                backgroundSaveDoneHandler(exitcode,bysignal);
+-                if (!bysignal && exitcode == 0) receiveChildInfo();
+-            } else if (pid == server.aof_child_pid) {
+-                backgroundRewriteDoneHandler(exitcode,bysignal);
+-                if (!bysignal && exitcode == 0) receiveChildInfo();
+-            } else if (pid == server.module_child_pid) {
+-                ModuleForkDoneHandler(exitcode,bysignal);
+-                if (!bysignal && exitcode == 0) receiveChildInfo();
+-            } else {
+-                if (!ldbRemoveChild(pid)) {
+-                    serverLog(LL_WARNING,
+-                        "Warning, detected child with unmatched pid: %ld",
+-                        (long)pid);
+-                }
+-            }
+-            updateDictResizePolicy();
+-            closeChildInfoPipe();
+-        }
+->>>>>>> b8e02f2b
+@@ -2718 +2658,0 @@ sds genRedisInfoString(char *section) {
+-<<<<<<< HEAD
+@@ -2720,8 +2659,0 @@ sds genRedisInfoString(char *section) {
+-            (intmax_t)uptime,
+-            (intmax_t)(uptime/(3600*24)),
+-||||||| f4d37173f
+-            server.port,
+-            (intmax_t)uptime,
+-            (intmax_t)(uptime/(3600*24)),
+-=======
+-            server.port,
+@@ -2730 +2661,0 @@ sds genRedisInfoString(char *section) {
+->>>>>>> b8e02f2b
+@@ -3543,3 +3474,3 @@ int main(int argc, char **argv) {
+-    char hashseed[16];
+-    getRandomHexChars(hashseed,sizeof(hashseed));
+-    dictSetHashFunctionSeed((uint8_t*)hashseed);
++    uint8_t hashseed[16];
++    getRandomBytes(hashseed,sizeof(hashseed));
++    dictSetHashFunctionSeed(hashseed);
+@@ -3549,0 +3481 @@ int main(int argc, char **argv) {
++    tlsInit();
+@@ -3640,0 +3573 @@ int main(int argc, char **argv) {
++        InitServerLast();
+@@ -3650 +3583 @@ int main(int argc, char **argv) {
+-        if (server.ipfd_count > 0)
++        if (server.ipfd_count > 0 || server.tlsfd_count > 0)
+@@ -3654,0 +3588 @@ int main(int argc, char **argv) {
++        InitServerLast();

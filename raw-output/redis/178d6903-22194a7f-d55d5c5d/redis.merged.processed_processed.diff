@@ -1,0 +1,147 @@
+--- a/./output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_merged.c
++++ b/./output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_truth.c
+@@ -80 +80 @@ static char* strencoding[] = {
+-    "raw", "int", "zipmap", "hashtable"
++    "raw", "int", "hashtable", "zipmap", "list", "ziplist"
+@@ -3978 +3977,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+-<<<<<<< HEAD
+@@ -3980,22 +3978,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+-        dictAdd(c->db->dict,c->argv[1],lobj);
+-        incrRefCount(c->argv[1]);
+-||||||| d55d5c5dd
+-        lobj = createListObject();
+-        list = lobj->ptr;
+-        if (where == REDIS_HEAD) {
+-            listAddNodeHead(list,c->argv[2]);
+-        } else {
+-            listAddNodeTail(list,c->argv[2]);
+-        }
+-        dictAdd(c->db->dict,c->argv[1],lobj);
+-        incrRefCount(c->argv[1]);
+-        incrRefCount(c->argv[2]);
+-=======
+-        lobj = createListObject();
+-        list = lobj->ptr;
+-        if (where == REDIS_HEAD) {
+-            listAddNodeHead(list,c->argv[2]);
+-        } else {
+-            listAddNodeTail(list,c->argv[2]);
+-        }
+-        incrRefCount(c->argv[2]);
+@@ -4003 +3979,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+->>>>>>> 22194a7f
+@@ -4103 +4078,0 @@ static void popGenericCommand(redisClient *c, int where) {
+-<<<<<<< HEAD
+@@ -4106,12 +4081 @@ static void popGenericCommand(redisClient *c, int where) {
+-        if (lLength(o) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-        robj *ele = listNodeValue(ln);
+-        addReplyBulk(c,ele);
+-        listDelNode(list,ln);
+-        if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-        robj *ele = listNodeValue(ln);
+-        addReplyBulk(c,ele);
+-        listDelNode(list,ln);
+-        if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++        if (lLength(o) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4196,15 +4160 @@ static void ltrimCommand(redisClient *c) {
+-<<<<<<< HEAD
+-    if (lLength(o) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-    for (j = 0; j < rtrim; j++) {
+-        ln = listLast(list);
+-        listDelNode(list,ln);
+-    }
+-    if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-    for (j = 0; j < rtrim; j++) {
+-        ln = listLast(list);
+-        listDelNode(list,ln);
+-    }
+-    if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++    if (lLength(o) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4238 +4187,0 @@ static void lremCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4242,6 +4191 @@ static void lremCommand(redisClient *c) {
+-    if (lLength(subject) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-    if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-    if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++    if (lLength(subject) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4260 +4203,0 @@ static void rpoplpushcommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4264,12 +4206,0 @@ static void rpoplpushcommand(redisClient *c) {
+-                dictAdd(c->db->dict,c->argv[2],dobj);
+-                incrRefCount(c->argv[2]);
+-||||||| d55d5c5dd
+-        if (!handleClientsWaitingListPush(c,c->argv[2],ele)) {
+-            if (dobj == NULL) {
+-                dobj = createListObject();
+-                dictAdd(c->db->dict,c->argv[2],dobj);
+-                incrRefCount(c->argv[2]);
+-=======
+-        if (!handleClientsWaitingListPush(c,c->argv[2],ele)) {
+-            if (dobj == NULL) {
+-                dobj = createListObject();
+@@ -4277 +4207,0 @@ static void rpoplpushcommand(redisClient *c) {
+->>>>>>> 22194a7f
+@@ -4282 +4211,0 @@ static void rpoplpushcommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4284,8 +4213 @@ static void rpoplpushcommand(redisClient *c) {
+-        if (lLength(sobj) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-        listDelNode(srclist,ln);
+-        if (listLength(srclist) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-        listDelNode(srclist,ln);
+-        if (listLength(srclist) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++        if (lLength(sobj) == 0) dbDelete(c->db,c->argv[1]);
+@@ -5926,11 +5848 @@ static void sortCommand(redisClient *c) {
+-<<<<<<< HEAD
+-        if (dictReplace(c->db->dict,storekey,sobj)) {
+-            incrRefCount(storekey);
+-        }
+-||||||| d55d5c5dd
+-        if (dictReplace(c->db->dict,storekey,listObject)) {
+-            incrRefCount(storekey);
+-        }
+-=======
+-        dbReplace(c->db,storekey,listObject);
+->>>>>>> 22194a7f
++        dbReplace(c->db,storekey,sobj);
+@@ -7024 +6936 @@ static int rewriteAppendOnlyFile(char *filename) {
+-                        if (fwriteBulkObject(fp,key) == 0) goto werr;
++                        if (fwriteBulkObject(fp,&key) == 0) goto werr;
+@@ -7038 +6949,0 @@ static int rewriteAppendOnlyFile(char *filename) {
+-<<<<<<< HEAD
+@@ -7043 +6954 @@ static int rewriteAppendOnlyFile(char *filename) {
+-                        if (fwriteBulkObject(fp,key) == 0) goto werr;
++                        if (fwriteBulkObject(fp,&key) == 0) goto werr;
+@@ -7048,9 +6958,0 @@ static int rewriteAppendOnlyFile(char *filename) {
+-||||||| d55d5c5dd
+-                    if (fwrite(cmd,sizeof(cmd)-1,1,fp) == 0) goto werr;
+-                    if (fwriteBulkObject(fp,key) == 0) goto werr;
+-                    if (fwriteBulkObject(fp,eleobj) == 0) goto werr;
+-=======
+-                    if (fwrite(cmd,sizeof(cmd)-1,1,fp) == 0) goto werr;
+-                    if (fwriteBulkObject(fp,&key) == 0) goto werr;
+-                    if (fwriteBulkObject(fp,eleobj) == 0) goto werr;
+->>>>>>> 22194a7f
+@@ -7118,7 +7019,0 @@ static int rewriteAppendOnlyFile(char *filename) {
+-<<<<<<< HEAD
+-                if (fwriteBulkObject(fp,key) == 0) goto werr;
+-                if (fwriteBulkLongLong(fp,expiretime) == 0) goto werr;
+-||||||| d55d5c5dd
+-                if (fwriteBulkObject(fp,key) == 0) goto werr;
+-                if (fwriteBulkLong(fp,expiretime) == 0) goto werr;
+-=======
+@@ -7126,2 +7021 @@ static int rewriteAppendOnlyFile(char *filename) {
+-                if (fwriteBulkLong(fp,expiretime) == 0) goto werr;
+->>>>>>> 22194a7f
++                if (fwriteBulkLongLong(fp,expiretime) == 0) goto werr;

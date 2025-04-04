@@ -1,0 +1,64 @@
+diff --git a/output/frameworks_native/a3e642ac-63e47257-c82c08e3/services@surfaceflinger@Scheduler@VSyncReactor.no_comments_mergebot.cpp b/output/frameworks_native/a3e642ac-63e47257-c82c08e3/services@surfaceflinger@Scheduler@VSyncReactor.no_comments_truth.cpp
+index a6cf63b..46a5304 100644
+--- a/output/frameworks_native/a3e642ac-63e47257-c82c08e3/services@surfaceflinger@Scheduler@VSyncReactor.no_comments_mergebot.cpp
++++ b/output/frameworks_native/a3e642ac-63e47257-c82c08e3/services@surfaceflinger@Scheduler@VSyncReactor.no_comments_truth.cpp
+@@ -14 +14 @@ using base::StringAppendF;
+-Clock::~Clock()
++Clock::~Clock() = default;
+@@ -35 +35,8 @@ private:
+-VSyncReactor::VSyncReactor(std::unique_ptr<Clock> clock, VSyncDispatch& dispatch, VSyncTracker& tracker, size_t pendingFenceLimit, bool supportKernelIdleTimer): mClock(std::move(clock)), mTracker(tracker), mDispatch(dispatch), mPendingLimit(pendingFenceLimit), mPredictedVsyncTracer(property_get_bool("debug.sf.show_predicted_vsync", false)
++VSyncReactor::VSyncReactor(std::unique_ptr<Clock> clock, VSyncDispatch& dispatch,
++                           VSyncTracker& tracker, size_t pendingFenceLimit,
++                           bool supportKernelIdleTimer)
++      : mClock(std::move(clock)),
++        mTracker(tracker),
++        mDispatch(dispatch),
++        mPendingLimit(pendingFenceLimit),
++        mPredictedVsyncTracer(property_get_bool("debug.sf.show_predicted_vsync", false)
+@@ -37,2 +44,3 @@ VSyncReactor::VSyncReactor(std::unique_ptr<Clock> clock, VSyncDispatch& dispatch
+-                                      : nullptr), mSupportKernelIdleTimer(supportKernelIdleTimer) {}
+-VSyncReactor::~VSyncReactor()
++                                      : nullptr),
++        mSupportKernelIdleTimer(supportKernelIdleTimer) {}
++VSyncReactor::~VSyncReactor() = default;
+@@ -101 +109 @@ nsecs_t calculateWorkload() REQUIRES(mMutex) { return mPeriod - mOffset; }
+-                          GUARDED_BY(mMutex);
++    const std::string mName;
+@@ -105,3 +113,3 @@ VSyncCallbackRegistration mRegistration GUARDED_BY(mMutex);
+-                          GUARDED_BY(mMutex);
+-                          GUARDED_BY(mMutex);
+-                          GUARDED_BY(mMutex);
++    bool mStopped GUARDED_BY(mMutex) = false;
++    nsecs_t mPeriod GUARDED_BY(mMutex);
++    nsecs_t mOffset GUARDED_BY(mMutex);
+@@ -237 +244,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-<<<<<<< HEAD
+@@ -242,7 +248,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-||||||| c82c08e3d5
+-=======
+-        if (mLastHwVsync) {
+-            mTracker->addVsyncTimestamp(*mLastHwVsync);
+-        }
+-        mTracker->addVsyncTimestamp(timestamp);
+->>>>>>> 63e47257
+@@ -250 +249,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-<<<<<<< HEAD
+@@ -252,4 +250,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-||||||| c82c08e3d5
+-=======
+-        mMoreSamplesNeeded = mTracker->needsMoreSamples();
+->>>>>>> 63e47257
+@@ -264 +258,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-<<<<<<< HEAD
+@@ -271,11 +264,0 @@ bool VSyncReactor::addResyncSample(nsecs_t timestamp, std::optional<nsecs_t> hwc
+-||||||| c82c08e3d5
+-    }
+-    mTracker->addVsyncTimestamp(timestamp);
+-=======
+-        mTracker->addVsyncTimestamp(timestamp);
+-        mMoreSamplesNeeded = mTracker->needsMoreSamples();
+-    }
+-    if (!mMoreSamplesNeeded) {
+-        setIgnorePresentFencesInternal(false);
+-    }
+->>>>>>> 63e47257

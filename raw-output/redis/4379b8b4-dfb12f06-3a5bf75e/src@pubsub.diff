@@ -1,0 +1,155 @@
+diff --git a/output/redis/4379b8b4-dfb12f06-3a5bf75e/src@pubsub.no_comments_mergebot.c b/output/redis/4379b8b4-dfb12f06-3a5bf75e/src@pubsub.no_comments_truth.c
+index 099fded..41883ad 100644
+--- a/output/redis/4379b8b4-dfb12f06-3a5bf75e/src@pubsub.no_comments_mergebot.c
++++ b/output/redis/4379b8b4-dfb12f06-3a5bf75e/src@pubsub.no_comments_truth.c
+@@ -1,0 +2,62 @@
++int clientSubscriptionsCount(client *c);
++void addReplyPubsubMessage(client *c, robj *channel, robj *msg) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[3]);
++    else
++        addReplyPushLen(c,3);
++    addReply(c,shared.messagebulk);
++    addReplyBulk(c,channel);
++    if (msg) addReplyBulk(c,msg);
++}
++void addReplyPubsubPatMessage(client *c, robj *pat, robj *channel, robj *msg) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[4]);
++    else
++        addReplyPushLen(c,4);
++    addReply(c,shared.pmessagebulk);
++    addReplyBulk(c,pat);
++    addReplyBulk(c,channel);
++    addReplyBulk(c,msg);
++}
++void addReplyPubsubSubscribed(client *c, robj *channel) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[3]);
++    else
++        addReplyPushLen(c,3);
++    addReply(c,shared.subscribebulk);
++    addReplyBulk(c,channel);
++    addReplyLongLong(c,clientSubscriptionsCount(c));
++}
++void addReplyPubsubUnsubscribed(client *c, robj *channel) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[3]);
++    else
++        addReplyPushLen(c,3);
++    addReply(c,shared.unsubscribebulk);
++    if (channel)
++        addReplyBulk(c,channel);
++    else
++        addReplyNull(c);
++    addReplyLongLong(c,clientSubscriptionsCount(c));
++}
++void addReplyPubsubPatSubscribed(client *c, robj *pattern) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[3]);
++    else
++        addReplyPushLen(c,3);
++    addReply(c,shared.psubscribebulk);
++    addReplyBulk(c,pattern);
++    addReplyLongLong(c,clientSubscriptionsCount(c));
++}
++void addReplyPubsubPatUnsubscribed(client *c, robj *pattern) {
++    if (c->resp == 2)
++        addReply(c,shared.mbulkhdr[3]);
++    else
++        addReplyPushLen(c,3);
++    addReply(c,shared.punsubscribebulk);
++    if (pattern)
++        addReplyBulk(c,pattern);
++    else
++        addReplyNull(c);
++    addReplyLongLong(c,clientSubscriptionsCount(c));
++}
+@@ -163,16 +225 @@ int pubsubPublishMessage(robj *channel, robj *message) {
+-<<<<<<< HEAD
+-                                sdslen(channel->ptr),0))
+-            {
+-                addReplyPubsubPatMessage(pat->client,
+-                    pat->pattern,channel,message);
+-||||||| 3a5bf75ed
+-                                sdslen(channel->ptr),0)) {
+-                addReply(pat->client,shared.mbulkhdr[4]);
+-                addReply(pat->client,shared.pmessagebulk);
+-                addReplyBulk(pat->client,pat->pattern);
+-                addReplyBulk(pat->client,channel);
+-                addReplyBulk(pat->client,message);
+-=======
+-                                sdslen(channel->ptr),0)) {
+-                continue;
+-            }
++                                sdslen(channel->ptr),0)) continue;
+@@ -182,6 +229 @@ int pubsubPublishMessage(robj *channel, robj *message) {
+-                addReply(c,shared.mbulkhdr[4]);
+-                addReply(c,shared.pmessagebulk);
+-                addReplyBulk(c,pattern);
+-                addReplyBulk(c,channel);
+-                addReplyBulk(c,message);
+->>>>>>> dfb12f06
++                addReplyPubsubPatMessage(c,pattern,channel,message);
+@@ -279,61 +320,0 @@ NULL
+-}int clientSubscriptionsCount(client *c);
+-void addReplyPubsubMessage(client *c, robj *channel, robj *msg) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[3]);
+-    else
+-        addReplyPushLen(c,3);
+-    addReply(c,shared.messagebulk);
+-    addReplyBulk(c,channel);
+-    if (msg) addReplyBulk(c,msg);
+-}
+-void addReplyPubsubPatMessage(client *c, robj *pat, robj *channel, robj *msg) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[4]);
+-    else
+-        addReplyPushLen(c,4);
+-    addReply(c,shared.pmessagebulk);
+-    addReplyBulk(c,pat);
+-    addReplyBulk(c,channel);
+-    addReplyBulk(c,msg);
+-}
+-void addReplyPubsubSubscribed(client *c, robj *channel) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[3]);
+-    else
+-        addReplyPushLen(c,3);
+-    addReply(c,shared.subscribebulk);
+-    addReplyBulk(c,channel);
+-    addReplyLongLong(c,clientSubscriptionsCount(c));
+-}
+-void addReplyPubsubUnsubscribed(client *c, robj *channel) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[3]);
+-    else
+-        addReplyPushLen(c,3);
+-    addReply(c,shared.unsubscribebulk);
+-    if (channel)
+-        addReplyBulk(c,channel);
+-    else
+-        addReplyNull(c);
+-    addReplyLongLong(c,clientSubscriptionsCount(c));
+-}
+-void addReplyPubsubPatSubscribed(client *c, robj *pattern) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[3]);
+-    else
+-        addReplyPushLen(c,3);
+-    addReply(c,shared.psubscribebulk);
+-    addReplyBulk(c,pattern);
+-    addReplyLongLong(c,clientSubscriptionsCount(c));
+-}
+-void addReplyPubsubPatUnsubscribed(client *c, robj *pattern) {
+-    if (c->resp == 2)
+-        addReply(c,shared.mbulkhdr[3]);
+-    else
+-        addReplyPushLen(c,3);
+-    addReply(c,shared.punsubscribebulk);
+-    if (pattern)
+-        addReplyBulk(c,pattern);
+-    else
+-        addReplyNull(c);
+-    addReplyLongLong(c,clientSubscriptionsCount(c));

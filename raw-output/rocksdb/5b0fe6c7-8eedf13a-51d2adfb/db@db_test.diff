@@ -1,0 +1,4107 @@
+diff --git a/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_test.no_comments_mergebot.cc b/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_test.no_comments_truth.cc
+index 5b49cbc..0fc7f00 100644
+--- a/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_test.no_comments_mergebot.cc
++++ b/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_test.no_comments_truth.cc
+@@ -152,5 +151,0 @@ public:
+-  }{
+-    delete db_;
+-    DestroyDB(dbname_, Options());
+-    delete env_;
+-    delete filter_policy_;
+@@ -385,2 +380 @@ public:
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, Empty) {
+@@ -388,8 +382,3 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++    ASSERT_TRUE(db_ != NULL);
++    ASSERT_EQ("NOT_FOUND", Get("foo"));
++  } while (ChangeOptions());
+@@ -397,20 +386,9 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++TEST(DBTest, ReadWrite) {
++  do {
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_OK(Put("bar", "v2"));
++    ASSERT_OK(Put("foo", "v3"));
++    ASSERT_EQ("v3", Get("foo"));
++    ASSERT_EQ("v2", Get("bar"));
++  } while (ChangeOptions());
+@@ -418,5 +396,9 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++TEST(DBTest, PutDeleteGet) {
++  do {
++    ASSERT_OK(db_->Put(WriteOptions(), "foo", "v1"));
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_OK(db_->Put(WriteOptions(), "foo", "v2"));
++    ASSERT_EQ("v2", Get("foo"));
++    ASSERT_OK(db_->Delete(WriteOptions(), "foo"));
++    ASSERT_EQ("NOT_FOUND", Get("foo"));
++  } while (ChangeOptions());
+@@ -423,0 +406,14 @@ TEST(DBTest, Randomized) {
++TEST(DBTest, GetFromImmutableLayer) {
++  do {
++    Options options = CurrentOptions();
++    options.env = env_;
++    options.write_buffer_size = 100000;
++    Reopen(&options);
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_EQ("v1", Get("foo"));
++    env_->delay_sstable_sync_.Release_Store(env_);
++    Put("k1", std::string(100000, 'x'));
++    Put("k2", std::string(100000, 'y'));
++    ASSERT_EQ("v1", Get("foo"));
++    env_->delay_sstable_sync_.Release_Store(NULL);
++  } while (ChangeOptions());
+@@ -425,2 +421,6 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++TEST(DBTest, GetFromVersions) {
++  do {
++    ASSERT_OK(Put("foo", "v1"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("v1", Get("foo"));
++  } while (ChangeOptions());
+@@ -428,9 +428,13 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
++TEST(DBTest, GetSnapshot) {
++  do {
++    for (int i = 0; i < 2; i++) {
++      std::string key = (i == 0) ? std::string("foo") : std::string(200, 'x');
++      ASSERT_OK(Put(key, "v1"));
++      const Snapshot* s1 = db_->GetSnapshot();
++      ASSERT_OK(Put(key, "v2"));
++      ASSERT_EQ("v2", Get(key));
++      ASSERT_EQ("v1", Get(key, s1));
++      dbfull()->TEST_CompactMemTable();
++      ASSERT_EQ("v2", Get(key));
++      ASSERT_EQ("v1", Get(key, s1));
++      db_->ReleaseSnapshot(s1);
+@@ -437,0 +442 @@ TEST(DBTest, Randomized) {
++  } while (ChangeOptions());
+@@ -439,2 +444,8 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
++TEST(DBTest, GetLevel0Ordering) {
++  do {
++    ASSERT_OK(Put("bar", "b"));
++    ASSERT_OK(Put("foo", "v1"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_OK(Put("foo", "v2"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("v2", Get("foo"));
+@@ -443,2 +454 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, GetOrderedByLevels) {
+@@ -446,8 +456,8 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++    ASSERT_OK(Put("foo", "v1"));
++    Compact("a", "z");
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_OK(Put("foo", "v2"));
++    ASSERT_EQ("v2", Get("foo"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("v2", Get("foo"));
++  } while (ChangeOptions());
+@@ -455,20 +465,12 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++TEST(DBTest, GetPicksCorrectFile) {
++  do {
++    ASSERT_OK(Put("a", "va"));
++    Compact("a", "b");
++    ASSERT_OK(Put("x", "vx"));
++    Compact("x", "y");
++    ASSERT_OK(Put("f", "vf"));
++    Compact("f", "g");
++    ASSERT_EQ("va", Get("a"));
++    ASSERT_EQ("vf", Get("f"));
++    ASSERT_EQ("vx", Get("x"));
++  } while (ChangeOptions());
+@@ -476,5 +478,10 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++TEST(DBTest, GetEncountersEmptyLevel) {
++  do {
++    int compaction_count = 0;
++    while (NumTableFilesAtLevel(0) == 0 ||
++           NumTableFilesAtLevel(2) == 0) {
++      ASSERT_LE(compaction_count, 100) << "could not fill levels 0 and 2";
++      compaction_count++;
++      Put("a", "begin");
++      Put("z", "end");
++      dbfull()->TEST_CompactMemTable();
+@@ -481,0 +489,6 @@ TEST(DBTest, Randomized) {
++    dbfull()->TEST_CompactRange(1, NULL, NULL);
++    ASSERT_EQ(NumTableFilesAtLevel(0), 1);
++    ASSERT_EQ(NumTableFilesAtLevel(1), 0);
++    ASSERT_EQ(NumTableFilesAtLevel(2), 1);
++    for (int i = 0; i < 1000; i++) {
++      ASSERT_EQ("NOT_FOUND", Get("missing"));
+@@ -483,2 +496,3 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++    env_->SleepForMicroseconds(1000000);
++    ASSERT_EQ(NumTableFilesAtLevel(0), 1);
++  } while (ChangeOptions());
+@@ -486,9 +500,40 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
++TEST(DBTest, IterEmpty) {
++  Iterator* iter = db_->NewIterator(ReadOptions());
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->Seek("foo");
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  delete iter;
++}
++TEST(DBTest, IterSingle) {
++  ASSERT_OK(Put("a", "va"));
++  Iterator* iter = db_->NewIterator(ReadOptions());
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->Seek("");
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->Seek("a");
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->Seek("b");
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  delete iter;
+@@ -495,0 +541,71 @@ TEST(DBTest, Randomized) {
++TEST(DBTest, IterMulti) {
++  ASSERT_OK(Put("a", "va"));
++  ASSERT_OK(Put("b", "vb"));
++  ASSERT_OK(Put("c", "vc"));
++  Iterator* iter = db_->NewIterator(ReadOptions());
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->Seek("");
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Seek("a");
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Seek("ax");
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Seek("b");
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Seek("z");
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  iter->Prev();
++  iter->Prev();
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->SeekToFirst();
++  iter->Next();
++  iter->Next();
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  ASSERT_OK(Put("a", "va2"));
++  ASSERT_OK(Put("a2", "va3"));
++  ASSERT_OK(Put("b", "vb2"));
++  ASSERT_OK(Put("c", "vc2"));
++  ASSERT_OK(Delete("b"));
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "b->vb");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  delete iter;
+@@ -497,3 +613,32 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
++TEST(DBTest, IterSmallAndLargeMix) {
++  ASSERT_OK(Put("a", "va"));
++  ASSERT_OK(Put("b", std::string(100000, 'b')));
++  ASSERT_OK(Put("c", "vc"));
++  ASSERT_OK(Put("d", std::string(100000, 'd')));
++  ASSERT_OK(Put("e", std::string(100000, 'e')));
++  Iterator* iter = db_->NewIterator(ReadOptions());
++  iter->SeekToFirst();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "b->" + std::string(100000, 'b'));
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "d->" + std::string(100000, 'd'));
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "e->" + std::string(100000, 'e'));
++  iter->Next();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  iter->SeekToLast();
++  ASSERT_EQ(IterStatus(iter), "e->" + std::string(100000, 'e'));
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "d->" + std::string(100000, 'd'));
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "c->vc");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "b->" + std::string(100000, 'b'));
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "a->va");
++  iter->Prev();
++  ASSERT_EQ(IterStatus(iter), "(invalid)");
++  delete iter;
+@@ -501,2 +646 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, IterMultiWithDelete) {
+@@ -504,8 +648,12 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++    ASSERT_OK(Put("a", "va"));
++    ASSERT_OK(Put("b", "vb"));
++    ASSERT_OK(Put("c", "vc"));
++    ASSERT_OK(Delete("b"));
++    ASSERT_EQ("NOT_FOUND", Get("b"));
++    Iterator* iter = db_->NewIterator(ReadOptions());
++    iter->Seek("c");
++    ASSERT_EQ(IterStatus(iter), "c->vc");
++    iter->Prev();
++    ASSERT_EQ(IterStatus(iter), "a->va");
++    delete iter;
++  } while (ChangeOptions());
+@@ -513,20 +661,17 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++TEST(DBTest, Recover) {
++  do {
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_OK(Put("baz", "v5"));
++    Reopen();
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_EQ("v5", Get("baz"));
++    ASSERT_OK(Put("bar", "v2"));
++    ASSERT_OK(Put("foo", "v3"));
++    Reopen();
++    ASSERT_EQ("v3", Get("foo"));
++    ASSERT_OK(Put("foo", "v4"));
++    ASSERT_EQ("v4", Get("foo"));
++    ASSERT_EQ("v2", Get("bar"));
++    ASSERT_EQ("v5", Get("baz"));
++  } while (ChangeOptions());
+@@ -534,5 +679,7 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++TEST(DBTest, RollLog) {
++  do {
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_OK(Put("baz", "v5"));
++    Reopen();
++    for (int i = 0; i < 10; i++) {
++      Reopen();
+@@ -539,0 +687,3 @@ TEST(DBTest, Randomized) {
++    ASSERT_OK(Put("foo", "v4"));
++    for (int i = 0; i < 10; i++) {
++      Reopen();
+@@ -541,2 +691 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++  } while (ChangeOptions());
+@@ -544,5 +693,6 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
++TEST(DBTest, WAL) {
++  Options options = CurrentOptions();
++  WriteOptions writeOpt = WriteOptions();
++  writeOpt.disableWAL = true;
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v1"));
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v1"));
+@@ -550,4 +700,45 @@ TEST(DBTest, Randomized) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
++  ASSERT_EQ("NOT_FOUND", Get("foo"));
++  ASSERT_EQ("NOT_FOUND", Get("bar"));
++  writeOpt.disableWAL = false;
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v2"));
++  writeOpt.disableWAL = true;
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v2"));
++  Reopen();
++  ASSERT_EQ("v2", Get("bar"));
++  writeOpt.disableWAL = true;
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v3"));
++  writeOpt.disableWAL = false;
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v3"));
++  Reopen();
++  ASSERT_EQ("v3", Get("foo"));
++}
++TEST(DBTest, CheckLock) {
++  DB* localdb;
++  Options options = CurrentOptions();
++  ASSERT_TRUE(TryReopen(&options).ok());
++  ASSERT_TRUE(!(PureReopen(&options, &localdb).ok()));
++}
++TEST(DBTest, FLUSH) {
++  Options options = CurrentOptions();
++  WriteOptions writeOpt = WriteOptions();
++  writeOpt.disableWAL = true;
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v1"));
++  dbfull()->Flush(FlushOptions());
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v1"));
++  Reopen();
++  ASSERT_EQ("v1", Get("foo"));
++  ASSERT_EQ("NOT_FOUND", Get("bar"));
++  writeOpt.disableWAL = true;
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v2"));
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v2"));
++  dbfull()->Flush(FlushOptions());
++  Reopen();
++  ASSERT_EQ("v2", Get("bar"));
++  ASSERT_EQ("v2", Get("foo"));
++  writeOpt.disableWAL = false;
++  ASSERT_OK(dbfull()->Put(writeOpt, "bar", "v3"));
++  ASSERT_OK(dbfull()->Put(writeOpt, "foo", "v3"));
++  dbfull()->Flush(FlushOptions());
++  Reopen();
++  ASSERT_EQ("v3", Get("foo"));
++  ASSERT_EQ("v3", Get("bar"));
+@@ -555,2 +746,9 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
++TEST(DBTest, RecoveryWithEmptyLog) {
++  do {
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_OK(Put("foo", "v2"));
++    Reopen();
++    Reopen();
++    ASSERT_OK(Put("foo", "v3"));
++    Reopen();
++    ASSERT_EQ("v3", Get("foo"));
+@@ -559,2 +757 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, RecoverDuringMemtableCompaction) {
+@@ -562,8 +759,14 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++    Options options = CurrentOptions();
++    options.env = env_;
++    options.write_buffer_size = 1000000;
++    Reopen(&options);
++    ASSERT_OK(Put("foo", "v1"));
++    ASSERT_OK(Put("big1", std::string(10000000, 'x')));
++    ASSERT_OK(Put("big2", std::string(1000, 'y')));
++    ASSERT_OK(Put("bar", "v2"));
++    Reopen(&options);
++    ASSERT_EQ("v1", Get("foo"));
++    ASSERT_EQ("v2", Get("bar"));
++    ASSERT_EQ(std::string(10000000, 'x'), Get("big1"));
++    ASSERT_EQ(std::string(1000, 'y'), Get("big2"));
++  } while (ChangeOptions());
+@@ -571,20 +774,4 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++static std::string Key(int i) {
++  char buf[100];
++  snprintf(buf, sizeof(buf), "key%06d", i);
++  return std::string(buf);
+@@ -592,2392 +779,8 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-static std::string Key(int i) {
+-  char buf[100];
+-  snprintf(buf, sizeof(buf), "key%06d", i);
+-  return std::string(buf);
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-static bool Between(uint64_t val, uint64_t low, uint64_t high) {
+-  bool result = (val >= low) && (val <= high);
+-  if (!result) {
+-    fprintf(stderr, "Value %llu is not in range [%llu, %llu]\n",
+-            (unsigned long long)(val),
+-            (unsigned long long)(low),
+-            (unsigned long long)(high));
+-  }
+-  return result;
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
+-    }
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+-}
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++TEST(DBTest, MinorCompactionsHappen) {
++  Options options = CurrentOptions();
++  options.write_buffer_size = 10000;
++  Reopen(&options);
++  const int N = 500;
++  int starting_num_tables = TotalTableFiles();
++  for (int i = 0; i < N; i++) {
++    ASSERT_OK(Put(Key(i), Key(i) + std::string(1000, 'v')));
+@@ -2985,9 +788,4 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++  int ending_num_tables = TotalTableFiles();
++  ASSERT_GT(ending_num_tables, starting_num_tables);
++  for (int i = 0; i < N; i++) {
++    ASSERT_EQ(Key(i) + std::string(1000, 'v'), Get(Key(i)));
+@@ -2995,5 +792,0 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+@@ -3001,4 +794,2 @@ TEST(DBTest, Randomized) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+-      }
++  for (int i = 0; i < N; i++) {
++    ASSERT_EQ(Key(i) + std::string(1000, 'v'), Get(Key(i)));
+@@ -3006,3 +796,0 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+@@ -3010,11 +798,107 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++TEST(DBTest, RecoverWithLargeLog) {
++  {
++    Options options = CurrentOptions();
++    Reopen(&options);
++    ASSERT_OK(Put("big1", std::string(200000, '1')));
++    ASSERT_OK(Put("big2", std::string(200000, '2')));
++    ASSERT_OK(Put("small3", std::string(10, '3')));
++    ASSERT_OK(Put("small4", std::string(10, '4')));
++    ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  }
++  Options options = CurrentOptions();
++  options.write_buffer_size = 100000;
++  Reopen(&options);
++  ASSERT_EQ(NumTableFilesAtLevel(0), 3);
++  ASSERT_EQ(std::string(200000, '1'), Get("big1"));
++  ASSERT_EQ(std::string(200000, '2'), Get("big2"));
++  ASSERT_EQ(std::string(10, '3'), Get("small3"));
++  ASSERT_EQ(std::string(10, '4'), Get("small4"));
++  ASSERT_GT(NumTableFilesAtLevel(0), 1);
++}
++TEST(DBTest, CompactionsGenerateMultipleFiles) {
++  Options options = CurrentOptions();
++  options.write_buffer_size = 100000000;
++  Reopen(&options);
++  Random rnd(301);
++  ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  std::vector<std::string> values;
++  for (int i = 0; i < 80; i++) {
++    values.push_back(RandomString(&rnd, 100000));
++    ASSERT_OK(Put(Key(i), values[i]));
++  }
++  Reopen(&options);
++  dbfull()->TEST_CompactRange(0, NULL, NULL);
++  ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  ASSERT_GT(NumTableFilesAtLevel(1), 1);
++  for (int i = 0; i < 80; i++) {
++    ASSERT_EQ(Get(Key(i)), values[i]);
++  }
++}
++TEST(DBTest, CompactionTrigger) {
++  Options options = CurrentOptions();
++  options.write_buffer_size = 100<<10;
++  options.num_levels = 3;
++  options.max_mem_compaction_level = 0;
++  options.level0_file_num_compaction_trigger = 3;
++  Reopen(&options);
++  Random rnd(301);
++  for (int num = 0;
++  num < options.level0_file_num_compaction_trigger - 1;
++  num++)
++  {
++    std::vector<std::string> values;
++    for (int i = 0; i < 12; i++) {
++      values.push_back(RandomString(&rnd, 10000));
++      ASSERT_OK(Put(Key(i), values[i]));
++    }
++    dbfull()->TEST_WaitForCompactMemTable();
++    ASSERT_EQ(NumTableFilesAtLevel(0), num + 1);
++  }
++  std::vector<std::string> values;
++  for (int i = 0; i < 12; i++) {
++    values.push_back(RandomString(&rnd, 10000));
++    ASSERT_OK(Put(Key(i), values[i]));
++  }
++  dbfull()->TEST_WaitForCompact();
++  ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  ASSERT_EQ(NumTableFilesAtLevel(1), 1);
++}
++TEST(DBTest, RepeatedWritesToSameKey) {
++  Options options = CurrentOptions();
++  options.env = env_;
++  options.write_buffer_size = 100000;
++  Reopen(&options);
++  const int kMaxFiles = dbfull()->NumberLevels() +
++  dbfull()->Level0StopWriteTrigger();
++  Random rnd(301);
++  std::string value = RandomString(&rnd, 2 * options.write_buffer_size);
++  for (int i = 0; i < 5 * kMaxFiles; i++) {
++    Put("key", value);
++    ASSERT_LE(TotalTableFiles(), kMaxFiles);
++    fprintf(stderr, "after %d: %d files\n", int(i+1), TotalTableFiles());
++  }
++}
++TEST(DBTest, SparseMerge) {
++  Options options = CurrentOptions();
++  options.compression = kNoCompression;
++  Reopen(&options);
++  FillLevels("A", "Z");
++  const std::string value(1000, 'x');
++  Put("A", "va");
++  for (int i = 0; i < 100000; i++) {
++    char key[100];
++    snprintf(key, sizeof(key), "B%010d", i);
++    Put(key, value);
++  }
++  Put("C", "vc");
++  dbfull()->TEST_CompactMemTable();
++  dbfull()->TEST_CompactRange(0, NULL, NULL);
++  Put("A", "va2");
++  Put("B100", "bvalue2");
++  Put("C", "vc2");
++  dbfull()->TEST_CompactMemTable();
++  ASSERT_LE(dbfull()->TEST_MaxNextLevelOverlappingBytes(), 20*1048576);
++  dbfull()->TEST_CompactRange(0, NULL, NULL);
++  ASSERT_LE(dbfull()->TEST_MaxNextLevelOverlappingBytes(), 20*1048576);
++  dbfull()->TEST_CompactRange(1, NULL, NULL);
++  ASSERT_LE(dbfull()->TEST_MaxNextLevelOverlappingBytes(), 20*1048576);
+@@ -3022,20 +906,7 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++static bool Between(uint64_t val, uint64_t low, uint64_t high) {
++  bool result = (val >= low) && (val <= high);
++  if (!result) {
++    fprintf(stderr, "Value %llu is not in range [%llu, %llu]\n",
++            (unsigned long long)(val),
++            (unsigned long long)(low),
++            (unsigned long long)(high));
+@@ -3043,5 +914 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++  return result;
+@@ -3048,0 +916,36 @@ TEST(DBTest, Randomized) {
++TEST(DBTest, ApproximateSizes) {
++  do {
++    Options options = CurrentOptions();
++    options.write_buffer_size = 100000000;
++    options.compression = kNoCompression;
++    DestroyAndReopen();
++    ASSERT_TRUE(Between(Size("", "xyz"), 0, 0));
++    Reopen(&options);
++    ASSERT_TRUE(Between(Size("", "xyz"), 0, 0));
++    ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++    const int N = 80;
++    static const int S1 = 100000;
++    static const int S2 = 105000;
++    Random rnd(301);
++    for (int i = 0; i < N; i++) {
++      ASSERT_OK(Put(Key(i), RandomString(&rnd, S1)));
++    }
++    ASSERT_TRUE(Between(Size("", Key(50)), 0, 0));
++    for (int run = 0; run < 3; run++) {
++      Reopen(&options);
++      for (int compact_start = 0; compact_start < N; compact_start += 10) {
++        for (int i = 0; i < N; i += 10) {
++          ASSERT_TRUE(Between(Size("", Key(i)), S1*i, S2*i));
++          ASSERT_TRUE(Between(Size("", Key(i)+".suffix"), S1*(i+1), S2*(i+1)));
++          ASSERT_TRUE(Between(Size(Key(i), Key(i+10)), S1*10, S2*10));
++        }
++        ASSERT_TRUE(Between(Size("", Key(50)), S1*50, S2*50));
++        ASSERT_TRUE(Between(Size("", Key(50)+".suffix"), S1*50, S2*50));
++        std::string cstart_str = Key(compact_start);
++        std::string cend_str = Key(compact_start + 9);
++        Slice cstart = cstart_str;
++        Slice cend = cend_str;
++        dbfull()->TEST_CompactRange(0, &cstart, &cend);
++      }
++      ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++      ASSERT_GT(NumTableFilesAtLevel(1), 0);
+@@ -3050,2 +953 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++  } while (ChangeOptions());
+@@ -3053,5 +955,4 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
++TEST(DBTest, ApproximateSizes_MixOfSmallAndLarge) {
++  do {
++    Options options = CurrentOptions();
++    options.compression = kNoCompression;
+@@ -3059,3 +960,25 @@ TEST(DBTest, Randomized) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
++    Random rnd(301);
++    std::string big1 = RandomString(&rnd, 100000);
++    ASSERT_OK(Put(Key(0), RandomString(&rnd, 10000)));
++    ASSERT_OK(Put(Key(1), RandomString(&rnd, 10000)));
++    ASSERT_OK(Put(Key(2), big1));
++    ASSERT_OK(Put(Key(3), RandomString(&rnd, 10000)));
++    ASSERT_OK(Put(Key(4), big1));
++    ASSERT_OK(Put(Key(5), RandomString(&rnd, 10000)));
++    ASSERT_OK(Put(Key(6), RandomString(&rnd, 300000)));
++    ASSERT_OK(Put(Key(7), RandomString(&rnd, 10000)));
++    for (int run = 0; run < 3; run++) {
++      Reopen(&options);
++      ASSERT_TRUE(Between(Size("", Key(0)), 0, 0));
++      ASSERT_TRUE(Between(Size("", Key(1)), 10000, 11000));
++      ASSERT_TRUE(Between(Size("", Key(2)), 20000, 21000));
++      ASSERT_TRUE(Between(Size("", Key(3)), 120000, 121000));
++      ASSERT_TRUE(Between(Size("", Key(4)), 130000, 131000));
++      ASSERT_TRUE(Between(Size("", Key(5)), 230000, 231000));
++      ASSERT_TRUE(Between(Size("", Key(6)), 240000, 241000));
++      ASSERT_TRUE(Between(Size("", Key(7)), 540000, 541000));
++      ASSERT_TRUE(Between(Size("", Key(8)), 550000, 560000));
++      ASSERT_TRUE(Between(Size(Key(3), Key(5)), 110000, 111000));
++      dbfull()->TEST_CompactRange(0, NULL, NULL);
++    }
++  } while (ChangeOptions());
+@@ -3062,0 +986,15 @@ TEST(DBTest, Randomized) {
++TEST(DBTest, IteratorPinsRef) {
++  Put("foo", "hello");
++  Iterator* iter = db_->NewIterator(ReadOptions());
++  Put("foo", "newvalue1");
++  for (int i = 0; i < 100; i++) {
++    ASSERT_OK(Put(Key(i), Key(i) + std::string(100000, 'v')));
++  }
++  Put("foo", "newvalue2");
++  iter->SeekToFirst();
++  ASSERT_TRUE(iter->Valid());
++  ASSERT_EQ("foo", iter->key().ToString());
++  ASSERT_EQ("hello", iter->value().ToString());
++  iter->Next();
++  ASSERT_TRUE(!iter->Valid());
++  delete iter;
+@@ -3064,2 +1002,22 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
++TEST(DBTest, Snapshot) {
++  do {
++    Put("foo", "v1");
++    const Snapshot* s1 = db_->GetSnapshot();
++    Put("foo", "v2");
++    const Snapshot* s2 = db_->GetSnapshot();
++    Put("foo", "v3");
++    const Snapshot* s3 = db_->GetSnapshot();
++    Put("foo", "v4");
++    ASSERT_EQ("v1", Get("foo", s1));
++    ASSERT_EQ("v2", Get("foo", s2));
++    ASSERT_EQ("v3", Get("foo", s3));
++    ASSERT_EQ("v4", Get("foo"));
++    db_->ReleaseSnapshot(s3);
++    ASSERT_EQ("v1", Get("foo", s1));
++    ASSERT_EQ("v2", Get("foo", s2));
++    ASSERT_EQ("v4", Get("foo"));
++    db_->ReleaseSnapshot(s1);
++    ASSERT_EQ("v2", Get("foo", s2));
++    ASSERT_EQ("v4", Get("foo"));
++    db_->ReleaseSnapshot(s2);
++    ASSERT_EQ("v4", Get("foo"));
+@@ -3068,2 +1026 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, HiddenValuesAreRemoved) {
+@@ -3071,8 +1028,23 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++    Random rnd(301);
++    FillLevels("a", "z");
++    std::string big = RandomString(&rnd, 50000);
++    Put("foo", big);
++    Put("pastfoo", "v");
++    const Snapshot* snapshot = db_->GetSnapshot();
++    Put("foo", "tiny");
++    Put("pastfoo2", "v2");
++    ASSERT_OK(dbfull()->TEST_CompactMemTable());
++    ASSERT_GT(NumTableFilesAtLevel(0), 0);
++    ASSERT_EQ(big, Get("foo", snapshot));
++    ASSERT_TRUE(Between(Size("", "pastfoo"), 50000, 60000));
++    db_->ReleaseSnapshot(snapshot);
++    ASSERT_EQ(AllEntriesFor("foo"), "[ tiny, " + big + " ]");
++    Slice x("x");
++    dbfull()->TEST_CompactRange(0, NULL, &x);
++    ASSERT_EQ(AllEntriesFor("foo"), "[ tiny ]");
++    ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++    ASSERT_GE(NumTableFilesAtLevel(1), 1);
++    dbfull()->TEST_CompactRange(1, NULL, &x);
++    ASSERT_EQ(AllEntriesFor("foo"), "[ tiny ]");
++    ASSERT_TRUE(Between(Size("", "pastfoo"), 0, 1000));
++  } while (ChangeOptions());
+@@ -3080,20 +1052,67 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++TEST(DBTest, DeletionMarkers1) {
++  Put("foo", "v1");
++  ASSERT_OK(dbfull()->TEST_CompactMemTable());
++  const int last = dbfull()->MaxMemCompactionLevel();
++  ASSERT_EQ(NumTableFilesAtLevel(last), 1);
++  Put("a", "begin");
++  Put("z", "end");
++  dbfull()->TEST_CompactMemTable();
++  ASSERT_EQ(NumTableFilesAtLevel(last), 1);
++  ASSERT_EQ(NumTableFilesAtLevel(last-1), 1);
++  Delete("foo");
++  Put("foo", "v2");
++  ASSERT_EQ(AllEntriesFor("foo"), "[ v2, DEL, v1 ]");
++  ASSERT_OK(dbfull()->TEST_CompactMemTable());
++  ASSERT_EQ(AllEntriesFor("foo"), "[ v2, DEL, v1 ]");
++  Slice z("z");
++  dbfull()->TEST_CompactRange(last-2, NULL, &z);
++  ASSERT_EQ(AllEntriesFor("foo"), "[ v2, v1 ]");
++  dbfull()->TEST_CompactRange(last-1, NULL, NULL);
++  ASSERT_EQ(AllEntriesFor("foo"), "[ v2 ]");
++}
++TEST(DBTest, DeletionMarkers2) {
++  Put("foo", "v1");
++  ASSERT_OK(dbfull()->TEST_CompactMemTable());
++  const int last = dbfull()->MaxMemCompactionLevel();
++  ASSERT_EQ(NumTableFilesAtLevel(last), 1);
++  Put("a", "begin");
++  Put("z", "end");
++  dbfull()->TEST_CompactMemTable();
++  ASSERT_EQ(NumTableFilesAtLevel(last), 1);
++  ASSERT_EQ(NumTableFilesAtLevel(last-1), 1);
++  Delete("foo");
++  ASSERT_EQ(AllEntriesFor("foo"), "[ DEL, v1 ]");
++  ASSERT_OK(dbfull()->TEST_CompactMemTable());
++  ASSERT_EQ(AllEntriesFor("foo"), "[ DEL, v1 ]");
++  dbfull()->TEST_CompactRange(last-2, NULL, NULL);
++  ASSERT_EQ(AllEntriesFor("foo"), "[ DEL, v1 ]");
++  dbfull()->TEST_CompactRange(last-1, NULL, NULL);
++  ASSERT_EQ(AllEntriesFor("foo"), "[ ]");
++}
++TEST(DBTest, OverlapInLevel0) {
++  do {
++ int tmp = dbfull()->MaxMemCompactionLevel();
++    ASSERT_EQ(tmp, 2) << "Fix test to match config";
++    ASSERT_OK(Put("100", "v100"));
++    ASSERT_OK(Put("999", "v999"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_OK(Delete("100"));
++    ASSERT_OK(Delete("999"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("0,1,1", FilesPerLevel());
++    ASSERT_OK(Put("300", "v300"));
++    ASSERT_OK(Put("500", "v500"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_OK(Put("200", "v200"));
++    ASSERT_OK(Put("600", "v600"));
++    ASSERT_OK(Put("900", "v900"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("2,1,1", FilesPerLevel());
++    dbfull()->TEST_CompactRange(1, NULL, NULL);
++    dbfull()->TEST_CompactRange(2, NULL, NULL);
++    ASSERT_EQ("2", FilesPerLevel());
++    ASSERT_OK(Delete("600"));
++    dbfull()->TEST_CompactMemTable();
++    ASSERT_EQ("3", FilesPerLevel());
++    ASSERT_EQ("NOT_FOUND", Get("600"));
++  } while (ChangeOptions());
+@@ -3101,5 +1120,15 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++TEST(DBTest, L0_CompactionBug_Issue44_a) {
++  Reopen();
++  ASSERT_OK(Put("b", "v"));
++  Reopen();
++  ASSERT_OK(Delete("b"));
++  ASSERT_OK(Delete("a"));
++  Reopen();
++  ASSERT_OK(Delete("a"));
++  Reopen();
++  ASSERT_OK(Put("a", "v"));
++  Reopen();
++  Reopen();
++  ASSERT_EQ("(a->v)", Contents());
++  env_->SleepForMicroseconds(1000000);
++  ASSERT_EQ("(a->v)", Contents());
+@@ -3106,0 +1136,24 @@ TEST(DBTest, Randomized) {
++TEST(DBTest, L0_CompactionBug_Issue44_b) {
++  Reopen();
++  Put("","");
++  Reopen();
++  Delete("e");
++  Put("","");
++  Reopen();
++  Put("c", "cv");
++  Reopen();
++  Put("","");
++  Reopen();
++  Put("","");
++  env_->SleepForMicroseconds(1000000);
++  Reopen();
++  Put("d","dv");
++  Reopen();
++  Put("","");
++  Reopen();
++  Delete("d");
++  Delete("b");
++  Reopen();
++  ASSERT_EQ("(->)(c->cv)", Contents());
++  env_->SleepForMicroseconds(1000000);
++  ASSERT_EQ("(->)(c->cv)", Contents());
+@@ -3108,2 +1161,6 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
++TEST(DBTest, ComparatorCheck) {
++  class NewComparator : public Comparator {
++   public:
++    virtual const char* Name() const { return "leveldb.NewComparator"; }
++    virtual int Compare(const Slice& a, const Slice& b) const {
++      return BytewiseComparator()->Compare(a, b);
+@@ -3111,9 +1168,2 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
++    virtual void FindShortestSeparator(std::string* s, const Slice& l) const {
++      BytewiseComparator()->FindShortestSeparator(s, l);
+@@ -3120,0 +1171,2 @@ TEST(DBTest, Randomized) {
++    virtual void FindShortSuccessor(std::string* key) const {
++      BytewiseComparator()->FindShortSuccessor(key);
+@@ -3122,3 +1174,15 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
++  };
++  NewComparator cmp;
++  Options new_options = CurrentOptions();
++  new_options.comparator = &cmp;
++  Status s = TryReopen(&new_options);
++  ASSERT_TRUE(!s.ok());
++  ASSERT_TRUE(s.ToString().find("comparator") != std::string::npos)
++      << s.ToString();
++}
++TEST(DBTest, CustomComparator) {
++  class NumberComparator : public Comparator {
++   public:
++    virtual const char* Name() const { return "test.NumberComparator"; }
++    virtual int Compare(const Slice& a, const Slice& b) const {
++      return ToNumber(a) - ToNumber(b);
+@@ -3126,4 +1190,149 @@ TEST(DBTest, Randomized) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
+-  do {
+-    ModelDB model(CurrentOptions());
++    virtual void FindShortestSeparator(std::string* s, const Slice& l) const {
++      ToNumber(*s);
++      ToNumber(l);
++    }
++    virtual void FindShortSuccessor(std::string* key) const {
++      ToNumber(*key);
++    }
++   private:
++    static int ToNumber(const Slice& x) {
++      ASSERT_TRUE(x.size() >= 2 && x[0] == '[' && x[x.size()-1] == ']')
++          << EscapeString(x);
++      int val;
++      char ignored;
++      ASSERT_TRUE(sscanf(x.ToString().c_str(), "[%i]%c", &val, &ignored) == 1)
++          << EscapeString(x);
++      return val;
++    }
++  };
++  NumberComparator cmp;
++  Options new_options = CurrentOptions();
++  new_options.create_if_missing = true;
++  new_options.comparator = &cmp;
++  new_options.filter_policy = NULL;
++  new_options.write_buffer_size = 1000;
++  DestroyAndReopen(&new_options);
++  ASSERT_OK(Put("[10]", "ten"));
++  ASSERT_OK(Put("[0x14]", "twenty"));
++  for (int i = 0; i < 2; i++) {
++    ASSERT_EQ("ten", Get("[10]"));
++    ASSERT_EQ("ten", Get("[0xa]"));
++    ASSERT_EQ("twenty", Get("[20]"));
++    ASSERT_EQ("twenty", Get("[0x14]"));
++    ASSERT_EQ("NOT_FOUND", Get("[15]"));
++    ASSERT_EQ("NOT_FOUND", Get("[0xf]"));
++    Compact("[0]", "[9999]");
++  }
++  for (int run = 0; run < 2; run++) {
++    for (int i = 0; i < 1000; i++) {
++      char buf[100];
++      snprintf(buf, sizeof(buf), "[%d]", i*10);
++      ASSERT_OK(Put(buf, buf));
++    }
++    Compact("[0]", "[1000000]");
++  }
++}
++TEST(DBTest, ManualCompaction) {
++  ASSERT_EQ(dbfull()->MaxMemCompactionLevel(), 2)
++      << "Need to update this test to match kMaxMemCompactLevel";
++  MakeTables(3, "p", "q");
++  ASSERT_EQ("1,1,1", FilesPerLevel());
++  Compact("", "c");
++  ASSERT_EQ("1,1,1", FilesPerLevel());
++  Compact("r", "z");
++  ASSERT_EQ("1,1,1", FilesPerLevel());
++  Compact("p1", "p9");
++  ASSERT_EQ("0,0,1", FilesPerLevel());
++  MakeTables(3, "c", "e");
++  ASSERT_EQ("1,1,2", FilesPerLevel());
++  Compact("b", "f");
++  ASSERT_EQ("0,0,2", FilesPerLevel());
++  MakeTables(1, "a", "z");
++  ASSERT_EQ("0,1,2", FilesPerLevel());
++  db_->CompactRange(NULL, NULL);
++  ASSERT_EQ("0,0,1", FilesPerLevel());
++}
++TEST(DBTest, DBOpen_Options) {
++  std::string dbname = test::TmpDir() + "/db_options_test";
++  DestroyDB(dbname, Options());
++  DB* db = NULL;
++  Options opts;
++  opts.create_if_missing = false;
++  Status s = DB::Open(opts, dbname, &db);
++  ASSERT_TRUE(strstr(s.ToString().c_str(), "does not exist") != NULL);
++  ASSERT_TRUE(db == NULL);
++  opts.create_if_missing = true;
++  s = DB::Open(opts, dbname, &db);
++  ASSERT_OK(s);
++  ASSERT_TRUE(db != NULL);
++  delete db;
++  db = NULL;
++  opts.create_if_missing = false;
++  opts.error_if_exists = true;
++  s = DB::Open(opts, dbname, &db);
++  ASSERT_TRUE(strstr(s.ToString().c_str(), "exists") != NULL);
++  ASSERT_TRUE(db == NULL);
++  opts.create_if_missing = true;
++  opts.error_if_exists = false;
++  s = DB::Open(opts, dbname, &db);
++  ASSERT_OK(s);
++  ASSERT_TRUE(db != NULL);
++  delete db;
++  db = NULL;
++}
++TEST(DBTest, NoSpace) {
++  Options options = CurrentOptions();
++  options.env = env_;
++  Reopen(&options);
++  ASSERT_OK(Put("foo", "v1"));
++  ASSERT_EQ("v1", Get("foo"));
++  Compact("a", "z");
++  const int num_files = CountFiles();
++  env_->no_space_.Release_Store(env_);
++  env_->sleep_counter_.Reset();
++  for (int i = 0; i < 5; i++) {
++    for (int level = 0; level < dbfull()->NumberLevels()-1; level++) {
++      dbfull()->TEST_CompactRange(level, NULL, NULL);
++    }
++  }
++  env_->no_space_.Release_Store(NULL);
++  ASSERT_LT(CountFiles(), num_files + 3);
++  ASSERT_GE(env_->sleep_counter_.Read(), 5);
++}
++TEST(DBTest, NonWritableFileSystem)
++{
++  Options options = CurrentOptions();
++  options.write_buffer_size = 1000;
++  options.env = env_;
++  Reopen(&options);
++  ASSERT_OK(Put("foo", "v1"));
++  env_->non_writable_.Release_Store(env_);
++  std::string big(100000, 'x');
++  int errors = 0;
++  for (int i = 0; i < 20; i++) {
++    fprintf(stderr, "iter %d; errors %d\n", i, errors);
++    if (!Put("foo", big).ok()) {
++      errors++;
++      env_->SleepForMicroseconds(100000);
++    }
++  }
++  ASSERT_GT(errors, 0);
++  env_->non_writable_.Release_Store(NULL);
++}
++TEST(DBTest, FilesDeletedAfterCompaction) {
++  ASSERT_OK(Put("foo", "v2"));
++  Compact("a", "z");
++  const int num_files = CountLiveFiles();
++  for (int i = 0; i < 10; i++) {
++    ASSERT_OK(Put("foo", "v2"));
++    Compact("a", "z");
++  }
++  ASSERT_EQ(CountLiveFiles(), num_files);
++}
++TEST(DBTest, BloomFilter) {
++  env_->count_random_reads_ = true;
++  Options options = CurrentOptions();
++  options.env = env_;
++  options.block_cache = NewLRUCache(0);
++  options.filter_policy = NewBloomFilterPolicy(10);
++  Reopen(&options);
+@@ -3131,6 +1340,2 @@ TEST(DBTest, Randomized) {
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
++  for (int i = 0; i < N; i++) {
++    ASSERT_OK(Put(Key(i), Key(i)));
+@@ -3138,20 +1343,3 @@ TEST(DBTest, Randomized) {
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
++  Compact("a", "z");
++  for (int i = 0; i < N; i += 100) {
++    ASSERT_OK(Put(Key(i), Key(i)));
+@@ -3159,5 +1347,107 @@ TEST(DBTest, Randomized) {
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
++  dbfull()->TEST_CompactMemTable();
++  env_->delay_sstable_sync_.Release_Store(env_);
++  env_->random_read_counter_.Reset();
++  for (int i = 0; i < N; i++) {
++    ASSERT_EQ(Key(i), Get(Key(i)));
++  }
++  int reads = env_->random_read_counter_.Read();
++  fprintf(stderr, "%d present => %d reads\n", N, reads);
++  ASSERT_GE(reads, N);
++  ASSERT_LE(reads, N + 2*N/100);
++  env_->random_read_counter_.Reset();
++  for (int i = 0; i < N; i++) {
++    ASSERT_EQ("NOT_FOUND", Get(Key(i) + ".missing"));
++  }
++  reads = env_->random_read_counter_.Read();
++  fprintf(stderr, "%d missing => %d reads\n", N, reads);
++  ASSERT_LE(reads, 3*N/100);
++  env_->delay_sstable_sync_.Release_Store(NULL);
++  Close();
++  delete options.block_cache;
++  delete options.filter_policy;
++}
++TEST(DBTest, SnapshotFiles) {
++  Options options = CurrentOptions();
++  options.write_buffer_size = 100000000;
++  Reopen(&options);
++  Random rnd(301);
++  ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  std::vector<std::string> values;
++  for (int i = 0; i < 80; i++) {
++    values.push_back(RandomString(&rnd, 100000));
++    ASSERT_OK(Put(Key(i), values[i]));
++  }
++  ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++  uint64_t manifest_number = 0;
++  uint64_t manifest_size = 0;
++  std::vector<std::string> files;
++  dbfull()->DisableFileDeletions();
++  dbfull()->GetLiveFiles(files, &manifest_size);
++  ASSERT_EQ(files.size(), 3);
++  uint64_t number = 0;
++  FileType type;
++  std::string snapdir = dbname_ + ".snapdir/";
++  std::string mkdir = "mkdir -p " + snapdir;
++  ASSERT_EQ(system(mkdir.c_str()), 0);
++  for (unsigned int i = 0; i < files.size(); i++) {
++    std::string src = dbname_ + "/" + files[i];
++    std::string dest = snapdir + "/" + files[i];
++    uint64_t size;
++    ASSERT_OK(env_->GetFileSize(src, &size));
++    if (ParseFileName(files[i].substr(1), &number, &type)) {
++      if (type == kDescriptorFile) {
++        if (number > manifest_number) {
++          manifest_number = number;
++          ASSERT_GE(size, manifest_size);
++          size = manifest_size;
++        }
++      }
++    }
++    SequentialFile* srcfile;
++    ASSERT_OK(env_->NewSequentialFile(src, &srcfile));
++    WritableFile* destfile;
++    ASSERT_OK(env_->NewWritableFile(dest, &destfile));
++    char buffer[4096];
++    Slice slice;
++    while (size > 0) {
++      uint64_t one = std::min(sizeof(buffer), size);
++      ASSERT_OK(srcfile->Read(one, &slice, buffer));
++      ASSERT_OK(destfile->Append(slice));
++      size -= slice.size();
++    }
++    ASSERT_OK(destfile->Close());
++    delete destfile;
++    delete srcfile;
++  }
++  dbfull()->DisableFileDeletions();
++  std::vector<std::string> extras;
++  for (unsigned int i = 0; i < 1; i++) {
++    extras.push_back(RandomString(&rnd, 100000));
++    ASSERT_OK(Put(Key(i), extras[i]));
++  }
++  Options opts;
++  DB* snapdb;
++  opts.create_if_missing = false;
++  Status stat = DB::Open(opts, snapdir, &snapdb);
++  ASSERT_TRUE(stat.ok());
++  ReadOptions roptions;
++  std::string val;
++  for (unsigned int i = 0; i < 80; i++) {
++    stat = snapdb->Get(roptions, Key(i), &val);
++    ASSERT_EQ(values[i].compare(val), 0);
++  }
++  delete snapdb;
++  uint64_t new_manifest_number = 0;
++  uint64_t new_manifest_size = 0;
++  std::vector<std::string> newfiles;
++  dbfull()->DisableFileDeletions();
++  dbfull()->GetLiveFiles(newfiles, &new_manifest_size);
++  for (unsigned int i = 0; i < newfiles.size(); i++) {
++    std::string src = dbname_ + "/" + newfiles[i];
++    if (ParseFileName(newfiles[i].substr(1), &number, &type)) {
++      if (type == kDescriptorFile) {
++        if (number > new_manifest_number) {
++          uint64_t size;
++          new_manifest_number = number;
++          ASSERT_OK(env_->GetFileSize(src, &size));
++          ASSERT_GE(size, new_manifest_size);
+@@ -3166,2 +1455,0 @@ TEST(DBTest, Randomized) {
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+@@ -3169,9 +1456,0 @@ TEST(DBTest, Randomized) {
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
+@@ -3178,0 +1458,47 @@ TEST(DBTest, Randomized) {
++  ASSERT_EQ(manifest_number, new_manifest_number);
++  ASSERT_GT(new_manifest_size, manifest_size);
++  dbfull()->DisableFileDeletions();
++}
++TEST(DBTest, ReadCompaction) {
++  std::string value(4096, '4');
++  {
++    Options options = CurrentOptions();
++    options.create_if_missing = true;
++    options.max_open_files = 20;
++    options.target_file_size_base = 512;
++    options.write_buffer_size = 64 * 1024;
++    options.filter_policy = NULL;
++    options.block_size = 4096;
++    options.block_cache = NewLRUCache(0);
++    Reopen(&options);
++    ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++    std::vector<std::string> values;
++    for (int i = 0; i < 2000; i++) {
++      ASSERT_OK(Put(Key(i), value));
++    }
++    dbfull()->TEST_CompactMemTable();
++    dbfull()->TEST_CompactRange(0, NULL, NULL);
++    dbfull()->TEST_CompactRange(1, NULL, NULL);
++    ASSERT_EQ(NumTableFilesAtLevel(0), 0);
++    ASSERT_EQ(NumTableFilesAtLevel(1), 0);
++    for (int i = 0; i < 2000; i = i + 16) {
++      ASSERT_OK(Put(Key(i), value));
++    }
++    dbfull()->Flush(FlushOptions());
++    dbfull()->TEST_WaitForCompact();
++    int l1 = NumTableFilesAtLevel(0);
++    int l2 = NumTableFilesAtLevel(1);
++    int l3 = NumTableFilesAtLevel(3);
++    ASSERT_NE(NumTableFilesAtLevel(0), 0);
++    ASSERT_NE(NumTableFilesAtLevel(1), 0);
++    ASSERT_NE(NumTableFilesAtLevel(2), 0);
++    for (int j = 0; j < 100; j++) {
++      for (int i = 0; i < 2000; i++) {
++        Get(Key(i));
++      }
++    }
++    env_->SleepForMicroseconds(1000000);
++    ASSERT_TRUE(NumTableFilesAtLevel(0) < l1 ||
++                NumTableFilesAtLevel(1) < l2 ||
++                NumTableFilesAtLevel(2) < l3);
++    delete options.block_cache;
+@@ -3180,3 +1505,0 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-  } while (ChangeOptions());
+@@ -3191 +1514 @@ struct MTState {
+-  port::AtomicPointer thread_done[kNumThreads];
++  port::AtomicPointer counter[kNumThreads];
+@@ -3236,2 +1559 @@ static void MTThreadBody(void* arg) {
+-TEST(DBTest, Randomized) {
+-  Random rnd(test::RandomSeed());
++TEST(DBTest, MultiThreaded) {
+@@ -3239,49 +1561,18 @@ TEST(DBTest, Randomized) {
+-    ModelDB model(CurrentOptions());
+-    const int N = 10000;
+-    const Snapshot* model_snap = NULL;
+-    const Snapshot* db_snap = NULL;
+-    std::string k, v;
+-    for (int step = 0; step < N; step++) {
+-      if (step % 100 == 0) {
+-        fprintf(stderr, "Step %d of %d\n", step, N);
+-      }
+-      int p = rnd.Uniform(100);
+-      if (p < 45) {
+-        k = RandomKey(&rnd);
+-        v = RandomString(&rnd,
+-                         rnd.OneIn(20)
+-                         ? 100 + rnd.Uniform(100)
+-                         : rnd.Uniform(8));
+-        ASSERT_OK(model.Put(WriteOptions(), k, v));
+-        ASSERT_OK(db_->Put(WriteOptions(), k, v));
+-      } else if (p < 90) {
+-        k = RandomKey(&rnd);
+-        ASSERT_OK(model.Delete(WriteOptions(), k));
+-        ASSERT_OK(db_->Delete(WriteOptions(), k));
+-      } else {
+-        WriteBatch b;
+-        const int num = rnd.Uniform(8);
+-        for (int i = 0; i < num; i++) {
+-          if (i == 0 || !rnd.OneIn(10)) {
+-            k = RandomKey(&rnd);
+-          } else {
+-          }
+-          if (rnd.OneIn(2)) {
+-            v = RandomString(&rnd, rnd.Uniform(10));
+-            b.Put(k, v);
+-          } else {
+-            b.Delete(k);
+-          }
+-        }
+-        ASSERT_OK(model.Write(WriteOptions(), &b));
+-        ASSERT_OK(db_->Write(WriteOptions(), &b));
+-      }
+-      if ((step % 100) == 0) {
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, model_snap, db_snap));
+-        if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-        if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+-        Reopen();
+-        ASSERT_TRUE(CompareIterators(step, &model, db_, NULL, NULL));
+-        model_snap = model.GetSnapshot();
+-        db_snap = db_->GetSnapshot();
++    MTState mt;
++    mt.test = this;
++    mt.stop.Release_Store(0);
++    for (int id = 0; id < kNumThreads; id++) {
++      mt.counter[id].Release_Store(0);
++      mt.thread_done[id].Release_Store(0);
++    }
++    MTThread thread[kNumThreads];
++    for (int id = 0; id < kNumThreads; id++) {
++      thread[id].state = &mt;
++      thread[id].id = id;
++      env_->StartThread(MTThreadBody, &thread[id]);
++    }
++    env_->SleepForMicroseconds(kTestSeconds * 1000000);
++    mt.stop.Release_Store(&mt);
++    for (int id = 0; id < kNumThreads; id++) {
++      while (mt.thread_done[id].Acquire_Load() == NULL) {
++        env_->SleepForMicroseconds(100000);
+@@ -3290,2 +1580,0 @@ TEST(DBTest, Randomized) {
+-    if (model_snap != NULL) model.ReleaseSnapshot(model_snap);
+-    if (db_snap != NULL) db_->ReleaseSnapshot(db_snap);
+@@ -3578,153 +1867,5 @@ int main(int argc, char** argv) {
+-  FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
+-  FLAGS_max_write_buffer_number = leveldb::Options().max_write_buffer_number;
+-  FLAGS_open_files = leveldb::Options().max_open_files;
+-  FLAGS_max_background_compactions =
+-    leveldb::Options().max_background_compactions;
+-  FLAGS_block_size = leveldb::Options().block_size;
+-  std::string default_db_path;
+-  for (int i = 1; i < argc; i++) {
+-    double d;
+-    int n;
+-    long l;
+-    char junk;
+-    char hdfsname[2048];
+-    if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
+-      FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
+-    } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
+-      FLAGS_compression_ratio = d;
+-    } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      FLAGS_histogram = n;
+-    } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      FLAGS_use_existing_db = n;
+-    } else if (sscanf(argv[i], "--num=%ld%c", &l, &junk) == 1) {
+-      FLAGS_num = l;
+-    } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
+-      FLAGS_reads = n;
+-    } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
+-      FLAGS_threads = n;
+-    } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
+-      FLAGS_value_size = n;
+-    } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
+-      FLAGS_write_buffer_size = n;
+-    } else if (sscanf(argv[i], "--max_write_buffer_number=%d%c", &n, &junk) == 1) {
+-      FLAGS_max_write_buffer_number = n;
+-    } else if (sscanf(argv[i], "--max_background_compactions=%d%c", &n, &junk) == 1) {
+-      FLAGS_max_background_compactions = n;
+-    } else if (sscanf(argv[i], "--cache_size=%ld%c", &l, &junk) == 1) {
+-      FLAGS_cache_size = l;
+-    } else if (sscanf(argv[i], "--block_size=%d%c", &n, &junk) == 1) {
+-      FLAGS_block_size = n;
+-    } else if (sscanf(argv[i], "--cache_numshardbits=%d%c", &n, &junk) == 1) {
+-      if (n < 20) {
+-        FLAGS_cache_numshardbits = n;
+-      } else {
+-        fprintf(stderr, "The cache cannot be sharded into 2**%d pieces\n", n);
+-        exit(1);
+-      }
+-    } else if (sscanf(argv[i], "--bloom_bits=%d%c", &n, &junk) == 1) {
+-      FLAGS_bloom_bits = n;
+-    } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
+-      FLAGS_open_files = n;
+-    } else if (strncmp(argv[i], "--db=", 5) == 0) {
+-      FLAGS_db = argv[i] + 5;
+-    } else if (sscanf(argv[i], "--verify_checksum=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      FLAGS_verify_checksum = n;
+-    } else if (sscanf(argv[i], "--bufferedio=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      useOsBuffer = n;
+-    } else if (sscanf(argv[i], "--mmap_read=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      useMmapRead = n;
+-    } else if (sscanf(argv[i], "--mmap_write=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      useMmapWrite = n;
+-    } else if (sscanf(argv[i], "--readahead=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      useFsReadAhead = n;
+-    } else if (sscanf(argv[i], "--statistics=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      if (n == 1) {
+-        dbstats = new leveldb::DBStatistics();
+-        FLAGS_statistics = true;
+-      }
+-    } else if (sscanf(argv[i], "--writes=%d%c", &n, &junk) == 1) {
+-      FLAGS_writes = n;
+-    } else if (sscanf(argv[i], "--sync=%d%c", &n, &junk) == 1 &&
+-               (n == 0 || n == 1)) {
+-      FLAGS_sync = n;
+-    } else if (sscanf(argv[i], "--readwritepercent=%d%c", &n, &junk) == 1 &&
+-               n > 0 && n < 100) {
+-      FLAGS_readwritepercent = n;
+-    } else if (sscanf(argv[i], "--disable_data_sync=%d%c", &n, &junk) == 1 &&
+-        (n == 0 || n == 1)) {
+-      FLAGS_disable_data_sync = n;
+-    } else if (sscanf(argv[i], "--use_fsync=%d%c", &n, &junk) == 1 &&
+-        (n == 0 || n == 1)) {
+-      FLAGS_use_fsync = n;
+-    } else if (sscanf(argv[i], "--disable_wal=%d%c", &n, &junk) == 1 &&
+-        (n == 0 || n == 1)) {
+-      FLAGS_disable_wal = n;
+-    } else if (sscanf(argv[i], "--hdfs=%s", hdfsname) == 1) {
+-      FLAGS_env = new leveldb::HdfsEnv(hdfsname);
+-    } else if (sscanf(argv[i], "--num_levels=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_num_levels = n;
+-    } else if (sscanf(argv[i], "--target_file_size_base=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_target_file_size_base = n;
+-    } else if ( sscanf(argv[i], "--target_file_size_multiplier=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_target_file_size_multiplier = n;
+-    } else if (
+-        sscanf(argv[i], "--max_bytes_for_level_base=%d%c", &n, &junk) == 1) {
+-      FLAGS_max_bytes_for_level_base = n;
+-    } else if (sscanf(argv[i], "--max_bytes_for_level_multiplier=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_max_bytes_for_level_multiplier = n;
+-    } else if (sscanf(argv[i],"--level0_stop_writes_trigger=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_level0_stop_writes_trigger = n;
+-    } else if (sscanf(argv[i],"--level0_slowdown_writes_trigger=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_level0_slowdown_writes_trigger = n;
+-    } else if (sscanf(argv[i],"--level0_file_num_compaction_trigger=%d%c",
+-        &n, &junk) == 1) {
+-      FLAGS_level0_file_num_compaction_trigger = n;
+-    } else if (strncmp(argv[i], "--compression_type=", 19) == 0) {
+-      const char* ctype = argv[i] + 19;
+-      if (!strcasecmp(ctype, "none"))
+-        FLAGS_compression_type = leveldb::kNoCompression;
+-      else if (!strcasecmp(ctype, "snappy"))
+-        FLAGS_compression_type = leveldb::kSnappyCompression;
+-      else if (!strcasecmp(ctype, "zlib"))
+-        FLAGS_compression_type = leveldb::kZlibCompression;
+-      else if (!strcasecmp(ctype, "bzip2"))
+-        FLAGS_compression_type = leveldb::kBZip2Compression;
+-      else {
+-        fprintf(stdout, "Cannot parse %s\n", argv[i]);
+-      }
+-    } else if (sscanf(argv[i], "--disable_seek_compaction=%d%c", &n, &junk) == 1
+-        && (n == 0 || n == 1)) {
+-      FLAGS_disable_seek_compaction = n;
+-    } else if (sscanf(argv[i], "--delete_obsolete_files_period_micros=%ld%c",
+-                      &l, &junk) == 1) {
+-      FLAGS_delete_obsolete_files_period_micros = l;
+-    } else if (sscanf(argv[i], "--stats_interval=%d%c", &n, &junk) == 1 &&
+-               n >= 0 && n < 2000000000) {
+-      FLAGS_stats_interval = n;
+-    } else {
+-      fprintf(stderr, "Invalid flag '%s'\n", argv[i]);
+-      exit(1);
+-    }
+-  }
+-  FLAGS_env->SetBackgroundThreads(FLAGS_max_background_compactions);
+-  if (FLAGS_db == NULL) {
+-      leveldb::Env::Default()->GetTestDirectory(&default_db_path);
+-      default_db_path += "/dbbench";
+-      FLAGS_db = default_db_path.c_str();
+-  }
+-  leveldb::Benchmark benchmark;
+-  benchmark.Run();
++  if (argc > 1 && std::string(argv[1]) == "--benchmark") {
++    leveldb::BM_LogAndApply(1000, 1);
++    leveldb::BM_LogAndApply(1000, 100);
++    leveldb::BM_LogAndApply(1000, 10000);
++    leveldb::BM_LogAndApply(100, 100000);
+@@ -3732,0 +1874,2 @@ int main(int argc, char** argv) {
++  return leveldb::test::RunAllTests();
++}

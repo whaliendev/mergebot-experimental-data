@@ -1,0 +1,165 @@
+diff --git a/./output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_merged.h b/./output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_truth.h
+index 32e507c..3928e2c 100644
+--- a/./output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_merged.h
++++ b/./output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_truth.h
+@@ -5 +4,0 @@
+-<<<<<<< HEAD
+@@ -7,4 +5,0 @@
+-||||||| f6590308d2
+-=======
+-#include "base/dumpable.h"
+->>>>>>> be4aa299
+@@ -57 +51,0 @@ inline Action GetMemberAction(uint32_t access_flags) {
+-<<<<<<< HEAD
+@@ -90,57 +83,0 @@ inline bool IsCallerInPlatformDex(ObjPtr<mirror::ClassLoader> caller_class_loade
+-||||||| f6590308d2
+-inline void WarnAboutMemberAccess(ArtField* field, AccessMethod access_method)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  std::string tmp;
+-  LOG(WARNING) << "Accessing hidden field "
+-               << field->GetDeclaringClass()->GetDescriptor(&tmp) << "->"
+-               << field->GetName() << ":" << field->GetTypeDescriptor()
+-               << " (" << HiddenApiAccessFlags::DecodeFromRuntime(field->GetAccessFlags())
+-               << ", " << access_method << ")";
+-}
+-=======
+->>>>>>> be4aa299
+-<<<<<<< HEAD
+-}
+-||||||| f6590308d2
+-inline void WarnAboutMemberAccess(ArtMethod* method, AccessMethod access_method)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  std::string tmp;
+-  LOG(WARNING) << "Accessing hidden method "
+-               << method->GetDeclaringClass()->GetDescriptor(&tmp) << "->"
+-               << method->GetName() << method->GetSignature().ToString()
+-               << " (" << HiddenApiAccessFlags::DecodeFromRuntime(method->GetAccessFlags())
+-               << ", " << access_method << ")";
+-}
+-=======
+-class MemberSignature {
+- private:
+-  std::string member_type_;
+-  std::vector<std::string> signature_parts_;
+-  std::string tmp_;
+- public:
+-  explicit MemberSignature(ArtField* field) REQUIRES_SHARED(Locks::mutator_lock_) {
+-    member_type_ = "field";
+-    signature_parts_ = {
+-      field->GetDeclaringClass()->GetDescriptor(&tmp_),
+-      "->",
+-      field->GetName(),
+-      ":",
+-      field->GetTypeDescriptor()
+-    };
+-  }
+-  explicit MemberSignature(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_) {
+-    member_type_ = "method";
+-    signature_parts_ = {
+-      method->GetDeclaringClass()->GetDescriptor(&tmp_),
+-      "->",
+-      method->GetName(),
+-      method->GetSignature().ToString()
+-    };
+-  }
+-  const std::vector<std::string>& Parts() const {
+-    return signature_parts_;
+-  }
+-  void Dump(std::ostream& os) const {
+-    for (std::string part : signature_parts_) {
+-      os << part;
+-    }
+@@ -148,26 +84,0 @@ class MemberSignature {
+-  bool DoesPrefixMatch(const std::string& prefix) const {
+-    size_t pos = 0;
+-    for (const std::string& part : signature_parts_) {
+-      size_t count = std::min(prefix.length() - pos, part.length());
+-      if (prefix.compare(pos, count, part, 0, count) == 0) {
+-        pos += count;
+-      } else {
+-        return false;
+-      }
+-    }
+-    return pos == prefix.length();
+-  }
+-  bool IsExempted(const std::vector<std::string>& exemptions) {
+-    for (const std::string& exemption : exemptions) {
+-      if (DoesPrefixMatch(exemption)) {
+-        return true;
+-      }
+-    }
+-    return false;
+-  }
+-  void WarnAboutAccess(AccessMethod access_method, HiddenApiAccessFlags::ApiList list) {
+-    LOG(WARNING) << "Accessing hidden " << member_type_ << " " << Dumpable<MemberSignature>(*this)
+-                 << " (" << list << ", " << access_method << ")";
+-  }
+-};
+->>>>>>> be4aa299
+@@ -188 +98,0 @@ inline bool ShouldBlockAccessToMember(T* member,
+-<<<<<<< HEAD
+@@ -190,64 +99,0 @@ inline bool ShouldBlockAccessToMember(T* member,
+-||||||| f6590308d2
+-  WarnAboutMemberAccess(member, access_method);
+-  if (action == kDeny) {
+-    return true;
+-  }
+-  DCHECK(action == kAllowButWarn || action == kAllowButWarnAndToast);
+-  Runtime* runtime = Runtime::Current();
+-  if (runtime->ShouldDedupeHiddenApiWarnings()) {
+-    member->SetAccessFlags(HiddenApiAccessFlags::EncodeForRuntime(
+-        member->GetAccessFlags(), HiddenApiAccessFlags::kWhitelist));
+-  }
+-  if (action == kAllowButWarnAndToast || runtime->ShouldAlwaysSetHiddenApiWarningFlag()) {
+-    runtime->SetPendingHiddenApiWarning(true);
+-  }
+-  return false;
+-}
+-inline bool IsCallerInPlatformDex(ObjPtr<mirror::ClassLoader> caller_class_loader,
+-                                  ObjPtr<mirror::DexCache> caller_dex_cache)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  if (caller_class_loader.IsNull()) {
+-    return true;
+-  } else if (caller_dex_cache.IsNull()) {
+-    return false;
+-  } else {
+-    const DexFile* caller_dex_file = caller_dex_cache->GetDexFile();
+-    return caller_dex_file != nullptr && caller_dex_file->IsPlatformDexFile();
+-  }
+-=======
+-  MemberSignature member_signature(member);
+-  Runtime* runtime = Runtime::Current();
+-  if (action == kDeny) {
+-    if (member_signature.IsExempted(runtime->GetHiddenApiExemptions())) {
+-      action = kAllowButWarn;
+-      member->SetAccessFlags(HiddenApiAccessFlags::EncodeForRuntime(
+-              member->GetAccessFlags(), HiddenApiAccessFlags::kLightGreylist));
+-    }
+-  }
+-  member_signature.WarnAboutAccess(access_method,
+-      HiddenApiAccessFlags::DecodeFromRuntime(member->GetAccessFlags()));
+-  if (action == kDeny) {
+-    return true;
+-  }
+-  DCHECK(action == kAllowButWarn || action == kAllowButWarnAndToast);
+-  if (runtime->ShouldDedupeHiddenApiWarnings()) {
+-    member->SetAccessFlags(HiddenApiAccessFlags::EncodeForRuntime(
+-        member->GetAccessFlags(), HiddenApiAccessFlags::kWhitelist));
+-  }
+-  if (action == kAllowButWarnAndToast || runtime->ShouldAlwaysSetHiddenApiWarningFlag()) {
+-    runtime->SetPendingHiddenApiWarning(true);
+-  }
+-  return false;
+-}
+-inline bool IsCallerInPlatformDex(ObjPtr<mirror::ClassLoader> caller_class_loader,
+-                                  ObjPtr<mirror::DexCache> caller_dex_cache)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-  if (caller_class_loader.IsNull()) {
+-    return true;
+-  } else if (caller_dex_cache.IsNull()) {
+-    return false;
+-  } else {
+-    const DexFile* caller_dex_file = caller_dex_cache->GetDexFile();
+-    return caller_dex_file != nullptr && caller_dex_file->IsPlatformDexFile();
+-  }
+->>>>>>> be4aa299

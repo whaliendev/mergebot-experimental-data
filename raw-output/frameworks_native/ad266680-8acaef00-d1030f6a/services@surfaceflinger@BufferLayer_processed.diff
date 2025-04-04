@@ -1,0 +1,243 @@
+--- a/output/frameworks_native/ad266680-8acaef00-d1030f6a/services@surfaceflinger@BufferLayer.no_comments_mergebot.cpp
++++ b/output/frameworks_native/ad266680-8acaef00-d1030f6a/services@surfaceflinger@BufferLayer.no_comments_truth.cpp
+@@ -8,2 +7,0 @@
+-#include "clz.h"
+-#include "RenderEngine/RenderEngine.h"
+@@ -50,8 +47,0 @@ BufferLayer::~BufferLayer() {
+-}{
+-    mFlinger->deleteTextureAsync(mTextureName);
+-    if (!getBE().mHwcLayers.empty()) {
+-        ALOGE("Found stale hardware composer layers when destroying "
+-              "surface flinger layer %s",
+-              mName.string());
+-        destroyAllHwcLayers();
+-    }
+@@ -69,3 +59,5 @@ void BufferLayer::useEmptyDamage() {
+-bool BufferLayer::isProtected() const {
+-    const sp<GraphicBuffer>& buffer(mActiveBuffer);
+-    return (buffer != 0) && (buffer->getUsage() & GRALLOC_USAGE_PROTECTED);
++bool BufferLayer::isOpaque(const Layer::State& s) const {
++    if ((getBE().compositionInfo.hwc.sidebandStream == nullptr) && (mActiveBuffer == nullptr)) {
++        return false;
++    }
++    return ((s.flags & layer_state_t::eLayerOpaque) != 0) || getOpacityForFormat(getPixelFormat());
+@@ -146,0 +139,31 @@ void BufferLayer::onDraw(const RenderArea& renderArea, const Region& clip,
++bool BufferLayer::isHdrY410() const {
++    return (mCurrentDataSpace == ui::Dataspace::BT2020_ITU_PQ &&
++            getDrawingApi() == NATIVE_WINDOW_API_MEDIA &&
++            getBE().compositionInfo.mBuffer->getPixelFormat() == HAL_PIXEL_FORMAT_RGBA_1010102);
++}
++void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
++    const ui::Transform& tr = display->getTransform();
++    const auto& viewport = display->getViewport();
++    Region visible = tr.transform(visibleRegion.intersect(viewport));
++    const auto displayId = display->getId();
++    getBE().compositionInfo.hwc.visibleRegion = visible;
++    getBE().compositionInfo.hwc.surfaceDamage = surfaceDamageRegion;
++    if (getBE().compositionInfo.hwc.sidebandStream.get()) {
++        setCompositionType(displayId, HWC2::Composition::Sideband);
++        getBE().compositionInfo.compositionType = HWC2::Composition::Sideband;
++        return;
++    }
++    if (getBE().compositionInfo.hwc.skipGeometry) {
++        if (mPotentialCursor) {
++            ALOGV("[%s] Requesting Cursor composition", mName.string());
++            setCompositionType(displayId, HWC2::Composition::Cursor);
++        } else {
++            ALOGV("[%s] Requesting Device composition", mName.string());
++            setCompositionType(displayId, HWC2::Composition::Device);
++        }
++    }
++    getBE().compositionInfo.hwc.dataspace = mCurrentDataSpace;
++    getBE().compositionInfo.hwc.hdrMetadata = getDrawingHdrMetadata();
++    getBE().compositionInfo.hwc.supportedPerFrameMetadata = display->getSupportedPerFrameMetadata();
++    setHwcLayerBuffer(display);
++}
+@@ -290,28 +313,7 @@ Region BufferLayer::latchBuffer(bool& recomputeVisibleRegions, nsecs_t latchTime
+-void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
+-    const ui::Transform& tr = display->getTransform();
+-    const auto& viewport = display->getViewport();
+-    Region visible = tr.transform(visibleRegion.intersect(viewport));
+-<<<<<<< HEAD
+-    const auto displayId = display->getId();
+-    getBE().compositionInfo.hwc.visibleRegion = visible;
+-    getBE().compositionInfo.hwc.surfaceDamage = surfaceDamageRegion;
+-||||||| d1030f6a7d
+-    auto hwcId = displayDevice->getHwcDisplayId();
+-    auto& hwcInfo = getBE().mHwcLayers[hwcId];
+-    auto& hwcLayer = hwcInfo.layer;
+-    auto error = hwcLayer->setVisibleRegion(visible);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set visible region: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        visible.dump(LOG_TAG);
+-    }
+-    error = hwcLayer->setSurfaceDamage(surfaceDamageRegion);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set surface damage: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        surfaceDamageRegion.dump(LOG_TAG);
+-    }
+-=======
+-    auto hwcId = displayDevice->getHwcDisplayId();
+-    if (!hasHwcLayer(hwcId)) {
+-        return;
++void BufferLayer::notifyAvailableFrames() {
++    auto headFrameNumber = getHeadFrameNumber();
++    bool headFenceSignaled = fenceHasSignaled();
++    Mutex::Autolock lock(mLocalSyncPointMutex);
++    for (auto& point : mLocalSyncPoints) {
++        if (headFrameNumber >= point->getFrameNumber() && headFenceSignaled) {
++            point->setFrameAvailable();
+@@ -319,19 +320,0 @@ void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
+-    auto& hwcInfo = getBE().mHwcLayers[hwcId];
+-    auto& hwcLayer = hwcInfo.layer;
+-    auto error = hwcLayer->setVisibleRegion(visible);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set visible region: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        visible.dump(LOG_TAG);
+-    }
+-    error = hwcLayer->setSurfaceDamage(surfaceDamageRegion);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set surface damage: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        surfaceDamageRegion.dump(LOG_TAG);
+-    }
+->>>>>>> 8acaef00
+-    if (getBE().compositionInfo.hwc.sidebandStream.get()) {
+-        setCompositionType(displayId, HWC2::Composition::Sideband);
+-        getBE().compositionInfo.compositionType = HWC2::Composition::Sideband;
+-        return;
+@@ -339,7 +321,0 @@ void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
+-    if (getBE().compositionInfo.hwc.skipGeometry) {
+-        if (mPotentialCursor) {
+-            ALOGV("[%s] Requesting Cursor composition", mName.string());
+-            setCompositionType(displayId, HWC2::Composition::Cursor);
+-        } else {
+-            ALOGV("[%s] Requesting Device composition", mName.string());
+-            setCompositionType(displayId, HWC2::Composition::Device);
+@@ -346,0 +323,2 @@ void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
++bool BufferLayer::hasReadyFrame() const {
++    return hasDrawingBuffer() || getSidebandStreamChanged() || getAutoRefresh();
+@@ -348,4 +326,3 @@ void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
+-    getBE().compositionInfo.hwc.dataspace = mCurrentDataSpace;
+-    getBE().compositionInfo.hwc.hdrMetadata = getDrawingHdrMetadata();
+-    getBE().compositionInfo.hwc.supportedPerFrameMetadata = display->getSupportedPerFrameMetadata();
+-    setHwcLayerBuffer(display);
++uint32_t BufferLayer::getEffectiveScalingMode() const {
++    if (mOverrideScalingMode >= 0) {
++        return mOverrideScalingMode;
+@@ -353,3 +330 @@ void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& display) {
+-bool BufferLayer::isOpaque(const Layer::State& s) const {
+-    if ((getBE().compositionInfo.hwc.sidebandStream == nullptr) && (mActiveBuffer == nullptr)) {
+-        return false;
++    return mCurrentScalingMode;
+@@ -357 +332,3 @@ bool BufferLayer::isOpaque(const Layer::State& s) const {
+-    return ((s.flags & layer_state_t::eLayerOpaque) != 0) || getOpacityForFormat(getPixelFormat());
++bool BufferLayer::isProtected() const {
++    const sp<GraphicBuffer>& buffer(mActiveBuffer);
++    return (buffer != 0) && (buffer->getUsage() & GRALLOC_USAGE_PROTECTED);
+@@ -359,2 +336,10 @@ bool BufferLayer::isOpaque(const Layer::State& s) const {
+-bool BufferLayer::needsFiltering(const RenderArea& renderArea) const {
+-    return mNeedsFiltering || renderArea.needsFiltering();
++bool BufferLayer::latchUnsignaledBuffers() {
++    static bool propertyLoaded = false;
++    static bool latch = false;
++    static std::mutex mutex;
++    std::lock_guard<std::mutex> lock(mutex);
++    if (!propertyLoaded) {
++        char value[PROPERTY_VALUE_MAX] = {};
++        property_get("debug.sf.latch_unsignaled", value, "0");
++        latch = atoi(value);
++        propertyLoaded = true;
+@@ -361,0 +347,22 @@ bool BufferLayer::needsFiltering(const RenderArea& renderArea) const {
++    return latch;
++}
++bool BufferLayer::allTransactionsSignaled() {
++    auto headFrameNumber = getHeadFrameNumber();
++    bool matchingFramesFound = false;
++    bool allTransactionsApplied = true;
++    Mutex::Autolock lock(mLocalSyncPointMutex);
++    for (auto& point : mLocalSyncPoints) {
++        if (point->getFrameNumber() > headFrameNumber) {
++            break;
++        }
++        matchingFramesFound = true;
++        if (!point->frameIsAvailable()) {
++            point->setFrameAvailable();
++            allTransactionsApplied = false;
++            break;
++        }
++        allTransactionsApplied = allTransactionsApplied && point->transactionIsApplied();
++    }
++    return !matchingFramesFound || allTransactionsApplied;
++}
++#define HARDWARE_IS_DEVICE_FORMAT(f) ((f) >= 0x100 && (f) <= 0x1FF)
+@@ -375,4 +382,2 @@ bool BufferLayer::getOpacityForFormat(uint32_t format) {
+-bool BufferLayer::isHdrY410() const {
+-    return (mCurrentDataSpace == ui::Dataspace::BT2020_ITU_PQ &&
+-            getDrawingApi() == NATIVE_WINDOW_API_MEDIA &&
+-            getBE().compositionInfo.mBuffer->getPixelFormat() == HAL_PIXEL_FORMAT_RGBA_1010102);
++bool BufferLayer::needsFiltering(const RenderArea& renderArea) const {
++    return mNeedsFiltering || renderArea.needsFiltering();
+@@ -407,13 +411,0 @@ void BufferLayer::drawWithOpenGL(const RenderArea& renderArea, bool useIdentityT
+-bool BufferLayer::latchUnsignaledBuffers() {
+-    static bool propertyLoaded = false;
+-    static bool latch = false;
+-    static std::mutex mutex;
+-    std::lock_guard<std::mutex> lock(mutex);
+-    if (!propertyLoaded) {
+-        char value[PROPERTY_VALUE_MAX] = {};
+-        property_get("debug.sf.latch_unsignaled", value, "0");
+-        latch = atoi(value);
+-        propertyLoaded = true;
+-    }
+-    return latch;
+-}
+@@ -427,38 +418,0 @@ uint64_t BufferLayer::getHeadFrameNumber() const {
+-uint32_t BufferLayer::getEffectiveScalingMode() const {
+-    if (mOverrideScalingMode >= 0) {
+-        return mOverrideScalingMode;
+-    }
+-    return mCurrentScalingMode;
+-}
+-void BufferLayer::notifyAvailableFrames() {
+-    auto headFrameNumber = getHeadFrameNumber();
+-    bool headFenceSignaled = fenceHasSignaled();
+-    Mutex::Autolock lock(mLocalSyncPointMutex);
+-    for (auto& point : mLocalSyncPoints) {
+-        if (headFrameNumber >= point->getFrameNumber() && headFenceSignaled) {
+-            point->setFrameAvailable();
+-        }
+-    }
+-}
+-bool BufferLayer::hasReadyFrame() const {
+-    return hasDrawingBuffer() || getSidebandStreamChanged() || getAutoRefresh();
+-}
+-bool BufferLayer::allTransactionsSignaled() {
+-    auto headFrameNumber = getHeadFrameNumber();
+-    bool matchingFramesFound = false;
+-    bool allTransactionsApplied = true;
+-    Mutex::Autolock lock(mLocalSyncPointMutex);
+-    for (auto& point : mLocalSyncPoints) {
+-        if (point->getFrameNumber() > headFrameNumber) {
+-            break;
+-        }
+-        matchingFramesFound = true;
+-        if (!point->frameIsAvailable()) {
+-            point->setFrameAvailable();
+-            allTransactionsApplied = false;
+-            break;
+-        }
+-        allTransactionsApplied = allTransactionsApplied && point->transactionIsApplied();
+-    }
+-    return !matchingFramesFound || allTransactionsApplied;
+-}
+@@ -465,0 +420,6 @@ bool BufferLayer::allTransactionsSignaled() {
++#if defined(__gl_h_)
++#error "don't include gl/gl.h in this file"
++#endif
++#if defined(__gl2_h_)
++#error "don't include gl2/gl2.h in this file"
++#endif

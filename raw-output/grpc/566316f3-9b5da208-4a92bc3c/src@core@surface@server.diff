@@ -1,0 +1,73 @@
+diff --git a/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@server.no_comments_mergebot.c b/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@server.no_comments_truth.c
+index 6e72416..7f8844c 100644
+--- a/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@server.no_comments_mergebot.c
++++ b/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@server.no_comments_truth.c
+@@ -79,0 +80,2 @@ struct call_data {
++#define SERVER_FROM_CALL_ELEM(elem) \
++  (((channel_data *)(elem)->channel_data)->server)
+@@ -528 +530,4 @@ void grpc_server_add_listener(grpc_server *server, void *arg,
+-static grpc_call_error queue_call_request(grpc_server *server, grpc_completion_queue *cq, grpc_metadata_array *initial_metadata, new_call_cb cb, void *user_data) {
++static grpc_call_error queue_call_request(grpc_server *server,
++                                          grpc_completion_queue *cq,
++                                          grpc_metadata_array *initial_metadata,
++                                          new_call_cb cb, void *user_data) {
+@@ -562 +567,3 @@ static grpc_call_error queue_call_request(grpc_server *server, grpc_completion_q
+-static void begin_request(grpc_server *server, grpc_completion_queue *cq, grpc_metadata_array *initial_metadata, call_data *call_data, void *tag) {
++static void begin_request(grpc_server *server, grpc_completion_queue *cq,
++                          grpc_metadata_array *initial_metadata,
++                          call_data *call_data, void *tag) {
+@@ -565,21 +572,6 @@ static void begin_request(grpc_server *server, grpc_completion_queue *cq, grpc_m
+-grpc_call_error grpc_server_request_call_old(grpc_server *server, void *tag_new) {
+-  call_data *calld;
+-  grpc_cq_begin_op(server->cq, NULL, GRPC_SERVER_RPC_NEW);
+-  gpr_mu_lock(&server->mu);
+-  if (server->shutdown) {
+-    gpr_mu_unlock(&server->mu);
+-    early_terminate_requested_calls(server->cq, &tag_new, 1);
+-    return GRPC_CALL_OK;
+-  }
+-  calld = call_list_remove_head(server, PENDING_START);
+-  if (calld) {
+-    GPR_ASSERT(calld->state == PENDING);
+-    calld->state = ACTIVATED;
+-    queue_new_rpc(server, calld, tag_new);
+-  } else {
+-    if (server->tag_cap == server->ntags) {
+-      server->tag_cap = GPR_MAX(3 * server->tag_cap / 2, server->tag_cap + 1);
+-      server->tags =
+-          gpr_realloc(server->tags, sizeof(void *) * server->tag_cap);
+-    }
+-    server->tags[server->ntags++] = tag_new;
++grpc_call_error grpc_server_request_call_old(
++    grpc_server *server, grpc_call_details *details,
++    grpc_metadata_array *initial_metadata, grpc_completion_queue *cq,
++    void *tag) {
++  grpc_cq_begin_op(cq, NULL, GRPC_IOREQ);
++  return queue_call_request(server, cq, initial_metadata, begin_request, tag);
+@@ -587,6 +579,2 @@ grpc_call_error grpc_server_request_call_old(grpc_server *server, void *tag_new)
+-  gpr_mu_unlock(&server->mu);
+-  return GRPC_CALL_OK;
+-}
+-const grpc_channel_args *grpc_server_get_channel_args(grpc_server *server) {
+-  return server->channel_args;
+-}static void publish_legacy_request(grpc_call *call, grpc_op_error status, void *tag) {
++static void publish_legacy_request(grpc_call *call, grpc_op_error status,
++                                   void *tag) {
+@@ -608 +596,3 @@ const grpc_channel_args *grpc_server_get_channel_args(grpc_server *server) {
+-static void begin_legacy_request(grpc_server *server, grpc_completion_queue *cq, grpc_metadata_array *initial_metadata, call_data *calld, void *tag) {
++static void begin_legacy_request(grpc_server *server, grpc_completion_queue *cq,
++                                 grpc_metadata_array *initial_metadata,
++                                 call_data *calld, void *tag) {
+@@ -624,0 +615,12 @@ static void begin_legacy_request(grpc_server *server, grpc_completion_queue *cq,
++grpc_call_error grpc_server_request_call_old(grpc_server *server,
++                                             void *tag_new) {
++  grpc_metadata_array *client_metadata =
++      gpr_malloc(sizeof(grpc_metadata_array));
++  memset(client_metadata, 0, sizeof(*client_metadata));
++  grpc_cq_begin_op(server->cq, NULL, GRPC_SERVER_RPC_NEW);
++  return queue_call_request(server, server->cq, client_metadata,
++                            begin_legacy_request, tag_new);
++}
++const grpc_channel_args *grpc_server_get_channel_args(grpc_server *server) {
++  return server->channel_args;
++}

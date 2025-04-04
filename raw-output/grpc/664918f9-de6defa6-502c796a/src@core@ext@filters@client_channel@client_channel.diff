@@ -1,0 +1,259 @@
+diff --git a/output/grpc/664918f9-de6defa6-502c796a/src@core@ext@filters@client_channel@client_channel.no_comments_mergebot.cc b/output/grpc/664918f9-de6defa6-502c796a/src@core@ext@filters@client_channel@client_channel.no_comments_truth.cc
+index 8c059fa..be64a59 100644
+--- a/output/grpc/664918f9-de6defa6-502c796a/src@core@ext@filters@client_channel@client_channel.no_comments_mergebot.cc
++++ b/output/grpc/664918f9-de6defa6-502c796a/src@core@ext@filters@client_channel@client_channel.no_comments_truth.cc
+@@ -116 +115,0 @@ public:
+-<<<<<<< HEAD
+@@ -119,18 +117,0 @@ public:
+-||||||| 502c796a94
+-    MutexLock lock(&external_watchers_mu_);
+-    auto it = external_watchers_.find(on_complete);
+-    if (it != external_watchers_.end()) {
+-      if (cancel) it->second->Cancel();
+-      external_watchers_.erase(it);
+-    }
+-=======
+-    ExternalConnectivityWatcher* watcher = nullptr;
+-    {
+-      MutexLock lock(&external_watchers_mu_);
+-      auto it = external_watchers_.find(on_complete);
+-      if (it != external_watchers_.end()) {
+-        watcher = it->second;
+-        external_watchers_.erase(it);
+-      }
+->>>>>>> de6defa6
+-  } if (watcher != nullptr && cancel) watcher->Cancel();
+@@ -218 +199,2 @@ private:
+-QueuedPick* queued_picks_ = nullptr; grpc_error* resolver_transient_failure_error_ = GRPC_ERROR_NONE;
++  QueuedPick* queued_picks_ = nullptr;
++  grpc_error* resolver_transient_failure_error_ = GRPC_ERROR_NONE;
+@@ -442,0 +425,3 @@ private:
++  template <typename Predicate>
++  PendingBatch* PendingBatchFind(grpc_call_element* elem,
++                                 const char* log_message, Predicate predicate);
+@@ -505,0 +491,3 @@ private:
++  grpc_error* ApplyServiceConfigToCallLocked(
++      grpc_call_element* elem, grpc_metadata_batch* initial_metadata);
++  void MaybeInvokeConfigSelectorCommitCallback();
+@@ -556,3 +543,0 @@ grpc_slice path_;
+-  grpc_error* ApplyServiceConfigToCallLocked(
+-      grpc_call_element* elem, grpc_metadata_batch* initial_metadata);
+-  void MaybeInvokeConfigSelectorCommitCallback();
+@@ -636,2 +621,2 @@ public:
+-  void AttemptToConnect() override { subchannel_->AttemptToConnect(){ subchannel_->AttemptToConnect(); }
+-  void ResetBackoff() override { subchannel_->ResetBackoff(){ subchannel_->ResetBackoff(); }
++  void AttemptToConnect() override { subchannel_->AttemptToConnect(); }
++  void ResetBackoff() override { subchannel_->ResetBackoff(); }
+@@ -774,6 +758,0 @@ ChannelData::ExternalConnectivityWatcher::ExternalConnectivityWatcher(
+-  {
+-    MutexLock lock(&chand_->external_watchers_mu_);
+-    GPR_ASSERT(chand->external_watchers_[on_complete] {
+-  grpc_polling_entity_add_to_pollset_set(&pollent_,
+-                                         chand_->interested_parties_);
+-  GRPC_CHANNEL_STACK_REF(chand_->owning_stack_, "ExternalConnectivityWatcher");
+@@ -799 +778,3 @@ void ChannelData::ExternalConnectivityWatcher::
+-    RemoveWatcherFromExternalWatchersMap(ChannelData* chand, grpc_closure* on_complete, bool cancel) {
++    RemoveWatcherFromExternalWatchersMap(ChannelData* chand,
++                                         grpc_closure* on_complete,
++                                         bool cancel) {
+@@ -891,5 +872 @@ public:
+-  () = delete;{
+-    GRPC_CHANNEL_STACK_UNREF(chand_->owning_stack_,
+-                             "ClientChannelControlHelper");
+-  }
+-  () = delete;{
++  ~ClientChannelControlHelper() override {
+@@ -956 +933,3 @@ private:
+-ChannelData::ChannelConfigHelper::ApplyServiceConfigResultChannelData::ChannelConfigHelper::ApplyServiceConfig(const Resolver::Result& result) {
++ChannelData::ChannelConfigHelper::ApplyServiceConfigResult
++ChannelData::ChannelConfigHelper::ApplyServiceConfig(
++    const Resolver::Result& result) {
+@@ -1047 +1026,3 @@ ChannelData::ChannelConfigHelper::ApplyServiceConfigResultChannelData::ChannelCo
+-void ChannelData::ChannelConfigHelper::ApplyConfigSelector(bool service_config_changed, RefCountedPtr<ConfigSelector> config_selector) {
++void ChannelData::ChannelConfigHelper::ApplyConfigSelector(
++    bool service_config_changed,
++    RefCountedPtr<ConfigSelector> config_selector) {
+@@ -1051 +1032,2 @@ void ChannelData::ChannelConfigHelper::ApplyConfigSelector(bool service_config_c
+-void ChannelData::ChannelConfigHelper::ResolverTransientFailure(grpc_error* error) {
++void ChannelData::ChannelConfigHelper::ResolverTransientFailure(
++    grpc_error* error) {
+@@ -1055,0 +1038,28 @@ void ChannelData::ChannelConfigHelper::ResolverTransientFailure(grpc_error* erro
++void ChannelData::ChannelConfigHelper::ProcessLbPolicy(
++    const Resolver::Result& resolver_result,
++    const internal::ClientChannelGlobalParsedConfig* parsed_service_config,
++    RefCountedPtr<LoadBalancingPolicy::Config>* lb_policy_config) {
++  if (parsed_service_config != nullptr &&
++      parsed_service_config->parsed_lb_config() != nullptr) {
++    *lb_policy_config = parsed_service_config->parsed_lb_config();
++    return;
++  }
++  const char* policy_name = nullptr;
++  if (parsed_service_config != nullptr &&
++      !parsed_service_config->parsed_deprecated_lb_policy().empty()) {
++    policy_name = parsed_service_config->parsed_deprecated_lb_policy().c_str();
++  } else {
++    const grpc_arg* channel_arg =
++        grpc_channel_args_find(resolver_result.args, GRPC_ARG_LB_POLICY_NAME);
++    policy_name = grpc_channel_arg_get_string(channel_arg);
++  }
++  if (policy_name == nullptr) policy_name = "pick_first";
++  Json config_json = Json::Array{Json::Object{
++      {policy_name, Json::Object{}},
++  }};
++  grpc_error* parse_error = GRPC_ERROR_NONE;
++  *lb_policy_config = LoadBalancingPolicyRegistry::ParseLoadBalancingConfig(
++      config_json, &parse_error);
++  GPR_ASSERT(*lb_policy_config != nullptr);
++  GPR_ASSERT(parse_error == GRPC_ERROR_NONE);
++}
+@@ -1223 +1233,3 @@ void ChannelData::UpdateStateAndPickerLocked(
+-void ChannelData::UpdateServiceConfigInDataPlaneLocked(bool service_config_changed, RefCountedPtr<ConfigSelector> config_selector) {
++void ChannelData::UpdateServiceConfigInDataPlaneLocked(
++    bool service_config_changed,
++    RefCountedPtr<ConfigSelector> config_selector) {
+@@ -1299,28 +1310,0 @@ void ChannelData::DestroyResolvingLoadBalancingPolicyLocked() {
+-void ChannelData::ChannelConfigHelper::ProcessLbPolicy(
+-    const Resolver::Result& resolver_result,
+-    const internal::ClientChannelGlobalParsedConfig* parsed_service_config,
+-    RefCountedPtr<LoadBalancingPolicy::Config>* lb_policy_config) {
+-  if (parsed_service_config != nullptr &&
+-      parsed_service_config->parsed_lb_config() != nullptr) {
+-    *lb_policy_config = parsed_service_config->parsed_lb_config();
+-    return;
+-  }
+-  const char* policy_name = nullptr;
+-  if (parsed_service_config != nullptr &&
+-      !parsed_service_config->parsed_deprecated_lb_policy().empty()) {
+-    policy_name = parsed_service_config->parsed_deprecated_lb_policy().c_str();
+-  } else {
+-    const grpc_arg* channel_arg =
+-        grpc_channel_args_find(resolver_result.args, GRPC_ARG_LB_POLICY_NAME);
+-    policy_name = grpc_channel_arg_get_string(channel_arg);
+-  }
+-  if (policy_name == nullptr) policy_name = "pick_first";
+-  Json config_json = Json::Array{Json::Object{
+-      {policy_name, Json::Object{}},
+-  }};
+-  grpc_error* parse_error = GRPC_ERROR_NONE;
+-  *lb_policy_config = LoadBalancingPolicyRegistry::ParseLoadBalancingConfig(
+-      config_json, &parse_error);
+-  GPR_ASSERT(*lb_policy_config != nullptr);
+-  GPR_ASSERT(parse_error == GRPC_ERROR_NONE);
+-}
+@@ -2923,0 +2908,58 @@ void CallData::MaybeAddCallToQueuedPicksLocked(grpc_call_element* elem) {
++grpc_error* CallData::ApplyServiceConfigToCallLocked(
++    grpc_call_element* elem, grpc_metadata_batch* initial_metadata) {
++  ChannelData* chand = static_cast<ChannelData*>(elem->channel_data);
++  if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_routing_trace)) {
++    gpr_log(GPR_INFO, "chand=%p calld=%p: applying service config to call",
++            chand, this);
++  }
++  ConfigSelector* config_selector = chand->config_selector();
++  auto service_config = chand->service_config();
++  if (service_config != nullptr) {
++    ConfigSelector::CallConfig call_config =
++        config_selector->GetCallConfig({&path_, initial_metadata, arena_});
++    if (call_config.error != GRPC_ERROR_NONE) return call_config.error;
++    call_attributes_ = std::move(call_config.call_attributes);
++    on_call_committed_ = std::move(call_config.on_call_committed);
++    auto* service_config_call_data = arena_->New<ServiceConfigCallData>(
++        std::move(service_config), call_config.method_configs, call_context_);
++    method_params_ = static_cast<ClientChannelMethodParsedConfig*>(
++        service_config_call_data->GetMethodParsedConfig(
++            internal::ClientChannelServiceConfigParser::ParserIndex()));
++    if (method_params_ != nullptr) {
++      if (chand->deadline_checking_enabled() &&
++          method_params_->timeout() != 0) {
++        const grpc_millis per_method_deadline =
++            grpc_cycle_counter_to_millis_round_up(call_start_time_) +
++            method_params_->timeout();
++        if (per_method_deadline < deadline_) {
++          deadline_ = per_method_deadline;
++          grpc_deadline_state_reset(elem, deadline_);
++        }
++      }
++      uint32_t* send_initial_metadata_flags =
++          &pending_batches_[0]
++               .batch->payload->send_initial_metadata
++               .send_initial_metadata_flags;
++      if (method_params_->wait_for_ready().has_value() &&
++          !(*send_initial_metadata_flags &
++            GRPC_INITIAL_METADATA_WAIT_FOR_READY_EXPLICITLY_SET)) {
++        if (method_params_->wait_for_ready().value()) {
++          *send_initial_metadata_flags |= GRPC_INITIAL_METADATA_WAIT_FOR_READY;
++        } else {
++          *send_initial_metadata_flags &= ~GRPC_INITIAL_METADATA_WAIT_FOR_READY;
++        }
++      }
++    }
++    retry_throttle_data_ = chand->retry_throttle_data();
++  }
++  if (method_params_ == nullptr || method_params_->retry_policy() == nullptr) {
++    enable_retries_ = false;
++  }
++  return GRPC_ERROR_NONE;
++}
++void CallData::MaybeInvokeConfigSelectorCommitCallback() {
++  if (on_call_committed_ != nullptr) {
++    on_call_committed_();
++    on_call_committed_ = nullptr;
++  }
++}
+@@ -3067,57 +3108,0 @@ bool CallData::PickSubchannelLocked(grpc_call_element* elem,
+-grpc_error* CallData::ApplyServiceConfigToCallLocked(grpc_call_element* elem, grpc_metadata_batch* initial_metadata) {
+-  ChannelData* chand = static_cast<ChannelData*>(elem->channel_data);
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_routing_trace)) {
+-    gpr_log(GPR_INFO, "chand=%p calld=%p: applying service config to call",
+-            chand, this);
+-  }
+-  ConfigSelector* config_selector = chand->config_selector();
+-  auto service_config = chand->service_config();
+-  if (service_config != nullptr) {
+-    ConfigSelector::CallConfig call_config =
+-        config_selector->GetCallConfig({&path_, initial_metadata, arena_});
+-    if (call_config.error != GRPC_ERROR_NONE) return call_config.error;
+-    call_attributes_ = std::move(call_config.call_attributes);
+-    on_call_committed_ = std::move(call_config.on_call_committed);
+-    auto* service_config_call_data = arena_->New<ServiceConfigCallData>(
+-        std::move(service_config), call_config.method_configs, call_context_);
+-    method_params_ = static_cast<ClientChannelMethodParsedConfig*>(
+-        service_config_call_data->GetMethodParsedConfig(
+-            internal::ClientChannelServiceConfigParser::ParserIndex()));
+-    if (method_params_ != nullptr) {
+-      if (chand->deadline_checking_enabled() &&
+-          method_params_->timeout() != 0) {
+-        const grpc_millis per_method_deadline =
+-            grpc_cycle_counter_to_millis_round_up(call_start_time_) +
+-            method_params_->timeout();
+-        if (per_method_deadline < deadline_) {
+-          deadline_ = per_method_deadline;
+-          grpc_deadline_state_reset(elem, deadline_);
+-        }
+-      }
+-      uint32_t* send_initial_metadata_flags =
+-          &pending_batches_[0]
+-               .batch->payload->send_initial_metadata
+-               .send_initial_metadata_flags;
+-      if (method_params_->wait_for_ready().has_value() &&
+-          !(*send_initial_metadata_flags &
+-            GRPC_INITIAL_METADATA_WAIT_FOR_READY_EXPLICITLY_SET)) {
+-        if (method_params_->wait_for_ready().value()) {
+-          *send_initial_metadata_flags |= GRPC_INITIAL_METADATA_WAIT_FOR_READY;
+-        } else {
+-          *send_initial_metadata_flags &= ~GRPC_INITIAL_METADATA_WAIT_FOR_READY;
+-        }
+-      }
+-    }
+-    retry_throttle_data_ = chand->retry_throttle_data();
+-  }
+-  if (method_params_ == nullptr || method_params_->retry_policy() == nullptr) {
+-    enable_retries_ = false;
+-  }
+-  return GRPC_ERROR_NONE;
+-}
+-void CallData::MaybeInvokeConfigSelectorCommitCallback() {
+-  if (on_call_committed_ != nullptr) {
+-    on_call_committed_();
+-    on_call_committed_ = nullptr;
+-  }
+-}

@@ -1,0 +1,132 @@
+diff --git a/output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_mergebot.h b/output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_truth.h
+index f00500d..3928e2c 100644
+--- a/output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_mergebot.h
++++ b/output/art/dd287f7b-be4aa299-f6590308/runtime@hidden_api.no_comments_truth.h
+@@ -5 +4,0 @@
+-#include "base/dumpable.h"
+@@ -14 +13,2 @@ enum class EnforcementPolicy {
+-kNoChecks = 0,kAllLists = 1,
++  kNoChecks = 0,
++  kAllLists = 1,
+@@ -17 +17,2 @@ kBlacklistOnly = 3,
+-kMax = kBlacklistOnly,};
++  kMax = kBlacklistOnly,
++};
+@@ -24 +25,4 @@ enum Action {
+-kAllow,kAllowButWarn,kAllowButWarnAndToast, kDeny
++  kAllow,
++  kAllowButWarn,
++  kAllowButWarnAndToast,
++  kDeny
+@@ -27 +31,4 @@ enum AccessMethod {
+-kReflection,kJNI,kLinking,};
++  kReflection,
++  kJNI,
++  kLinking,
++};
+@@ -58,0 +66,5 @@ explicit MemberSignature(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_
++template<typename T>
++bool ShouldBlockAccessToMemberImpl(T* member,
++                                   Action action,
++                                   AccessMethod access_method)
++    REQUIRES_SHARED(Locks::mutator_lock_);
+@@ -73,40 +85,9 @@ inline bool IsCallerInPlatformDex(ObjPtr<mirror::ClassLoader> caller_class_loade
+-class MemberSignature {
+-private:
+-  std::string member_type_;
+-  std::vector<std::string> signature_parts_;
+-  std::string tmp_;
+-public:
+-explicit MemberSignature(ArtField* field) REQUIRES_SHARED(Locks::mutator_lock_){
+-                                            member_type_ = "field";
+-                                            signature_parts_ = {
+-                                            field->GetDeclaringClass()->GetDescriptor(&tmp_),
+-                                            "->",
+-                                            field->GetName(),
+-                                            ":",
+-                                            field->GetTypeDescriptor()
+-                                            };
+-                                            }
+-explicit MemberSignature(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_){
+-                                              member_type_ = "method";
+-                                              signature_parts_ = {
+-                                              method->GetDeclaringClass()->GetDescriptor(&tmp_),
+-                                              "->",
+-                                              method->GetName(),
+-                                              method->GetSignature().ToString()
+-                                              };
+-                                              }
+-  const std::vector<std::string>& Parts() const {
+-    return signature_parts_;
+-  }
+-  void Dump(std::ostream& os) const {
+-    for (std::string part : signature_parts_) {
+-      os << part;
+-    }
+-  }
+-  bool DoesPrefixMatch(const std::string& prefix) const {
+-    size_t pos = 0;
+-    for (const std::string& part : signature_parts_) {
+-      size_t count = std::min(prefix.length() - pos, part.length());
+-      if (prefix.compare(pos, count, part, 0, count) == 0) {
+-        pos += count;
+-      } else {
++template<typename T>
++inline bool ShouldBlockAccessToMember(T* member,
++                                      Thread* self,
++                                      std::function<bool(Thread*)> fn_caller_in_platform,
++                                      AccessMethod access_method)
++    REQUIRES_SHARED(Locks::mutator_lock_) {
++  DCHECK(member != nullptr);
++  Action action = GetMemberAction(member->GetAccessFlags());
++  if (action == kAllow) {
+@@ -115,9 +96 @@ explicit MemberSignature(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_
+-    }
+-    return pos == prefix.length();
+-  }
+-  bool IsExempted(const std::vector<std::string>& exemptions) {
+-    for (const std::string& exemption : exemptions) {
+-      if (DoesPrefixMatch(exemption)) {
+-        return true;
+-      }
+-    }
++  if (fn_caller_in_platform(self)) {
+@@ -126,19 +99 @@ explicit MemberSignature(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_
+-  void WarnAboutAccess(AccessMethod access_method, HiddenApiAccessFlags::ApiList list) {
+-    LOG(WARNING) << "Accessing hidden " << member_type_ << " " << Dumpable<MemberSignature>(*this)
+-                 << " (" << list << ", " << access_method << ")";
+-  }
+-};
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-    bool caller_in_platform = IsCallerInPlatformDex(caller_class_loader, caller_dex_cache);
+-    return ShouldBlockAccessToMember(member,
+-                                                nullptr,
+-                                   [caller_in_platform] (Thread*) { return caller_in_platform; },
+-                                   access_method);
+-    }
+-inline bool IsCallerInPlatformDex(ObjPtr<mirror::Class> caller)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-    bool caller_in_platform = IsCallerInPlatformDex(caller_class_loader, caller_dex_cache);
+-    return ShouldBlockAccessToMember(member,
+-                                                nullptr,
+-                                   [caller_in_platform] (Thread*) { return caller_in_platform; },
+-                                   access_method);
++  return detail::ShouldBlockAccessToMemberImpl(member, action, access_method);
+@@ -148,6 +103,8 @@ inline bool IsCallerInPlatformDex(ObjPtr<mirror::Class> caller)
+-    bool caller_in_platform = IsCallerInPlatformDex(caller_class_loader, caller_dex_cache);
+-    return ShouldBlockAccessToMember(member,
+-                                                nullptr,
+-                                   [caller_in_platform] (Thread*) { return caller_in_platform; },
+-                                   access_method);
+-    }
++  return !caller.IsNull() &&
++      detail::IsCallerInPlatformDex(caller->GetClassLoader(), caller->GetDexCache());
++}
++template<typename T>
++inline bool ShouldBlockAccessToMember(T* member,
++                                      ObjPtr<mirror::ClassLoader> caller_class_loader,
++                                      ObjPtr<mirror::DexCache> caller_dex_cache,
++                                      AccessMethod access_method)
+@@ -155 +112 @@ inline bool IsCallerInPlatformDex(ObjPtr<mirror::Class> caller)
+-    bool caller_in_platform = IsCallerInPlatformDex(caller_class_loader, caller_dex_cache);
++  bool caller_in_platform = detail::IsCallerInPlatformDex(caller_class_loader, caller_dex_cache);

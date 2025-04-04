@@ -1,0 +1,348 @@
+diff --git a/output/art/fb3ea0fa-280e40f8-de72cab6/runtime@gc@heap.no_comments_mergebot.h b/output/art/fb3ea0fa-280e40f8-de72cab6/runtime@gc@heap.no_comments_truth.h
+index 1190dfa..cd02c2d 100644
+--- a/output/art/fb3ea0fa-280e40f8-de72cab6/runtime@gc@heap.no_comments_mergebot.h
++++ b/output/art/fb3ea0fa-280e40f8-de72cab6/runtime@gc@heap.no_comments_truth.h
+@@ -85 +85,2 @@ kErrorReject,
+-kErrorVMShuttingDown,};
++  kErrorVMShuttingDown,
++};
+@@ -89 +90,3 @@ enum ProcessState {
+-kProcessStateJankPerceptible = 0,kProcessStateJankImperceptible = 1,};
++  kProcessStateJankPerceptible = 0,
++  kProcessStateJankImperceptible = 1,
++};
+@@ -130,0 +134,3 @@ public:
++  template <bool kInstrumented, typename PreFenceVisitor>
++  mirror::Object* AllocObject(Thread* self, mirror::Class* klass, size_t num_bytes,
++                              const PreFenceVisitor& pre_fence_visitor)
+@@ -135,0 +142,3 @@ public:
++  template <bool kInstrumented, typename PreFenceVisitor>
++  mirror::Object* AllocNonMovableObject(Thread* self, mirror::Class* klass, size_t num_bytes,
++                                        const PreFenceVisitor& pre_fence_visitor)
+@@ -140,0 +150,5 @@ public:
++  template <bool kInstrumented, bool kCheckLargeObject, typename PreFenceVisitor>
++  ALWAYS_INLINE mirror::Object* AllocObjectWithAllocator(
++      Thread* self, mirror::Class* klass, size_t byte_count, AllocatorType allocator,
++      const PreFenceVisitor& pre_fence_visitor)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -146,0 +161,2 @@ public:
++  void VisitObjects(ObjectCallback callback, void* arg)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -147,0 +164,2 @@ public:
++  void VisitObjectsPaused(ObjectCallback callback, void* arg)
++      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -149,5 +167 @@ public:
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void CheckPreconditionsForAllocObject(mirror::Class* c, size_t byte_count)
+@@ -157,2 +171,2 @@ public:
+-      LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_);
+-      LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_);
++  void ChangeAllocator(AllocatorType allocator)
++      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -160,0 +175 @@ public:
++  void ChangeCollector(CollectorType collector_type)
+@@ -161,0 +177,3 @@ public:
++  void VerifyObjectBody(mirror::Object* o) NO_THREAD_SAFETY_ANALYSIS;
++  void VerifyHeap() LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  size_t VerifyHeapReferences(bool verify_referents = true)
+@@ -163,7 +181 @@ public:
+-                                           NO_THREAD_SAFETY_ANALYSIS;
+-                                           NO_THREAD_SAFETY_ANALYSIS;
+-                    LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                    LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_, Locks::mutator_lock_);
++  bool VerifyMissingCardMarks()
+@@ -170,0 +183 @@ public:
++  bool IsValidObjectAddress(const mirror::Object* obj) const
+@@ -171,0 +185 @@ public:
++  bool IsNonDiscontinuousSpaceHeapAddress(const mirror::Object* obj) const
+@@ -173,2 +187,2 @@ public:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool IsLiveObjectLocked(mirror::Object* obj, bool search_allocation_stack = true,
++                          bool search_live_stack = true, bool sorted = false)
+@@ -176,3 +190 @@ public:
+-      SHARED_LOCKS_REQUIRED(Locks::heap_bitmap_lock_, Locks::mutator_lock_);
+-                                                        SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                                        SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool IsMovableObject(const mirror::Object* obj) const SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -181,2 +193 @@ public:
+-                            EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-                            EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
++  void ClearMarkedObjects() EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+@@ -184,8 +195,4 @@ public:
+-                                                   LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_);
+-                                                   LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void ConcurrentGC(Thread* self, bool force_full) LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_);
++  void CountInstances(const std::vector<mirror::Class*>& classes, bool use_is_assignable_from,
++                      uint64_t* counts)
++      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_)
+@@ -192,0 +200,2 @@ public:
++  void GetInstances(mirror::Class* c, int32_t max_count, std::vector<mirror::Object*>& instances)
++      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_)
+@@ -193,0 +203,2 @@ public:
++  void GetReferringObjects(mirror::Object* o, int32_t max_count, std::vector<mirror::Object*>& referring_objects)
++      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_)
+@@ -196,2 +207 @@ public:
+-                          LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                          LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  void ClampGrowthLimit() LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+@@ -202,0 +213 @@ public:
++  void SetSpaceAsDefault(space::ContinuousSpace* continuous_space)
+@@ -204,5 +215,2 @@ public:
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                     LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                     LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                        LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                        LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  void AddSpace(space::Space* space) LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  void RemoveSpace(space::Space* space) LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+@@ -211 +219 @@ public:
+-      LOCKS_EXCLUDED(gc_complete_lock_);
++  collector::GcType WaitForGcToComplete(GcCause cause, Thread* self)
+@@ -265,2 +273 @@ public:
+-                                     LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                     LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  size_t GetObjectsAllocated() const LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+@@ -296,2 +303 @@ public:
+-                          LOCKS_EXCLUDED(gc_complete_lock_);
+-                          LOCKS_EXCLUDED(gc_complete_lock_);
++  void Trim(Thread* self) LOCKS_EXCLUDED(gc_complete_lock_);
+@@ -303 +309 @@ public:
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void RosAllocVerification(TimingLogger* timings, const char* name)
+@@ -314,2 +320,3 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-                       NO_THREAD_SAFETY_ANALYSIS;
+-                       NO_THREAD_SAFETY_ANALYSIS;
++  void PreZygoteFork() NO_THREAD_SAFETY_ANALYSIS;
++  void FlushAllocStack()
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -317,3 +324,2 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_, Locks::thread_list_lock_);
++  void RevokeAllThreadLocalAllocationStacks(Thread* self)
++      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -321,7 +327,5 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-      LOCKS_EXCLUDED(Locks::runtime_shutdown_lock_, Locks::thread_list_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
++  void MarkAllocStack(accounting::SpaceBitmap<kObjectAlignment>* bitmap1,
++                      accounting::SpaceBitmap<kObjectAlignment>* bitmap2,
++                      accounting::SpaceBitmap<kLargeObjectAlignment>* large_objects,
++                      accounting::ObjectStack* stack)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -328,0 +333,2 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
++  void MarkAllocStackAsLive(accounting::ObjectStack* stack)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -329,0 +336 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
++  void UnBindBitmaps() EXCLUSIVE_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+@@ -354,2 +361 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-                                 WARN_UNUSED;
+-                                 WARN_UNUSED;
++  std::string DumpSpaces() const WARN_UNUSED;
+@@ -357,6 +363,3 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-                                                             NO_THREAD_SAFETY_ANALYSIS;
+-                                                             NO_THREAD_SAFETY_ANALYSIS;
+-                                                           NO_THREAD_SAFETY_ANALYSIS;
+-                                                           NO_THREAD_SAFETY_ANALYSIS;
+-                                                    NO_THREAD_SAFETY_ANALYSIS;
+-                                                    NO_THREAD_SAFETY_ANALYSIS;
++  void DumpObject(std::ostream& stream, mirror::Object* obj) NO_THREAD_SAFETY_ANALYSIS;
++  std::string SafeGetClassDescriptor(mirror::Class* klass) NO_THREAD_SAFETY_ANALYSIS;
++  std::string SafePrettyTypeOf(mirror::Object* obj) NO_THREAD_SAFETY_ANALYSIS;
+@@ -414,4 +417,2 @@ accounting::ObjectStack* GetLiveStack() SHARED_LOCKS_REQUIRED(Locks::heap_bitmap
+-                                 LOCKS_EXCLUDED(pending_task_lock_);
+-                                 LOCKS_EXCLUDED(pending_task_lock_);
+-                                                          LOCKS_EXCLUDED(pending_task_lock_);
+-                                                          LOCKS_EXCLUDED(pending_task_lock_);
++  void RequestTrim(Thread* self) LOCKS_EXCLUDED(pending_task_lock_);
++  void RequestConcurrentGC(Thread* self, bool force_full) LOCKS_EXCLUDED(pending_task_lock_);
+@@ -437,0 +439 @@ void SetAllocTrackingEnabled(bool enabled) EXCLUSIVE_LOCKS_REQUIRED(Locks::alloc
++  void SetAllocationRecords(AllocRecordObjectMap* records)
+@@ -438,0 +441 @@ void SetAllocTrackingEnabled(bool enabled) EXCLUSIVE_LOCKS_REQUIRED(Locks::alloc
++  void SweepAllocationRecords(IsMarkedCallback* visitor, void* arg) const
+@@ -444 +447,3 @@ private:
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
++  collector::GarbageCollector* Compact(space::ContinuousMemMapAllocSpace* target_space,
++                                       space::ContinuousMemMapAllocSpace* source_space,
++                                       GcCause gc_cause)
+@@ -447,2 +452 @@ private:
+-                                                         LOCKS_EXCLUDED(gc_complete_lock_);
+-                                                         LOCKS_EXCLUDED(gc_complete_lock_);
++  void FinishGC(Thread* self, collector::GcType gc_type) LOCKS_EXCLUDED(gc_complete_lock_);
+@@ -470,0 +475 @@ private:
++  bool ShouldAllocLargeObject(mirror::Class* c, size_t byte_count) const
+@@ -472,2 +477,2 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  ALWAYS_INLINE void CheckConcurrentGC(Thread* self, size_t new_num_bytes_allocated,
++                                       mirror::Object** obj)
+@@ -477,0 +483,3 @@ private:
++  template <bool kInstrumented, typename PreFenceVisitor>
++  mirror::Object* AllocLargeObject(Thread* self, mirror::Class** klass, size_t byte_count,
++                                   const PreFenceVisitor& pre_fence_visitor)
+@@ -478,0 +487,5 @@ private:
++  mirror::Object* AllocateInternalWithGc(Thread* self, AllocatorType allocator, size_t num_bytes,
++                                         size_t* bytes_allocated, size_t* usable_size,
++                                         size_t* bytes_tl_bulk_allocated,
++                                         mirror::Class** klass)
++      LOCKS_EXCLUDED(Locks::thread_suspend_count_lock_)
+@@ -479,0 +493,2 @@ private:
++  mirror::Object* AllocateInto(Thread* self, space::AllocSpace* space, mirror::Class* c,
++                               size_t bytes)
+@@ -480,0 +496,6 @@ private:
++  void SwapSemiSpaces() EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
++  template <const bool kInstrumented, const bool kGrow>
++  ALWAYS_INLINE mirror::Object* TryToAllocate(Thread* self, AllocatorType allocator_type,
++                                              size_t alloc_size, size_t* bytes_allocated,
++                                              size_t* usable_size,
++                                              size_t* bytes_tl_bulk_allocated)
+@@ -481,0 +503 @@ private:
++  void ThrowOutOfMemoryError(Thread* self, size_t byte_count, AllocatorType allocator_type)
+@@ -483,6 +505,3 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                        EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                        EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  template <bool kGrow>
++  ALWAYS_INLINE bool IsOutOfMemoryOnAllocation(AllocatorType allocator_type, size_t alloc_size);
++  bool IsValidContinuousSpaceObjectAddress(const mirror::Object* obj) const
+@@ -490,0 +510 @@ private:
++  collector::GcType WaitForGcToCompleteLocked(GcCause cause, Thread* self)
+@@ -492 +512 @@ private:
+-      EXCLUSIVE_LOCKS_REQUIRED(gc_complete_lock_);
++  void RequestCollectorTransition(CollectorType desired_collector_type, uint64_t delta_time)
+@@ -494,2 +514 @@ private:
+-      LOCKS_EXCLUDED(pending_task_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void RequestConcurrentGCAndSaveObject(Thread* self, bool force_full, mirror::Object** obj)
+@@ -497,0 +517,2 @@ private:
++  collector::GcType CollectGarbageInternal(collector::GcType gc_plan, GcCause gc_cause,
++                                           bool clear_soft_references)
+@@ -501,4 +522 @@ private:
+-      LOCKS_EXCLUDED(gc_complete_lock_,
+-                     Locks::heap_bitmap_lock_,
+-                     Locks::thread_suspend_count_lock_);
+-      LOCKS_EXCLUDED(Locks::mutator_lock_);
++  void PreGcVerification(collector::GarbageCollector* gc)
+@@ -505,0 +524 @@ private:
++  void PreGcVerificationPaused(collector::GarbageCollector* gc)
+@@ -506,0 +526 @@ private:
++  void PrePauseRosAllocVerification(collector::GarbageCollector* gc)
+@@ -508,3 +528,2 @@ private:
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
++  void PreSweepingGcVerification(collector::GarbageCollector* gc)
++      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -512,2 +531 @@ private:
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::mutator_lock_);
++  void PostGcVerification(collector::GarbageCollector* gc)
+@@ -515 +533 @@ private:
+-      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void PostGcVerificationPaused(collector::GarbageCollector* gc)
+@@ -527,0 +546 @@ private:
++  static void VerificationCallback(mirror::Object* obj, void* arg)
+@@ -529,3 +548 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::heap_bitmap_lock_);
+-                                SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void SwapStacks(Thread* self) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -533,0 +551 @@ private:
++  void PushOnAllocationStack(Thread* self, mirror::Object** obj)
+@@ -534,0 +553 @@ private:
++  void PushOnAllocationStackWithInternalGC(Thread* self, mirror::Object** obj)
+@@ -536,3 +555 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void PushOnThreadLocalAllocationStackWithInternalGC(Thread* thread, mirror::Object** obj)
+@@ -541,4 +558,2 @@ private:
+-                                      LOCKS_EXCLUDED(pending_task_lock_);
+-                                      LOCKS_EXCLUDED(pending_task_lock_);
+-                                                     LOCKS_EXCLUDED(pending_task_lock_);
+-                                                     LOCKS_EXCLUDED(pending_task_lock_);
++  void ClearPendingTrim(Thread* self) LOCKS_EXCLUDED(pending_task_lock_);
++  void ClearPendingCollectorTransition(Thread* self) LOCKS_EXCLUDED(pending_task_lock_);
+@@ -548,2 +563 @@ private:
+-                                LOCKS_EXCLUDED(gc_complete_lock_);
+-                                LOCKS_EXCLUDED(gc_complete_lock_);
++  void TrimSpaces(Thread* self) LOCKS_EXCLUDED(gc_complete_lock_);
+@@ -550,0 +565,2 @@ private:
++  void VisitObjectsInternal(ObjectCallback callback, void* arg)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -551,0 +568,2 @@ private:
++  void VisitObjectsInternalRegionSpace(ObjectCallback callback, void* arg)
++      EXCLUSIVE_LOCKS_REQUIRED(Locks::mutator_lock_)
+@@ -553,6 +571 @@ private:
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-      LOCKS_EXCLUDED(Locks::heap_bitmap_lock_);
+-                                     EXCLUSIVE_LOCKS_REQUIRED(gc_complete_lock_);
+-                                     EXCLUSIVE_LOCKS_REQUIRED(gc_complete_lock_);
++  void UpdateGcCountRateHistograms() EXCLUSIVE_LOCKS_REQUIRED(gc_complete_lock_);
+@@ -579,3 +592 @@ private:
+-Mutex* pending_task_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-  Atomic<bool> alloc_tracking_enabled_;
+-  std::unique_ptr<AllocRecordObjectMap> allocation_records_
++  Mutex* pending_task_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+@@ -591,2 +602,2 @@ Mutex* pending_task_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-Mutex* gc_complete_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-std::unique_ptr<ConditionVariable> gc_complete_cond_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Mutex* gc_complete_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
++  std::unique_ptr<ConditionVariable> gc_complete_cond_ GUARDED_BY(gc_complete_lock_);
+@@ -595,2 +606,2 @@ std::unique_ptr<ConditionVariable> gc_complete_cond_ DISALLOW_IMPLICIT_CONSTRUCT
+-volatile CollectorType collector_type_running_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-volatile collector::GcType last_gc_type_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  volatile CollectorType collector_type_running_ GUARDED_BY(gc_complete_lock_);
++  volatile collector::GcType last_gc_type_ GUARDED_BY(gc_complete_lock_);
+@@ -645,2 +656,2 @@ volatile collector::GcType last_gc_type_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-std::unique_ptr<accounting::HeapBitmap> live_bitmap_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-std::unique_ptr<accounting::HeapBitmap> mark_bitmap_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  std::unique_ptr<accounting::HeapBitmap> live_bitmap_ GUARDED_BY(Locks::heap_bitmap_lock_);
++  std::unique_ptr<accounting::HeapBitmap> mark_bitmap_ GUARDED_BY(Locks::heap_bitmap_lock_);
+@@ -664 +675 @@ std::unique_ptr<accounting::HeapBitmap> mark_bitmap_ DISALLOW_IMPLICIT_CONSTRUCT
+-size_t disable_moving_gc_count_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  size_t disable_moving_gc_count_ GUARDED_BY(gc_complete_lock_);
+@@ -679,2 +690,2 @@ size_t disable_moving_gc_count_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-CollectorTransitionTask* pending_collector_transition_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-HeapTrimTask* pending_heap_trim_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  CollectorTransitionTask* pending_collector_transition_ GUARDED_BY(pending_task_lock_);
++  HeapTrimTask* pending_heap_trim_ GUARDED_BY(pending_task_lock_);
+@@ -682 +693 @@ HeapTrimTask* pending_heap_trim_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-bool running_collection_is_blocking_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  bool running_collection_is_blocking_ GUARDED_BY(gc_complete_lock_);
+@@ -690,3 +701,6 @@ static constexpr uint64_t kGcCountRateHistogramWindowDuration = MsToNs(10 * 1000
+-Histogram<uint64_t> gc_count_rate_histogram_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-Histogram<uint64_t> blocking_gc_count_rate_histogram_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-Mutex* backtrace_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  Histogram<uint64_t> gc_count_rate_histogram_ GUARDED_BY(gc_complete_lock_);
++  Histogram<uint64_t> blocking_gc_count_rate_histogram_ GUARDED_BY(gc_complete_lock_);
++  Atomic<bool> alloc_tracking_enabled_;
++  std::unique_ptr<AllocRecordObjectMap> allocation_records_
++      GUARDED_BY(Locks::alloc_tracker_lock_);
++  Mutex* backtrace_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
+@@ -695 +709 @@ Mutex* backtrace_lock_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
+-std::unordered_set<uint64_t> seen_backtraces_ DISALLOW_IMPLICIT_CONSTRUCTORS(Heap);
++  std::unordered_set<uint64_t> seen_backtraces_ GUARDED_BY(backtrace_lock_);

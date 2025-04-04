@@ -1,0 +1,181 @@
+diff --git a/output/art/d3d2cd76-d2e5a693-19f7c954/runtime@verifier@method_verifier.no_comments_mergebot.h b/output/art/d3d2cd76-d2e5a693-19f7c954/runtime@verifier@method_verifier.no_comments_truth.h
+index 45f275d..033e2c8 100644
+--- a/output/art/d3d2cd76-d2e5a693-19f7c954/runtime@verifier@method_verifier.no_comments_mergebot.h
++++ b/output/art/d3d2cd76-d2e5a693-19f7c954/runtime@verifier@method_verifier.no_comments_truth.h
+@@ -26 +26,2 @@ enum MethodType {
+-METHOD_UNKNOWN = 0,METHOD_DIRECT,
++  METHOD_UNKNOWN = 0,
++  METHOD_DIRECT,
+@@ -46 +47,4 @@ enum VerifyErrorRefType {
+-VERIFY_ERROR_REF_CLASS = 0,VERIFY_ERROR_REF_FIELD = 1,VERIFY_ERROR_REF_METHOD = 2,};
++  VERIFY_ERROR_REF_CLASS = 0,
++  VERIFY_ERROR_REF_FIELD = 1,
++  VERIFY_ERROR_REF_METHOD = 2,
++};
+@@ -49 +53,4 @@ enum RegisterTrackingMode {
+-kTrackRegsBranches,kTrackCompilerInterestPoints,kTrackRegsAll,};
++  kTrackRegsBranches,
++  kTrackCompilerInterestPoints,
++  kTrackRegsAll,
++};
+@@ -70,0 +78,2 @@ public:
++  static FailureKind VerifyClass(Thread* self, mirror::Class* klass, bool allow_soft_failures,
++                                 std::string* error)
+@@ -72,2 +81,5 @@ public:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  static FailureKind VerifyClass(Thread* self, const DexFile* dex_file,
++                                 Handle<mirror::DexCache> dex_cache,
++                                 Handle<mirror::ClassLoader> class_loader,
++                                 const DexFile::ClassDef* class_def,
++                                 bool allow_soft_failures, std::string* error)
+@@ -93,0 +106,3 @@ public:
++  void Dump(std::ostream& os) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  static void FindLocksAtDexPc(mirror::ArtMethod* m, uint32_t dex_pc,
++                               std::vector<uint32_t>* monitor_enter_dex_pcs)
+@@ -94,0 +110 @@ public:
++  static mirror::ArtField* FindAccessedFieldAtDexPc(mirror::ArtMethod* m, uint32_t dex_pc)
+@@ -96,5 +112 @@ public:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  static mirror::ArtMethod* FindInvokedMethodAtDexPc(mirror::ArtMethod* m, uint32_t dex_pc)
+@@ -118,0 +131 @@ MethodVerifier(Thread* self, const DexFile* dex_file, Handle<mirror::DexCache> d
++  static void VisitStaticRoots(RootCallback* callback, void* arg)
+@@ -120,3 +133 @@ MethodVerifier(Thread* self, const DexFile* dex_file, Handle<mirror::DexCache> d
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                                     SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                                     SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void VisitRoots(RootCallback* callback, void* arg) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -126,4 +137,2 @@ MethodVerifier(Thread* self, const DexFile* dex_file, Handle<mirror::DexCache> d
+-                                        SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                        SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::ClassLoader* GetClassLoader() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::DexCache* GetDexCache() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -135 +144 @@ MethodVerifier(Thread* self, const DexFile* dex_file, Handle<mirror::DexCache> d
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  const RegType& ResolveCheckedClass(uint32_t class_idx)
+@@ -138 +147,6 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  MethodVerifier(Thread* self, const DexFile* dex_file, Handle<mirror::DexCache> dex_cache,
++                 Handle<mirror::ClassLoader> class_loader, const DexFile::ClassDef* class_def,
++                 const DexFile::CodeItem* code_item, uint32_t method_idx,
++                 Handle<mirror::ArtMethod> method,
++                 uint32_t access_flags, bool can_load_classes, bool allow_soft_failures,
++                 bool need_precise_constants, bool verify_to_dump)
+@@ -149,0 +164,2 @@ private:
++  void FindLocksAtDexPc() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::ArtField* FindAccessedFieldAtDexPc(uint32_t dex_pc)
+@@ -151,4 +167 @@ private:
+-                          SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::ArtMethod* FindInvokedMethodAtDexPc(uint32_t dex_pc)
+@@ -157,2 +170 @@ private:
+-                            SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                            SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool ScanTryCatchBlocks() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -175,0 +188,4 @@ private:
++  bool VerifyCodeFlow() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool SetTypesFromSignature() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool CodeFlowVerifyMethod() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool CodeFlowVerifyInstruction(uint32_t* start_guess)
+@@ -176,0 +193 @@ private:
++  void VerifyNewArray(const Instruction* inst, bool is_filled, bool is_range)
+@@ -177,0 +195,7 @@ private:
++  void VerifyPrimitivePut(const RegType& target_type, const RegType& insn_type,
++                          const uint32_t vregA) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void VerifyAGet(const Instruction* inst, const RegType& insn_type,
++                  bool is_primitive) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void VerifyAPut(const Instruction* inst, const RegType& insn_type,
++                  bool is_primitive) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::ArtField* GetInstanceField(const RegType& obj_type, int field_idx)
+@@ -178,0 +203,3 @@ private:
++  mirror::ArtField* GetStaticField(int field_idx) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  void VerifyISGet(const Instruction* inst, const RegType& insn_type,
++                   bool is_primitive, bool is_static)
+@@ -179,0 +207,2 @@ private:
++  void VerifyISPut(const Instruction* inst, const RegType& insn_type,
++                   bool is_primitive, bool is_static)
+@@ -180,0 +210 @@ private:
++  mirror::ArtField* GetQuickFieldAccess(const Instruction* inst, RegisterLine* reg_line)
+@@ -181,0 +212,2 @@ private:
++  void VerifyIGetQuick(const Instruction* inst, const RegType& insn_type,
++                       bool is_primitive)
+@@ -182,0 +215,2 @@ private:
++  void VerifyIPutQuick(const Instruction* inst, const RegType& insn_type,
++                       bool is_primitive)
+@@ -183,0 +218 @@ private:
++  const RegType& ResolveClassAndCheckAccess(uint32_t class_idx)
+@@ -184,0 +220 @@ private:
++  const RegType& GetCaughtExceptionType()
+@@ -185,0 +222 @@ private:
++  mirror::ArtMethod* ResolveMethodAndCheckAccess(uint32_t method_idx, MethodType method_type)
+@@ -186,0 +224,3 @@ private:
++  mirror::ArtMethod* VerifyInvocationArgs(const Instruction* inst,
++                                          MethodType method_type,
++                                          bool is_range, bool is_super)
+@@ -187,0 +228,2 @@ private:
++  void VerifyInvocationArgsUnresolvedMethod(const Instruction* inst, MethodType method_type,
++                                            bool is_range)
+@@ -188,0 +231,4 @@ private:
++  template <class T>
++  mirror::ArtMethod* VerifyInvocationArgsFromIterator(T* it, const Instruction* inst,
++                                                      MethodType method_type, bool is_range,
++                                                      mirror::ArtMethod* res_method)
+@@ -189,0 +236,3 @@ private:
++  mirror::ArtMethod* GetQuickInvokedMethod(const Instruction* inst,
++                                           RegisterLine* reg_line,
++                                           bool is_range)
+@@ -191,29 +240 @@ private:
+-                                     SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                                  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                                  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  mirror::ArtMethod* VerifyInvokeVirtualQuickArgs(const Instruction* inst, bool is_range)
+@@ -222 +243 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  bool UpdateRegisters(uint32_t next_insn, RegisterLine* merge_line, bool update_merge_line)
+@@ -230,4 +251,2 @@ private:
+-                                       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                       SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                     SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+-                                     SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  const RegType& GetMethodReturnType() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  const RegType& GetDeclaringClass() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -235 +254 @@ private:
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
++  const RegType& DetermineCat1Constant(int32_t value, bool precise)
+@@ -248 +267 @@ const DexFile* const dex_file_;
+-                                                 GUARDED_BY(Locks::mutator_lock_);
++  Handle<mirror::DexCache> dex_cache_ GUARDED_BY(Locks::mutator_lock_);

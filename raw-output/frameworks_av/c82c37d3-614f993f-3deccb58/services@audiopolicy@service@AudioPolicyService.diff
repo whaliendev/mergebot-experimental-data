@@ -1,0 +1,87 @@
+diff --git a/output/frameworks_av/c82c37d3-614f993f-3deccb58/services@audiopolicy@service@AudioPolicyService.no_comments_mergebot.h b/output/frameworks_av/c82c37d3-614f993f-3deccb58/services@audiopolicy@service@AudioPolicyService.no_comments_truth.h
+index f448644..995bbc0 100644
+--- a/output/frameworks_av/c82c37d3-614f993f-3deccb58/services@audiopolicy@service@AudioPolicyService.no_comments_mergebot.h
++++ b/output/frameworks_av/c82c37d3-614f993f-3deccb58/services@audiopolicy@service@AudioPolicyService.no_comments_truth.h
+@@ -52,3 +52 @@ public:
+-private:
+-        GUARDED_BY(mLock);
+-public:
++    virtual status_t dump(int fd, const Vector<String16>& args);
+@@ -322,3 +320 @@ public:
+-void onCheckSpatializer_l()private:
+-        GUARDED_BY(mLock);
+-public:
++    void onCheckSpatializer_l() REQUIRES(mLock);
+@@ -326,3 +322 @@ public:
+-void onUpdateActiveSpatializerTracks_l()private:
+-        GUARDED_BY(mLock);
+-public:
++    void onUpdateActiveSpatializerTracks_l() REQUIRES(mLock);
+@@ -334 +328 @@ private:
+-    AudioPolicyService() GUARDED_BY(mLock);
++                        AudioPolicyService() ANDROID_API;
+@@ -336 +330 @@ private:
+-status_t dumpInternals(int fd) GUARDED_BY(mLock);
++            status_t dumpInternals(int fd) REQUIRES(mLock);
+@@ -338,29 +332,2 @@ status_t dumpInternals(int fd) GUARDED_BY(mLock);
+-    class AudioRecordClient : public AudioClient {
+-    public:
+-                AudioRecordClient(const audio_attributes_t attributes,
+-                          const audio_io_handle_t io,
+-                          const audio_session_t session, audio_port_handle_t portId,
+-                          const audio_port_handle_t deviceId,
+-                          const AttributionSourceState& attributionSource,
+-                          bool canCaptureOutput, bool canCaptureHotword,
+-                          wp<AudioCommandThread> commandThread) :
+-                    AudioClient(attributes, io, attributionSource,
+-                        session, portId, deviceId), attributionSource(attributionSource),
+-                        startTimeNs(0), canCaptureOutput(canCaptureOutput),
+-                        canCaptureHotword(canCaptureHotword), silenced(false),
+-                        mOpRecordAudioMonitor(
+-                                OpRecordAudioMonitor::createIfNeeded(attributionSource,
+-                                attributes, commandThread)) {}
+-                ~AudioRecordClient() override = default;
+-        bool hasOp() const {
+-            return mOpRecordAudioMonitor ? mOpRecordAudioMonitor->hasOp() : true;
+-        }
+-        const AttributionSourceState attributionSource;
+-        nsecs_t startTimeNs;
+-        const bool canCaptureOutput;
+-        const bool canCaptureHotword;
+-        bool silenced;
+-    private:
+-        sp<OpRecordAudioMonitor> mOpRecordAudioMonitor;
+-    };
+-virtual void setAppState_l(sp<AudioRecordClient> client, app_state_t state) GUARDED_BY(mLock);
++    class AudioRecordClient;
++    virtual void setAppState_l(sp<AudioRecordClient> client, app_state_t state) REQUIRES(mLock);
+@@ -379,2 +346,2 @@ virtual void setAppState_l(sp<AudioRecordClient> client, app_state_t state) GUAR
+-void updateUidStates_l() GUARDED_BY(mLock);
+-void silenceAllRecordings_l() GUARDED_BY(mLock);
++    void updateUidStates_l() REQUIRES(mLock);
++    void silenceAllRecordings_l() REQUIRES(mLock);
+@@ -674 +640,0 @@ void silenceAllRecordings_l() GUARDED_BY(mLock);
+-<<<<<<< HEAD
+@@ -677,5 +642,0 @@ void silenceAllRecordings_l() GUARDED_BY(mLock);
+-||||||| 3deccb5873
+-                const struct audio_port_v7 *port, bool connected) override;
+-=======
+-                const struct audio_port_v7 *port, media::DeviceConnectedState state) override;
+->>>>>>> 614f993f
+@@ -828 +789 @@ size_t countActiveClientsOnOutput_l(
+-        audio_io_handle_t output, bool spatializedOnly = true) GUARDED_BY(mLock);
++        audio_io_handle_t output, bool spatializedOnly = true) REQUIRES(mLock);
+@@ -836,2 +797,2 @@ sp<AudioCommandThread> mOutputCommandThread;
+-        GUARDED_BY(mLock);
+-        GUARDED_BY(mLock);
++    DefaultKeyedVector<int64_t, sp<NotificationClient>> mNotificationClients
++        GUARDED_BY(mNotificationClientsLock);
+@@ -841 +802 @@ uid_t mPhoneStateOwnerUid GUARDED_BY(mLock);
+-        GUARDED_BY(mLock);
++    sp<UidPolicy> mUidPolicy GUARDED_BY(mLock);
+@@ -842,0 +804 @@ sp<SensorPrivacyPolicy> mSensorPrivacyPolicy GUARDED_BY(mLock);
++    DefaultKeyedVector<audio_port_handle_t, sp<AudioRecordClient>> mAudioRecordClients
+@@ -844,2 +806 @@ sp<SensorPrivacyPolicy> mSensorPrivacyPolicy GUARDED_BY(mLock);
+-        GUARDED_BY(mLock);
+-        GUARDED_BY(mLock);
++    DefaultKeyedVector<audio_port_handle_t, sp<AudioPlaybackClient>> mAudioPlaybackClients

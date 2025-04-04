@@ -1,0 +1,85 @@
+diff --git a/output/grpc/d4257124-c2079f37-6b695405/src@core@ext@transport@chttp2@transport@internal.no_comments_mergebot.h b/output/grpc/d4257124-c2079f37-6b695405/src@core@ext@transport@chttp2@transport@internal.no_comments_truth.h
+index e18817f..603c41d 100644
+--- a/output/grpc/d4257124-c2079f37-6b695405/src@core@ext@transport@chttp2@transport@internal.no_comments_mergebot.h
++++ b/output/grpc/d4257124-c2079f37-6b695405/src@core@ext@transport@chttp2@transport@internal.no_comments_truth.h
+@@ -22,7 +21,0 @@
+-typedef enum {
+-  GRPC_CHTTP2_LIST_WRITABLE,
+-  GRPC_CHTTP2_LIST_WRITING,
+-  GRPC_CHTTP2_LIST_STALLED_BY_TRANSPORT,
+-  GRPC_CHTTP2_LIST_WAITING_FOR_CONCURRENCY,
+-  STREAM_LIST_COUNT
+-} grpc_chttp2_stream_list_id;
+@@ -110,6 +102,0 @@ typedef struct {
+-typedef struct grpc_chttp2_outstanding_ping {
+-  uint8_t id[8];
+-  grpc_closure *on_recv;
+-  struct grpc_chttp2_outstanding_ping *next;
+-  struct grpc_chttp2_outstanding_ping *prev;
+-} grpc_chttp2_outstanding_ping;
+@@ -183,0 +171,2 @@ grpc_transport base;
++  int64_t announce_incoming_window;
++  uint32_t connection_window_target;
+@@ -314 +303,2 @@ bool grpc_chttp2_list_remove_writable_stream(
+-    grpc_chttp2_transport *t, grpc_chttp2_stream *s)bool grpc_chttp2_list_add_writing_stream(grpc_chttp2_transport *t,
++    grpc_chttp2_transport *t, grpc_chttp2_stream *s) GRPC_MUST_USE_RESULT;
++bool grpc_chttp2_list_add_writing_stream(grpc_chttp2_transport *t,
+@@ -360,2 +350,7 @@ void grpc_chttp2_complete_closure_step(grpc_exec_ctx *exec_ctx,
+-int grpc_http_trace = 0;
+-int grpc_flowctl_trace = 0;
++extern int grpc_http_trace;
++extern int grpc_flowctl_trace;
++#define GRPC_CHTTP2_IF_TRACING(stmt) \
++  if (!(grpc_http_trace)) \
++    ; \
++  else \
++  stmt
+@@ -366,0 +362,48 @@ typedef enum {
++                                     dst_var, src_context, src_var) \
++  do { \
++    assert(id1 == id2); \
++    if (grpc_flowctl_trace) { \
++      grpc_chttp2_flowctl_trace( \
++          __FILE__, __LINE__, phase, GRPC_CHTTP2_FLOWCTL_MOVE, #dst_context, \
++          dst_context->dst_var, src_context->src_var); \
++    } \
++    dst_context->dst_var += src_context->src_var; \
++    src_context->src_var = 0; \
++  } while (0)
++                                     src_context, src_var) \
++  GRPC_CHTTP2_FLOW_MOVE_COMMON(phase, transport, dst_context->id, \
++                               src_context->id, dst_context, dst_var, \
++                               src_context, src_var)
++                                        src_context, src_var) \
++  GRPC_CHTTP2_FLOW_MOVE_COMMON(phase, dst_context, 0, 0, dst_context, dst_var, \
++                               src_context, src_var)
++                                       dst_var, amount) \
++  do { \
++    if (grpc_flowctl_trace) { \
++      grpc_chttp2_flowctl_trace(__FILE__, __LINE__, phase, \
++                                GRPC_CHTTP2_FLOWCTL_CREDIT, #dst_context, \
++                                id, dst_context->dst_var, amount); \
++    } \
++    dst_context->dst_var += amount; \
++  } while (0)
++                                       amount) \
++  GRPC_CHTTP2_FLOW_CREDIT_COMMON(phase, transport, dst_context->id, \
++                                 dst_context, dst_var, amount)
++#define GRPC_CHTTP2_FLOW_CREDIT_TRANSPORT(phase,dst_context,dst_var,amount) \
++  GRPC_CHTTP2_FLOW_CREDIT_COMMON(phase, dst_context, 0, dst_context, dst_var, \
++                                 amount)
++                                      dst_var, amount) \
++  do { \
++    if (grpc_flowctl_trace) { \
++      grpc_chttp2_flowctl_trace(__FILE__, __LINE__, phase, \
++                                GRPC_CHTTP2_FLOWCTL_DEBIT, #dst_context, \
++                                id, dst_context->dst_var, amount); \
++    } \
++    dst_context->dst_var -= amount; \
++  } while (0)
++                                      amount) \
++  GRPC_CHTTP2_FLOW_DEBIT_COMMON(phase, transport, dst_context->id, \
++                                dst_context, dst_var, amount)
++#define GRPC_CHTTP2_FLOW_DEBIT_TRANSPORT(phase,dst_context,dst_var,amount) \
++  GRPC_CHTTP2_FLOW_DEBIT_COMMON(phase, dst_context, 0, dst_context, dst_var, \
++                                amount)

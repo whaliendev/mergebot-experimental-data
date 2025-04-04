@@ -1,0 +1,87 @@
+diff --git a/./output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_merged.cc b/./output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_truth.cc
+index ad76dc5..f16fc68 100644
+--- a/./output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_merged.cc
++++ b/./output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_truth.cc
+@@ -715 +714,0 @@ VersionSet::VersionSet(const std::string& dbname,
+-<<<<<<< HEAD
+@@ -717 +715,0 @@ VersionSet::VersionSet(const std::string& dbname,
+-      num_levels_(options_->num_levels),
+@@ -720,6 +717,0 @@ VersionSet::VersionSet(const std::string& dbname,
+-||||||| cb7a00227
+-      current_(NULL),
+-      num_levels_(options_->num_levels) {
+-=======
+-      current_(NULL) {
+->>>>>>> 9b87a2ba
+@@ -783 +774,0 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-  ManifestWriter* first = manifest_writers_.front();
+@@ -785 +776 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-  assert(first == &w);
++  assert(manifest_writers_.front() == &w);
+@@ -838 +829 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-    Log(options_->info_log, "Error in committing version %d",
++    Log(options_->info_log, "Error in committing version %ld",
+@@ -1345 +1335,0 @@ bool VersionSet::VerifyCompactionFileConsistency(Compaction* c) {
+-<<<<<<< HEAD
+@@ -1351,14 +1340,0 @@ bool VersionSet::VerifyCompactionFileConsistency(Compaction* c) {
+-||||||| cb7a00227
+-    for (size_t i = 0; i < current_->files_[level].size(); i++) {
+-      FileMetaData* f = current_->files_[level][i];
+-      if (compact_pointer_[level].empty() ||
+-          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
+-        c->inputs_[0].push_back(f);
+-=======
+-    for (size_t i = 0; i < current_->files_[level].size(); i++) {
+-      FileMetaData* f = current_->files_[level][i];
+-      if (compact_pointer_[level].empty() ||
+-          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
+-        c->inputs_[0].push_back(f);
+-        c->base_index_ = i;
+->>>>>>> 9b87a2ba
+@@ -1368 +1343,0 @@ bool VersionSet::VerifyCompactionFileConsistency(Compaction* c) {
+-<<<<<<< HEAD
+@@ -1371,8 +1345,0 @@ bool VersionSet::VerifyCompactionFileConsistency(Compaction* c) {
+-||||||| cb7a00227
+-    if (c->inputs_[0].empty()) {
+-      c->inputs_[0].push_back(current_->files_[level][0]);
+-=======
+-    if (c->inputs_[0].empty()) {
+-      c->inputs_[0].push_back(current_->files_[level][0]);
+-      c->base_index_ = 0;
+->>>>>>> 9b87a2ba
+@@ -1434 +1401,2 @@ Compaction* VersionSet::PickCompactionBySize(int level) {
+-    if (ParentFilesInCompaction(f, level)) {
++    int parent_index = -1;
++    if (ParentFilesInCompaction(f, level, &parent_index)) {
+@@ -1437,0 +1406,2 @@ Compaction* VersionSet::PickCompactionBySize(int level) {
++    c->base_index_ = i;
++    c->parent_index_ = parent_index;
+@@ -1448 +1418 @@ Compaction* VersionSet::PickCompaction() {
+-  int level;
++  int level = -1;
+@@ -1478 +1448,2 @@ Compaction* VersionSet::PickCompaction() {
+-      if (!f->being_compacted && !ParentFilesInCompaction(f, level)) {
++      if (!f->being_compacted &&
++          !ParentFilesInCompaction(f, level, &c->parent_index_)) {
+@@ -1489 +1460,2 @@ Compaction* VersionSet::PickCompaction() {
+-bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level) {
++bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level,
++    int* parent_index) {
+@@ -1491 +1463,2 @@ bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level) {
+-  current_->GetOverlappingInputs(level+1, &f->smallest, &f->largest, &inputs);
++  current_->GetOverlappingInputs(level+1, &f->smallest, &f->largest,
++                                 &inputs, *parent_index, parent_index);
+@@ -1525,8 +1497,0 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
+-<<<<<<< HEAD
+-                                     &expanded1);
+-      if (expanded1.size() == c->inputs_[1].size() &&
+-          !FilesInCompaction(expanded1)) {
+-||||||| cb7a00227
+-                                     &expanded1);
+-      if (expanded1.size() == c->inputs_[1].size()) {
+-=======
+@@ -1535,2 +1500,2 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
+-      if (expanded1.size() == c->inputs_[1].size()) {
+->>>>>>> 9b87a2ba
++      if (expanded1.size() == c->inputs_[1].size() &&
++          !FilesInCompaction(expanded1)) {

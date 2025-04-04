@@ -1,0 +1,170 @@
+--- a/./output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_merged.cc
++++ b/./output/rocksdb/e86d7dff-577556d5-b9ce156e/db@version_set.no_comments_truth.cc
+@@ -187,12 +186,0 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-<<<<<<< HEAD
+-    may_match = cfd_->table_cache()->PrefixMayMatch(
+-        options, cfd_->internal_comparator(),
+-        DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-||||||| b9ce156e3
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, DecodeFixed64(level_iter->value().data()),
+-        DecodeFixed64(level_iter->value().data() + 8), internal_prefix,
+-        nullptr);
+-=======
+@@ -201,3 +189,3 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, *meta_file, internal_prefix, nullptr);
+->>>>>>> 577556d5
++    may_match = cfd_->table_cache()->PrefixMayMatch(
++        options, cfd_->internal_comparator(), *meta_file, internal_prefix,
++        nullptr);
+@@ -976 +963,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+@@ -978,12 +964,0 @@ class VersionSet::Builder {
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &cfd_->internal_comparator();
+-    for (int level = 0; level < base_->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-||||||| b9ce156e3
+-    levels_ = new LevelState[base->NumberLevels()];
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-    for (int level = 0; level < base->NumberLevels(); level++) {
+-      levels_[level].added_files = new FileSet(cmp);
+-=======
+-    levels_ = new LevelState[base->NumberLevels()];
+@@ -991 +966 @@ class VersionSet::Builder {
+-        (vset_->options_->compaction_style == kCompactionStyleUniversal)
++        (cfd_->options()->compaction_style == kCompactionStyleUniversal)
+@@ -995 +970 @@ class VersionSet::Builder {
+-    level_nonzero_cmp_.internal_comparator = &vset_->icmp_;
++    level_nonzero_cmp_.internal_comparator = &cfd->internal_comparator();
+@@ -997 +972 @@ class VersionSet::Builder {
+-    for (int level = 1; level < base->NumberLevels(); level++) {
++    for (int level = 1; level < base_->NumberLevels(); level++) {
+@@ -999 +973,0 @@ class VersionSet::Builder {
+->>>>>>> 577556d5
+@@ -1030,13 +1003,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-      if (level > 0) {
+-        for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-          const InternalKey& prev_end = v->files_[level][i-1]->largest;
+-          const InternalKey& this_begin = v->files_[level][i]->smallest;
+-          if (cfd_->internal_comparator().Compare(prev_end, this_begin) >= 0) {
+-||||||| b9ce156e3
+-      if (level > 0) {
+-        for (uint32_t i = 1; i < v->files_[level].size(); i++) {
+-          const InternalKey& prev_end = v->files_[level][i-1]->largest;
+-          const InternalKey& this_begin = v->files_[level][i]->smallest;
+-          if (vset_->icmp_.Compare(prev_end, this_begin) >= 0) {
+-=======
+@@ -1048 +1009 @@ class VersionSet::Builder {
+-          if (vset_->options_->compaction_style == kCompactionStyleUniversal) {
++          if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+@@ -1053,2 +1014,2 @@ class VersionSet::Builder {
+-          if (vset_->icmp_.Compare(f1->largest, f2->smallest) >= 0) {
+->>>>>>> 577556d5
++          if (cfd_->internal_comparator().Compare(f1->largest, f2->smallest) >=
++              0) {
+@@ -1126,8 +1086,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &cfd_->internal_comparator();
+-||||||| b9ce156e3
+-    BySmallestKey cmp;
+-    cmp.internal_comparator = &vset_->icmp_;
+-=======
+->>>>>>> 577556d5
+@@ -1153,14 +1105,0 @@ class VersionSet::Builder {
+-<<<<<<< HEAD
+-    if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirstBySeqNo);
+-    } else {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-    }
+-||||||| b9ce156e3
+-    if (v->vset_->options_->compaction_style == kCompactionStyleUniversal) {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirstBySeqNo);
+-    } else {
+-      std::sort(v->files_[0].begin(), v->files_[0].end(), NewestFirst);
+-    }
+-=======
+->>>>>>> 577556d5
+@@ -1592 +1531,3 @@ Status VersionSet::Recover(
+-            log_number_decrease = true;
++            Log(options_->info_log,
++                "MANIFEST corruption detected, but ignored - Log numbers in "
++                "records NOT monotonically increasing");
+@@ -1606,30 +1546,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+-||||||| b9ce156e3
+-      builder.Apply(&edit);
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+-      if (edit.has_log_number_) {
+-        if (have_log_number && log_number >= edit.log_number_) {
+-          log_number_decrease = true;
+-        } else {
+-          log_number = edit.log_number_;
+-          have_log_number = true;
+-        }
+-      }
+-=======
+-      builder.Apply(&edit);
+-      if (edit.has_log_number_) {
+-        if (have_log_number && log_number >= edit.log_number_) {
+-          Log(options_->info_log,
+-              "decreasing of log_number is detected "
+-              "in MANIFEST\n");
+-        } else {
+-          log_number = edit.log_number_;
+-          have_log_number = true;
+-        }
+-      }
+->>>>>>> 577556d5
+@@ -1652,23 +1562,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+-    if (s.ok() && log_number_decrease) {
+-      if (have_version_number) {
+-        s = Status::Corruption(
+-            "MANIFEST corruption - Log numbers in records NOT "
+-            "monotonically increasing");
+-      } else {
+-        Log(options_->info_log,
+-            "MANIFEST corruption detected, but ignored - Log numbers in "
+-            "records NOT monotonically increasing");
+-      }
+-    }
+-||||||| b9ce156e3
+-    if (s.ok() && log_number_decrease) {
+-      if (have_version_number) {
+-        s = Status::Corruption("log number decreases");
+-      } else {
+-        Log(options_->info_log, "decreasing of log_number is detected "
+-            "in MANIFEST\n");
+-      }
+-    }
+-=======
+->>>>>>> 577556d5
+@@ -2018,10 +1905,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-<<<<<<< HEAD
+-||||||| b9ce156e3
+-  VersionEdit edit;
+-  edit.SetVersionNumber();
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+-=======
+-  VersionEdit edit;
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+->>>>>>> 577556d5
+-  bool first_record = false;
+@@ -2031,4 +1908,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-      if (first_record) {
+-        edit.SetVersionNumber();
+-        first_record = false;
+-      }

@@ -1,0 +1,1018 @@
+--- a/./output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@call.no_comments_merged.c
++++ b/./output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@call.no_comments_truth.c
+@@ -592,982 +591,0 @@ void grpc_call_execute_op(grpc_call *call, grpc_call_op *op) {
+-<<<<<<< HEAD
+-||||||| 4a92bc3c69
+-void grpc_call_add_mdelem(grpc_call *call, grpc_mdelem *mdelem,
+-                          gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  GPR_ASSERT(call->state < CALL_FINISHED);
+-  op.type = GRPC_SEND_METADATA;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = do_nothing;
+-  op.user_data = NULL;
+-  op.data.metadata = mdelem;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-}
+-grpc_call_error grpc_call_add_metadata(grpc_call *call, grpc_metadata *metadata,
+-                                       gpr_uint32 flags) {
+-  grpc_mdelem *mdelem;
+-  if (call->is_client) {
+-    if (call->state >= CALL_STARTED) {
+-      return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-    }
+-  } else {
+-    if (call->state >= CALL_FINISHED) {
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    }
+-  }
+-  mdelem = grpc_mdelem_from_string_and_buffer(
+-      call->metadata_context, metadata->key, (gpr_uint8 *)metadata->value,
+-      metadata->value_length);
+-  grpc_call_add_mdelem(call, mdelem, flags);
+-  return GRPC_CALL_OK;
+-}
+-static void finish_call(grpc_call *call) {
+-  size_t count;
+-  grpc_metadata *elements;
+-  count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-  elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-  grpc_cq_end_finished(
+-      call->cq, call->finished_tag, call, grpc_metadata_buffer_cleanup_elements,
+-      elements, call->status_code,
+-      call->status_details
+-          ? (char *)grpc_mdstr_as_c_string(call->status_details)
+-          : NULL,
+-      elements, count);
+-}
+-static void done_write(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  void *tag = call->write_tag;
+-  GPR_ASSERT(call->have_write);
+-  call->have_write = 0;
+-  call->write_tag = INVALID_TAG;
+-  grpc_cq_end_write_accepted(call->cq, tag, call, NULL, NULL, error);
+-}
+-static void done_writes_done(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  void *tag = call->write_tag;
+-  GPR_ASSERT(call->have_write);
+-  call->have_write = 0;
+-  call->write_tag = INVALID_TAG;
+-  grpc_cq_end_finish_accepted(call->cq, tag, call, NULL, NULL, error);
+-}
+-static void call_started(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  grpc_call_element *elem;
+-  grpc_byte_buffer *pending_write = NULL;
+-  gpr_uint32 pending_write_flags = 0;
+-  gpr_uint8 pending_writes_done = 0;
+-  int ok;
+-  grpc_call_op op;
+-  gpr_mu_lock(&call->read_mu);
+-  GPR_ASSERT(!call->received_start);
+-  call->received_start = 1;
+-  ok = call->start_ok = (error == GRPC_OP_OK);
+-  pending_write = call->pending_write;
+-  pending_write_flags = call->pending_write_flags;
+-  pending_writes_done = call->pending_writes_done;
+-  gpr_mu_unlock(&call->read_mu);
+-  if (pending_write) {
+-    if (ok) {
+-      op.type = GRPC_SEND_MESSAGE;
+-      op.dir = GRPC_CALL_DOWN;
+-      op.flags = pending_write_flags;
+-      op.done_cb = done_write;
+-      op.user_data = call;
+-      op.data.message = pending_write;
+-      elem = CALL_ELEM_FROM_CALL(call, 0);
+-      elem->filter->call_op(elem, NULL, &op);
+-    } else {
+-      done_write(call, error);
+-    }
+-    grpc_byte_buffer_destroy(pending_write);
+-  }
+-  if (pending_writes_done) {
+-    if (ok) {
+-      op.type = GRPC_SEND_FINISH;
+-      op.dir = GRPC_CALL_DOWN;
+-      op.flags = 0;
+-      op.done_cb = done_writes_done;
+-      op.user_data = call;
+-      elem = CALL_ELEM_FROM_CALL(call, 0);
+-      elem->filter->call_op(elem, NULL, &op);
+-    } else {
+-      done_writes_done(call, error);
+-    }
+-  }
+-  grpc_call_internal_unref(call);
+-}
+-grpc_call_error grpc_call_invoke(grpc_call *call, grpc_completion_queue *cq,
+-                                 void *metadata_read_tag, void *finished_tag,
+-                                 gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (!call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on clients", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_SERVER;
+-  }
+-  if (call->state >= CALL_STARTED || call->cq) {
+-    gpr_log(GPR_ERROR, "call is already invoked");
+-    return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-  }
+-  if (call->have_write) {
+-    gpr_log(GPR_ERROR, "can only have one pending write operation at a time");
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  if (call->have_read) {
+-    gpr_log(GPR_ERROR, "can only have one pending read operation at a time");
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  if (flags & GRPC_WRITE_NO_COMPRESS) {
+-    return GRPC_CALL_ERROR_INVALID_FLAGS;
+-  }
+-  grpc_cq_begin_op(cq, call, GRPC_FINISHED);
+-  grpc_cq_begin_op(cq, call, GRPC_CLIENT_METADATA_READ);
+-  gpr_mu_lock(&call->read_mu);
+-  call->cq = cq;
+-  call->state = CALL_STARTED;
+-  call->finished_tag = finished_tag;
+-  if (call->received_finish) {
+-    grpc_cq_end_client_metadata_read(call->cq, metadata_read_tag, call, NULL,
+-                                     NULL, 0, NULL);
+-    finish_call(call);
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_OK;
+-  }
+-  call->metadata_tag = metadata_read_tag;
+-  gpr_mu_unlock(&call->read_mu);
+-  op.type = GRPC_SEND_START;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = call_started;
+-  op.data.start.pollset = grpc_cq_pollset(cq);
+-  op.user_data = call;
+-  grpc_call_internal_ref(call);
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_server_accept(grpc_call *call,
+-                                        grpc_completion_queue *cq,
+-                                        void *finished_tag) {
+-  if (call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on servers", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  if (call->state >= CALL_BOUNDCQ) {
+-    gpr_log(GPR_ERROR, "call is already accepted");
+-    return GRPC_CALL_ERROR_ALREADY_ACCEPTED;
+-  }
+-  grpc_cq_begin_op(cq, call, GRPC_FINISHED);
+-  gpr_mu_lock(&call->read_mu);
+-  call->state = CALL_BOUNDCQ;
+-  call->cq = cq;
+-  call->finished_tag = finished_tag;
+-  call->received_start = 1;
+-  if (prq_is_empty(&call->prq) && call->received_finish) {
+-    finish_call(call);
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_OK;
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_server_end_initial_metadata(grpc_call *call,
+-                                                      gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on servers", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  if (call->state >= CALL_STARTED) {
+-    gpr_log(GPR_ERROR, "call is already started");
+-    return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-  }
+-  if (flags & GRPC_WRITE_NO_COMPRESS) {
+-    return GRPC_CALL_ERROR_INVALID_FLAGS;
+-  }
+-  call->state = CALL_STARTED;
+-  op.type = GRPC_SEND_START;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = do_nothing;
+-  op.data.start.pollset = grpc_cq_pollset(call->cq);
+-  op.user_data = NULL;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-void grpc_call_client_initial_metadata_complete(
+-    grpc_call_element *surface_element) {
+-  grpc_call *call = grpc_call_from_top_element(surface_element);
+-  size_t count;
+-  grpc_metadata *elements;
+-  gpr_mu_lock(&call->read_mu);
+-  count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-  elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-  GPR_ASSERT(!call->received_metadata);
+-  grpc_cq_end_client_metadata_read(call->cq, call->metadata_tag, call,
+-                                   grpc_metadata_buffer_cleanup_elements,
+-                                   elements, count, elements);
+-  call->received_metadata = 1;
+-  call->metadata_tag = INVALID_TAG;
+-  gpr_mu_unlock(&call->read_mu);
+-}
+-static void request_more_data(grpc_call *call) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  op.type = GRPC_REQUEST_DATA;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = 0;
+-  op.done_cb = do_nothing;
+-  op.user_data = NULL;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-}
+-grpc_call_error grpc_call_start_read(grpc_call *call, void *tag) {
+-  gpr_uint8 request_more = 0;
+-  switch (call->state) {
+-    case CALL_CREATED:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_BOUNDCQ:
+-    case CALL_STARTED:
+-      break;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-  }
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_READ);
+-  if (!prq_pop_to_cq(&call->prq, tag, call, call->cq)) {
+-    if (call->reads_done) {
+-      grpc_cq_end_read(call->cq, tag, call, do_nothing, NULL, NULL);
+-    } else {
+-      call->read_tag = tag;
+-      call->have_read = 1;
+-      request_more = call->received_start;
+-    }
+-  } else if (prq_is_empty(&call->prq) && call->received_finish) {
+-    finish_call(call);
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-  if (request_more) {
+-    request_more_data(call);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_start_write(grpc_call *call,
+-                                      grpc_byte_buffer *byte_buffer, void *tag,
+-                                      gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_STARTED:
+-      break;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_WRITE_ACCEPTED);
+-  if (byte_buffer == NULL) {
+-    grpc_cq_end_write_accepted(call->cq, tag, call, NULL, NULL, GRPC_OP_OK);
+-    return GRPC_CALL_OK;
+-  }
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  gpr_mu_lock(&call->read_mu);
+-  if (!call->received_start) {
+-    call->pending_write = grpc_byte_buffer_copy(byte_buffer);
+-    call->pending_write_flags = flags;
+-    gpr_mu_unlock(&call->read_mu);
+-  } else {
+-    gpr_mu_unlock(&call->read_mu);
+-    op.type = GRPC_SEND_MESSAGE;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = flags;
+-    op.done_cb = done_write;
+-    op.user_data = call;
+-    op.data.message = byte_buffer;
+-    elem = CALL_ELEM_FROM_CALL(call, 0);
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_writes_done(grpc_call *call, void *tag) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (!call->is_client) {
+-    return GRPC_CALL_ERROR_NOT_ON_SERVER;
+-  }
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    case CALL_STARTED:
+-      break;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_FINISH_ACCEPTED);
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  gpr_mu_lock(&call->read_mu);
+-  if (!call->received_start) {
+-    call->pending_writes_done = 1;
+-    gpr_mu_unlock(&call->read_mu);
+-  } else {
+-    gpr_mu_unlock(&call->read_mu);
+-    op.type = GRPC_SEND_FINISH;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = done_writes_done;
+-    op.user_data = call;
+-    elem = CALL_ELEM_FROM_CALL(call, 0);
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_start_write_status(grpc_call *call,
+-                                             grpc_status_code status,
+-                                             const char *details, void *tag) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (call->is_client) {
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    case CALL_STARTED:
+-      break;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  if (details && details[0]) {
+-    grpc_mdelem *md = grpc_mdelem_from_strings(call->metadata_context,
+-                                               "grpc-message", details);
+-    op.type = GRPC_SEND_METADATA;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = do_nothing;
+-    op.user_data = NULL;
+-    op.data.metadata = md;
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  {
+-    grpc_mdelem *md;
+-    char buffer[GPR_LTOA_MIN_BUFSIZE];
+-    gpr_ltoa(status, buffer);
+-    md =
+-        grpc_mdelem_from_strings(call->metadata_context, "grpc-status", buffer);
+-    op.type = GRPC_SEND_METADATA;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = do_nothing;
+-    op.user_data = NULL;
+-    op.data.metadata = md;
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_FINISH_ACCEPTED);
+-  call->state = CALL_FINISHED;
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  op.type = GRPC_SEND_FINISH;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = 0;
+-  op.done_cb = done_writes_done;
+-  op.user_data = call;
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-#define STATUS_OFFSET 1
+-static void destroy_status(void *ignored) {}
+-static gpr_uint32 decode_status(grpc_mdelem *md) {
+-  gpr_uint32 status;
+-  void *user_data = grpc_mdelem_get_user_data(md, destroy_status);
+-  if (user_data) {
+-    status = ((gpr_uint32)(gpr_intptr)user_data) - STATUS_OFFSET;
+-  } else {
+-    if (!gpr_parse_bytes_to_uint32(grpc_mdstr_as_c_string(md->value),
+-                                   GPR_SLICE_LENGTH(md->value->slice),
+-                                   &status)) {
+-      status = GRPC_STATUS_UNKNOWN;
+-    }
+-    grpc_mdelem_set_user_data(md, destroy_status,
+-                              (void *)(gpr_intptr)(status + STATUS_OFFSET));
+-  }
+-  return status;
+-}
+-void grpc_call_recv_metadata(grpc_call_element *elem, grpc_call_op *op) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  grpc_mdelem *md = op->data.metadata;
+-  grpc_mdstr *key = md->key;
+-  if (key == grpc_channel_get_status_string(call->channel)) {
+-    maybe_set_status_code(call, decode_status(md));
+-    grpc_mdelem_unref(md);
+-    op->done_cb(op->user_data, GRPC_OP_OK);
+-  } else if (key == grpc_channel_get_message_string(call->channel)) {
+-    maybe_set_status_details(call, md->value);
+-    grpc_mdelem_unref(md);
+-    op->done_cb(op->user_data, GRPC_OP_OK);
+-  } else {
+-    grpc_metadata_buffer_queue(&call->incoming_metadata, op);
+-  }
+-}
+-void grpc_call_recv_finish(grpc_call_element *elem, int is_full_close) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    grpc_cq_end_read(call->cq, call->read_tag, call, do_nothing, NULL, NULL);
+-    call->read_tag = INVALID_TAG;
+-    call->have_read = 0;
+-  }
+-  if (call->is_client && !call->received_metadata && call->cq) {
+-    size_t count;
+-    grpc_metadata *elements;
+-    call->received_metadata = 1;
+-    count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-    elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-    grpc_cq_end_client_metadata_read(call->cq, call->metadata_tag, call,
+-                                     grpc_metadata_buffer_cleanup_elements,
+-                                     elements, count, elements);
+-  }
+-  if (is_full_close) {
+-    if (call->have_alarm) {
+-      grpc_alarm_cancel(&call->alarm);
+-      call->have_alarm = 0;
+-    }
+-    call->received_finish = 1;
+-    if (prq_is_empty(&call->prq) && call->cq != NULL) {
+-      finish_call(call);
+-    }
+-  } else {
+-    call->reads_done = 1;
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-}
+-void grpc_call_recv_message(grpc_call_element *elem, grpc_byte_buffer *message,
+-                            void (*on_finish)(void *user_data,
+-                                              grpc_op_error error),
+-                            void *user_data) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    grpc_cq_end_read(call->cq, call->read_tag, call, on_finish, user_data,
+-                     message);
+-    call->read_tag = INVALID_TAG;
+-    call->have_read = 0;
+-  } else {
+-    prq_push(&call->prq, message, on_finish, user_data);
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-}
+-=======
+-void grpc_call_add_mdelem(grpc_call *call, grpc_mdelem *mdelem,
+-                          gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  GPR_ASSERT(call->state < CALL_FINISHED);
+-  op.type = GRPC_SEND_METADATA;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = do_nothing;
+-  op.user_data = NULL;
+-  op.data.metadata = mdelem;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-}
+-grpc_call_error grpc_call_add_metadata_old(grpc_call *call,
+-                                           grpc_metadata *metadata,
+-                                           gpr_uint32 flags) {
+-  grpc_mdelem *mdelem;
+-  if (call->is_client) {
+-    if (call->state >= CALL_STARTED) {
+-      return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-    }
+-  } else {
+-    if (call->state >= CALL_FINISHED) {
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    }
+-  }
+-  mdelem = grpc_mdelem_from_string_and_buffer(
+-      call->metadata_context, metadata->key, (gpr_uint8 *)metadata->value,
+-      metadata->value_length);
+-  grpc_call_add_mdelem(call, mdelem, flags);
+-  return GRPC_CALL_OK;
+-}
+-static void finish_call(grpc_call *call) {
+-  size_t count;
+-  grpc_metadata *elements;
+-  count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-  elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-  grpc_cq_end_finished(
+-      call->cq, call->finished_tag, call, grpc_metadata_buffer_cleanup_elements,
+-      elements, call->status_code,
+-      call->status_details
+-          ? (char *)grpc_mdstr_as_c_string(call->status_details)
+-          : NULL,
+-      elements, count);
+-}
+-static void done_write(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  void *tag = call->write_tag;
+-  GPR_ASSERT(call->have_write);
+-  call->have_write = 0;
+-  call->write_tag = INVALID_TAG;
+-  grpc_cq_end_write_accepted(call->cq, tag, call, NULL, NULL, error);
+-}
+-static void done_writes_done(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  void *tag = call->write_tag;
+-  GPR_ASSERT(call->have_write);
+-  call->have_write = 0;
+-  call->write_tag = INVALID_TAG;
+-  grpc_cq_end_finish_accepted(call->cq, tag, call, NULL, NULL, error);
+-}
+-static void call_started(void *user_data, grpc_op_error error) {
+-  grpc_call *call = user_data;
+-  grpc_call_element *elem;
+-  grpc_byte_buffer *pending_write = NULL;
+-  gpr_uint32 pending_write_flags = 0;
+-  gpr_uint8 pending_writes_done = 0;
+-  int ok;
+-  grpc_call_op op;
+-  gpr_mu_lock(&call->read_mu);
+-  GPR_ASSERT(!call->received_start);
+-  call->received_start = 1;
+-  ok = call->start_ok = (error == GRPC_OP_OK);
+-  pending_write = call->pending_write;
+-  pending_write_flags = call->pending_write_flags;
+-  pending_writes_done = call->pending_writes_done;
+-  gpr_mu_unlock(&call->read_mu);
+-  if (pending_write) {
+-    if (ok) {
+-      op.type = GRPC_SEND_MESSAGE;
+-      op.dir = GRPC_CALL_DOWN;
+-      op.flags = pending_write_flags;
+-      op.done_cb = done_write;
+-      op.user_data = call;
+-      op.data.message = pending_write;
+-      elem = CALL_ELEM_FROM_CALL(call, 0);
+-      elem->filter->call_op(elem, NULL, &op);
+-    } else {
+-      done_write(call, error);
+-    }
+-    grpc_byte_buffer_destroy(pending_write);
+-  }
+-  if (pending_writes_done) {
+-    if (ok) {
+-      op.type = GRPC_SEND_FINISH;
+-      op.dir = GRPC_CALL_DOWN;
+-      op.flags = 0;
+-      op.done_cb = done_writes_done;
+-      op.user_data = call;
+-      elem = CALL_ELEM_FROM_CALL(call, 0);
+-      elem->filter->call_op(elem, NULL, &op);
+-    } else {
+-      done_writes_done(call, error);
+-    }
+-  }
+-  grpc_call_internal_unref(call);
+-}
+-grpc_call_error grpc_call_invoke_old(grpc_call *call, grpc_completion_queue *cq,
+-                                     void *metadata_read_tag,
+-                                     void *finished_tag, gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (!call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on clients", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_SERVER;
+-  }
+-  if (call->state >= CALL_STARTED || call->cq) {
+-    gpr_log(GPR_ERROR, "call is already invoked");
+-    return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-  }
+-  if (call->have_write) {
+-    gpr_log(GPR_ERROR, "can only have one pending write operation at a time");
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  if (call->have_read) {
+-    gpr_log(GPR_ERROR, "can only have one pending read operation at a time");
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  if (flags & GRPC_WRITE_NO_COMPRESS) {
+-    return GRPC_CALL_ERROR_INVALID_FLAGS;
+-  }
+-  grpc_cq_begin_op(cq, call, GRPC_FINISHED);
+-  grpc_cq_begin_op(cq, call, GRPC_CLIENT_METADATA_READ);
+-  gpr_mu_lock(&call->read_mu);
+-  call->cq = cq;
+-  call->state = CALL_STARTED;
+-  call->finished_tag = finished_tag;
+-  if (call->received_finish) {
+-    grpc_cq_end_client_metadata_read(call->cq, metadata_read_tag, call, NULL,
+-                                     NULL, 0, NULL);
+-    finish_call(call);
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_OK;
+-  }
+-  call->metadata_tag = metadata_read_tag;
+-  gpr_mu_unlock(&call->read_mu);
+-  op.type = GRPC_SEND_START;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = call_started;
+-  op.data.start.pollset = grpc_cq_pollset(cq);
+-  op.user_data = call;
+-  grpc_call_internal_ref(call);
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_server_accept_old(grpc_call *call,
+-                                            grpc_completion_queue *cq,
+-                                            void *finished_tag) {
+-  if (call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on servers", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  if (call->state >= CALL_BOUNDCQ) {
+-    gpr_log(GPR_ERROR, "call is already accepted");
+-    return GRPC_CALL_ERROR_ALREADY_ACCEPTED;
+-  }
+-  grpc_cq_begin_op(cq, call, GRPC_FINISHED);
+-  gpr_mu_lock(&call->read_mu);
+-  call->state = CALL_BOUNDCQ;
+-  call->cq = cq;
+-  call->finished_tag = finished_tag;
+-  call->received_start = 1;
+-  if (prq_is_empty(&call->prq) && call->received_finish) {
+-    finish_call(call);
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_OK;
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_server_end_initial_metadata_old(grpc_call *call,
+-                                                          gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (call->is_client) {
+-    gpr_log(GPR_ERROR, "can only call %s on servers", __FUNCTION__);
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  if (call->state >= CALL_STARTED) {
+-    gpr_log(GPR_ERROR, "call is already started");
+-    return GRPC_CALL_ERROR_ALREADY_INVOKED;
+-  }
+-  if (flags & GRPC_WRITE_NO_COMPRESS) {
+-    return GRPC_CALL_ERROR_INVALID_FLAGS;
+-  }
+-  call->state = CALL_STARTED;
+-  op.type = GRPC_SEND_START;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = flags;
+-  op.done_cb = do_nothing;
+-  op.data.start.pollset = grpc_cq_pollset(call->cq);
+-  op.user_data = NULL;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-void grpc_call_client_initial_metadata_complete(
+-    grpc_call_element *surface_element) {
+-  grpc_call *call = grpc_call_from_top_element(surface_element);
+-  size_t count;
+-  grpc_metadata *elements;
+-  gpr_mu_lock(&call->read_mu);
+-  count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-  elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-  GPR_ASSERT(!call->received_metadata);
+-  grpc_cq_end_client_metadata_read(call->cq, call->metadata_tag, call,
+-                                   grpc_metadata_buffer_cleanup_elements,
+-                                   elements, count, elements);
+-  call->received_metadata = 1;
+-  call->metadata_tag = INVALID_TAG;
+-  gpr_mu_unlock(&call->read_mu);
+-}
+-static void request_more_data(grpc_call *call) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  op.type = GRPC_REQUEST_DATA;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = 0;
+-  op.done_cb = do_nothing;
+-  op.user_data = NULL;
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  elem->filter->call_op(elem, NULL, &op);
+-}
+-grpc_call_error grpc_call_start_read_old(grpc_call *call, void *tag) {
+-  gpr_uint8 request_more = 0;
+-  switch (call->state) {
+-    case CALL_CREATED:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_BOUNDCQ:
+-    case CALL_STARTED:
+-      break;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-  }
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    gpr_mu_unlock(&call->read_mu);
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_READ);
+-  if (!prq_pop_to_cq(&call->prq, tag, call, call->cq)) {
+-    if (call->reads_done) {
+-      grpc_cq_end_read(call->cq, tag, call, do_nothing, NULL, NULL);
+-    } else {
+-      call->read_tag = tag;
+-      call->have_read = 1;
+-      request_more = call->received_start;
+-    }
+-  } else if (prq_is_empty(&call->prq) && call->received_finish) {
+-    finish_call(call);
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-  if (request_more) {
+-    request_more_data(call);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_start_write_old(grpc_call *call,
+-                                          grpc_byte_buffer *byte_buffer,
+-                                          void *tag, gpr_uint32 flags) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_STARTED:
+-      break;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_WRITE_ACCEPTED);
+-  if (byte_buffer == NULL) {
+-    grpc_cq_end_write_accepted(call->cq, tag, call, NULL, NULL, GRPC_OP_OK);
+-    return GRPC_CALL_OK;
+-  }
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  gpr_mu_lock(&call->read_mu);
+-  if (!call->received_start) {
+-    call->pending_write = grpc_byte_buffer_copy(byte_buffer);
+-    call->pending_write_flags = flags;
+-    gpr_mu_unlock(&call->read_mu);
+-  } else {
+-    gpr_mu_unlock(&call->read_mu);
+-    op.type = GRPC_SEND_MESSAGE;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = flags;
+-    op.done_cb = done_write;
+-    op.user_data = call;
+-    op.data.message = byte_buffer;
+-    elem = CALL_ELEM_FROM_CALL(call, 0);
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_writes_done_old(grpc_call *call, void *tag) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (!call->is_client) {
+-    return GRPC_CALL_ERROR_NOT_ON_SERVER;
+-  }
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    case CALL_STARTED:
+-      break;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_FINISH_ACCEPTED);
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  gpr_mu_lock(&call->read_mu);
+-  if (!call->received_start) {
+-    call->pending_writes_done = 1;
+-    gpr_mu_unlock(&call->read_mu);
+-  } else {
+-    gpr_mu_unlock(&call->read_mu);
+-    op.type = GRPC_SEND_FINISH;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = done_writes_done;
+-    op.user_data = call;
+-    elem = CALL_ELEM_FROM_CALL(call, 0);
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  return GRPC_CALL_OK;
+-}
+-grpc_call_error grpc_call_start_write_status_old(grpc_call *call,
+-                                                 grpc_status_code status,
+-                                                 const char *details,
+-                                                 void *tag) {
+-  grpc_call_element *elem;
+-  grpc_call_op op;
+-  if (call->is_client) {
+-    return GRPC_CALL_ERROR_NOT_ON_CLIENT;
+-  }
+-  switch (call->state) {
+-    case CALL_CREATED:
+-    case CALL_BOUNDCQ:
+-      return GRPC_CALL_ERROR_NOT_INVOKED;
+-    case CALL_FINISHED:
+-      return GRPC_CALL_ERROR_ALREADY_FINISHED;
+-    case CALL_STARTED:
+-      break;
+-  }
+-  if (call->have_write) {
+-    return GRPC_CALL_ERROR_TOO_MANY_OPERATIONS;
+-  }
+-  elem = CALL_ELEM_FROM_CALL(call, 0);
+-  if (details && details[0]) {
+-    grpc_mdelem *md = grpc_mdelem_from_strings(call->metadata_context,
+-                                               "grpc-message", details);
+-    op.type = GRPC_SEND_METADATA;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = do_nothing;
+-    op.user_data = NULL;
+-    op.data.metadata = md;
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  {
+-    grpc_mdelem *md;
+-    char buffer[GPR_LTOA_MIN_BUFSIZE];
+-    gpr_ltoa(status, buffer);
+-    md =
+-        grpc_mdelem_from_strings(call->metadata_context, "grpc-status", buffer);
+-    op.type = GRPC_SEND_METADATA;
+-    op.dir = GRPC_CALL_DOWN;
+-    op.flags = 0;
+-    op.done_cb = do_nothing;
+-    op.user_data = NULL;
+-    op.data.metadata = md;
+-    elem->filter->call_op(elem, NULL, &op);
+-  }
+-  grpc_cq_begin_op(call->cq, call, GRPC_FINISH_ACCEPTED);
+-  call->state = CALL_FINISHED;
+-  call->write_tag = tag;
+-  call->have_write = 1;
+-  op.type = GRPC_SEND_FINISH;
+-  op.dir = GRPC_CALL_DOWN;
+-  op.flags = 0;
+-  op.done_cb = done_writes_done;
+-  op.user_data = call;
+-  elem->filter->call_op(elem, NULL, &op);
+-  return GRPC_CALL_OK;
+-}
+-#define STATUS_OFFSET 1
+-static void destroy_status(void *ignored) {}
+-static gpr_uint32 decode_status(grpc_mdelem *md) {
+-  gpr_uint32 status;
+-  void *user_data = grpc_mdelem_get_user_data(md, destroy_status);
+-  if (user_data) {
+-    status = ((gpr_uint32)(gpr_intptr)user_data) - STATUS_OFFSET;
+-  } else {
+-    if (!gpr_parse_bytes_to_uint32(grpc_mdstr_as_c_string(md->value),
+-                                   GPR_SLICE_LENGTH(md->value->slice),
+-                                   &status)) {
+-      status = GRPC_STATUS_UNKNOWN;
+-    }
+-    grpc_mdelem_set_user_data(md, destroy_status,
+-                              (void *)(gpr_intptr)(status + STATUS_OFFSET));
+-  }
+-  return status;
+-}
+-void grpc_call_recv_metadata(grpc_call_element *elem, grpc_call_op *op) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  grpc_mdelem *md = op->data.metadata;
+-  grpc_mdstr *key = md->key;
+-  if (key == grpc_channel_get_status_string(call->channel)) {
+-    maybe_set_status_code(call, decode_status(md));
+-    grpc_mdelem_unref(md);
+-    op->done_cb(op->user_data, GRPC_OP_OK);
+-  } else if (key == grpc_channel_get_message_string(call->channel)) {
+-    maybe_set_status_details(call, md->value);
+-    grpc_mdelem_unref(md);
+-    op->done_cb(op->user_data, GRPC_OP_OK);
+-  } else {
+-    grpc_metadata_buffer_queue(&call->incoming_metadata, op);
+-  }
+-}
+-void grpc_call_recv_finish(grpc_call_element *elem, int is_full_close) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    grpc_cq_end_read(call->cq, call->read_tag, call, do_nothing, NULL, NULL);
+-    call->read_tag = INVALID_TAG;
+-    call->have_read = 0;
+-  }
+-  if (call->is_client && !call->received_metadata && call->cq) {
+-    size_t count;
+-    grpc_metadata *elements;
+-    call->received_metadata = 1;
+-    count = grpc_metadata_buffer_count(&call->incoming_metadata);
+-    elements = grpc_metadata_buffer_extract_elements(&call->incoming_metadata);
+-    grpc_cq_end_client_metadata_read(call->cq, call->metadata_tag, call,
+-                                     grpc_metadata_buffer_cleanup_elements,
+-                                     elements, count, elements);
+-  }
+-  if (is_full_close) {
+-    if (call->have_alarm) {
+-      grpc_alarm_cancel(&call->alarm);
+-      call->have_alarm = 0;
+-    }
+-    call->received_finish = 1;
+-    if (prq_is_empty(&call->prq) && call->cq != NULL) {
+-      finish_call(call);
+-    }
+-  } else {
+-    call->reads_done = 1;
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-}
+-void grpc_call_recv_message(grpc_call_element *elem, grpc_byte_buffer *message,
+-                            void (*on_finish)(void *user_data,
+-                                              grpc_op_error error),
+-                            void *user_data) {
+-  grpc_call *call = CALL_FROM_TOP_ELEM(elem);
+-  gpr_mu_lock(&call->read_mu);
+-  if (call->have_read) {
+-    grpc_cq_end_read(call->cq, call->read_tag, call, on_finish, user_data,
+-                     message);
+-    call->read_tag = INVALID_TAG;
+-    call->have_read = 0;
+-  } else {
+-    prq_push(&call->prq, message, on_finish, user_data);
+-  }
+-  gpr_mu_unlock(&call->read_mu);
+-}
+->>>>>>> 9b5da208
+@@ -1740 +758,2 @@ static void destroy_legacy_state(legacy_state *ls) {
+-grpc_call_error grpc_call_add_metadata(grpc_call *call, grpc_metadata *metadata,
++grpc_call_error grpc_call_add_metadata_old(grpc_call *call,
++                                           grpc_metadata *metadata,
+@@ -1790,3 +809,3 @@ static void finish_send_metadata(grpc_call *call, grpc_op_error status,
+-grpc_call_error grpc_call_invoke(grpc_call *call, grpc_completion_queue *cq,
+-                                 void *metadata_read_tag, void *finished_tag,
+-                                 gpr_uint32 flags) {
++grpc_call_error grpc_call_invoke_old(grpc_call *call, grpc_completion_queue *cq,
++                                     void *metadata_read_tag,
++                                     void *finished_tag, gpr_uint32 flags) {
+@@ -1826 +845 @@ done:
+-grpc_call_error grpc_call_server_accept(grpc_call *call,
++grpc_call_error grpc_call_server_accept_old(grpc_call *call,
+@@ -1849 +868 @@ static void finish_send_initial_metadata(grpc_call *call, grpc_op_error status,
+-grpc_call_error grpc_call_server_end_initial_metadata(grpc_call *call,
++grpc_call_error grpc_call_server_end_initial_metadata_old(grpc_call *call,
+@@ -1882 +901 @@ static void finish_read(grpc_call *call, grpc_op_error error, void *tag) {
+-grpc_call_error grpc_call_start_read(grpc_call *call, void *tag) {
++grpc_call_error grpc_call_start_read_old(grpc_call *call, void *tag) {
+@@ -1901,3 +920,3 @@ static void finish_write(grpc_call *call, grpc_op_error status, void *tag) {
+-grpc_call_error grpc_call_start_write(grpc_call *call,
+-                                      grpc_byte_buffer *byte_buffer, void *tag,
+-                                      gpr_uint32 flags) {
++grpc_call_error grpc_call_start_write_old(grpc_call *call,
++                                          grpc_byte_buffer *byte_buffer,
++                                          void *tag, gpr_uint32 flags) {
+@@ -1920 +939 @@ static void finish_finish(grpc_call *call, grpc_op_error status, void *tag) {
+-grpc_call_error grpc_call_writes_done(grpc_call *call, void *tag) {
++grpc_call_error grpc_call_writes_done_old(grpc_call *call, void *tag) {
+@@ -1930 +949 @@ grpc_call_error grpc_call_writes_done(grpc_call *call, void *tag) {
+-grpc_call_error grpc_call_start_write_status(grpc_call *call,
++grpc_call_error grpc_call_start_write_status_old(grpc_call *call,

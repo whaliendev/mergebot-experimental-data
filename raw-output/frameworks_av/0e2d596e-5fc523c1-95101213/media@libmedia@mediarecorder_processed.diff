@@ -1,0 +1,813 @@
+--- a/output/frameworks_av/0e2d596e-5fc523c1-95101213/media@libmedia@mediarecorder.no_comments_mergebot.cpp
++++ b/output/frameworks_av/0e2d596e-5fc523c1-95101213/media@libmedia@mediarecorder.no_comments_truth.cpp
+@@ -14 +14,2 @@ namespace android {
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::setCamera(const sp<hardware::ICamera>& camera,
++        const sp<ICameraRecordingProxy>& proxy)
+@@ -16 +17 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setCamera(%p,%p)", camera.get(), proxy.get());
+@@ -21 +22,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_IDLE)) {
++        ALOGE("setCamera called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
+@@ -23 +26,9 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->setCamera(camera, proxy);
++    if (OK != ret) {
++        ALOGV("setCamera failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::setPreviewSurface(const sp<IGraphicBufferProducer>& surface)
+@@ -25 +36 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setPreviewSurface(%p)", surface.get());
+@@ -30 +41,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setPreviewSurface called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
+@@ -32,5 +45,2 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    if (!mIsVideoSourceSet) {
++        ALOGE("try to set preview surface without setting the video source first");
+@@ -39 +49,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    status_t ret = mMediaRecorder->setPreviewSurface(surface);
++    if (OK != ret) {
++        ALOGV("setPreviewSurface failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
+@@ -41 +55,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    return ret;
++}
++status_t MediaRecorder::init()
+@@ -43 +59 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("init");
+@@ -48 +64,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_IDLE)) {
++        ALOGE("init called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
+@@ -50 +68,16 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->init();
++    if (OK != ret) {
++        ALOGV("init failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    ret = mMediaRecorder->setListener(this);
++    if (OK != ret) {
++        ALOGV("setListener failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mCurrentState = MEDIA_RECORDER_INITIALIZED;
++    return ret;
++}
++status_t MediaRecorder::setVideoSource(int vs)
+@@ -52 +85 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setVideoSource(%d)", vs);
+@@ -57 +90,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (mIsVideoSourceSet) {
++        ALOGE("video source has already been set");
++        return INVALID_OPERATION;
+@@ -59,5 +94,9 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    if (mCurrentState & MEDIA_RECORDER_IDLE) {
++        ALOGV("Call init() since the media recorder is not initialized yet");
++        status_t ret = init();
++        if (OK != ret) {
++            return ret;
++        }
++    }
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED)) {
++        ALOGE("setVideoSource called in an invalid state(%d)", mCurrentState);
+@@ -66 +105,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    status_t ret = mMediaRecorder->setVideoSource(vs);
++    if (OK != ret) {
++        ALOGV("setVideoSource failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
+@@ -68 +111,4 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    mIsVideoSourceSet = true;
++    return ret;
++}
++status_t MediaRecorder::setAudioSource(int as)
+@@ -70 +116 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setAudioSource(%d)", as);
+@@ -75 +121,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (mCurrentState & MEDIA_RECORDER_IDLE) {
++        ALOGV("Call init() since the media recorder is not initialized yet");
++        status_t ret = init();
++        if (OK != ret) {
++            return ret;
+@@ -77,5 +127,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    }
++    if (mIsAudioSourceSet) {
++        ALOGE("audio source has already been set");
+@@ -84 +132,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED)) {
++        ALOGE("setAudioSource called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
+@@ -86 +136,10 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->setAudioSource(as);
++    if (OK != ret) {
++        ALOGV("setAudioSource failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mIsAudioSourceSet = true;
++    return ret;
++}
++status_t MediaRecorder::setPrivacySensitive(bool privacySensitive)
+@@ -88 +147 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("%s(%s)", __func__, privacySensitive ? "true" : "false");
+@@ -90 +149 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-        ALOGE("media recorder is not initialized yet");
++        ALOGE("%s: media recorder is not initialized yet", __func__);
+@@ -93 +152,4 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED) || !mIsAudioSourceSet) {
++        ALOGE("%s called in an invalid state(%d) or audio source not (%d)",
++            __func__, mCurrentState, mIsAudioSourceSet);
++        return INVALID_OPERATION;
+@@ -95 +157,9 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->setPrivacySensitive(privacySensitive);
++    if (OK != ret) {
++        ALOGV("%s failed: %d", __func__, ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::isPrivacySensitive(bool *privacySensitive) const
+@@ -97 +166,0 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+@@ -99 +168 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-        ALOGE("media recorder is not initialized yet");
++        ALOGE("%s: media recorder is not initialized yet", __func__);
+@@ -102 +171,4 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED) || !mIsAudioSourceSet) {
++        ALOGE("%s called in an invalid state(%d) or audio source not (%d)",
++            __func__, mCurrentState, mIsAudioSourceSet);
++        return INVALID_OPERATION;
+@@ -104 +176,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->isPrivacySensitive(privacySensitive);
++    ALOGV("%s status: %d eanbled %s", __func__, ret, *privacySensitive ? "enabled" : "disabled");
++    return ret;
++}
++status_t MediaRecorder::setOutputFormat(int of)
+@@ -106 +182 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setOutputFormat(%d)", of);
+@@ -111 +187,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED)) {
++        ALOGE("setOutputFormat called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -113,5 +191,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    if (mIsVideoSourceSet
++            && of >= OUTPUT_FORMAT_AUDIO_ONLY_START
++            && of < OUTPUT_FORMAT_AUDIO_ONLY_END) {
++        ALOGE("output format (%d) is meant for audio recording only"
++              " and incompatible with video recording", of);
+@@ -120 +198,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    status_t ret = mMediaRecorder->setOutputFormat(of);
++    if (OK != ret) {
++        ALOGE("setOutputFormat failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
+@@ -122 +204,5 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    mOutputFormat = (output_format)of;
++    mCurrentState = MEDIA_RECORDER_DATASOURCE_CONFIGURED;
++    return ret;
++}
++status_t MediaRecorder::setVideoEncoder(int ve)
+@@ -124 +210 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setVideoEncoder(%d)", ve);
+@@ -129 +215,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!mIsVideoSourceSet) {
++        ALOGE("try to set the video encoder without setting the video source first");
++        return INVALID_OPERATION;
+@@ -131,5 +219,2 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    if (mIsVideoEncoderSet) {
++        ALOGE("video encoder has already been set");
+@@ -138 +223,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setVideoEncoder called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
+@@ -140 +227,10 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->setVideoEncoder(ve);
++    if (OK != ret) {
++        ALOGV("setVideoEncoder failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mIsVideoEncoderSet = true;
++    return ret;
++}
++status_t MediaRecorder::setAudioEncoder(int ae)
+@@ -142 +238 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setAudioEncoder(%d)", ae);
+@@ -147 +243,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!mIsAudioSourceSet) {
++        ALOGE("try to set the audio encoder without setting the audio source first");
++        return INVALID_OPERATION;
+@@ -149 +247,18 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if (mIsAudioEncoderSet) {
++        ALOGE("audio encoder has already been set");
++        return INVALID_OPERATION;
++    }
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setAudioEncoder called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
++    }
++    status_t ret = mMediaRecorder->setAudioEncoder(ae);
++    if (OK != ret) {
++        ALOGV("setAudioEncoder failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mIsAudioEncoderSet = true;
++    return ret;
++}
++status_t MediaRecorder::setOutputFile(int fd)
+@@ -151 +266 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setOutputFile(%d)", fd);
+@@ -156 +271,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (mIsOutputFileSet) {
++        ALOGE("output file has already been set");
++        return INVALID_OPERATION;
+@@ -158 +275,22 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setOutputFile called in an invalid state(%d)", mCurrentState);
++        return INVALID_OPERATION;
++    }
++    int flags = fcntl(fd, F_GETFL);
++    if (flags == -1) {
++        ALOGE("Fail to get File Status Flags err: %s", strerror(errno));
++    }
++    if ((flags & (O_RDWR | O_WRONLY)) == 0) {
++        ALOGE("File descriptor is not in read-write mode or write-only mode");
++        return BAD_VALUE;
++    }
++    status_t ret = mMediaRecorder->setOutputFile(fd);
++    if (OK != ret) {
++        ALOGE("setOutputFile failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mIsOutputFileSet = true;
++    return ret;
++}
++status_t MediaRecorder::setNextOutputFile(int fd)
+@@ -160 +298 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setNextOutputFile(%d)", fd);
+@@ -165 +303,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    int flags = fcntl(fd, F_GETFL);
++    if (flags == -1) {
++        ALOGE("Fail to get File Status Flags err: %s", strerror(errno));
+@@ -167 +307,11 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if ((flags & (O_RDWR | O_WRONLY)) == 0) {
++        ALOGE("File descriptor is not in read-write mode or write-only mode");
++        return BAD_VALUE;
++    }
++    status_t ret = mMediaRecorder->setNextOutputFile(fd);
++    if (OK != ret) {
++        ALOGE("setNextOutputFile failed: %d", ret);
++    }
++    return ret;
++}
++status_t MediaRecorder::setVideoSize(int width, int height)
+@@ -169 +319 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setVideoSize(%d, %d)", width, height);
+@@ -174 +324,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setVideoSize called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -176 +328,14 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if (!mIsVideoSourceSet) {
++        ALOGE("Cannot set video size without setting video source first");
++        return INVALID_OPERATION;
++    }
++    status_t ret = mMediaRecorder->setVideoSize(width, height);
++    if (OK != ret) {
++        ALOGE("setVideoSize failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++sp<IGraphicBufferProducer> MediaRecorder::
++        querySurfaceMediaSourceFromMediaServer()
+@@ -178 +343,11 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    Mutex::Autolock _l(mLock);
++    mSurfaceMediaSource =
++            mMediaRecorder->querySurfaceMediaSource();
++    if (mSurfaceMediaSource == NULL) {
++        ALOGE("SurfaceMediaSource could not be initialized!");
++    }
++    return mSurfaceMediaSource;
++}
++status_t MediaRecorder::setInputSurface(const sp<PersistentSurface>& surface)
++{
++    ALOGV("setInputSurface");
+@@ -183 +358,6 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    bool isInvalidState = (mCurrentState &
++                           (MEDIA_RECORDER_PREPARED |
++                            MEDIA_RECORDER_RECORDING));
++    if (isInvalidState) {
++        ALOGE("setInputSurface is called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -185 +365,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    return mMediaRecorder->setInputSurface(surface);
++}
++status_t MediaRecorder::setVideoFrameRate(int frames_per_second)
+@@ -187 +369 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setVideoFrameRate(%d)", frames_per_second);
+@@ -192 +374,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("setVideoFrameRate called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -194,3 +378,14 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
++    if (!mIsVideoSourceSet) {
++        ALOGE("Cannot set video frame rate without setting video source first");
++        return INVALID_OPERATION;
++    }
++    status_t ret = mMediaRecorder->setVideoFrameRate(frames_per_second);
++    if (OK != ret) {
++        ALOGE("setVideoFrameRate failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::setParameters(const String8& params) {
++    ALOGV("setParameters(%s)", params.string());
+@@ -201 +396,8 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    bool isInvalidState = (mCurrentState &
++                           (MEDIA_RECORDER_PREPARED |
++                            MEDIA_RECORDER_RECORDING |
++                            MEDIA_RECORDER_ERROR));
++    if (isInvalidState) {
++        if (mCurrentState == MEDIA_RECORDER_RECORDING &&
++            mOutputFormat == OUTPUT_FORMAT_RTP_AVP)
++            isInvalidState = false;
+@@ -203 +405,11 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if (isInvalidState) {
++        ALOGE("setParameters is called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
++    }
++    status_t ret = mMediaRecorder->setParameters(params);
++    if (OK != ret) {
++        ALOGE("setParameters(%s) failed: %d", params.string(), ret);
++    }
++    return ret;
++}
++status_t MediaRecorder::prepare()
+@@ -205 +417 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("prepare");
+@@ -210 +422,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_DATASOURCE_CONFIGURED)) {
++        ALOGE("prepare called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -212 +426,26 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    if (mIsAudioSourceSet != mIsAudioEncoderSet) {
++        if (mIsAudioSourceSet) {
++            ALOGE("audio source is set, but audio encoder is not set");
++        } else {
++            ALOGE("audio encoder is set, but audio source is not set");
++        }
++        return INVALID_OPERATION;
++    }
++    if (mIsVideoSourceSet != mIsVideoEncoderSet) {
++        if (mIsVideoSourceSet) {
++            ALOGE("video source is set, but video encoder is not set");
++        } else {
++            ALOGE("video encoder is set, but video source is not set");
++        }
++        return INVALID_OPERATION;
++    }
++    status_t ret = mMediaRecorder->prepare();
++    if (OK != ret) {
++        ALOGE("prepare failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mCurrentState = MEDIA_RECORDER_PREPARED;
++    return ret;
++}
++status_t MediaRecorder::getMaxAmplitude(int* max)
+@@ -214 +453 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("getMaxAmplitude");
+@@ -219 +458,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (mCurrentState & MEDIA_RECORDER_ERROR) {
++        ALOGE("getMaxAmplitude called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -221 +462,17 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->getMaxAmplitude(max);
++    if (OK != ret) {
++        ALOGE("getMaxAmplitude failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::getMetrics(Parcel *reply) {
++    ALOGV("getMetrics");
++    status_t ret = mMediaRecorder->getMetrics(reply);
++    if (OK != ret) {
++        ALOGE("getMetrics failed: %d", ret);
++    }
++    return ret;
++}
++status_t MediaRecorder::start()
+@@ -223 +480 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("start");
+@@ -228 +485,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_PREPARED)) {
++        ALOGE("start called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -230 +489,10 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->start();
++    if (OK != ret) {
++        ALOGE("start failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    mCurrentState = MEDIA_RECORDER_RECORDING;
++    return ret;
++}
++status_t MediaRecorder::stop()
+@@ -232 +500 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("stop");
+@@ -237 +505,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_RECORDING)) {
++        ALOGE("stop called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -239 +509,11 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->stop();
++    if (OK != ret) {
++        ALOGE("stop failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    doCleanUp();
++    mCurrentState = MEDIA_RECORDER_IDLE;
++    return ret;
++}
++status_t MediaRecorder::reset()
+@@ -241 +521 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("reset");
+@@ -246 +526,13 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    doCleanUp();
++    status_t ret = UNKNOWN_ERROR;
++    switch (mCurrentState) {
++        case MEDIA_RECORDER_IDLE:
++            ret = OK;
++            break;
++        case MEDIA_RECORDER_RECORDING:
++        case MEDIA_RECORDER_DATASOURCE_CONFIGURED:
++        case MEDIA_RECORDER_PREPARED:
++        case MEDIA_RECORDER_ERROR: {
++            ret = doReset();
++            if (OK != ret) {
++                return ret;
+@@ -248 +540,13 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++            FALLTHROUGH_INTENDED;
++        }
++        case MEDIA_RECORDER_INITIALIZED:
++            ret = close();
++            break;
++        default: {
++            ALOGE("Unexpected non-existing state: %d", mCurrentState);
++            break;
++        }
++    }
++    return ret;
++}
++status_t MediaRecorder::pause()
+@@ -250 +554 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("pause");
+@@ -255 +559,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_RECORDING)) {
++        ALOGE("stop called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -257 +563,9 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->pause();
++    if (OK != ret) {
++        ALOGE("pause failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::resume()
+@@ -259 +573 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("resume");
+@@ -264 +578,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    if (!(mCurrentState & MEDIA_RECORDER_RECORDING)) {
++        ALOGE("resume called in an invalid state: %d", mCurrentState);
++        return INVALID_OPERATION;
+@@ -266 +582,9 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    status_t ret = mMediaRecorder->resume();
++    if (OK != ret) {
++        ALOGE("resume failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    }
++    return ret;
++}
++status_t MediaRecorder::close()
+@@ -268,3 +592,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    ALOGV("close");
++    if (!(mCurrentState & MEDIA_RECORDER_INITIALIZED)) {
++        ALOGE("close called in an invalid state: %d", mCurrentState);
+@@ -273 +597,7 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    status_t ret = mMediaRecorder->close();
++    if (OK != ret) {
++        ALOGE("close failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return UNKNOWN_ERROR;
++    } else {
++        mCurrentState = MEDIA_RECORDER_IDLE;
+@@ -275 +605,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-MediaRecorder::~MediaRecorder()
++    return ret;
++}
++status_t MediaRecorder::doReset()
+@@ -277,3 +609,8 @@ MediaRecorder::~MediaRecorder()
+-    ALOGV("destructor");
+-    if (mMediaRecorder != NULL) {
+-        mMediaRecorder.clear();
++    ALOGV("doReset");
++    status_t ret = mMediaRecorder->reset();
++    if (OK != ret) {
++        ALOGE("doReset failed: %d", ret);
++        mCurrentState = MEDIA_RECORDER_ERROR;
++        return ret;
++    } else {
++        mCurrentState = MEDIA_RECORDER_INITIALIZED;
+@@ -281,2 +618 @@ MediaRecorder::~MediaRecorder()
+-    if (mSurfaceMediaSource != NULL) {
+-        mSurfaceMediaSource.clear();
++    return ret;
+@@ -283,0 +620,9 @@ MediaRecorder::~MediaRecorder()
++void MediaRecorder::doCleanUp()
++{
++    ALOGV("doCleanUp");
++    mIsAudioSourceSet = false;
++    mIsVideoSourceSet = false;
++    mIsAudioEncoderSet = false;
++    mIsVideoEncoderSet = false;
++    mIsOutputFileSet = false;
++    mOutputFormat = OUTPUT_FORMAT_DEFAULT;
+@@ -285 +630 @@ MediaRecorder::~MediaRecorder()
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::release()
+@@ -287,3 +632,4 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    ALOGV("release");
++    if (mMediaRecorder != NULL) {
++        return mMediaRecorder->release();
++    }
+@@ -292 +638,15 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++MediaRecorder::MediaRecorder(const String16& opPackageName) : mSurfaceMediaSource(NULL)
++{
++    ALOGV("constructor");
++    const sp<IMediaPlayerService> service(getMediaPlayerService());
++    if (service != NULL) {
++        mMediaRecorder = service->createMediaRecorder(opPackageName);
++    }
++    if (mMediaRecorder != NULL) {
++        mCurrentState = MEDIA_RECORDER_IDLE;
++    }
++    doCleanUp();
++}
++status_t MediaRecorder::initCheck()
++{
++    return mMediaRecorder != 0 ? NO_ERROR : NO_INIT;
+@@ -304 +664 @@ MediaRecorder::~MediaRecorder()
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::setListener(const sp<MediaRecorderListener>& listener)
+@@ -306,6 +666,4 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
+-        return INVALID_OPERATION;
+-    }
+-    return mMediaRecorder->getPortId(portId);
++    ALOGV("setListener");
++    Mutex::Autolock _l(mLock);
++    mListener = listener;
++    return NO_ERROR;
+@@ -313 +671 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::setClientName(const String16& clientName)
+@@ -315 +673 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setClientName");
+@@ -320,7 +678,6 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
+-}
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
++    bool isInvalidState = (mCurrentState &
++                           (MEDIA_RECORDER_PREPARED |
++                            MEDIA_RECORDER_RECORDING |
++                            MEDIA_RECORDER_ERROR));
++    if (isInvalidState) {
++        ALOGE("setClientName is called in an invalid state: %d", mCurrentState);
+@@ -329 +686,2 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    mMediaRecorder->setClientName(clientName);
++    return NO_ERROR;
+@@ -331 +689 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++void MediaRecorder::notify(int msg, int ext1, int ext2)
+@@ -333,4 +691,10 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
+-        return INVALID_OPERATION;
++    ALOGV("message received msg=%d, ext1=%d, ext2=%d", msg, ext1, ext2);
++    sp<MediaRecorderListener> listener;
++    mLock.lock();
++    listener = mListener;
++    mLock.unlock();
++    if (listener != NULL) {
++        Mutex::Autolock _l(mNotifyLock);
++        ALOGV("callback application");
++        listener->notify(msg, ext1, ext2);
++        ALOGV("back from callback");
+@@ -338 +701,0 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
+@@ -340 +703 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++void MediaRecorder::died()
+@@ -342,6 +705,2 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
+-        return INVALID_OPERATION;
+-    }
+-    return mMediaRecorder->getPortId(portId);
++    ALOGV("died");
++    notify(MEDIA_RECORDER_EVENT_ERROR, MEDIA_ERROR_SERVER_DIED, 0);
+@@ -349 +708 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::setInputDevice(audio_port_handle_t deviceId)
+@@ -351 +710 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("setInputDevice");
+@@ -356 +715 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    return mMediaRecorder->setInputDevice(deviceId);
+@@ -358 +717 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::getRoutedDeviceId(audio_port_handle_t* deviceId)
+@@ -360 +719 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("getRoutedDeviceId");
+@@ -365 +724,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    status_t status = mMediaRecorder->getRoutedDeviceId(deviceId);
++    if (status != NO_ERROR) {
++        *deviceId = AUDIO_PORT_HANDLE_NONE;
+@@ -367 +728,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++    return status;
++}
++status_t MediaRecorder::enableAudioDeviceCallback(bool enabled)
+@@ -369 +732 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("enableAudioDeviceCallback");
+@@ -374 +737 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    return mMediaRecorder->enableAudioDeviceCallback(enabled);
+@@ -376 +739 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
++status_t MediaRecorder::getActiveMicrophones(std::vector<media::MicrophoneInfo>* activeMicrophones)
+@@ -378 +741 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    ALOGV("getPortId");
++    ALOGV("getActiveMicrophones");
+@@ -383 +746 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++    return mMediaRecorder->getActiveMicrophones(activeMicrophones);
+@@ -385,6 +748,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-{
+-    ALOGV("getPortId");
+-    if (mMediaRecorder == NULL) {
+-        ALOGE("media recorder is not initialized yet");
+-        return INVALID_OPERATION;
++status_t MediaRecorder::setPreferredMicrophoneDirection(audio_microphone_direction_t direction) {
++    ALOGV("setPreferredMicrophoneDirection(%d)", direction);
++    return mMediaRecorder->setPreferredMicrophoneDirection(direction);
+@@ -392 +752,3 @@ status_t MediaRecorder::getPortId(audio_port_handle_t *portId) const
+-    return mMediaRecorder->getPortId(portId);
++status_t MediaRecorder::setPreferredMicrophoneFieldDimension(float zoom) {
++    ALOGV("setPreferredMicrophoneFieldDimension(%f)", zoom);
++    return mMediaRecorder->setPreferredMicrophoneFieldDimension(zoom);

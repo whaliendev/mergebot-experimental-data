@@ -1,0 +1,122 @@
+--- a/output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_mergebot.cc
++++ b/output/rocksdb/5f91868c-9b87a2ba-cb7a0022/db@version_set.no_comments_truth.cc
+@@ -37 +36,0 @@ Version::~Version() {
+-  assert(refs_ {
+@@ -687,2 +697,21 @@ public:
+-VersionSet::VersionSet(const std::string& dbname, const Options* options, TableCache* table_cache, const InternalKeyComparator* cmp): env_(options->env), dbname_(dbname), options_(options), table_cache_(table_cache), icmp_(*cmp), next_file_number_(2), manifest_file_number_(0),
+-      last_sequence_(0), log_number_(0), prev_log_number_(0), descriptor_file_(NULL), descriptor_log_(NULL), dummy_versions_(this), current_(NULL), num_levels_(options_->num_levels), compactions_in_progress_(options_->num_levels), current_version_number_(0) {
++VersionSet::VersionSet(const std::string& dbname,
++                       const Options* options,
++                       TableCache* table_cache,
++                       const InternalKeyComparator* cmp)
++    : env_(options->env),
++      dbname_(dbname),
++      options_(options),
++      table_cache_(table_cache),
++      icmp_(*cmp),
++      next_file_number_(2),
++      manifest_file_number_(0),
++      last_sequence_(0),
++      log_number_(0),
++      prev_log_number_(0),
++      num_levels_(options_->num_levels),
++      descriptor_file_(NULL),
++      descriptor_log_(NULL),
++      dummy_versions_(this),
++      current_(NULL),
++      compactions_in_progress_(options_->num_levels),
++      current_version_number_(0) {
+@@ -694,2 +722,0 @@ VersionSet::~VersionSet() {
+-  current_->Unref();
+-  assert(dummy_versions_.next_ {
+@@ -748 +774,0 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-  ManifestWriter* first = manifest_writers_.front();
+@@ -750 +776 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-  assert(first == &w);
++  assert(manifest_writers_.front() == &w);
+@@ -803 +829 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu,
+-    Log(options_->info_log, "Error in committing version %d",
++    Log(options_->info_log, "Error in committing version %ld",
+@@ -1374 +1401,2 @@ Compaction* VersionSet::PickCompactionBySize(int level) {
+-    if (ParentFilesInCompaction(f, level)) {
++    int parent_index = -1;
++    if (ParentFilesInCompaction(f, level, &parent_index)) {
+@@ -1377,0 +1406,2 @@ Compaction* VersionSet::PickCompactionBySize(int level) {
++    c->base_index_ = i;
++    c->parent_index_ = parent_index;
+@@ -1388 +1418 @@ Compaction* VersionSet::PickCompaction() {
+-  int level;
++  int level = -1;
+@@ -1390 +1419,0 @@ Compaction* VersionSet::PickCompaction() {
+-<<<<<<< HEAD
+@@ -1396,30 +1424,0 @@ Compaction* VersionSet::PickCompaction() {
+-||||||| cb7a00227
+-  const bool size_compaction = (current_->compaction_score_ >= 1);
+-  const bool seek_compaction = (current_->file_to_compact_ != NULL);
+-  if (size_compaction) {
+-    level = current_->compaction_level_;
+-    assert(level >= 0);
+-    assert(level+1 < NumberLevels());
+-    c = new Compaction(level, MaxFileSizeForLevel(level),
+-        MaxGrandParentOverlapBytes(level), NumberLevels());
+-    for (size_t i = 0; i < current_->files_[level].size(); i++) {
+-      FileMetaData* f = current_->files_[level][i];
+-      if (compact_pointer_[level].empty() ||
+-          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
+-        c->inputs_[0].push_back(f);
+-=======
+-  const bool size_compaction = (current_->compaction_score_ >= 1);
+-  const bool seek_compaction = (current_->file_to_compact_ != NULL);
+-  if (size_compaction) {
+-    level = current_->compaction_level_;
+-    assert(level >= 0);
+-    assert(level+1 < NumberLevels());
+-    c = new Compaction(level, MaxFileSizeForLevel(level),
+-        MaxGrandParentOverlapBytes(level), NumberLevels());
+-    for (size_t i = 0; i < current_->files_[level].size(); i++) {
+-      FileMetaData* f = current_->files_[level][i];
+-      if (compact_pointer_[level].empty() ||
+-          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
+-        c->inputs_[0].push_back(f);
+-        c->base_index_ = i;
+->>>>>>> 9b87a2ba
+@@ -1429,9 +1427,0 @@ Compaction* VersionSet::PickCompaction() {
+-<<<<<<< HEAD
+-||||||| cb7a00227
+-    if (c->inputs_[0].empty()) {
+-      c->inputs_[0].push_back(current_->files_[level][0]);
+-=======
+-    if (c->inputs_[0].empty()) {
+-      c->inputs_[0].push_back(current_->files_[level][0]);
+-      c->base_index_ = 0;
+->>>>>>> 9b87a2ba
+@@ -1458 +1448,2 @@ Compaction* VersionSet::PickCompaction() {
+-      if (!f->being_compacted && !ParentFilesInCompaction(f, level)) {
++      if (!f->being_compacted &&
++          !ParentFilesInCompaction(f, level, &c->parent_index_)) {
+@@ -1469 +1460,2 @@ Compaction* VersionSet::PickCompaction() {
+-bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level) {
++bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level,
++    int* parent_index) {
+@@ -1471 +1463,2 @@ bool VersionSet::ParentFilesInCompaction(FileMetaData* f, int level) {
+-  current_->GetOverlappingInputs(level+1, &f->smallest, &f->largest, &inputs);
++  current_->GetOverlappingInputs(level+1, &f->smallest, &f->largest,
++                                 &inputs, *parent_index, parent_index);
+@@ -1505,8 +1497,0 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
+-<<<<<<< HEAD
+-                                     &expanded1);
+-      if (expanded1.size() == c->inputs_[1].size() &&
+-          !FilesInCompaction(expanded1)) {
+-||||||| cb7a00227
+-                                     &expanded1);
+-      if (expanded1.size() == c->inputs_[1].size()) {
+-=======
+@@ -1515,2 +1500,2 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
+-      if (expanded1.size() == c->inputs_[1].size()) {
+->>>>>>> 9b87a2ba
++      if (expanded1.size() == c->inputs_[1].size() &&
++          !FilesInCompaction(expanded1)) {
+@@ -1597,3 +1581,0 @@ Compaction::~Compaction() {
+- delete edit_;
+-  if (input_version_ !{
+- delete[] level_ptrs_;

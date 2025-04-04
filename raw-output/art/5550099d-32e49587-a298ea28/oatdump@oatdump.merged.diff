@@ -1,0 +1,459 @@
+diff --git a/./output/art/5550099d-32e49587-a298ea28/oatdump@oatdump.no_comments_merged.cc b/./output/art/5550099d-32e49587-a298ea28/oatdump@oatdump.no_comments_truth.cc
+index 04478d9..bbec65e 100644
+--- a/./output/art/5550099d-32e49587-a298ea28/oatdump@oatdump.no_comments_merged.cc
++++ b/./output/art/5550099d-32e49587-a298ea28/oatdump@oatdump.no_comments_truth.cc
+@@ -62,2 +62,2 @@ static void usage() {
+-          "  --instruction-set=(arm|arm64|mips|x86|x86_64): for locating the image\n"
+-          "      file based on the image location set.\n"
++          "  --instruction-set=(arm|arm64|mips|x86|x86_64): for locating the image file based on the image location\n"
++          "      set.\n"
+@@ -73,5 +73 @@ static void usage() {
+-          "  --dump:raw_mapping_table enables dumping of the mapping table.\n"
+-          "      Example: --dump:raw_mapping_table\n"
+-          "\n");
+-  fprintf(stderr,
+-          "  --dump:raw_mapping_table enables dumping of the GC map.\n"
++          "  --dump:[raw_mapping_table|raw_gc_map]\n"
+@@ -79,8 +75 @@ static void usage() {
+-          "\n");
+-  fprintf(stderr,
+-          "  --no-dump:vmap may be used to disable vmap dumping.\n"
+-          "      Example: --no-dump:vmap\n"
+-          "\n");
+-  fprintf(stderr,
+-          "  --no-disassemble may be used to disable disassembly.\n"
+-          "      Example: --no-disassemble\n"
++          "    Default: neither\n"
+@@ -100 +88,0 @@ const char* image_roots_descriptions_[] = {
+-<<<<<<< HEAD
+@@ -282,21 +269,0 @@ class OatSymbolizer : public CodeOutput {
+-||||||| a298ea28e1
+-=======
+-class OatDumperOptions {
+- public:
+-  OatDumperOptions(bool dump_raw_mapping_table,
+-                   bool dump_raw_gc_map,
+-                   bool dump_vmap,
+-                   bool disassemble_code,
+-                   bool absolute_addresses)
+-    : dump_raw_mapping_table_(dump_raw_mapping_table),
+-      dump_raw_gc_map_(dump_raw_gc_map),
+-      dump_vmap_(dump_vmap),
+-      disassemble_code_(disassemble_code),
+-      absolute_addresses_(absolute_addresses) {}
+-  const bool dump_raw_mapping_table_;
+-  const bool dump_raw_gc_map_;
+-  const bool dump_vmap_;
+-  const bool disassemble_code_;
+-  const bool absolute_addresses_;
+-};
+->>>>>>> 32e49587
+@@ -305 +272 @@ class OatDumper {
+-  explicit OatDumper(const OatFile& oat_file, OatDumperOptions* options)
++  explicit OatDumper(const OatFile& oat_file, bool dump_raw_mapping_table, bool dump_raw_gc_map)
+@@ -308,4 +275,3 @@ class OatDumper {
+-      options_(options),
+-      disassembler_(Disassembler::Create(oat_file_.GetOatHeader().GetInstructionSet(),
+-                                         new DisassemblerOptions(options_->absolute_addresses_,
+-                                                                 oat_file.Begin()))) {
++      dump_raw_mapping_table_(dump_raw_mapping_table),
++      dump_raw_gc_map_(dump_raw_gc_map),
++      disassembler_(Disassembler::Create(oat_file_.GetOatHeader().GetInstructionSet())) {
+@@ -314,6 +280 @@ class OatDumper {
+-  ~OatDumper() {
+-    delete options_;
+-    delete disassembler_;
+-  }
+-  bool Dump(std::ostream& os) {
+-    bool success = true;
++  void Dump(std::ostream& os) {
+@@ -334 +295 @@ class OatDumper {
+-    if (oat_header.offset() != 0 && options_->absolute_addresses_) { \
++    if (oat_header.offset() != 0) { \
+@@ -360 +320,0 @@ class OatDumper {
+-<<<<<<< HEAD
+@@ -362,8 +321,0 @@ class OatDumper {
+-||||||| a298ea28e1
+-    os << "IMAGE PATCH DELTA:\n" << oat_header.GetImagePatchDelta();
+-=======
+-    os << "IMAGE PATCH DELTA:\n";
+-    os << StringPrintf("%d (0x%08x)\n\n",
+-                       oat_header.GetImagePatchDelta(),
+-                       oat_header.GetImagePatchDelta());
+->>>>>>> 32e49587
+@@ -385 +336,0 @@ class OatDumper {
+-    if (options_->absolute_addresses_) {
+@@ -390,3 +340,0 @@ class OatDumper {
+-    }
+-    os << "SIZE:\n";
+-    os << oat_file_.Size() << "\n\n";
+@@ -397,3 +345 @@ class OatDumper {
+-      if (!DumpOatDexFile(os, *oat_dex_file)) {
+-        success = false;
+-      }
++      DumpOatDexFile(os, *oat_dex_file);
+@@ -401,2 +346,0 @@ class OatDumper {
+-    os << std::flush;
+-    return success;
+@@ -477,3 +420,0 @@ class OatDumper {
+-  static uint32_t AlignCodeOffset(uint32_t maybe_thumb_offset) {
+-    return maybe_thumb_offset & ~0x1;
+-  }
+@@ -490,3 +431,2 @@ class OatDumper {
+-  bool DumpOatDexFile(std::ostream& os, const OatFile::OatDexFile& oat_dex_file) {
+-    bool success = true;
+-    os << "OatDexFile:\n";
++  void DumpOatDexFile(std::ostream& os, const OatFile::OatDexFile& oat_dex_file) {
++    os << "OAT DEX FILE:\n";
+@@ -499,2 +439 @@ class OatDumper {
+-      os << std::flush;
+-      return false;
++      return;
+@@ -507 +445,0 @@ class OatDumper {
+-      uint32_t oat_class_offset = oat_dex_file.GetOatClassOffset(class_def_index);
+@@ -509,2 +447 @@ class OatDumper {
+-      os << StringPrintf("%zd: %s (offset=0x%08x) (type_idx=%d)",
+-                         class_def_index, descriptor, oat_class_offset, class_def.class_idx_)
++      os << StringPrintf("%zd: %s (type_idx=%d)", class_def_index, descriptor, class_def.class_idx_)
+@@ -515,3 +452 @@ class OatDumper {
+-      if (!DumpOatClass(indented_os, oat_class, *(dex_file.get()), class_def)) {
+-        success = false;
+-      }
++      DumpOatClass(indented_os, oat_class, *(dex_file.get()), class_def);
+@@ -520 +454,0 @@ class OatDumper {
+-    return success;
+@@ -530 +464 @@ class OatDumper {
+-  bool DumpOatClass(std::ostream& os, const OatFile::OatClass& oat_class, const DexFile& dex_file,
++  void DumpOatClass(std::ostream& os, const OatFile::OatClass& oat_class, const DexFile& dex_file,
+@@ -532 +465,0 @@ class OatDumper {
+-    bool success = true;
+@@ -535,2 +468 @@ class OatDumper {
+-      os << std::flush;
+-      return success;
++      return;
+@@ -540 +472 @@ class OatDumper {
+-    uint32_t class_method_index = 0;
++    uint32_t class_method_idx = 0;
+@@ -542,6 +474,4 @@ class OatDumper {
+-      if (!DumpOatMethod(os, class_def, class_method_index, oat_class, dex_file,
+-                         it.GetMemberIndex(), it.GetMethodCodeItem(),
+-                         it.GetRawMemberAccessFlags())) {
+-        success = false;
+-      }
+-      class_method_index++;
++      const OatFile::OatMethod oat_method = oat_class.GetOatMethod(class_method_idx);
++      DumpOatMethod(os, class_def, class_method_idx, oat_method, dex_file,
++                    it.GetMemberIndex(), it.GetMethodCodeItem(), it.GetRawMemberAccessFlags());
++      class_method_idx++;
+@@ -551,6 +481,4 @@ class OatDumper {
+-      if (!DumpOatMethod(os, class_def, class_method_index, oat_class, dex_file,
+-                         it.GetMemberIndex(), it.GetMethodCodeItem(),
+-                         it.GetRawMemberAccessFlags())) {
+-        success = false;
+-      }
+-      class_method_index++;
++      const OatFile::OatMethod oat_method = oat_class.GetOatMethod(class_method_idx);
++      DumpOatMethod(os, class_def, class_method_idx, oat_method, dex_file,
++                    it.GetMemberIndex(), it.GetMethodCodeItem(), it.GetRawMemberAccessFlags());
++      class_method_idx++;
+@@ -561 +488,0 @@ class OatDumper {
+-    return success;
+@@ -563,3 +490 @@ class OatDumper {
+-  static constexpr uint32_t kPrologueBytes = 16;
+-  static constexpr uint32_t kMaxCodeSize = 100 * 1000;
+-  bool DumpOatMethod(std::ostream& os, const DexFile::ClassDef& class_def,
++  void DumpOatMethod(std::ostream& os, const DexFile::ClassDef& class_def,
+@@ -567 +492 @@ class OatDumper {
+-                     const OatFile::OatClass& oat_class, const DexFile& dex_file,
++                     const OatFile::OatMethod& oat_method, const DexFile& dex_file,
+@@ -570 +494,0 @@ class OatDumper {
+-    bool success = true;
+@@ -588 +512,2 @@ class OatDumper {
+-<<<<<<< HEAD
++    {
++      *indent1_os << "OAT DATA:\n";
+@@ -606,32 +530,0 @@ class OatDumper {
+-||||||| a298ea28e1
+-      *indent2_os << StringPrintf("frame_size_in_bytes: %zd\n", oat_method.GetFrameSizeInBytes());
+-      *indent2_os << StringPrintf("core_spill_mask: 0x%08x ", oat_method.GetCoreSpillMask());
+-      DumpSpillMask(*indent2_os, oat_method.GetCoreSpillMask(), false);
+-      *indent2_os << StringPrintf("\nfp_spill_mask: 0x%08x ", oat_method.GetFpSpillMask());
+-      DumpSpillMask(*indent2_os, oat_method.GetFpSpillMask(), true);
+-      *indent2_os << StringPrintf("\nvmap_table: %p (offset=0x%08x)\n",
+-                                  oat_method.GetVmapTable(), oat_method.GetVmapTableOffset());
+-      DumpVmap(*indent2_os, oat_method);
+-      *indent2_os << StringPrintf("mapping_table: %p (offset=0x%08x)\n",
+-                                  oat_method.GetMappingTable(), oat_method.GetMappingTableOffset());
+-      if (dump_raw_mapping_table_) {
+-        Indenter indent3_filter(indent2_os->rdbuf(), kIndentChar, kIndentBy1Count);
+-        std::ostream indent3_os(&indent3_filter);
+-        DumpMappingTable(indent3_os, oat_method);
+-=======
+-    uint32_t oat_method_offsets_offset = oat_class.GetOatMethodOffsetsOffset(class_method_index);
+-    const OatMethodOffsets* oat_method_offsets = oat_class.GetOatMethodOffsets(class_method_index);
+-    const OatFile::OatMethod oat_method = oat_class.GetOatMethod(class_method_index);
+-    {
+-      *indent1_os << "OatMethodOffsets ";
+-      if (options_->absolute_addresses_) {
+-        *indent1_os << StringPrintf("%p ", oat_method_offsets);
+->>>>>>> 32e49587
+-      }
+-      *indent1_os << StringPrintf("(offset=0x%08x)\n", oat_method_offsets_offset);
+-      if (oat_method_offsets_offset > oat_file_.Size()) {
+-        *indent1_os << StringPrintf(
+-            "WARNING: oat method offsets offset 0x%08x is past end of file 0x%08zx.\n",
+-            oat_method_offsets_offset, oat_file_.Size());
+-        os << std::flush;
+-        return false;
+@@ -639,22 +532,3 @@ class OatDumper {
+-      uint32_t code_offset = oat_method.GetCodeOffset();
+-      *indent2_os << StringPrintf("code_offset: 0x%08x ", code_offset);
+-      uint32_t aligned_code_begin = AlignCodeOffset(oat_method.GetCodeOffset());
+-      if (aligned_code_begin > oat_file_.Size()) {
+-        *indent2_os << StringPrintf("WARNING: "
+-                                    "code offset 0x%08x is past end of file 0x%08zx.\n",
+-                                    aligned_code_begin, oat_file_.Size());
+-        success = false;
+-      }
+-      *indent2_os << "\n";
+-      *indent2_os << "gc_map: ";
+-      if (options_->absolute_addresses_) {
+-        *indent2_os << StringPrintf("%p ", oat_method.GetNativeGcMap());
+-      }
+-      uint32_t gc_map_offset = oat_method.GetNativeGcMapOffset();
+-      *indent2_os << StringPrintf("(offset=0x%08x)\n", gc_map_offset);
+-      if (gc_map_offset > oat_file_.Size()) {
+-        *indent2_os << StringPrintf("WARNING: "
+-                                    "gc map table offset 0x%08x is past end of file 0x%08zx.\n",
+-                                    gc_map_offset, oat_file_.Size());
+-        success = false;
+-      } else if (options_->dump_raw_gc_map_) {
++      *indent2_os << StringPrintf("gc_map: %p (offset=0x%08x)\n",
++                                  oat_method.GetNativeGcMap(), oat_method.GetNativeGcMapOffset());
++      if (dump_raw_gc_map_) {
+@@ -667,68 +540,0 @@ class OatDumper {
+-      *indent1_os << "OatQuickMethodHeader ";
+-      uint32_t method_header_offset = oat_method.GetOatQuickMethodHeaderOffset();
+-      const OatQuickMethodHeader* method_header = oat_method.GetOatQuickMethodHeader();
+-      if (options_->absolute_addresses_) {
+-        *indent1_os << StringPrintf("%p ", method_header);
+-      }
+-      *indent1_os << StringPrintf("(offset=0x%08x)\n", method_header_offset);
+-      if (method_header_offset > oat_file_.Size()) {
+-        *indent1_os << StringPrintf(
+-            "WARNING: oat quick method header offset 0x%08x is past end of file 0x%08zx.\n",
+-            method_header_offset, oat_file_.Size());
+-        os << std::flush;
+-        return false;
+-      }
+-      *indent2_os << "mapping_table: ";
+-      if (options_->absolute_addresses_) {
+-        *indent2_os << StringPrintf("%p ", oat_method.GetMappingTable());
+-      }
+-      uint32_t mapping_table_offset = oat_method.GetMappingTableOffset();
+-      *indent2_os << StringPrintf("(offset=0x%08x)\n", oat_method.GetMappingTableOffset());
+-      if (mapping_table_offset > oat_file_.Size()) {
+-        *indent2_os << StringPrintf("WARNING: "
+-                                    "mapping table offset 0x%08x is past end of file 0x%08zx. "
+-                                    "mapping table offset was loaded from offset 0x%08x.\n",
+-                                    mapping_table_offset, oat_file_.Size(),
+-                                    oat_method.GetMappingTableOffsetOffset());
+-        success = false;
+-      } else if (options_->dump_raw_mapping_table_) {
+-        Indenter indent3_filter(indent2_os->rdbuf(), kIndentChar, kIndentBy1Count);
+-        std::ostream indent3_os(&indent3_filter);
+-        DumpMappingTable(indent3_os, oat_method);
+-      }
+-      *indent2_os << "vmap_table: ";
+-      if (options_->absolute_addresses_) {
+-        *indent2_os << StringPrintf("%p ", oat_method.GetVmapTable());
+-      }
+-      uint32_t vmap_table_offset = oat_method.GetVmapTableOffset();
+-      *indent2_os << StringPrintf("(offset=0x%08x)\n", vmap_table_offset);
+-      if (vmap_table_offset > oat_file_.Size()) {
+-        *indent2_os << StringPrintf("WARNING: "
+-                                    "vmap table offset 0x%08x is past end of file 0x%08zx. "
+-                                    "vmap table offset was loaded from offset 0x%08x.\n",
+-                                    vmap_table_offset, oat_file_.Size(),
+-                                    oat_method.GetVmapTableOffsetOffset());
+-        success = false;
+-      } else if (options_->dump_vmap_) {
+-        DumpVmap(*indent2_os, oat_method);
+-      }
+-    }
+-    {
+-      *indent1_os << "QuickMethodFrameInfo\n";
+-      *indent2_os << StringPrintf("frame_size_in_bytes: %zd\n", oat_method.GetFrameSizeInBytes());
+-      *indent2_os << StringPrintf("core_spill_mask: 0x%08x ", oat_method.GetCoreSpillMask());
+-      DumpSpillMask(*indent2_os, oat_method.GetCoreSpillMask(), false);
+-      *indent2_os << "\n";
+-      *indent2_os << StringPrintf("fp_spill_mask: 0x%08x ", oat_method.GetFpSpillMask());
+-      DumpSpillMask(*indent2_os, oat_method.GetFpSpillMask(), true);
+-      *indent2_os << "\n";
+-    }
+-    {
+-      *indent1_os << "CODE: ";
+-      uint32_t code_size_offset = oat_method.GetQuickCodeSizeOffset();
+-      if (code_size_offset > oat_file_.Size()) {
+-        *indent2_os << StringPrintf("WARNING: "
+-                                    "code size offset 0x%08x is past end of file 0x%08zx.",
+-                                    code_size_offset, oat_file_.Size());
+-        success = false;
+-      } else {
+@@ -740 +545,0 @@ class OatDumper {
+-          code_size_offset = 0;
+@@ -742,9 +547,3 @@ class OatDumper {
+-        uint32_t code_offset = oat_method.GetCodeOffset();
+-        uint32_t aligned_code_begin = AlignCodeOffset(code_offset);
+-        uint64_t aligned_code_end = aligned_code_begin + code_size;
+-        if (options_->absolute_addresses_) {
+-          *indent1_os << StringPrintf("%p ", code);
+-        }
+-        *indent1_os << StringPrintf("(code_offset=0x%08x size_offset=0x%08x size=%u)%s\n",
+-                                    code_offset,
+-                                    code_size_offset,
++      *indent1_os << StringPrintf("CODE: %p (offset=0x%08x size=%d)%s\n",
++                                 code,
++                                 oat_method.GetCodeOffset(),
+@@ -753,31 +552 @@ class OatDumper {
+-        if (aligned_code_begin > oat_file_.Size()) {
+-          *indent2_os << StringPrintf("WARNING: "
+-                                      "start of code at 0x%08x is past end of file 0x%08zx.",
+-                                      aligned_code_begin, oat_file_.Size());
+-          success = false;
+-        } else if (aligned_code_end > oat_file_.Size()) {
+-          *indent2_os << StringPrintf("WARNING: "
+-                                      "end of code at 0x%08" PRIx64 " is past end of file 0x%08zx. "
+-                                      "code size is 0x%08x loaded from offset 0x%08x.\n",
+-                                      aligned_code_end, oat_file_.Size(),
+-                                      code_size, code_size_offset);
+-          success = false;
+-          if (options_->disassemble_code_) {
+-            if (code_size_offset + kPrologueBytes <= oat_file_.Size()) {
+-              DumpCode(*indent2_os, verifier.get(), oat_method, code_item, true, kPrologueBytes);
+-            }
+-          }
+-        } else if (code_size > kMaxCodeSize) {
+-          *indent2_os << StringPrintf("WARNING: "
+-                                      "code size %d is bigger than max expected threshold of %d. "
+-                                      "code size is 0x%08x loaded from offset 0x%08x.\n",
+-                                      code_size, kMaxCodeSize,
+-                                      code_size, code_size_offset);
+-          success = false;
+-          if (options_->disassemble_code_) {
+-            if (code_size_offset + kPrologueBytes <= oat_file_.Size()) {
+-              DumpCode(*indent2_os, verifier.get(), oat_method, code_item, true, kPrologueBytes);
+-            }
+-          }
+-        } else if (options_->disassemble_code_) {
+-          DumpCode(*indent2_os, verifier.get(), oat_method, code_item, !success, 0);
++      DumpCode(*indent2_os, verifier.get(), oat_method, code_item);
+@@ -786,4 +554,0 @@ class OatDumper {
+-    }
+-    os << std::flush;
+-    return success;
+-  }
+@@ -1080,2 +845 @@ class OatDumper {
+-                const OatFile::OatMethod& oat_method, const DexFile::CodeItem* code_item,
+-                bool bad_input, size_t code_size) {
++                const OatFile::OatMethod& oat_method, const DexFile::CodeItem* code_item) {
+@@ -1084,3 +848 @@ class OatDumper {
+-    if (code_size == 0) {
+-      code_size = oat_method.GetQuickCodeSize();
+-    }
++    size_t code_size = oat_method.GetQuickCodeSize();
+@@ -1094 +855,0 @@ class OatDumper {
+-        if (!bad_input) {
+@@ -1096 +856,0 @@ class OatDumper {
+-        }
+@@ -1098 +857,0 @@ class OatDumper {
+-        if (!bad_input) {
+@@ -1107 +865,0 @@ class OatDumper {
+-      }
+@@ -1114,2 +872,3 @@ class OatDumper {
+-  const std::vector<const OatFile::OatDexFile*> oat_dex_files_;
+-  const OatDumperOptions* options_;
++  std::vector<const OatFile::OatDexFile*> oat_dex_files_;
++  bool dump_raw_mapping_table_;
++  bool dump_raw_gc_map_;
+@@ -1117 +876 @@ class OatDumper {
+-  Disassembler* disassembler_;
++  std::unique_ptr<Disassembler> disassembler_;
+@@ -1122,6 +881,6 @@ class ImageDumper {
+-                       const ImageHeader& image_header, OatDumperOptions* oat_dumper_options)
+-      : os_(os),
+-        image_space_(image_space),
+-        image_header_(image_header),
+-        oat_dumper_options_(oat_dumper_options) {}
+-  bool Dump() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++                       const ImageHeader& image_header, bool dump_raw_mapping_table,
++                       bool dump_raw_gc_map)
++      : os_(os), image_space_(image_space), image_header_(image_header),
++        dump_raw_mapping_table_(dump_raw_mapping_table),
++        dump_raw_gc_map_(dump_raw_gc_map) {}
++  void Dump() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
+@@ -1191 +950 @@ class ImageDumper {
+-        return false;
++        return;
+@@ -1196 +955,2 @@ class ImageDumper {
+-    oat_dumper_.reset(new OatDumper(*oat_file, oat_dumper_options_.release()));
++    oat_dumper_.reset(new OatDumper(*oat_file, dump_raw_mapping_table_,
++        dump_raw_gc_map_));
+@@ -1254 +1014 @@ class ImageDumper {
+-    return oat_dumper_->Dump(os);
++    oat_dumper_->Dump(os);
+@@ -1763,0 +1524 @@ class ImageDumper {
++  std::unique_ptr<OatDumper> oat_dumper_;
+@@ -1767,2 +1528,2 @@ class ImageDumper {
+-  std::unique_ptr<OatDumper> oat_dumper_;
+-  std::unique_ptr<OatDumperOptions> oat_dumper_options_;
++  bool dump_raw_mapping_table_;
++  bool dump_raw_gc_map_;
+@@ -1789 +1549,0 @@ static int oatdump(int argc, char** argv) {
+-<<<<<<< HEAD
+@@ -1791,5 +1550,0 @@ static int oatdump(int argc, char** argv) {
+-||||||| a298ea28e1
+-=======
+-  bool dump_vmap = true;
+-  bool disassemble_code = true;
+->>>>>>> 32e49587
+@@ -1817 +1572,2 @@ static int oatdump(int argc, char** argv) {
+-    } else if (option =="--dump:raw_mapping_table") {
++    } else if (option.starts_with("--dump:")) {
++        if (option == "--dump:raw_mapping_table") {
+@@ -1821,4 +1577,4 @@ static int oatdump(int argc, char** argv) {
+-    } else if (option == "--no-dump:vmap") {
+-      dump_vmap = false;
+-    } else if (option == "--no-disassemble") {
+-      disassemble_code = false;
++        } else {
++          fprintf(stderr, "Unknown argument %s\n", option.data());
++          usage();
++        }
+@@ -1850,6 +1605,0 @@ static int oatdump(int argc, char** argv) {
+-  bool absolute_addresses = (oat_filename == nullptr);
+-  std::unique_ptr<OatDumperOptions> oat_dumper_options(new OatDumperOptions(dump_raw_mapping_table,
+-                                                                            dump_raw_gc_map,
+-                                                                            dump_vmap,
+-                                                                            disassemble_code,
+-                                                                            absolute_addresses));
+@@ -1864 +1613,0 @@ static int oatdump(int argc, char** argv) {
+-<<<<<<< HEAD
+@@ -1880,9 +1628,0 @@ static int oatdump(int argc, char** argv) {
+-||||||| a298ea28e1
+-    OatDumper oat_dumper(*oat_file, dump_raw_mapping_table, dump_raw_gc_map);
+-    oat_dumper.Dump(*os);
+-    return EXIT_SUCCESS;
+-=======
+-    OatDumper oat_dumper(*oat_file, oat_dumper_options.release());
+-    bool success = oat_dumper.Dump(*os);
+-    return (success) ? EXIT_SUCCESS : EXIT_FAILURE;
+->>>>>>> 32e49587
+@@ -1925,3 +1665,4 @@ static int oatdump(int argc, char** argv) {
+-  ImageDumper image_dumper(os, *image_space, image_header, oat_dumper_options.release());
+-  bool success = image_dumper.Dump();
+-  return (success) ? EXIT_SUCCESS : EXIT_FAILURE;
++  ImageDumper image_dumper(os, *image_space, image_header,
++                           dump_raw_mapping_table, dump_raw_gc_map);
++  image_dumper.Dump();
++  return EXIT_SUCCESS;

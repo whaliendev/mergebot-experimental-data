@@ -1,0 +1,85 @@
+--- a/output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_mergebot.cc
++++ b/output/rocksdb/159928df-fcd5c5e8-758fa8c3/db@version_set.no_comments_truth.cc
+@@ -362,2 +366,16 @@ static bool NewestFirstBySeqNo(FileMetaData* a, FileMetaData* b) {
+-Version::Version(ColumnFamilyData* cfd, VersionSet* vset, uint64_t version_number): cfd_(cfd), vset_(vset), next_(this), prev_(this), refs_(0), num_levels_(vset->num_levels_),
+-      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()), finalized_(false), files_(new std::vector<FileMetaData*>[num_levels_]), files_by_size_(num_levels_), next_file_to_compact_by_size_(num_levels_), file_to_compact_(nullptr), file_to_compact_level_(-1), compaction_score_(num_levels_), compaction_level_(num_levels_), version_number_(version_number) {}
++Version::Version(ColumnFamilyData* cfd, VersionSet* vset,
++                 uint64_t version_number)
++    : cfd_(cfd),
++      vset_(vset),
++      next_(this),
++      prev_(this),
++      refs_(0),
++      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()),
++      files_(new std::vector<FileMetaData*>[num_levels_]),
++      files_by_size_(num_levels_),
++      next_file_to_compact_by_size_(num_levels_),
++      file_to_compact_(nullptr),
++      file_to_compact_level_(-1),
++      compaction_score_(num_levels_),
++      compaction_level_(num_levels_),
++      version_number_(version_number) {}
+@@ -490,18 +507,0 @@ void Version::ComputeCompactionScore(
+-<<<<<<< HEAD
+-  assert(!finalized_);
+-  finalized_ = true;
+-  if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+-    std::sort(files_[0].begin(), files_[0].end(), NewestFirstBySeqNo);
+-  } else {
+-    std::sort(files_[0].begin(), files_[0].end(), NewestFirst);
+-  }
+-||||||| 758fa8c35
+-  assert(!finalized_);
+-  finalized_ = true;
+-  if (vset_->options_->compaction_style == kCompactionStyleUniversal) {
+-    std::sort(files_[0].begin(), files_[0].end(), NewestFirstBySeqNo);
+-  } else {
+-    std::sort(files_[0].begin(), files_[0].end(), NewestFirst);
+-  }
+-=======
+->>>>>>> fcd5c5e8
+@@ -1082 +1084 @@ public:
+-    if (v->vset_->options_->compaction_style == kCompactionStyleUniversal) {
++    if (cfd_->options()->compaction_style == kCompactionStyleUniversal) {
+@@ -1136,6 +1137,0 @@ VersionSet::~VersionSet() {
+-}{
+-  column_family_set_.reset();
+-  for (auto file : obsolete_files_) {
+-    delete file;
+-  }
+-  obsolete_files_.clear();
+@@ -1244 +1239,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+@@ -1246,3 +1240,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 758fa8c35
+-=======
+->>>>>>> fcd5c5e8
+@@ -1598 +1589,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1600 +1591 @@ Status VersionSet::Recover(
+-      v->Finalize(size_being_compacted);
++      v->ComputeCompactionScore(size_being_compacted);
+@@ -1604,7 +1594,0 @@ Status VersionSet::Recover(
+-||||||| 758fa8c35
+-    compaction_picker_->SizeBeingCompacted(size_being_compacted);
+-    v->Finalize(size_being_compacted);
+-=======
+-    compaction_picker_->SizeBeingCompacted(size_being_compacted);
+-    v->ComputeCompactionScore(size_being_compacted);
+->>>>>>> fcd5c5e8
+@@ -1882 +1866,0 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
+-<<<<<<< HEAD
+@@ -1884 +1868 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
+-      v->Finalize(size_being_compacted);
++      v->ComputeCompactionScore(size_being_compacted);
+@@ -1899,7 +1882,0 @@ Status VersionSet::DumpManifest(Options& options, std::string& dscname,
+-||||||| 758fa8c35
+-    compaction_picker_->SizeBeingCompacted(size_being_compacted);
+-    v->Finalize(size_being_compacted);
+-=======
+-    compaction_picker_->SizeBeingCompacted(size_being_compacted);
+-    v->ComputeCompactionScore(size_being_compacted);
+->>>>>>> fcd5c5e8
+@@ -2166,2 +2143,0 @@ ColumnFamilyData* VersionSet::CreateColumnFamily(const ColumnFamilyOptions& opti
+-  std::vector<uint64_t> size_being_compacted(options.num_levels - 1, 0);
+-  v->Finalize(size_being_compacted);

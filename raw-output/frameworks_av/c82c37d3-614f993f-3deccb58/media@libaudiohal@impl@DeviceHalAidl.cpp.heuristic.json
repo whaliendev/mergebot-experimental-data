@@ -1,0 +1,41 @@
+[
+  {
+    "code": [
+      "status_t DeviceHalAidl::getSoundDoseInterface(const std::string& module,",
+      "                                              ::ndk::SpAIBinder* soundDoseBinder)  {",
+      "    TIME_CHECK();",
+      "    if (!mModule) return NO_INIT;",
+      "    if (mSoundDose == nullptr) {",
+      "        ndk::ScopedAStatus status = mModule->getSoundDose(&mSoundDose);",
+      "        if (!status.isOk()) {",
+      "            ALOGE(\"%s failed to return the sound dose interface for module %s: %s\",",
+      "                  __func__,",
+      "                  module.c_str(),",
+      "                  status.getDescription().c_str());",
+      "            return BAD_VALUE;",
+      "        }",
+      "    }",
+      "    *soundDoseBinder = mSoundDose->asBinder();",
+      "    ALOGI(\"%s using audio AIDL HAL sound dose interface\", __func__);",
+      "",
+      "    return OK;",
+      "}",
+      "",
+      "status_t DeviceHalAidl::prepareToDisconnectExternalDevice(const struct audio_port_v7* port) {",
+      "    // There is not AIDL API defined for `prepareToDisconnectExternalDevice`.",
+      "    // Call `setConnectedState` instead.",
+      "    // TODO(b/279824103): call prepareToDisconnectExternalDevice when it is added.",
+      "    const status_t status = setConnectedState(port, false /*connected*/);",
+      "    if (status == NO_ERROR) {",
+      "        mDeviceDisconnectionNotified.insert(port->id);",
+      "    }",
+      "    return status;",
+      "}",
+      ""
+    ],
+    "label": "",
+    "index": 0,
+    "confidence": 0.7,
+    "desc": "Added code or method extraction, accept our side."
+  }
+]

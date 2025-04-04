@@ -1,0 +1,574 @@
+diff --git a/output/frameworks_av/83a66976-4ee25d84-8c911494/services@audioflinger@AudioFlinger.no_comments_mergebot.h b/output/frameworks_av/83a66976-4ee25d84-8c911494/services@audioflinger@AudioFlinger.no_comments_truth.h
+index 664db72..746b17f 100644
+--- a/output/frameworks_av/83a66976-4ee25d84-8c911494/services@audioflinger@AudioFlinger.no_comments_mergebot.h
++++ b/output/frameworks_av/83a66976-4ee25d84-8c911494/services@audioflinger@AudioFlinger.no_comments_truth.h
+@@ -2,3 +1,0 @@
+-#include "Configuration.h"
+-#include "ResamplerBufferProvider.h"
+-#include "IAfPatchPanel.h"
+@@ -14,26 +10,0 @@
+-#include <audio_utils/LinearMap.h>
+-#include <audio_utils/TimestampVerifier.h>
+-#include <sounddose/SoundDoseManager.h>
+-#include <timing/MonotonicFrameCounter.h>
+-#include <timing/SyncEvent.h>
+-#include <timing/SynchronizedRecordState.h>
+-#include <datapath/AudioHwDevice.h>
+-#include <datapath/AudioStreamIn.h>
+-#include <datapath/AudioStreamOut.h>
+-#include <datapath/SpdifStreamOut.h>
+-#include <datapath/ThreadMetrics.h>
+-#include <datapath/TrackMetrics.h>
+-#include <datapath/VolumeInterface.h>
+-#include <fastpath/FastCapture.h>
+-#include <fastpath/FastMixer.h>
+-#include <media/nbaio/NBAIO.h>
+-#include <android/os/IPowerManager.h>
+-#include <media/nblog/NBLog.h>
+-#include <private/media/AudioEffectShared.h>
+-#include <private/media/AudioTrackShared.h>
+-#include <vibrator/ExternalVibration.h>
+-#include <vibrator/ExternalVibrationUtils.h>
+-#include "android/media/BnAudioRecord.h"
+-#include "android/media/BnEffect.h"
+-#include <audio_utils/MelAggregator.h>
+-#include <audio_utils/MelProcessor.h>
+@@ -41,48 +11,0 @@
+-#include <media/AudioSystem.h>
+-#include <media/AudioTrack.h>
+-#include <media/MmapStreamInterface.h>
+-#include <mediautils/SharedMemoryAllocator.h>
+-#include <mediautils/ThreadSnapshot.h>
+-#include <afutils/AllocatorFactory.h>
+-#include <afutils/AudioWatchdog.h>
+-#include <afutils/NBAIO_Tee.h>
+-#include <audio_utils/clock.h>
+-#include <media/MmapStreamCallback.h>
+-#include <utils/Errors.h>
+-#include <utils/threads.h>
+-#include <utils/SortedVector.h>
+-#include <utils/TypeHelpers.h>
+-#include <utils/Vector.h>
+-#include <binder/AppOpsManager.h>
+-#include <binder/BinderService.h>
+-#include <binder/IAppOpsCallback.h>
+-#include <binder/MemoryDealer.h>
+-#include <system/audio.h>
+-#include <system/audio_policy.h>
+-#include <media/audiohal/EffectBufferHalInterface.h>
+-#include <media/audiohal/StreamHalInterface.h>
+-#include <media/AudioBufferProvider.h>
+-#include <media/AudioContainers.h>
+-#include <media/AudioDeviceTypeAddr.h>
+-#include <media/AudioMixer.h>
+-#include <media/DeviceDescriptorBase.h>
+-#include <media/ExtendedAudioBufferProvider.h>
+-#include <media/VolumeShaper.h>
+-#include <mutex>
+-#include <chrono>
+-#include <numeric>
+-#include <deque>
+-#include <string>
+-#include <vector>
+-#include <stdint.h>
+-#include <sys/types.h>
+-#include <limits.h>
+-#include <android/media/BnAudioTrack.h>
+-#include <android/media/IAudioFlingerClient.h>
+-#include <android/media/IAudioTrackCallback.h>
+-#include <android/os/BnExternalVibrationController.h>
+-#include <android/content/AttributionSourceState.h>
+-#include <android-base/macros.h>
+-#include <cutils/atomic.h>
+-#include <cutils/compiler.h>
+-#include <cutils/properties.h>
+@@ -104 +26,0 @@ namespace android {
+-using android::content::AttributionSourceState;
+@@ -115,25 +37,3 @@ public:
+-static void instantiate()private:
+-uint32_t AudioFlinger::mScreenState;
+-    audio_utils::mutex& hardwareMutex() const { return mHardwareMutex; }
+-    mutable audio_utils::mutex mHardwareMutex;
+-void dumpInternals_l(int fd, const Vector<String16>& args)
+-    std::atomic_uint32_t mScreenState{};
+-    status_t moveEffectChain_ll(audio_session_t sessionId,
+-            IAfPlaybackThread* srcThread, IAfPlaybackThread* dstThread) final
+-bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVector<audio_module_handle_t, AudioHwDevice*>&
+-            getAudioHwDevs_l() const finalsp<IAfThreadBase> openInput_l(audio_module_handle_t module,
+-            audio_io_handle_t* input,
+-            audio_config_t* config,
+-            audio_devices_t device,
+-            const char* address,
+-            audio_source_t source,
+-            audio_input_flags_t flags,
+-            audio_devices_t outputDevice,
+-            const String8& outputDeviceAddress) final
+-    audio_utils::mutex& mutex() const final
+-                                                              () = delete;{
+-                                                              return mStreamTypes[stream].mute;
+-                                                              }
+-    uint32_t getScreenState() const final { return mScreenState; }
+-    audio_utils::mutex& clientMutex() const final
+-    status_t dump(int fd, const Vector<String16>& args) final
++    static void instantiate() ANDROID_API;
++private:
++    status_t dump(int fd, const Vector<String16>& args) final EXCLUDES_AudioFlinger_Mutex;
+@@ -141 +41 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::CreateTrackResponse& output) final
++            media::CreateTrackResponse& output) final EXCLUDES_AudioFlinger_Mutex;
+@@ -143,12 +43,12 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::CreateRecordResponse& output) final
+-    uint32_t sampleRate(audio_io_handle_t ioHandle) const final
+-    audio_format_t format(audio_io_handle_t output) const final
+-    size_t frameCount(audio_io_handle_t ioHandle) const final
+-    size_t frameCountHAL(audio_io_handle_t ioHandle) const final
+-    uint32_t latency(audio_io_handle_t output) const final
+-    status_t setMasterVolume(float value) final
+-    status_t setMasterMute(bool muted) final
+-    float masterVolume() const final
+-    bool masterMute() const final
+-    status_t setMasterBalance(float balance) final
+-    status_t getMasterBalance(float* balance) const final
++            media::CreateRecordResponse& output) final EXCLUDES_AudioFlinger_Mutex;
++    uint32_t sampleRate(audio_io_handle_t ioHandle) const final EXCLUDES_AudioFlinger_Mutex;
++    audio_format_t format(audio_io_handle_t output) const final EXCLUDES_AudioFlinger_Mutex;
++    size_t frameCount(audio_io_handle_t ioHandle) const final EXCLUDES_AudioFlinger_Mutex;
++    size_t frameCountHAL(audio_io_handle_t ioHandle) const final EXCLUDES_AudioFlinger_Mutex;
++    uint32_t latency(audio_io_handle_t output) const final EXCLUDES_AudioFlinger_Mutex;
++    status_t setMasterVolume(float value) final EXCLUDES_AudioFlinger_Mutex;
++    status_t setMasterMute(bool muted) final EXCLUDES_AudioFlinger_Mutex;
++    float masterVolume() const final EXCLUDES_AudioFlinger_Mutex;
++    bool masterMute() const final EXCLUDES_AudioFlinger_Mutex;
++    status_t setMasterBalance(float balance) final EXCLUDES_AudioFlinger_Mutex;
++    status_t getMasterBalance(float* balance) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -156 +56 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_io_handle_t output) final
++            audio_io_handle_t output) final EXCLUDES_AudioFlinger_Mutex;
+@@ -157,0 +58 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -159,5 +60,5 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_io_handle_t output) const final
+-    bool streamMute(audio_stream_type_t stream) const final
+-    status_t setMode(audio_mode_t mode) final
+-    status_t setMicMute(bool state) final
+-    bool getMicMute() const final
++            audio_io_handle_t output) const final EXCLUDES_AudioFlinger_Mutex;
++    bool streamMute(audio_stream_type_t stream) const final EXCLUDES_AudioFlinger_Mutex;
++    status_t setMode(audio_mode_t mode) final EXCLUDES_AudioFlinger_Mutex;
++    status_t setMicMute(bool state) final EXCLUDES_AudioFlinger_Mutex;
++    bool getMicMute() const final EXCLUDES_AudioFlinger_Mutex;
+@@ -164,0 +66 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -165,0 +68 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -166,0 +70 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -167,0 +72 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -169 +74 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_channel_mask_t channelMask) const final
++            audio_channel_mask_t channelMask) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -171 +76 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::OpenOutputResponse* response) final
++            media::OpenOutputResponse* response) final EXCLUDES_AudioFlinger_Mutex;
+@@ -173,4 +78,4 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_io_handle_t output2) final
+-    status_t closeOutput(audio_io_handle_t output) final
+-    status_t suspendOutput(audio_io_handle_t output) final
+-    status_t restoreOutput(audio_io_handle_t output) final
++            audio_io_handle_t output2) final EXCLUDES_AudioFlinger_Mutex;
++    status_t closeOutput(audio_io_handle_t output) final EXCLUDES_AudioFlinger_Mutex;
++    status_t suspendOutput(audio_io_handle_t output) final EXCLUDES_AudioFlinger_Mutex;
++    status_t restoreOutput(audio_io_handle_t output) final EXCLUDES_AudioFlinger_Mutex;
+@@ -178,3 +83,3 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::OpenInputResponse* response) final
+-    status_t closeInput(audio_io_handle_t input) final
+-    status_t setVoiceVolume(float volume) final
++            media::OpenInputResponse* response) final EXCLUDES_AudioFlinger_Mutex;
++    status_t closeInput(audio_io_handle_t input) final EXCLUDES_AudioFlinger_Mutex;
++    status_t setVoiceVolume(float volume) final EXCLUDES_AudioFlinger_Mutex;
+@@ -182 +87 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_io_handle_t output) const final
++            audio_io_handle_t output) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -183,0 +89 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -184,0 +91 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -185,0 +93 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -187 +95,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-    status_t queryNumberEffects(uint32_t* numEffects) const final
++            EXCLUDES_AudioFlinger_Mutex;
++    status_t queryNumberEffects(uint32_t* numEffects) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -188,0 +98 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -192 +102 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            effect_descriptor_t* descriptor) const final
++            effect_descriptor_t* descriptor) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -194 +104 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::CreateEffectResponse* response) final
++            media::CreateEffectResponse* response) final EXCLUDES_AudioFlinger_Mutex;
+@@ -196 +106 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_io_handle_t dstOutput) final
++            audio_io_handle_t dstOutput) final EXCLUDES_AudioFlinger_Mutex;
+@@ -199,4 +109,4 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            bool suspended) final
+-    audio_module_handle_t loadHwModule(const char* name) final
+-    uint32_t getPrimaryOutputSamplingRate() const final
+-    size_t getPrimaryOutputFrameCount() const final
++            bool suspended) final EXCLUDES_AudioFlinger_Mutex;
++    audio_module_handle_t loadHwModule(const char* name) final EXCLUDES_AudioFlinger_Mutex;
++    uint32_t getPrimaryOutputSamplingRate() const final EXCLUDES_AudioFlinger_Mutex;
++    size_t getPrimaryOutputFrameCount() const final EXCLUDES_AudioFlinger_Mutex;
+@@ -204 +114,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-    status_t getAudioPort(struct audio_port_v7* port) const final
++            EXCLUDES_AudioFlinger_Mutex;
++    status_t getAudioPort(struct audio_port_v7* port) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -206,2 +117,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            audio_patch_handle_t* handle) final
+-    status_t releaseAudioPatch(audio_patch_handle_t handle) final
++            audio_patch_handle_t* handle) final EXCLUDES_AudioFlinger_Mutex;
++    status_t releaseAudioPatch(audio_patch_handle_t handle) final EXCLUDES_AudioFlinger_Mutex;
+@@ -209 +120 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            struct audio_patch* patches) const final
++            struct audio_patch* patches) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -210,0 +122 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -212 +124,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-    status_t systemReady() final
++            EXCLUDES_AudioFlinger_Mutex;
++    status_t systemReady() final EXCLUDES_AudioFlinger_Mutex;
+@@ -214,0 +128 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -215,0 +130 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -216,0 +132 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -218,0 +135 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -221 +137,0 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-<<<<<<< HEAD
+@@ -223,7 +139,3 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-||||||| 8c9114940a
+-            std::vector<media::audio::common::AudioMMapPolicyInfo>* policyInfos) override;
+-=======
+-            std::vector<media::audio::common::AudioMMapPolicyInfo>* policyInfos) final;
+->>>>>>> 4ee25d84
+-    int32_t getAAudioMixerBurstCount() const final
+-    int32_t getAAudioHardwareBurstMinUsec() const final
++            EXCLUDES_AudioFlinger_Mutex;
++    int32_t getAAudioMixerBurstCount() const final EXCLUDES_AudioFlinger_Mutex;
++    int32_t getAAudioHardwareBurstMinUsec() const final EXCLUDES_AudioFlinger_Mutex;
+@@ -231,2 +143,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            media::DeviceConnectedState state) final
+-    status_t setSimulateDeviceConnections(bool enabled) final
++            media::DeviceConnectedState state) final EXCLUDES_AudioFlinger_Mutex;
++    status_t setSimulateDeviceConnections(bool enabled) final EXCLUDES_AudioFlinger_Mutex;
+@@ -234,0 +147 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -236,2 +149,2 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            std::vector<audio_latency_mode_t>* modes) const final
+-    status_t setBluetoothVariableLatencyEnabled(bool enabled) final
++            std::vector<audio_latency_mode_t>* modes) const final EXCLUDES_AudioFlinger_Mutex;
++    status_t setBluetoothVariableLatencyEnabled(bool enabled) final EXCLUDES_AudioFlinger_Mutex;
+@@ -238,0 +152 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -239,0 +154 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -241 +156 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            sp<media::ISoundDose>* soundDose) const final
++            sp<media::ISoundDose>* soundDose) const final EXCLUDES_AudioFlinger_Mutex;
+@@ -242,0 +158 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -243,0 +160 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -245,2 +162,7 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            const std::function<status_t()>& delegate) final
+-    void removeNotificationClient(pid_t pid) final
++            const std::function<status_t()>& delegate) final EXCLUDES_AudioFlinger_Mutex;
++    audio_utils::mutex& clientMutex() const final
++            RETURN_CAPABILITY(audio_utils::AudioFlinger_ClientMutex) {
++        return mClientMutex;
++    }
++    void removeClient_l(pid_t pid) REQUIRES(clientMutex()) final;
++    void removeNotificationClient(pid_t pid) final EXCLUDES_AudioFlinger_Mutex;
+@@ -250 +172 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-            sp<IAfPlaybackThread>* srcThread) final
++            sp<IAfPlaybackThread>* srcThread) final EXCLUDES_AudioFlinger_Mutex;
+@@ -254,0 +177 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
++            EXCLUDES_AudioFlinger_HardwareMutex;
+@@ -257,4 +180,9 @@ bool streamMute_l(audio_stream_type_t stream) const finalconst DefaultKeyedVecto
+-uint32_t AudioFlinger::mScreenState;
+-    void closeThreadInternal_l(const sp<IAfRecordThread>& thread) final;
+-    void closeThreadInternal_l(const sp<IAfRecordThread>& thread) final;
+-    IAfPlaybackThread* primaryPlaybackThread_l() const final
++            EXCLUDES_AudioFlinger_HardwareMutex;
++    audio_utils::mutex& mutex() const final
++            RETURN_CAPABILITY(audio_utils::AudioFlinger_Mutex)
++            EXCLUDES_BELOW_AudioFlinger_Mutex { return mMutex; }
++    sp<IAfThreadBase> checkOutputThread_l(audio_io_handle_t ioHandle) const final
++            REQUIRES(mutex());
++    void closeThreadInternal_l(const sp<IAfPlaybackThread>& thread) final REQUIRES(mutex());
++    void closeThreadInternal_l(const sp<IAfRecordThread>& thread) final REQUIRES(mutex());
++    IAfPlaybackThread* primaryPlaybackThread_l() const final REQUIRES(mutex());
+@@ -262,6 +190,12 @@ uint32_t AudioFlinger::mScreenState;
+-    IAfRecordThread* checkRecordThread_l(audio_io_handle_t input) const final
+-    IAfMmapThread* checkMmapThread_l(audio_io_handle_t io) const final
+-                              RELEASE(mLock) { mLock.unlock(); }
+-uint32_t AudioFlinger::mScreenState;
+-                              RELEASE(mLock) { mLock.unlock(); }
+-uint32_t AudioFlinger::mScreenState;
++            REQUIRES(mutex());
++    IAfRecordThread* checkRecordThread_l(audio_io_handle_t input) const final REQUIRES(mutex());
++    IAfMmapThread* checkMmapThread_l(audio_io_handle_t io) const final REQUIRES(mutex());
++    sp<IAfThreadBase> openInput_l(audio_module_handle_t module,
++            audio_io_handle_t* input,
++            audio_config_t* config,
++            audio_devices_t device,
++            const char* address,
++            audio_source_t source,
++            audio_input_flags_t flags,
++            audio_devices_t outputDevice,
++            const String8& outputDeviceAddress) final REQUIRES(mutex());
+@@ -274 +208,5 @@ uint32_t AudioFlinger::mScreenState;
+-            audio_output_flags_t flags) final
++            audio_output_flags_t flags) final REQUIRES(mutex());
++    const DefaultKeyedVector<audio_module_handle_t, AudioHwDevice*>&
++            getAudioHwDevs_l() const final REQUIRES(mutex()) { return mAudioHwDevs; }
++    void updateDownStreamPatches_l(const struct audio_patch* patch,
++            const std::set<audio_io_handle_t>& streams) final REQUIRES(mutex());
+@@ -276 +214,2 @@ uint32_t AudioFlinger::mScreenState;
+-    bool isNonOffloadableGlobalEffectEnabled_l() const final;
++            REQUIRES(mutex());
++    bool isNonOffloadableGlobalEffectEnabled_l() const final REQUIRES(mutex());
+@@ -278,16 +217,11 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+-                float masterVolume_l() const final
+-||||||| 8c9114940a
+-                float masterVolume_l() const;
+-=======
+-                float masterVolume_l() const final;
+->>>>>>> 4ee25d84
+-<<<<<<< HEAD
+-                bool masterMute_l() const final
+-||||||| 8c9114940a
+-                bool masterMute_l() const;
+-=======
+-                bool masterMute_l() const final;
+->>>>>>> 4ee25d84
+-                float getMasterBalance_l() const
+-    std::optional<media::AudioVibratorInfo> getDefaultVibratorInfo_l() const final;
++    float masterVolume_l() const final REQUIRES(mutex());
++    bool masterMute_l() const final REQUIRES(mutex());
++    float getMasterBalance_l() const REQUIRES(mutex());
++    bool streamMute_l(audio_stream_type_t stream) const final REQUIRES(mutex()) {
++        return mStreamTypes[stream].mute;
++    }
++    audio_mode_t getMode() const final { return mMode; }
++    bool isLowRamDevice() const final { return mIsLowRamDevice; }
++    uint32_t getScreenState() const final { return mScreenState; }
++    std::optional<media::AudioVibratorInfo> getDefaultVibratorInfo_l() const final
++            REQUIRES(mutex());
+@@ -300 +233,0 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+@@ -302,5 +235,4 @@ uint32_t AudioFlinger::mScreenState;
+-||||||| 8c9114940a
+-                bool updateOrphanEffectChains(const sp<IAfEffectModule>& effect);
+-=======
+-                bool updateOrphanEffectChains(const sp<IAfEffectModule>& effect) final;
+->>>>>>> 4ee25d84
++            EXCLUDES_AudioFlinger_Mutex;
++    status_t moveEffectChain_ll(audio_session_t sessionId,
++            IAfPlaybackThread* srcThread, IAfPlaybackThread* dstThread) final
++            REQUIRES(mutex(), audio_utils::ThreadBase_Mutex);
+@@ -308,7 +240 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+-    sp<NBLog::Writer> newWriter_l(size_t size, const char *name) final
+-||||||| 8c9114940a
+-    sp<NBLog::Writer> newWriter_l(size_t size, const char *name);
+-=======
+-    sp<NBLog::Writer> newWriter_l(size_t size, const char *name) final;
+->>>>>>> 4ee25d84
++    sp<NBLog::Writer> newWriter_l(size_t size, const char *name) final REQUIRES(mutex());
+@@ -320,7 +246 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+-            const wp<IAfTrackBase>& cookie) final
+-||||||| 8c9114940a
+-                                        const wp<IAfTrackBase>& cookie);
+-=======
+-            const wp<IAfTrackBase>& cookie) final;
+->>>>>>> 4ee25d84
++            const wp<IAfTrackBase>& cookie) final EXCLUDES_AudioFlinger_Mutex;
+@@ -329,14 +249,2 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+-              pid_t pid = 0) final
+-||||||| 8c9114940a
+-                                   pid_t pid = 0);
+-=======
+-              pid_t pid = 0) final;
+->>>>>>> 4ee25d84
+-<<<<<<< HEAD
+-                void onNonOffloadableGlobalEffectEnable() final
+-||||||| 8c9114940a
+-                void onNonOffloadableGlobalEffectEnable();
+-=======
+-                void onNonOffloadableGlobalEffectEnable() final;
+->>>>>>> 4ee25d84
++            pid_t pid = 0) final EXCLUDES_AudioFlinger_ClientMutex;
++    void onNonOffloadableGlobalEffectEnable() final EXCLUDES_AudioFlinger_Mutex;
+@@ -344 +251,0 @@ uint32_t AudioFlinger::mScreenState;
+-<<<<<<< HEAD
+@@ -346,5 +253 @@ uint32_t AudioFlinger::mScreenState;
+-||||||| 8c9114940a
+-                    audio_io_handle_t output, const std::vector<audio_latency_mode_t>& modes);
+-=======
+-              audio_io_handle_t output, const std::vector<audio_latency_mode_t>& modes) final;
+->>>>>>> 4ee25d84
++            EXCLUDES_AudioFlinger_ClientMutex;
+@@ -351,0 +255 @@ uint32_t AudioFlinger::mScreenState;
++            EXCLUDES_AudioFlinger_Mutex;
+@@ -353,0 +258 @@ public:
++    static inline std::atomic<AudioFlinger*> gAudioFlinger = nullptr;
+@@ -362 +267 @@ public:
+-            audio_port_handle_t *handle)
++            audio_port_handle_t *handle) EXCLUDES_AudioFlinger_Mutex;
+@@ -369 +274 @@ sp<MemoryDealer> mLogMemoryDealer;
+-              AudioFlinger()uint32_t AudioFlinger::mScreenState;
++                            AudioFlinger() ANDROID_API;
+@@ -375,8 +280,2 @@ sp<MemoryDealer> mLogMemoryDealer;
+-            audio_devices_t deviceType)
+-public:
+-<<<<<<< HEAD
+-||||||| 8c9114940a
+-=======
+->>>>>>> 4ee25d84
+-    static inline std::atomic<AudioFlinger*> gAudioFlinger = nullptr;
+-private:
++            audio_devices_t deviceType) REQUIRES(mutex());
++    std::atomic_uint32_t mScreenState{};
+@@ -384,2 +283,4 @@ private:
+-void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16};
+-    void dumpToThreadLog_l(const sp<IAfThreadBase>& thread)
++    void dumpClients_ll(int fd, const Vector<String16>& args) REQUIRES(mutex(), clientMutex());
++    void dumpInternals_l(int fd, const Vector<String16>& args) REQUIRES(mutex());
++    SimpleLog mThreadLog{16};
++    void dumpToThreadLog_l(const sp<IAfThreadBase>& thread) REQUIRES(mutex());
+@@ -416,3 +317,20 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
+-    IAfPlaybackThread* checkMixerThread_l(audio_io_handle_t output) const
+-              sp<VolumeInterface> getVolumeInterface_l(audio_io_handle_t output) const
+-              std::vector<sp<VolumeInterface>> getAllVolumeInterfaces_l() const
++    template <typename T>
++    static audio_io_handle_t findIoHandleBySessionId_l(
++            audio_session_t sessionId, const T& threads)
++            REQUIRES(audio_utils::AudioFlinger_Mutex) {
++        audio_io_handle_t io = AUDIO_IO_HANDLE_NONE;
++        for (size_t i = 0; i < threads.size(); i++) {
++            const uint32_t sessionType = threads.valueAt(i)->hasAudioSession(sessionId);
++            if (sessionType != 0) {
++                io = threads.keyAt(i);
++                if ((sessionType & IAfThreadBase::EFFECT_SESSION) != 0) {
++                    break;
++                }
++            }
++        }
++        return io;
++    }
++    IAfThreadBase* checkThread_l(audio_io_handle_t ioHandle) const REQUIRES(mutex());
++    IAfPlaybackThread* checkMixerThread_l(audio_io_handle_t output) const REQUIRES(mutex());
++    sp<VolumeInterface> getVolumeInterface_l(audio_io_handle_t output) const REQUIRES(mutex());
++    std::vector<sp<VolumeInterface>> getAllVolumeInterfaces_l() const REQUIRES(mutex());
+@@ -422,2 +340,2 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
+-              DeviceTypeSet primaryOutputDevice_l() const
+-              IAfPlaybackThread* fastPlaybackThread_l() const
++    DeviceTypeSet primaryOutputDevice_l() const REQUIRES(mutex());
++    IAfPlaybackThread* fastPlaybackThread_l() const REQUIRES(mutex());
+@@ -425 +343,2 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
+-              IAfThreadBase* hapticPlaybackThread_l() const
++            REQUIRES(mutex());
++    IAfThreadBase* hapticPlaybackThread_l() const REQUIRES(mutex());
+@@ -429,6 +348,6 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
+-              const std::vector<audio_io_handle_t>& secondaryOutputs) const
+-                bool isSessionAcquired_l(audio_session_t audioSession)
+-                status_t putOrphanEffectChain_l(const sp<IAfEffectChain>& chain)
+-                sp<IAfEffectChain> getOrphanEffectChain_l(audio_session_t session)
+-                std::vector< sp<IAfEffectModule> > purgeStaleEffects_l()
+-                void broadcastParametersToRecordThreads_l(const String8& keyValuePairs)
++            const std::vector<audio_io_handle_t>& secondaryOutputs) const REQUIRES(mutex());
++    bool isSessionAcquired_l(audio_session_t audioSession) REQUIRES(mutex());
++    status_t putOrphanEffectChain_l(const sp<IAfEffectChain>& chain) REQUIRES(mutex());
++    sp<IAfEffectChain> getOrphanEffectChain_l(audio_session_t session) REQUIRES(mutex());
++    std::vector< sp<IAfEffectModule> > purgeStaleEffects_l() REQUIRES(mutex());
++    void broadcastParametersToRecordThreads_l(const String8& keyValuePairs) REQUIRES(mutex());
+@@ -437,0 +357 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
++            REQUIRES(mutex());
+@@ -448 +368,3 @@ void dumpClients_ll(int fd, const Vector<String16>& args)SimpleLog mThreadLog{16
+-uint32_t AudioFlinger::mScreenState;
++    DefaultKeyedVector<pid_t, wp<Client>> mClients GUARDED_BY(clientMutex());
++    audio_utils::mutex& hardwareMutex() const { return mHardwareMutex; }
++    mutable audio_utils::mutex mHardwareMutex;
+@@ -450,0 +373 @@ uint32_t AudioFlinger::mScreenState;
++            GUARDED_BY(hardwareMutex()) {nullptr };
+@@ -481,7 +404,9 @@ mutable hardware_call_state mHardwareStatus = AUDIO_HW_IDLE;
+-uint32_t AudioFlinger::mScreenState;
+-                stream_type_t mStreamTypes[AUDIO_STREAM_CNT]
+-                float mMasterVolume
+-                bool mMasterMute
+-                float mMasterBalance
+-uint32_t AudioFlinger::mScreenState;
+-uint32_t AudioFlinger::mScreenState;
++    DefaultKeyedVector<audio_io_handle_t, sp<IAfPlaybackThread>> mPlaybackThreads
++            GUARDED_BY(mutex());
++    stream_type_t mStreamTypes[AUDIO_STREAM_CNT] GUARDED_BY(mutex());
++    float mMasterVolume GUARDED_BY(mutex()) = 1.f;
++    bool mMasterMute GUARDED_BY(mutex()) = false;
++    float mMasterBalance GUARDED_BY(mutex()) = 0.f;
++    DefaultKeyedVector<audio_io_handle_t, sp<IAfRecordThread>> mRecordThreads GUARDED_BY(mutex());
++    DefaultKeyedVector<pid_t, sp<NotificationClient>> mNotificationClients
++            GUARDED_BY(clientMutex());
+@@ -491,9 +416,10 @@ uint32_t AudioFlinger::mScreenState;
+-                Vector<AudioSessionRef*> mAudioSessionRefs
+-                AudioHwDevice* loadHwModule_ll(const char *name)
+-                std::list<sp<audioflinger::SyncEvent>> mPendingSyncEvents
+-uint32_t AudioFlinger::mScreenState;
+-                DefaultKeyedVector<audio_session_t, audio_hw_sync_t> mHwAvSyncIds
+-uint32_t AudioFlinger::mScreenState;
+-sp<Client> registerPid(pid_t pid)
+-    status_t closeOutput_nonvirtual(audio_io_handle_t output)
+-    status_t closeInput_nonvirtual(audio_io_handle_t input)
++    Vector<AudioSessionRef*> mAudioSessionRefs GUARDED_BY(mutex());
++    AudioHwDevice* loadHwModule_ll(const char *name) REQUIRES(mutex(), hardwareMutex());
++    std::list<sp<audioflinger::SyncEvent>> mPendingSyncEvents GUARDED_BY(mutex());
++    DefaultKeyedVector<audio_session_t, sp<IAfEffectChain>> mOrphanEffectChains
++            GUARDED_BY(mutex());
++    DefaultKeyedVector<audio_session_t, audio_hw_sync_t> mHwAvSyncIds GUARDED_BY(mutex());
++    DefaultKeyedVector<audio_io_handle_t, sp<IAfMmapThread>> mMmapThreads GUARDED_BY(mutex());
++    sp<Client> registerPid(pid_t pid) EXCLUDES_AudioFlinger_ClientMutex;
++    status_t closeOutput_nonvirtual(audio_io_handle_t output) EXCLUDES_AudioFlinger_Mutex;
++    status_t closeInput_nonvirtual(audio_io_handle_t input) EXCLUDES_AudioFlinger_Mutex;
+@@ -500,0 +427 @@ sp<Client> registerPid(pid_t pid)
++            REQUIRES(mutex());
+@@ -508,2 +435,2 @@ sp<Client> registerPid(pid_t pid)
+-    bool mIsDeviceTypeKnown
+-    int64_t mTotalMemory
++    bool mIsDeviceTypeKnown GUARDED_BY(mutex()) = false;
++    int64_t mTotalMemory GUARDED_BY(mutex()) = 0;
+@@ -512 +439 @@ static constexpr size_t kMinimumClientSharedHeapSizeBytes = 1024 * 1024;
+-nsecs_t mGlobalEffectEnableTime
++    nsecs_t mGlobalEffectEnableTime GUARDED_BY(mutex()) = 0;
+@@ -519 +446 @@ sp<MelReporter> mMelReporter;
+-    bool mSystemReady
++    bool mSystemReady GUARDED_BY(mutex()) = false;
+@@ -520,0 +448 @@ sp<MelReporter> mMelReporter;
++    mediautils::UidInfo mUidInfo GUARDED_BY(mutex());
+@@ -524 +452 @@ sp<MelReporter> mMelReporter;
+-    std::vector<media::AudioVibratorInfo> mAudioVibratorInfos
++    std::vector<media::AudioVibratorInfo> mAudioVibratorInfos GUARDED_BY(mutex());
+@@ -526,3 +454,5 @@ sp<MelReporter> mMelReporter;
+-uint32_t AudioFlinger::mScreenState;
+-    int32_t mAAudioBurstsPerBuffer
+-    int32_t mAAudioHwBurstMinMicros
++    std::map<media::audio::common::AudioMMapPolicyType,
++             std::vector<media::audio::common::AudioMMapPolicyInfo>> mPolicyInfos
++             GUARDED_BY(mutex());
++    int32_t mAAudioBurstsPerBuffer GUARDED_BY(mutex()) = 0;
++    int32_t mAAudioHwBurstMinMicros GUARDED_BY(mutex()) = 0;

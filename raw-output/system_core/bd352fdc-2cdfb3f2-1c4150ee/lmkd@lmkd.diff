@@ -1,0 +1,125 @@
+diff --git a/output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_mergebot.c b/output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_truth.c
+index 2a8bec0..0767617 100644
+--- a/output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_mergebot.c
++++ b/output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_truth.c
+@@ -2 +1,0 @@
+-#include <arpa/inet.h>
+@@ -14 +12,0 @@
+-#include <time.h>
+@@ -20,10 +17,0 @@
+-#include <processgroup/processgroup.h>
+-#ifdef LMKD_TRACE_KILLS
+-#define ATRACE_TAG ATRACE_TAG_ALWAYS
+-#include <cutils/trace.h>
+-#define TRACE_KILL_START(pid) ATRACE_INT(__FUNCTION__, pid);
+-#define TRACE_KILL_END() ATRACE_INT(__FUNCTION__, 0);
+-#else
+-#define TRACE_KILL_START(pid) 
+-#define TRACE_KILL_END() 
+-#endif
+@@ -44 +31,0 @@
+-#define ZONEINFO_PATH "/proc/zoneinfo"
+@@ -48,2 +34,0 @@
+-#define MEMPRESSURE_WATCH_MEDIUM_LEVEL "medium"
+-#define MEMPRESSURE_WATCH_CRITICAL_LEVEL "critical"
+@@ -61 +46,4 @@ enum vmpressure_level {
+-VMPRESS_LEVEL_LOW = 0,VMPRESS_LEVEL_MEDIUM,VMPRESS_LEVEL_CRITICAL, VMPRESS_LEVEL_COUNT
++    VMPRESS_LEVEL_LOW = 0,
++    VMPRESS_LEVEL_MEDIUM,
++    VMPRESS_LEVEL_CRITICAL,
++    VMPRESS_LEVEL_COUNT
+@@ -98 +85,0 @@ static struct event_handler_info vmpressure_hinfo[VMPRESS_LEVEL_COUNT];
+-#define MAX_EPOLL_EVENTS 5
+@@ -128,0 +116,2 @@ static struct proc *pidhash[PIDHASH_SZ];
++#define pid_hashfn(x) ((((x) >> 8) ^ (x)) & (PIDHASH_SZ - 1))
++#define ADJTOSLOT(adj) ((adj) + -OOM_SCORE_ADJ_MIN)
+@@ -204 +193 @@ static int pid_remove(int pid) {
+-static void writefilestring(char *path, const char *path, char *s) {
++static void writefilestring(const char *path, char *s) {
+@@ -530 +519,2 @@ static struct proc *proc_get_heaviest(int oomadj) {
+-static int kill_one_process(struct proc* procp, int min_score_adj, enum vmpressure_level level, bool is_critical) {
++static int kill_one_process(struct proc* procp, int min_score_adj,
++                            enum vmpressure_level level) {
+@@ -550 +539,0 @@ static int kill_one_process(struct proc* procp, int min_score_adj, enum vmpressu
+-<<<<<<< HEAD
+@@ -558,5 +546,0 @@ static int kill_one_process(struct proc* procp, int min_score_adj, enum vmpressu
+-||||||| 1c4150ee4
+-=======
+-    TRACE_KILL_START(pid);
+-    r = kill(pid, SIGKILL);
+->>>>>>> 2cdfb3f2
+@@ -585 +569,2 @@ static int kill_one_process(struct proc* procp, int min_score_adj, enum vmpressu
+-static int find_and_kill_processes(enum vmpressure_level level, int pages_to_free) {
++static int find_and_kill_processes(enum vmpressure_level level,
++                                   int pages_to_free) {
+@@ -589,0 +575,5 @@ static int find_and_kill_processes(enum vmpressure_level level, int pages_to_fre
++#ifdef LMKD_LOG_STATS
++    if (enable_stats_log) {
++        stats_write_lmk_state_changed(log_ctx, LMK_STATE_CHANGED, LMK_STATE_CHANGE_START);
++    }
++#endif
+@@ -602,0 +593,6 @@ static int find_and_kill_processes(enum vmpressure_level level, int pages_to_fre
++#ifdef LMKD_LOG_STATS
++                    if (enable_stats_log) {
++                        stats_write_lmk_state_changed(log_ctx, LMK_STATE_CHANGED,
++                                LMK_STATE_CHANGE_STOP);
++                    }
++#endif
+@@ -607,0 +604,5 @@ static int find_and_kill_processes(enum vmpressure_level level, int pages_to_fre
++#ifdef LMKD_LOG_STATS
++    if (enable_stats_log) {
++        stats_write_lmk_state_changed(log_ctx, LMK_STATE_CHANGED, LMK_STATE_CHANGE_STOP);
++    }
++#endif
+@@ -659 +660,2 @@ enum vmpressure_level downgrade_level(enum vmpressure_level level) {
+-static inline unsigned long get_time_diff_ms(struct timeval *from, struct timeval *to) {
++static inline unsigned long get_time_diff_ms(struct timeval *from,
++                                             struct timeval *to) {
+@@ -663 +665 @@ static inline unsigned long get_time_diff_ms(struct timeval *from, struct timeva
+-static void mp_event_common(int data, uint32_t events __unused, bool is_critical, enum vmpressure_level level) {
++static void mp_event_common(int data, uint32_t events __unused) {
+@@ -668 +669,0 @@ static void mp_event_common(int data, uint32_t events __unused, bool is_critical
+-<<<<<<< HEAD
+@@ -674,7 +674,0 @@ static void mp_event_common(int data, uint32_t events __unused, bool is_critical
+-||||||| 1c4150ee4
+-=======
+-    enum vmpressure_level lvl;
+-    struct mem_size free_mem;
+-    static struct timeval last_report_tm;
+-    static unsigned long skip_count = 0;
+->>>>>>> 2cdfb3f2
+@@ -771,4 +765 @@ do_kill:
+-static void mp_event_medium(uint32_t events __unused) {
+-    mp_event_common(VMPRESS_LEVEL_MEDIUM);
+-}
+-static bool init_mp_common(void *event_handler, enum vmpressure_level level, char *levelstr, bool is_critical) {
++static bool init_mp_common(enum vmpressure_level level) {
+@@ -781 +771,0 @@ static bool init_mp_common(void *event_handler, enum vmpressure_level level, cha
+-<<<<<<< HEAD
+@@ -784,5 +773,0 @@ static bool init_mp_common(void *event_handler, enum vmpressure_level level, cha
+-||||||| 1c4150ee4
+-    int mpevfd_index = is_critical ? CRITICAL_INDEX : MEDIUM_INDEX;
+-=======
+-    const char *levelstr = level_name[level];
+->>>>>>> 2cdfb3f2
+@@ -876 +860,0 @@ static int init(void) {
+-<<<<<<< HEAD
+@@ -880,10 +863,0 @@ static int init(void) {
+-||||||| 1c4150ee4
+-        ret = init_mp_medium();
+-        ret |= init_mp_critical();
+-        if (ret)
+-=======
+-        if (!init_mp_common((void *)&mp_event_low, VMPRESS_LEVEL_LOW) ||
+-            !init_mp_common((void *)&mp_event_medium, VMPRESS_LEVEL_MEDIUM) ||
+-            !init_mp_common((void *)&mp_event_critical,
+-                            VMPRESS_LEVEL_CRITICAL)) {
+->>>>>>> 2cdfb3f2
+@@ -954 +927,0 @@ int main(int argc __unused, char **argv __unused) {
+-<<<<<<< HEAD
+@@ -960,5 +932,0 @@ int main(int argc __unused, char **argv __unused) {
+-||||||| 1c4150ee4
+-=======
+-    kill_timeout_ms =
+-        (unsigned long)property_get_int32("ro.lmk.kill_timeout_ms", 0);
+->>>>>>> 2cdfb3f2

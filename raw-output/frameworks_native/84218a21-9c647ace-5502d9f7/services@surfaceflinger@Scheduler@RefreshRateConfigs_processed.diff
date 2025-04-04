@@ -1,0 +1,113 @@
+--- a/output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_mergebot.cpp
++++ b/output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_truth.cpp
+@@ -18,2 +18,2 @@ std::string formatLayerInfo(const RefreshRateConfigs::LayerRequirement& layer, f
+-                              RefreshRateConfigs::layerVoteTypeString(layer.vote).c_str(), weight,
+-                              toString(layer.seamlessness).c_str(),
++                              ftl::enum_string(layer.vote).c_str(), weight,
++                              ftl::enum_string(layer.seamlessness).c_str(),
+@@ -23 +23 @@ std::vector<Fps> constructKnownFrameRates(const DisplayModes& modes) {
+-    std::vector<Fps> knownFrameRates = {Fps(24.0f), Fps(30.0f), Fps(45.0f), Fps(60.0f), Fps(72.0f)};
++    std::vector<Fps> knownFrameRates = {24_Hz, 30_Hz, 45_Hz, 60_Hz, 72_Hz};
+@@ -26,2 +26 @@ std::vector<Fps> constructKnownFrameRates(const DisplayModes& modes) {
+-        const auto refreshRate = Fps::fromPeriodNsecs(mode->getVsyncPeriod());
+-        knownFrameRates.emplace_back(refreshRate);
++        knownFrameRates.push_back(Fps::fromPeriodNsecs(mode->getVsyncPeriod()));
+@@ -29 +28 @@ std::vector<Fps> constructKnownFrameRates(const DisplayModes& modes) {
+-    std::sort(knownFrameRates.begin(), knownFrameRates.end(), Fps::comparesLess);
++    std::sort(knownFrameRates.begin(), knownFrameRates.end(), isStrictlyLess);
+@@ -31 +30 @@ std::vector<Fps> constructKnownFrameRates(const DisplayModes& modes) {
+-                                      Fps::EqualsWithMargin()),
++                                      isApproxEqual),
+@@ -129 +128,0 @@ float RefreshRateConfigs::calculateLayerScoreLocked(const LayerRequirement& laye
+-    constexpr float kScoreForFractionalPairs = .8f;
+@@ -137,71 +135,0 @@ float RefreshRateConfigs::calculateLayerScoreLocked(const LayerRequirement& laye
+-<<<<<<< HEAD
+-||||||| 5502d9f7a2
+-    const auto displayPeriod = refreshRate.getVsyncPeriod();
+-    const auto layerPeriod = layer.desiredRefreshRate.getPeriodNsecs();
+-    if (layer.vote == LayerVoteType::ExplicitDefault) {
+-        auto actualLayerPeriod = displayPeriod;
+-        int multiplier = 1;
+-        while (layerPeriod > actualLayerPeriod + MARGIN_FOR_PERIOD_CALCULATION) {
+-            multiplier++;
+-            actualLayerPeriod = displayPeriod * multiplier;
+-        }
+-        return std::min(1.0f,
+-                        static_cast<float>(layerPeriod) / static_cast<float>(actualLayerPeriod));
+-    }
+-    if (layer.vote == LayerVoteType::ExplicitExactOrMultiple ||
+-        layer.vote == LayerVoteType::Heuristic) {
+-        const auto [displayFramesQuotient, displayFramesRemainder] =
+-                getDisplayFrames(layerPeriod, displayPeriod);
+-        static constexpr size_t MAX_FRAMES_TO_FIT = 10;
+-        if (displayFramesRemainder == 0) {
+-            return 1.0f * seamlessness;
+-        }
+-        if (displayFramesQuotient == 0) {
+-            return (static_cast<float>(layerPeriod) / static_cast<float>(displayPeriod)) *
+-                    (1.0f / (MAX_FRAMES_TO_FIT + 1));
+-        }
+-        auto diff = std::abs(displayFramesRemainder - (displayPeriod - displayFramesRemainder));
+-        int iter = 2;
+-        while (diff > MARGIN_FOR_PERIOD_CALCULATION && iter < MAX_FRAMES_TO_FIT) {
+-            diff = diff - (displayPeriod - diff);
+-            iter++;
+-        }
+-        return (1.0f / iter) * seamlessness;
+-    }
+-=======
+-    const auto displayPeriod = refreshRate.getVsyncPeriod();
+-    const auto layerPeriod = layer.desiredRefreshRate.getPeriodNsecs();
+-    if (layer.vote == LayerVoteType::ExplicitDefault) {
+-        auto actualLayerPeriod = displayPeriod;
+-        int multiplier = 1;
+-        while (layerPeriod > actualLayerPeriod + MARGIN_FOR_PERIOD_CALCULATION) {
+-            multiplier++;
+-            actualLayerPeriod = displayPeriod * multiplier;
+-        }
+-        return std::min(1.0f,
+-                        static_cast<float>(layerPeriod) / static_cast<float>(actualLayerPeriod));
+-    }
+-    if (layer.vote == LayerVoteType::ExplicitExactOrMultiple ||
+-        layer.vote == LayerVoteType::Heuristic) {
+-        if (isFractionalPairOrMultiple(refreshRate.getFps(), layer.desiredRefreshRate)) {
+-            return kScoreForFractionalPairs * seamlessness;
+-        }
+-        const auto [displayFramesQuotient, displayFramesRemainder] =
+-                getDisplayFrames(layerPeriod, displayPeriod);
+-        static constexpr size_t MAX_FRAMES_TO_FIT = 10;
+-        if (displayFramesRemainder == 0) {
+-            return 1.0f * seamlessness;
+-        }
+-        if (displayFramesQuotient == 0) {
+-            return (static_cast<float>(layerPeriod) / static_cast<float>(displayPeriod)) *
+-                    (1.0f / (MAX_FRAMES_TO_FIT + 1));
+-        }
+-        auto diff = std::abs(displayFramesRemainder - (displayPeriod - displayFramesRemainder));
+-        int iter = 2;
+-        while (diff > MARGIN_FOR_PERIOD_CALCULATION && iter < MAX_FRAMES_TO_FIT) {
+-            diff = diff - (displayPeriod - diff);
+-            iter++;
+-        }
+-        return (1.0f / iter) * seamlessness;
+-    }
+->>>>>>> 9c647ace
+@@ -761 +691,6 @@ void RefreshRateConfigs::constructAvailableRefreshRates() {
+-            }}
++            };
++    filterRefreshRates(policy->primaryRange.min, policy->primaryRange.max, "primary",
++                       &mPrimaryRefreshRates);
++    filterRefreshRates(policy->appRequestRange.min, policy->appRequestRange.max, "app request",
++                       &mAppRequestRefreshRates);
++}
+@@ -803 +738 @@ bool RefreshRateConfigs::isFractionalPairOrMultiple(Fps smaller, Fps bigger) {
+-    if (smaller.getValue() > bigger.getValue()) {
++    if (isStrictlyLess(bigger, smaller)) {
+@@ -808,2 +743,2 @@ bool RefreshRateConfigs::isFractionalPairOrMultiple(Fps smaller, Fps bigger) {
+-    return bigger.equalsWithMargin(Fps(smaller.getValue() * multiplier / kCoef)) ||
+-            bigger.equalsWithMargin(Fps(smaller.getValue() * multiplier * kCoef));
++    return isApproxEqual(bigger, Fps::fromValue(smaller.getValue() * multiplier / kCoef)) ||
++            isApproxEqual(bigger, Fps::fromValue(smaller.getValue() * multiplier * kCoef));
+@@ -833,0 +769,2 @@ void RefreshRateConfigs::dump(std::string& result) const {
++}
++#pragma clang diagnostic pop

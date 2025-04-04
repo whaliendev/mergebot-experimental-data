@@ -1,0 +1,76 @@
+diff --git a/output/duckdb/7889b65f-ae856279-76dcfb8a/third_party@snappy@snappy-internal.no_comments_mergebot.h b/output/duckdb/7889b65f-ae856279-76dcfb8a/third_party@snappy@snappy-internal.no_comments_truth.h
+index 6a7a893..b3c272d 100644
+--- a/output/duckdb/7889b65f-ae856279-76dcfb8a/third_party@snappy@snappy-internal.no_comments_mergebot.h
++++ b/output/duckdb/7889b65f-ae856279-76dcfb8a/third_party@snappy@snappy-internal.no_comments_truth.h
+@@ -26,0 +27,64 @@ char* CompressFragment(const char* input,
++#if !defined(SNAPPY_IS_BIG_ENDIAN) && \
++    (defined(ARCH_K8) || defined(ARCH_PPC) || defined(ARCH_ARM))
++static inline std::pair<size_t, bool> FindMatchLength(const char* s1,
++                                                      const char* s2,
++                                                      const char* s2_limit) {
++  assert(s2_limit >= s2);
++  size_t matched = 0;
++  if (SNAPPY_PREDICT_TRUE(s2 <= s2_limit - 8)) {
++    uint64 a1 = UNALIGNED_LOAD64(s1);
++    uint64 a2 = UNALIGNED_LOAD64(s2);
++    if (a1 != a2) {
++      return std::pair<size_t, bool>(Bits::FindLSBSetNonZero64(a1 ^ a2) >> 3,
++                                     true);
++    } else {
++      matched = 8;
++      s2 += 8;
++    }
++  }
++  while (SNAPPY_PREDICT_TRUE(s2 <= s2_limit - 8)) {
++    if (UNALIGNED_LOAD64(s2) == UNALIGNED_LOAD64(s1 + matched)) {
++      s2 += 8;
++      matched += 8;
++    } else {
++      uint64 x = UNALIGNED_LOAD64(s2) ^ UNALIGNED_LOAD64(s1 + matched);
++      int matching_bits = Bits::FindLSBSetNonZero64(x);
++      matched += matching_bits >> 3;
++      assert(matched >= 8);
++      return std::pair<size_t, bool>(matched, false);
++    }
++  }
++  while (SNAPPY_PREDICT_TRUE(s2 < s2_limit)) {
++    if (s1[matched] == *s2) {
++      ++s2;
++      ++matched;
++    } else {
++      return std::pair<size_t, bool>(matched, matched < 8);
++    }
++  }
++  return std::pair<size_t, bool>(matched, matched < 8);
++}
++#else
++static inline std::pair<size_t, bool> FindMatchLength(const char* s1,
++                                                      const char* s2,
++                                                      const char* s2_limit) {
++  assert(s2_limit >= s2);
++  int matched = 0;
++  while (s2 <= s2_limit - 4 &&
++         UNALIGNED_LOAD32(s2) == UNALIGNED_LOAD32(s1 + matched)) {
++    s2 += 4;
++    matched += 4;
++  }
++  if (LittleEndian::IsLittleEndian() && s2 <= s2_limit - 4) {
++    uint32 x = UNALIGNED_LOAD32(s2) ^ UNALIGNED_LOAD32(s1 + matched);
++    int matching_bits = Bits::FindLSBSetNonZero(x);
++    matched += matching_bits >> 3;
++  } else {
++    while ((s2 < s2_limit) && (s1[matched] == *s2)) {
++      ++s2;
++      ++matched;
++    }
++  }
++  return std::pair<size_t, bool>(matched, matched < 8);
++}
++#endif
+@@ -28,2 +92,4 @@ enum {
+-LITERAL = 0,COPY_1_BYTE_OFFSET = 1,
+-COPY_2_BYTE_OFFSET = 2, COPY_4_BYTE_OFFSET = 3
++  LITERAL = 0,
++  COPY_1_BYTE_OFFSET = 1,
++  COPY_2_BYTE_OFFSET = 2,
++  COPY_4_BYTE_OFFSET = 3

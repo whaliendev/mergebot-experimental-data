@@ -1,0 +1,566 @@
+diff --git a/output/frameworks_native/9dada04d-7e04edd5-72cce2f7/libs@binder@tests@binderLibTest.no_comments_mergebot.cpp b/output/frameworks_native/9dada04d-7e04edd5-72cce2f7/libs@binder@tests@binderLibTest.no_comments_truth.cpp
+index 9d784cb..80c8a97 100644
+--- a/output/frameworks_native/9dada04d-7e04edd5-72cce2f7/libs@binder@tests@binderLibTest.no_comments_mergebot.cpp
++++ b/output/frameworks_native/9dada04d-7e04edd5-72cce2f7/libs@binder@tests@binderLibTest.no_comments_truth.cpp
+@@ -26 +26,20 @@ enum BinderLibTestTranscationCode {
+-BINDER_LIB_TEST_NOP_TRANSACTION = IBinder::FIRST_CALL_TRANSACTION,BINDER_LIB_TEST_REGISTER_SERVER,BINDER_LIB_TEST_ADD_SERVER,BINDER_LIB_TEST_CALL_BACK,BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF,BINDER_LIB_TEST_NOP_CALL_BACK,BINDER_LIB_TEST_GET_SELF_TRANSACTION,BINDER_LIB_TEST_GET_ID_TRANSACTION,BINDER_LIB_TEST_INDIRECT_TRANSACTION,BINDER_LIB_TEST_SET_ERROR_TRANSACTION,BINDER_LIB_TEST_GET_STATUS_TRANSACTION,BINDER_LIB_TEST_ADD_STRONG_REF_TRANSACTION,BINDER_LIB_TEST_LINK_DEATH_TRANSACTION,BINDER_LIB_TEST_WRITE_FILE_TRANSACTION,BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION,BINDER_LIB_TEST_EXIT_TRANSACTION,BINDER_LIB_TEST_DELAYED_EXIT_TRANSACTION,BINDER_LIB_TEST_GET_PTR_SIZE_TRANSACTION,BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION,};
++    BINDER_LIB_TEST_NOP_TRANSACTION = IBinder::FIRST_CALL_TRANSACTION,
++    BINDER_LIB_TEST_REGISTER_SERVER,
++    BINDER_LIB_TEST_ADD_SERVER,
++    BINDER_LIB_TEST_CALL_BACK,
++    BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF,
++    BINDER_LIB_TEST_NOP_CALL_BACK,
++    BINDER_LIB_TEST_GET_SELF_TRANSACTION,
++    BINDER_LIB_TEST_GET_ID_TRANSACTION,
++    BINDER_LIB_TEST_INDIRECT_TRANSACTION,
++    BINDER_LIB_TEST_SET_ERROR_TRANSACTION,
++    BINDER_LIB_TEST_GET_STATUS_TRANSACTION,
++    BINDER_LIB_TEST_ADD_STRONG_REF_TRANSACTION,
++    BINDER_LIB_TEST_LINK_DEATH_TRANSACTION,
++    BINDER_LIB_TEST_WRITE_FILE_TRANSACTION,
++    BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION,
++    BINDER_LIB_TEST_EXIT_TRANSACTION,
++    BINDER_LIB_TEST_DELAYED_EXIT_TRANSACTION,
++    BINDER_LIB_TEST_GET_PTR_SIZE_TRANSACTION,
++    BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION,
++};
+@@ -176 +195,2 @@ void appendTo(Parcel *dest) {
+-        } bool isValid(void) {
++        };
++        bool isValid(void) {
+@@ -220 +240,2 @@ void triggerEvent(void) {
+-        }private:
++        };
++    private:
+@@ -282,2 +303,3 @@ virtual void binderDied(const wp<IBinder>& who) {
+-        }};
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++        };
++};
++TEST_F(BinderLibTest, NopTransaction) {
+@@ -286,11 +308 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
+-    }
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    ret = m_server->transact(BINDER_LIB_TEST_NOP_TRANSACTION, data, &reply);
+@@ -299 +311,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, SetError) {
++    int32_t testValue[] = { 0, -123, 123 };
++    for (size_t i = 0; i < ARRAY_SIZE(testValue); i++) {
+@@ -302,9 +316,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        data.writeInt32(testValue[i]);
++        ret = m_server->transact(BINDER_LIB_TEST_SET_ERROR_TRANSACTION, data, &reply);
++        EXPECT_EQ(testValue[i], ret);
+@@ -312,2 +319,0 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
+-    EXPECT_EQ(NO_ERROR, ret);
+@@ -315 +321 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, GetId) {
+@@ -316,0 +323 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    int32_t id;
+@@ -318,11 +325 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
+-    }
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    ret = m_server->transact(BINDER_LIB_TEST_GET_ID_TRANSACTION, data, &reply);
+@@ -329,0 +327,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ret = reply.readInt32(&id);
++    EXPECT_EQ(NO_ERROR, ret);
++    EXPECT_EQ(0, id);
+@@ -331 +331 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, PtrSize) {
+@@ -332,0 +333 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    int32_t ptrsize;
+@@ -334,11 +335,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
+-    }
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    sp<IBinder> server = addServer();
++    ASSERT_TRUE(server != NULL);
++    ret = server->transact(BINDER_LIB_TEST_GET_PTR_SIZE_TRANSACTION, data, &reply);
+@@ -345,0 +339,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ret = reply.readInt32(&ptrsize);
++    EXPECT_EQ(NO_ERROR, ret);
++    RecordProperty("TestPtrSize", sizeof(void *));
++    RecordProperty("ServerPtrSize", sizeof(void *));
+@@ -347 +344,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, IndirectGetId2)
++{
+@@ -348,0 +347,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    int32_t id;
++    int32_t count;
+@@ -350,2 +350,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
++    int32_t serverId[3];
++    data.writeInt32(ARRAY_SIZE(serverId));
++    for (size_t i = 0; i < ARRAY_SIZE(serverId); i++) {
++        sp<IBinder> server;
+@@ -353,5 +355,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
++        server = addServer(&serverId[i]);
++        ASSERT_TRUE(server != NULL);
++        data.writeStrongBinder(server);
++        data.writeInt32(BINDER_LIB_TEST_GET_ID_TRANSACTION);
+@@ -360,0 +362,11 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ASSERT_EQ(NO_ERROR, ret);
++    ret = reply.readInt32(&id);
++    ASSERT_EQ(NO_ERROR, ret);
++    EXPECT_EQ(0, id);
++    ret = reply.readInt32(&count);
++    ASSERT_EQ(NO_ERROR, ret);
++    EXPECT_EQ(ARRAY_SIZE(serverId), (size_t)count);
++    for (size_t i = 0; i < (size_t)count; i++) {
++        BinderLibTestBundle replyi(&reply);
++        EXPECT_TRUE(replyi.isValid());
++        ret = replyi.readInt32(&id);
+@@ -361,0 +374,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++        EXPECT_EQ(serverId[i], id);
++        EXPECT_EQ(replyi.dataSize(), replyi.dataPosition());
+@@ -363 +377,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    EXPECT_EQ(reply.dataSize(), reply.dataPosition());
++}
++TEST_F(BinderLibTest, IndirectGetId3)
++{
+@@ -364,0 +382,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    int32_t id;
++    int32_t count;
+@@ -366,2 +385,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
++    int32_t serverId[3];
++    data.writeInt32(ARRAY_SIZE(serverId));
++    for (size_t i = 0; i < ARRAY_SIZE(serverId); i++) {
++        sp<IBinder> server;
+@@ -369,5 +390,9 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
++        BinderLibTestBundle datai2;
++        server = addServer(&serverId[i]);
++        ASSERT_TRUE(server != NULL);
++        data.writeStrongBinder(server);
++        data.writeInt32(BINDER_LIB_TEST_INDIRECT_TRANSACTION);
++        datai.writeInt32(1);
++        datai.writeStrongBinder(m_server);
++        datai.writeInt32(BINDER_LIB_TEST_GET_ID_TRANSACTION);
++        datai2.appendTo(&datai);
+@@ -376,0 +402,20 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ASSERT_EQ(NO_ERROR, ret);
++    ret = reply.readInt32(&id);
++    ASSERT_EQ(NO_ERROR, ret);
++    EXPECT_EQ(0, id);
++    ret = reply.readInt32(&count);
++    ASSERT_EQ(NO_ERROR, ret);
++    EXPECT_EQ(ARRAY_SIZE(serverId), (size_t)count);
++    for (size_t i = 0; i < (size_t)count; i++) {
++        int32_t counti;
++        BinderLibTestBundle replyi(&reply);
++        EXPECT_TRUE(replyi.isValid());
++        ret = replyi.readInt32(&id);
++        EXPECT_EQ(NO_ERROR, ret);
++        EXPECT_EQ(serverId[i], id);
++        ret = replyi.readInt32(&counti);
++        ASSERT_EQ(NO_ERROR, ret);
++        EXPECT_EQ(1, counti);
++        BinderLibTestBundle replyi2(&replyi);
++        EXPECT_TRUE(replyi2.isValid());
++        ret = replyi2.readInt32(&id);
+@@ -377,0 +423,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++        EXPECT_EQ(0, id);
++        EXPECT_EQ(replyi2.dataSize(), replyi2.dataPosition());
++        EXPECT_EQ(replyi.dataSize(), replyi.dataPosition());
+@@ -379 +427,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    EXPECT_EQ(reply.dataSize(), reply.dataPosition());
++}
++TEST_F(BinderLibTest, CallBack)
++{
+@@ -383,5 +433,0 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+@@ -389,4 +435,5 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
+-    }
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    ret = m_server->transact(BINDER_LIB_TEST_NOP_CALL_BACK, data, &reply, TF_ONE_WAY);
++    EXPECT_EQ(NO_ERROR, ret);
++    ret = callBack->waitEvent(5);
++    EXPECT_EQ(NO_ERROR, ret);
++    ret = callBack->getResult();
+@@ -395 +442,7 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, AddServer)
++{
++    sp<IBinder> server = addServer();
++    ASSERT_TRUE(server != NULL);
++}
++TEST_F(BinderLibTest, DeathNotificationNoRefs)
++{
+@@ -397,10 +450,6 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    Parcel data, reply;
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
++    {
++        sp<IBinder> binder = addServer();
++        ASSERT_TRUE(binder != NULL);
++        ret = binder->linkToDeath(testDeathRecipient);
++        EXPECT_EQ(NO_ERROR, ret);
+@@ -408 +457,5 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    IPCThreadState::self()->flushCommands();
++    ret = testDeathRecipient->waitEvent(5);
++    EXPECT_EQ(NO_ERROR, ret);
++#if 0
++    ret = binder->unlinkToDeath(testDeathRecipient);
+@@ -409,0 +463 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++#endif
+@@ -411 +465,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, DeathNotificationWeakRef)
++{
+@@ -413,10 +468,8 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    Parcel data, reply;
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++    wp<IBinder> wbinder;
++    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
++    {
++        sp<IBinder> binder = addServer();
++        ASSERT_TRUE(binder != NULL);
++        ret = binder->linkToDeath(testDeathRecipient);
++        EXPECT_EQ(NO_ERROR, ret);
++        wbinder = binder;
+@@ -424 +477,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    IPCThreadState::self()->flushCommands();
++    ret = testDeathRecipient->waitEvent(5);
+@@ -425,0 +480,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++#if 0
++    ret = binder->unlinkToDeath(testDeathRecipient);
++    EXPECT_EQ(NO_ERROR, ret);
++#endif
+@@ -427 +485,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, DeathNotificationStrongRef)
++{
+@@ -428,0 +488,10 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    sp<IBinder> sbinder;
++    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
++    {
++        sp<IBinder> binder = addServer();
++        ASSERT_TRUE(binder != NULL);
++        ret = binder->linkToDeath(testDeathRecipient);
++        EXPECT_EQ(NO_ERROR, ret);
++        sbinder = binder;
++    }
++    {
+@@ -430,9 +499,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        ret = sbinder->transact(BINDER_LIB_TEST_EXIT_TRANSACTION, data, &reply, TF_ONE_WAY);
++        EXPECT_EQ(0, ret);
+@@ -440 +502,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    IPCThreadState::self()->flushCommands();
++    ret = testDeathRecipient->waitEvent(5);
+@@ -441,0 +505,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ret = sbinder->unlinkToDeath(testDeathRecipient);
++    EXPECT_EQ(DEAD_OBJECT, ret);
+@@ -443 +508,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, DeathNotificationMultiple)
++{
+@@ -444,0 +511,9 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    const int clientcount = 2;
++    sp<IBinder> target;
++    sp<IBinder> linkedclient[clientcount];
++    sp<BinderLibTestCallBack> callBack[clientcount];
++    sp<IBinder> passiveclient[clientcount];
++    target = addServer();
++    ASSERT_TRUE(target != NULL);
++    for (int i = 0; i < clientcount; i++) {
++        {
+@@ -446,9 +521,7 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++            linkedclient[i] = addServer();
++            ASSERT_TRUE(linkedclient[i] != NULL);
++            callBack[i] = new BinderLibTestCallBack();
++            data.writeStrongBinder(target);
++            data.writeStrongBinder(callBack[i]);
++            ret = linkedclient[i]->transact(BINDER_LIB_TEST_LINK_DEATH_TRANSACTION, data, &reply, TF_ONE_WAY);
++            EXPECT_EQ(NO_ERROR, ret);
+@@ -456 +529,6 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++        {
++            Parcel data, reply;
++            passiveclient[i] = addServer();
++            ASSERT_TRUE(passiveclient[i] != NULL);
++            data.writeStrongBinder(target);
++            ret = passiveclient[i]->transact(BINDER_LIB_TEST_ADD_STRONG_REF_TRANSACTION, data, &reply, TF_ONE_WAY);
+@@ -459,2 +537,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    status_t ret;
++    }
++    {
+@@ -462,9 +540,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        ret = target->transact(BINDER_LIB_TEST_EXIT_TRANSACTION, data, &reply, TF_ONE_WAY);
++        EXPECT_EQ(0, ret);
+@@ -472 +543,4 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    for (int i = 0; i < clientcount; i++) {
++        ret = callBack[i]->waitEvent(5);
++        EXPECT_EQ(NO_ERROR, ret);
++        ret = callBack[i]->getResult();
+@@ -475 +549,3 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++}
++TEST_F(BinderLibTest, DeathNotificationThread)
++{
+@@ -476,0 +553,9 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    sp<BinderLibTestCallBack> callback;
++    sp<IBinder> target = addServer();
++    ASSERT_TRUE(target != NULL);
++    sp<IBinder> client = addServer();
++    ASSERT_TRUE(client != NULL);
++    sp<TestDeathRecipient> testDeathRecipient = new TestDeathRecipient();
++    ret = target->linkToDeath(testDeathRecipient);
++    EXPECT_EQ(NO_ERROR, ret);
++    {
+@@ -478,9 +563,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        ret = target->transact(BINDER_LIB_TEST_EXIT_TRANSACTION, data, &reply, TF_ONE_WAY);
++        EXPECT_EQ(0, ret);
+@@ -488 +566,7 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    testDeathRecipient->waitEvent(5);
++    {
++        Parcel data, reply;
++        callback = new BinderLibTestCallBack();
++        data.writeStrongBinder(target);
++        data.writeStrongBinder(callback);
++        ret = client->transact(BINDER_LIB_TEST_LINK_DEATH_TRANSACTION, data, &reply, TF_ONE_WAY);
+@@ -491,2 +575,13 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    status_t ret;
++    ret = callback->waitEvent(5);
++    EXPECT_EQ(NO_ERROR, ret);
++    ret = callback->getResult();
++    EXPECT_EQ(NO_ERROR, ret);
++}
++TEST_F(BinderLibTest, PassFile) {
++    int ret;
++    int pipefd[2];
++    uint8_t buf[1] = { 0 };
++    uint8_t write_value = 123;
++    ret = pipe2(pipefd, O_NONBLOCK);
++    ASSERT_EQ(0, ret);
++    {
+@@ -494,9 +589,9 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        uint8_t writebuf[1] = { write_value };
++        ret = data.writeFileDescriptor(pipefd[1], true);
++        EXPECT_EQ(NO_ERROR, ret);
++        ret = data.writeInt32(sizeof(writebuf));
++        EXPECT_EQ(NO_ERROR, ret);
++        ret = data.write(writebuf, sizeof(writebuf));
++        EXPECT_EQ(NO_ERROR, ret);
++        ret = m_server->transact(BINDER_LIB_TEST_WRITE_FILE_TRANSACTION, data, &reply);
++        EXPECT_EQ(NO_ERROR, ret);
+@@ -504 +599,27 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    ret = read(pipefd[0], buf, sizeof(buf));
++    EXPECT_EQ(sizeof(buf), (size_t)ret);
++    EXPECT_EQ(write_value, buf[0]);
++    waitForReadData(pipefd[0], 5000);
++    ret = read(pipefd[0], buf, sizeof(buf));
++    EXPECT_EQ(0, ret);
++    close(pipefd[0]);
++}
++TEST_F(BinderLibTest, PromoteLocal) {
++    sp<IBinder> strong = new BBinder();
++    wp<IBinder> weak = strong;
++    sp<IBinder> strong_from_weak = weak.promote();
++    EXPECT_TRUE(strong != NULL);
++    EXPECT_EQ(strong, strong_from_weak);
++    strong = NULL;
++    strong_from_weak = NULL;
++    strong_from_weak = weak.promote();
++    EXPECT_TRUE(strong_from_weak == NULL);
++}
++TEST_F(BinderLibTest, PromoteRemote) {
++    int ret;
++    Parcel data, reply;
++    sp<IBinder> strong = new BBinder();
++    sp<IBinder> server = addServer();
++    ASSERT_TRUE(server != NULL);
++    ASSERT_TRUE(strong != NULL);
++    ret = data.writeWeakBinder(strong);
+@@ -505,0 +627,2 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    ret = server->transact(BINDER_LIB_TEST_PROMOTE_WEAK_REF_TRANSACTION, data, &reply);
++    EXPECT_GE(ret, 0);
+@@ -507 +630 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++TEST_F(BinderLibTest, CheckHandleZeroBinderHighBitsZeroCookie) {
+@@ -510,11 +633 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
+-    }
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
++    ret = m_server->transact(BINDER_LIB_TEST_GET_SELF_TRANSACTION, data, &reply);
+@@ -522,2 +635,8 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-}
+-TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    const flat_binder_object *fb = reply.readObject(false);
++    ASSERT_TRUE(fb != NULL);
++    EXPECT_EQ(fb->hdr.type, BINDER_TYPE_HANDLE);
++    EXPECT_EQ(ProcessState::self()->getStrongProxyForHandle(fb->handle), m_server);
++    EXPECT_EQ(fb->cookie, (binder_uintptr_t)0);
++    EXPECT_EQ(fb->binder >> 32, (binder_uintptr_t)0);
++}
++TEST_F(BinderLibTest, FreedBinder) {
+@@ -524,0 +644,5 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
++    sp<IBinder> server = addServer();
++    ASSERT_TRUE(server != NULL);
++    __u32 freedHandle;
++    wp<IBinder> keepFreedBinder;
++    {
+@@ -526,9 +650,16 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    sp<BinderLibTestCallBack> callBack = new BinderLibTestCallBack();
+-    for (int i = 0; i < 2; i++) {
+-        BinderLibTestBundle datai;
+-        datai.appendFrom(&data, 0, data.dataSize());
+-        data.freeData();
+-        data.writeInt32(1);
+-        data.writeStrongBinder(callBack);
+-        data.writeInt32(BINDER_LIB_TEST_CALL_BACK_VERIFY_BUF);
+-        datai.appendTo(&data);
++        data.writeBool(false);
++        ret = server->transact(BINDER_LIB_TEST_CREATE_BINDER_TRANSACTION, data, &reply);
++        ASSERT_EQ(NO_ERROR, ret);
++        struct flat_binder_object *freed = (struct flat_binder_object *)(reply.data());
++        freedHandle = freed->handle;
++        keepFreedBinder = reply.readWeakBinder();
++    }
++    {
++        Parcel data, reply;
++        data.writeStrongBinder(server);
++        struct flat_binder_object *strong = (struct flat_binder_object *)(data.data());
++        __u32 oldHandle = strong->handle;
++        strong->handle = freedHandle;
++        ret = server->transact(BINDER_LIB_TEST_ADD_STRONG_REF_TRANSACTION, data, &reply);
++        EXPECT_EQ((status_t)FAILED_TRANSACTION, ret);
++        strong->handle = oldHandle;
+@@ -536,2 +666,0 @@ TEST_F(BinderLibTest, CheckNoHeaderMappedInUser) {
+-    ret = m_server->transact(BINDER_LIB_TEST_INDIRECT_TRANSACTION, data, &reply);
+-    EXPECT_EQ(NO_ERROR, ret);

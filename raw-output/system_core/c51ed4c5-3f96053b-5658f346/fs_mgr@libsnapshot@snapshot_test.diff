@@ -1,0 +1,2143 @@
+diff --git a/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_mergebot.cpp b/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_truth.cpp
+index 19957bd..cc7fe29 100644
+--- a/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_mergebot.cpp
++++ b/output/system_core/c51ed4c5-3f96053b-5658f346/fs_mgr@libsnapshot@snapshot_test.no_comments_truth.cpp
+@@ -41,0 +42,5 @@
++DEFINE_string(force_mode, DEFAULT_MODE,
++              "Force testing older modes (vab-legacy, vabc-legacy) ignoring device config.");
++DEFINE_string(force_iouring_disable, "",
++              "Force testing mode (iouring_disabled) - disable io_uring");
++DEFINE_string(compression_method, "gz", "Default compression algorithm.");
+@@ -250 +255,2 @@ protected:
+-    AssertionResult MapUpdateSnapshot(const std::string& name, std::string* path) {
++    AssertionResult MapUpdateSnapshot(const std::string& name,
++                                      std::unique_ptr<ISnapshotWriter>* writer) {
+@@ -259 +265,2 @@ protected:
+-        auto result = sm->MapUpdateSnapshot(params, path);
++        auto old_partition = "/dev/block/mapper/" + GetOtherPartitionName(name);
++        auto result = sm->OpenSnapshotWriter(params, {old_partition});
+@@ -262,0 +270,6 @@ protected:
++        if (!result->Initialize()) {
++            return AssertionFailure() << "Cannot initialize snapshot for writing: " << name;
++        }
++        if (writer) {
++            *writer = std::move(result);
++        }
+@@ -419 +432 @@ protected:
+-TEST_F(SnapshotTest, MergeFailureCode) {
++TEST_F(SnapshotTest, CreateSnapshot) {
+@@ -421,6 +434,6 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    PartitionCowCreator cow_creator;
++    cow_creator.using_snapuserd = snapuserd_required_;
++    if (cow_creator.using_snapuserd) {
++        cow_creator.compression_algorithm = FLAGS_compression_method;
++    } else {
++        cow_creator.compression_algorithm = "none";
+@@ -428 +441,26 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    SnapshotStatus status;
++    status.set_name("test-snapshot");
++    status.set_device_size(kDeviceSize);
++    status.set_snapshot_size(kDeviceSize);
++    status.set_cow_file_size(kDeviceSize);
++    ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++    ASSERT_TRUE(CreateCowImage("test-snapshot"));
++    std::vector<std::string> snapshots;
++    ASSERT_TRUE(sm->ListSnapshots(lock_.get(), &snapshots));
++    ASSERT_EQ(snapshots.size(), 1);
++    ASSERT_EQ(snapshots[0], "test-snapshot");
++    {
++        SnapshotStatus status;
++        ASSERT_TRUE(sm->ReadSnapshotStatus(lock_.get(), "test-snapshot", &status));
++        ASSERT_EQ(status.state(), SnapshotState::CREATED);
++        ASSERT_EQ(status.device_size(), kDeviceSize);
++        ASSERT_EQ(status.snapshot_size(), kDeviceSize);
++        ASSERT_EQ(status.using_snapuserd(), cow_creator.using_snapuserd);
++        ASSERT_EQ(status.compression_algorithm(), cow_creator.compression_algorithm);
++    }
++    ASSERT_TRUE(sm->UnmapSnapshot(lock_.get(), "test-snapshot"));
++    ASSERT_TRUE(sm->UnmapCowImage("test-snapshot"));
++    ASSERT_TRUE(sm->DeleteSnapshot(lock_.get(), "test-snapshot"));
++}
++TEST_F(SnapshotTest, MapSnapshot) {
+@@ -430,6 +468,18 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    PartitionCowCreator cow_creator;
++    cow_creator.using_snapuserd = snapuserd_required_;
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    SnapshotStatus status;
++    status.set_name("test-snapshot");
++    status.set_device_size(kDeviceSize);
++    status.set_snapshot_size(kDeviceSize);
++    status.set_cow_file_size(kDeviceSize);
++    ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++    ASSERT_TRUE(CreateCowImage("test-snapshot"));
++    std::string base_device;
++    ASSERT_TRUE(CreatePartition("base-device", kDeviceSize, &base_device));
++    std::string cow_device;
++    ASSERT_TRUE(MapCowImage("test-snapshot", 10s, &cow_device));
++    std::string snap_device;
++    ASSERT_TRUE(sm->MapSnapshot(lock_.get(), "test-snapshot", base_device, cow_device, 10s,
++                                &snap_device));
++    ASSERT_TRUE(android::base::StartsWith(snap_device, "/dev/block/dm-"));
+@@ -437,8 +487,3 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(AcquireLock());
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++TEST_F(SnapshotTest, NoMergeBeforeReboot) {
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_FALSE(sm->InitiateMerge());
+@@ -446,8 +491,4 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(AcquireLock());
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++TEST_F(SnapshotTest, CleanFirstStageMount) {
++    auto sm = NewManagerForFirstStageMount();
++    ASSERT_NE(sm, nullptr);
++    ASSERT_FALSE(sm->NeedSnapshotsInFirstStageMount());
+@@ -455,8 +496,7 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(AcquireLock());
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++TEST_F(SnapshotTest, FirstStageMountAfterRollback) {
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    auto sm = NewManagerForFirstStageMount();
++    ASSERT_NE(sm, nullptr);
++    ASSERT_FALSE(sm->NeedSnapshotsInFirstStageMount());
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_EQ(access(indicator.c_str(), R_OK), 0);
+@@ -464 +504 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++TEST_F(SnapshotTest, Merge) {
+@@ -466,6 +506,17 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    std::unique_ptr<ISnapshotWriter> writer;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize, &writer));
++    bool userspace_snapshots = sm->UpdateUsesUserSnapshots(lock_.get());
++    lock_ = nullptr;
++    std::string test_string = "This is a test string.";
++    test_string.resize(writer->options().block_size);
++    ASSERT_TRUE(writer->AddRawBlocks(0, test_string.data(), test_string.size()));
++    ASSERT_TRUE(writer->Finalize());
++    writer = nullptr;
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("test_partition_b"));
++    test_device->set_slot_suffix("_b");
++    ASSERT_TRUE(sm->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
+@@ -473 +524,19 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++    ASSERT_TRUE(sm->InitiateMerge());
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(sm->IsSnapshotDevice("test_partition_b", &target));
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot-merge");
++    }
++    ASSERT_FALSE(sm->CancelUpdate());
++    ASSERT_EQ(sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    ASSERT_EQ(sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(sm->IsSnapshotDevice("test_partition_b"));
++    unique_fd fd(open("/dev/block/mapper/test_partition_b", O_RDONLY | O_CLOEXEC));
++    ASSERT_GE(fd, 0);
++    std::string buffer(test_string.size(), '\0');
++    ASSERT_TRUE(android::base::ReadFully(fd, buffer.data(), buffer.size()));
++    ASSERT_EQ(test_string, buffer);
++}
++TEST_F(SnapshotTest, FirstStageMountAndMerge) {
+@@ -475,6 +544,16 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(AcquireLock());
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots(lock_.get());
++    SnapshotStatus status;
++    ASSERT_TRUE(init->ReadSnapshotStatus(lock_.get(), "test_partition_b", &status));
++    ASSERT_EQ(status.state(), SnapshotState::CREATED);
++    if (snapuserd_required_) {
++        ASSERT_EQ(status.compression_algorithm(), FLAGS_compression_method);
++    } else {
++        ASSERT_EQ(status.compression_algorithm(), "");
+@@ -482 +561,9 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(init->IsSnapshotDevice("test_partition_b", &target));
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++    }
++}
++TEST_F(SnapshotTest, FlashSuperDuringUpdate) {
+@@ -484,6 +571,16 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    FormatFakeSuper();
++    ASSERT_TRUE(CreatePartition("test_partition_b", kDeviceSize));
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(AcquireLock());
++    SnapshotStatus status;
++    ASSERT_TRUE(init->ReadSnapshotStatus(lock_.get(), "test_partition_b", &status));
++    DeviceMapper::TargetInfo target;
++    ASSERT_FALSE(init->IsSnapshotDevice("test_partition_b", &target));
++    lock_ = nullptr;
++    ASSERT_EQ(sm->ProcessUpdateState(), UpdateState::Cancelled);
+@@ -491 +588 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++TEST_F(SnapshotTest, FlashSuperDuringMerge) {
+@@ -493,6 +590,10 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
+-    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
++    static const uint64_t kDeviceSize = 1024 * 1024;
++    ASSERT_TRUE(PrepareOneSnapshot(kDeviceSize));
++    ASSERT_TRUE(SimulateReboot());
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    if (ShouldSkipLegacyMerging()) {
++        LOG(INFO) << "Skipping legacy merge in test";
++        return;
+@@ -500 +601,11 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-TEST_F(SnapshotTest, MergeFailureCode) {
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_TRUE(DeleteSnapshotDevice("test_partition_b"));
++    ASSERT_TRUE(init->image_manager()->UnmapImageIfExists("test_partition_b-cow-img"));
++    FormatFakeSuper();
++    ASSERT_TRUE(CreatePartition("test_partition_b", kDeviceSize));
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_EQ(init->ProcessUpdateState(), UpdateState::Cancelled);
++    ASSERT_EQ(init->GetUpdateState(), UpdateState::None);
++}
++TEST_F(SnapshotTest, UpdateBootControlHal) {
+@@ -502,2 +613,13 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed,
+-                                     MergeFailureCode::ListSnapshots));
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::None));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Initiated));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Unverified));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::SNAPSHOTTED);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::Merging));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::MERGING);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeNeedsReboot));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeCompleted));
++    ASSERT_EQ(test_device->merge_status(), MergeStatus::NONE);
++    ASSERT_TRUE(sm->WriteUpdateState(lock_.get(), UpdateState::MergeFailed));
+@@ -505,3 +626,0 @@ TEST_F(SnapshotTest, MergeFailureCode) {
+-    SnapshotUpdateStatus status = sm->ReadSnapshotUpdateStatus(lock_.get());
+-    ASSERT_EQ(status.state(), UpdateState::MergeFailed);
+-    ASSERT_EQ(status.merge_failure_code(), MergeFailureCode::ListSnapshots);
+@@ -639,0 +759,10 @@ TEST_P(LockTestP, Test) {
++INSTANTIATE_TEST_SUITE_P(
++        LockTest, LockTestP,
++        testing::Values(LockTestParam{Request::LOCK_EXCLUSIVE, Request::LOCK_EXCLUSIVE},
++                        LockTestParam{Request::LOCK_EXCLUSIVE, Request::LOCK_SHARED},
++                        LockTestParam{Request::LOCK_SHARED, Request::LOCK_EXCLUSIVE}),
++        [](const testing::TestParamInfo<LockTestP::ParamType>& info) {
++            std::stringstream ss;
++            ss << info.param.first << info.param.second;
++            return ss.str();
++        });
+@@ -908 +1037 @@ public:
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
++TEST_F(SnapshotUpdateTest, FullUpdateFlow) {
+@@ -910,0 +1040,4 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, 18_MiB);
++    vnd_->set_estimate_cow_size(30_MiB);
++    prd_->set_estimate_cow_size(30_MiB);
+@@ -914,3 +1047,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
++    auto tgt = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(tgt, nullptr);
++    ASSERT_NE(nullptr, tgt->FindPartition("sys_b-cow"));
++    ASSERT_NE(nullptr, tgt->FindPartition("vnd_b-cow"));
++    ASSERT_EQ(nullptr, tgt->FindPartition("prd_b-cow"));
+@@ -917,0 +1053,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
+@@ -920,19 +1058 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -942,2 +1062,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_NE(access(indicator.c_str(), R_OK), 0);
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
+@@ -948,4 +1071,8 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::SECOND_PHASE);
++    }
+@@ -952,0 +1080,6 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        std::vector<std::string> snapshots;
++        ASSERT_TRUE(init->ListSnapshots(local_lock.get(), &snapshots));
++        ASSERT_TRUE(snapshots.empty());
+@@ -954,5 +1087,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-    struct statvfs fs;
+-    if (statvfs("/data", &fs) < 0) {
+-        PLOG(ERROR) << "statfs failed";
+-        return {0, 0};
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
+@@ -960,4 +1090,0 @@ std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-    auto fs_limit = static_cast<uint64_t>(fs.f_blocks) * (fs.f_bsize - 1);
+-    auto fs_free = static_cast<uint64_t>(fs.f_bfree) * fs.f_bsize;
+-    LOG(INFO) << "Big file limit: " << fs_limit << ", free space: " << fs_free;
+-    return {fs_limit, fs_free};
+@@ -965,4 +1092,4 @@ std::pair<uint64_t, uint64_t> GetBigFileLimit() {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++TEST_F(SnapshotUpdateTest, DuplicateOps) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "snapuserd-only test";
++    }
+@@ -971,3 +1097,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+@@ -974,0 +1099,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    std::vector<PartitionUpdate*> partitions = {sys_, vnd_, prd_};
++    for (auto* partition : partitions) {
++        AddOperation(partition);
++        std::unique_ptr<ISnapshotWriter> writer;
++        auto res = MapUpdateSnapshot(partition->partition_name() + "_b", &writer);
++        ASSERT_TRUE(res);
++        ASSERT_TRUE(writer->AddZeroBlocks(0, 1));
++        ASSERT_TRUE(writer->AddZeroBlocks(0, 1));
++        ASSERT_TRUE(writer->Finalize());
++    }
+@@ -977,19 +1111 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -999,2 +1114,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+@@ -1005,4 +1119 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(init->InitiateMerge());
+@@ -1011,3 +1122,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
++TEST_F(SnapshotUpdateTest, SpaceSwapUpdate) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    auto old_sys_size = GetSize(sys_);
++    auto old_prd_size = GetSize(prd_);
++    SetSize(sys_, old_sys_size * 2);
++    sys_->set_estimate_cow_size(8_MiB);
++    SetSize(prd_, old_prd_size / 2);
++    prd_->set_estimate_cow_size(1_MiB);
+@@ -1017,2 +1135,15 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        SnapshotStatus status;
++        ASSERT_TRUE(sm->ReadSnapshotStatus(local_lock.get(), "prd_b", &status));
++        ASSERT_EQ(status.old_partition_size(), 3145728);
++        ASSERT_TRUE(sm->ReadSnapshotStatus(local_lock.get(), "sys_b", &status));
++        ASSERT_EQ(status.old_partition_size(), 3145728);
++    }
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    ASSERT_TRUE(WriteSnapshotAndHash(vnd_));
++    ASSERT_TRUE(ShiftAllSnapshotBlocks("prd_b", old_prd_size));
++    sync();
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1020 +1150,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
+@@ -1023,19 +1153 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1045,2 +1157,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    auto indicator = sm->GetRollbackIndicatorPath();
++    ASSERT_NE(access(indicator.c_str(), R_OK), 0);
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
+@@ -1050,0 +1166,8 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::FIRST_PHASE);
++    }
+@@ -1052,2 +1174,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+@@ -1054,0 +1176,16 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    DeviceMapper::TargetInfo target;
++    ASSERT_TRUE(init->IsSnapshotDevice("prd_b", &target));
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots();
++    if (userspace_snapshots) {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++        ASSERT_TRUE(init->IsSnapshotDevice("sys_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++        ASSERT_TRUE(init->IsSnapshotDevice("vnd_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "user");
++    } else {
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot-merge");
++        ASSERT_TRUE(init->IsSnapshotDevice("sys_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++        ASSERT_TRUE(init->IsSnapshotDevice("vnd_b", &target));
++        ASSERT_EQ(DeviceMapper::GetTargetType(target.spec), "snapshot");
++    }
+@@ -1055,0 +1193,6 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        std::vector<std::string> snapshots;
++        ASSERT_TRUE(init->ListSnapshots(local_lock.get(), &snapshots));
++        ASSERT_TRUE(snapshots.empty());
+@@ -1057,3 +1200,15 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
++}
++TEST_F(SnapshotUpdateTest, ConsistencyCheckResume) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    auto old_sys_size = GetSize(sys_);
++    auto old_prd_size = GetSize(prd_);
++    SetSize(sys_, old_sys_size * 2);
++    sys_->set_estimate_cow_size(8_MiB);
++    SetSize(prd_, old_prd_size / 2);
++    prd_->set_estimate_cow_size(1_MiB);
+@@ -1063,2 +1218,6 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    ASSERT_TRUE(WriteSnapshotAndHash(vnd_));
++    ASSERT_TRUE(ShiftAllSnapshotBlocks("prd_b", old_prd_size));
++    sync();
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1066 +1224,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
+@@ -1069,19 +1227 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1091,2 +1231,8 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    auto old_checker = init->merge_consistency_checker();
++    init->set_merge_consistency_checker(
++            [](const std::string&, const SnapshotStatus&) -> MergeFailureCode {
++                return MergeFailureCode::WrongMergeCountConsistencyCheck;
++            });
+@@ -1096,0 +1243,9 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(init->IsSnapuserdRequired(), snapuserd_required_);
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        auto status = init->ReadSnapshotUpdateStatus(local_lock.get());
++        ASSERT_EQ(status.merge_phase(), MergePhase::FIRST_PHASE);
++    }
++    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+@@ -1098,2 +1253 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
++    init->set_merge_consistency_checker(std::move(old_checker));
+@@ -1101,0 +1256,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
+@@ -1103,4 +1260,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++}
++TEST_F(SnapshotUpdateTest, DirectWriteEmptySpace) {
++    GTEST_SKIP() << "b/141889746";
++    SetSize(sys_, 4_MiB);
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_EQ(3_MiB, GetSnapshotSize("sys_b").value_or(0));
++}
++TEST_F(SnapshotUpdateTest, SnapshotOldPartitions) {
++    SetSize(sys_, 4_MiB);
++    SetSize(vnd_, 2_MiB);
+@@ -1109,2 +1272 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    ASSERT_EQ(4_MiB, GetSnapshotSize("sys_b").value_or(0));
+@@ -1112,8 +1274,12 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
++TEST_F(SnapshotUpdateTest, CowPartitionDoNotTakeOldPartitions) {
++    SetSize(sys_, 2_MiB);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    auto tgt = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(nullptr, tgt);
++    auto metadata = tgt->Export();
++    ASSERT_NE(nullptr, metadata);
++    std::vector<std::string> written;
++    for (auto p : metadata->partitions) {
++        if (GetPartitionGroupName(metadata->groups[p.group_index]) != kCowGroupName) {
++            continue;
+@@ -1121,4 +1287,12 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
++        std::string path;
++        ASSERT_TRUE(CreateLogicalPartition(
++                CreateLogicalPartitionParams{
++                        .block_device = fake_super,
++                        .metadata = metadata.get(),
++                        .partition = &p,
++                        .timeout_ms = 1s,
++                        .partition_opener = opener_.get(),
++                },
++                &path));
++        ASSERT_TRUE(WriteRandomData(path));
++        written.push_back(GetPartitionName(p));
+@@ -1125,0 +1300,4 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_FALSE(written.empty())
++            << "No COW partitions are created even if there are empty space in super partition";
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1127 +1304,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            return true;
+@@ -1129,5 +1306,27 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++TEST_F(SnapshotUpdateTest, SnapshotStatusFileWithoutCow) {
++    {
++        ASSERT_TRUE(AcquireLock());
++        auto local_lock = std::move(lock_);
++        SnapshotStatus status;
++        status.set_name("sys_b");
++        ASSERT_TRUE(sm->WriteSnapshotStatus(local_lock.get(), status));
++        ASSERT_TRUE(image_manager_->CreateBackingImage("sys_b-cow-img", 1_MiB,
++                                                       IImageManager::CREATE_IMAGE_DEFAULT));
++    }
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("sys_b"));
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    EXPECT_TRUE(MapUpdateSnapshots());
++}
++TEST_F(SnapshotUpdateTest, TestRollback) {
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->UnmapUpdateSnapshot("sys_b"));
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1137,5 +1336,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1144 +1340 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
++    init = NewManagerForFirstStageMount("_a");
+@@ -1145,0 +1342 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_FALSE(init->NeedSnapshotsInFirstStageMount());
+@@ -1147 +1344,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1149,8 +1346,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+@@ -1158 +1348,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
++TEST_F(SnapshotUpdateTest, CancelAfterApply) {
++    ASSERT_TRUE(sm->BeginUpdate());
+@@ -1160,11 +1351 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
++    ASSERT_TRUE(sm->CancelUpdate());
+@@ -1171,0 +1353,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++static std::vector<Interval> ToIntervals(const std::vector<std::unique_ptr<Extent>>& extents) {
++    std::vector<Interval> ret;
++    std::transform(extents.begin(), extents.end(), std::back_inserter(ret),
++                   [](const auto& extent) { return extent->AsLinearExtent()->AsInterval(); });
++    return ret;
+@@ -1173,7 +1359,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++TEST_F(SnapshotUpdateTest, ReclaimCow) {
++    sys_->set_estimate_cow_size(64_KiB);
++    vnd_->set_estimate_cow_size(64_KiB);
++    prd_->set_estimate_cow_size(64_KiB);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1183,2 +1372,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
+@@ -1188,0 +1378,23 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(new_sm->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeCompleted, new_sm->ProcessUpdateState());
++    ASSERT_TRUE(new_sm->BeginUpdate());
++    ASSERT_TRUE(new_sm->CreateUpdateSnapshots(manifest_));
++    auto src = MetadataBuilder::New(*opener_, "super", 1);
++    ASSERT_NE(src, nullptr);
++    auto tgt = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(tgt, nullptr);
++    for (const auto& cow_part_name : {"sys_a-cow", "vnd_a-cow", "prd_a-cow"}) {
++        auto* cow_part = tgt->FindPartition(cow_part_name);
++        ASSERT_NE(nullptr, cow_part) << cow_part_name << " does not exist in target metadata";
++        auto cow_intervals = ToIntervals(cow_part->extents());
++        for (const auto& old_part_name : {"sys_b", "vnd_b", "prd_b"}) {
++            auto* old_part = src->FindPartition(old_part_name);
++            ASSERT_NE(nullptr, old_part) << old_part_name << " does not exist in source metadata";
++            auto old_intervals = ToIntervals(old_part->extents());
++            auto intersect = Interval::Intersect(cow_intervals, old_intervals);
++            ASSERT_TRUE(intersect.empty()) << "COW uses space of source partitions";
++        }
++    }
++}
++TEST_F(SnapshotUpdateTest, RetrofitAfterRegularAb) {
++    constexpr auto kRetrofitGroupSize = kGroupSize / 2;
+@@ -1190,4 +1402,33 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    FormatFakeSuper();
++    src_ = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(nullptr, src_);
++    for (const auto& suffix : {"_a"s, "_b"s}) {
++        ASSERT_TRUE(src_->AddGroup(group_->name() + suffix, kRetrofitGroupSize));
++        for (const auto& name : {"sys"s, "vnd"s, "prd"s}) {
++            auto partition = src_->AddPartition(name + suffix, group_->name() + suffix, 0);
++            ASSERT_NE(nullptr, partition);
++            ASSERT_TRUE(src_->ResizePartition(partition, 2_MiB));
++        }
++    }
++    auto metadata = src_->Export();
++    ASSERT_NE(nullptr, metadata);
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *metadata.get(), 0));
++    std::string path;
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(CreateLogicalPartition(
++                CreateLogicalPartitionParams{
++                        .block_device = fake_super,
++                        .metadata_slot = 0,
++                        .partition_name = name,
++                        .timeout_ms = 1s,
++                        .partition_opener = opener_.get(),
++                },
++                &path));
++        ASSERT_TRUE(WriteRandomData(path));
++        auto hash = GetHash(path);
++        ASSERT_TRUE(hash.has_value());
++        hashes_[name] = *hash;
++    }
++    group_->set_size(kRetrofitGroupSize);
++    for (auto* partition : {sys_, vnd_, prd_}) {
++        SetSize(partition, 2_MiB);
+@@ -1195,3 +1435,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+@@ -1201,3 +1439,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
++    ASSERT_FALSE(image_manager_->BackingImageExists("sys_b-cow-img"));
++    ASSERT_FALSE(image_manager_->BackingImageExists("vnd_b-cow-img"));
++    ASSERT_FALSE(image_manager_->BackingImageExists("prd_b-cow-img"));
+@@ -1205,13 +1443,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -1219 +1446 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            return true;
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+@@ -1221,5 +1448,22 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++TEST_F(SnapshotUpdateTest, MergeCannotRemoveCow) {
++    SetSize(sys_, 10_MiB);
++    SetSize(vnd_, 10_MiB);
++    SetSize(prd_, 10_MiB);
++    sys_->set_estimate_cow_size(12_MiB);
++    vnd_->set_estimate_cow_size(12_MiB);
++    prd_->set_estimate_cow_size(12_MiB);
++    src_ = MetadataBuilder::New(*opener_, "super", 0);
++    ASSERT_NE(src_, nullptr);
++    src_->RemoveGroupAndPartitions(group_->name() + "_a");
++    src_->RemoveGroupAndPartitions(group_->name() + "_b");
++    ASSERT_TRUE(FillFakeMetadata(src_.get(), manifest_, "_a"));
++    auto metadata = src_->Export();
++    ASSERT_NE(nullptr, metadata);
++    ASSERT_TRUE(UpdatePartitionTable(*opener_, "super", *metadata.get(), 0));
++    AddOperation(sys_);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots());
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(UnmapAll());
++    auto init = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
+@@ -1227 +1470,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+@@ -1229,2 +1472,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    auto cow_path = android::base::GetProperty("gsid.mapped_image.sys_b-cow-img", "");
++    unique_fd fd(open(cow_path.c_str(), O_RDONLY | O_CLOEXEC));
++    ASSERT_GE(fd, 0);
+@@ -1234,0 +1479,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(init->InitiateMerge());
++    ASSERT_EQ(UpdateState::MergeNeedsReboot, init->ProcessUpdateState());
++    fd.reset();
+@@ -1236,2 +1482,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+@@ -1238,0 +1484 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_FALSE(sm->IsSnapshotDevice("sys_b", nullptr));
+@@ -1241,13 +1487 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
++class MetadataMountedTest : public ::testing::Test {
+@@ -1255,3 +1489,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
++    virtual void TestBody() override {}
++    void SetUp() override {
++        SKIP_IF_NON_VIRTUAL_AB();
++        metadata_dir_ = test_device->GetMetadataDir();
++        ASSERT_TRUE(ReadDefaultFstab(&fstab_));
+@@ -1259,422 +1495,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-static std::vector<Interval> ToIntervals(const std::vector<std::unique_ptr<Extent>>& extents) {
+-    std::vector<Interval> ret;
+-    std::transform(extents.begin(), extents.end(), std::back_inserter(ret),
+-                   [](const auto& extent) { return extent->AsLinearExtent()->AsInterval(); });
+-    return ret;
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-class MetadataMountedTest : public ::testing::Test {
+-public:
+-    virtual void TestBody() override {}
+-    void SetUp() override {
+-        SKIP_IF_NON_VIRTUAL_AB();
+-        metadata_dir_ = test_device->GetMetadataDir();
+-        ASSERT_TRUE(ReadDefaultFstab(&fstab_));
+-    }
+-    void TearDown() override {
+-        RETURN_IF_NON_VIRTUAL_AB();
+-        SetUp();
+-        test_device->set_recovery(false);
+-        EXPECT_TRUE(android::fs_mgr::EnsurePathMounted(&fstab_, metadata_dir_));
+-    }
+-    AssertionResult IsMetadataMounted() {
+-        Fstab mounted_fstab;
+-        if (!ReadFstabFromFile("/proc/mounts", &mounted_fstab)) {
+-            ADD_FAILURE() << "Failed to scan mounted volumes";
+-            return AssertionFailure() << "Failed to scan mounted volumes";
+-        }
+-        auto entry = GetEntryForPath(&fstab_, metadata_dir_);
+-        if (entry == nullptr) {
+-            return AssertionFailure() << "No mount point found in fstab for path " << metadata_dir_;
+-        }
+-        auto mv = GetEntryForMountPoint(&mounted_fstab, entry->mount_point);
+-        if (mv == nullptr) {
+-            return AssertionFailure() << metadata_dir_ << " is not mounted";
+-        }
+-        return AssertionSuccess() << metadata_dir_ << " is mounted";
+-    }
+-    std::string metadata_dir_;
+-    Fstab fstab_;
+-};
+-void MountMetadata() {
+-    MetadataMountedTest().TearDown();
+-}
+-TEST_F(MetadataMountedTest, Recovery) {
+-    test_device->set_recovery(true);
+-    metadata_dir_ = test_device->GetMetadataDir();
+-    EXPECT_TRUE(android::fs_mgr::EnsurePathUnmounted(&fstab_, metadata_dir_));
+-    EXPECT_FALSE(IsMetadataMounted());
+-    auto device = sm->EnsureMetadataMounted();
+-    EXPECT_NE(nullptr, device);
+-    EXPECT_TRUE(IsMetadataMounted());
+-    device.reset();
+-    EXPECT_FALSE(IsMetadataMounted());
+-}
+-TEST_F(MetadataMountedTest, Recovery) {
+-    test_device->set_recovery(true);
+-    metadata_dir_ = test_device->GetMetadataDir();
+-    EXPECT_TRUE(android::fs_mgr::EnsurePathUnmounted(&fstab_, metadata_dir_));
+-    EXPECT_FALSE(IsMetadataMounted());
+-    auto device = sm->EnsureMetadataMounted();
+-    EXPECT_NE(nullptr, device);
+-    EXPECT_TRUE(IsMetadataMounted());
+-    device.reset();
+-    EXPECT_FALSE(IsMetadataMounted());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+-}
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
+-    ASSERT_TRUE(sm->BeginUpdate());
+-    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    void TearDown() override {
++        RETURN_IF_NON_VIRTUAL_AB();
++        SetUp();
++        test_device->set_recovery(false);
++        EXPECT_TRUE(android::fs_mgr::EnsurePathMounted(&fstab_, metadata_dir_));
+@@ -1682,8 +1501,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
++    AssertionResult IsMetadataMounted() {
++        Fstab mounted_fstab;
++        if (!ReadFstabFromFile("/proc/mounts", &mounted_fstab)) {
++            ADD_FAILURE() << "Failed to scan mounted volumes";
++            return AssertionFailure() << "Failed to scan mounted volumes";
+@@ -1691,4 +1507,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
++        auto entry = GetEntryForPath(&fstab_, metadata_dir_);
++        if (entry == nullptr) {
++            return AssertionFailure() << "No mount point found in fstab for path " << metadata_dir_;
+@@ -1695,0 +1511,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++        auto mv = GetEntryForMountPoint(&mounted_fstab, entry->mount_point);
++        if (mv == nullptr) {
++            return AssertionFailure() << metadata_dir_ << " is not mounted";
+@@ -1697 +1515 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            return true;
++        return AssertionSuccess() << metadata_dir_ << " is mounted";
+@@ -1698,0 +1517,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    std::string metadata_dir_;
++    Fstab fstab_;
+@@ -1700,12 +1520,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++void MountMetadata() {
++    MetadataMountedTest().TearDown();
+@@ -1713,5 +1523,6 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++TEST_F(MetadataMountedTest, Android) {
++    auto device = sm->EnsureMetadataMounted();
++    EXPECT_NE(nullptr, device);
++    device.reset();
++    EXPECT_TRUE(IsMetadataMounted());
++    EXPECT_TRUE(sm->CancelUpdate()) << "Metadata dir should never be unmounted in Android mode";
+@@ -1719,4 +1530,12 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++TEST_F(MetadataMountedTest, Recovery) {
++    test_device->set_recovery(true);
++    metadata_dir_ = test_device->GetMetadataDir();
++    EXPECT_TRUE(android::fs_mgr::EnsurePathUnmounted(&fstab_, metadata_dir_));
++    EXPECT_FALSE(IsMetadataMounted());
++    auto device = sm->EnsureMetadataMounted();
++    EXPECT_NE(nullptr, device);
++    EXPECT_TRUE(IsMetadataMounted());
++    device.reset();
++    EXPECT_FALSE(IsMetadataMounted());
++}
++TEST_F(SnapshotUpdateTest, MergeInRecovery) {
+@@ -1725,4 +1544 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots());
+@@ -1731,19 +1547 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1753,2 +1551,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
+@@ -1758,0 +1557 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(new_sm->InitiateMerge());
+@@ -1760,4 +1559,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    auto test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    test_device->set_recovery(true);
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    ASSERT_EQ(new_sm->GetUpdateState(), UpdateState::None);
+@@ -1765,4 +1565 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++TEST_F(SnapshotUpdateTest, MergeInFastboot) {
+@@ -1771,4 +1568 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots());
+@@ -1777,19 +1571 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -1799,2 +1575,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    init = nullptr;
++    auto new_sm = SnapshotManager::New(new TestDeviceInfo(fake_super, "_b"));
+@@ -1804,0 +1581 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(new_sm->InitiateMerge());
+@@ -1806,2 +1583,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
++    auto test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    test_device->set_recovery(true);
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_TRUE(new_sm->FinishMergeInRecovery());
++    ASSERT_TRUE(UnmapAll());
++    auto mount = new_sm->EnsureMetadataMounted();
++    ASSERT_TRUE(mount && mount->HasDevice());
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    init = NewManagerForFirstStageMount(test_device.release());
+@@ -1809 +1594,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    init = nullptr;
++    test_device = std::make_unique<TestDeviceInfo>(fake_super, "_b");
++    new_sm = NewManagerForFirstStageMount(test_device.release());
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::MergeCompleted);
++    ASSERT_EQ(new_sm->ProcessUpdateState(), UpdateState::None);
+@@ -1811,4 +1600 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++TEST_F(SnapshotUpdateTest, DataWipeRollbackInRecovery) {
+@@ -1817,4 +1603 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots());
+@@ -1823,33 +1606,8 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    EXPECT_TRUE(test_device->IsSlotUnbootable(1));
++    EXPECT_FALSE(test_device->IsSlotUnbootable(0));
+@@ -1857,4 +1615 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+-    AddOperationForPartitions();
++TEST_F(SnapshotUpdateTest, DataWipeAfterRollback) {
+@@ -1863,4 +1618 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots());
+@@ -1869,13 +1621,7 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
++    auto test_device = new TestDeviceInfo(fake_super, "_a");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    EXPECT_FALSE(test_device->IsSlotUnbootable(0));
++    EXPECT_FALSE(test_device->IsSlotUnbootable(1));
+@@ -1883,10 +1629 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++TEST_F(SnapshotUpdateTest, DataWipeRequiredInPackage) {
+@@ -1894,8 +1631 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++        GTEST_SKIP() << "Skipping legacy merge in test";
+@@ -1903,3 +1632,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
+@@ -1909,3 +1635,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+@@ -1913 +1637 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(true ));
+@@ -1915,21 +1639,11 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(test_device->IsSlotUnbootable(1));
++    ASSERT_FALSE(test_device->IsSlotUnbootable(0));
++    ASSERT_TRUE(UnmapAll());
++    test_device = new TestDeviceInfo(fake_super, "_b");
++    auto init = NewManagerForFirstStageMount(test_device);
+@@ -1937,2 +1651,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name)) << name;
++    }
++}
++TEST_F(SnapshotUpdateTest, DataWipeWithStaleSnapshots) {
+@@ -1940,2 +1657,21 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++        GTEST_SKIP() << "Skipping legacy merge in test";
++    }
++    AddOperationForPartitions();
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(WriteSnapshots());
++    {
++        ASSERT_TRUE(AcquireLock());
++        PartitionCowCreator cow_creator = {
++                .using_snapuserd = snapuserd_required_,
++                .compression_algorithm = snapuserd_required_ ? FLAGS_compression_method : "",
++        };
++        SnapshotStatus status;
++        status.set_name("sys_a");
++        status.set_device_size(1_MiB);
++        status.set_snapshot_size(2_MiB);
++        status.set_cow_partition_size(2_MiB);
++        ASSERT_TRUE(sm->CreateSnapshot(lock_.get(), &cow_creator, &status));
++        lock_ = nullptr;
++        ASSERT_TRUE(sm->EnsureImageManager());
++        ASSERT_TRUE(sm->image_manager()->CreateBackingImage("sys_a", 1_MiB, 0));
+@@ -1942,0 +1679 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(sm->FinishedSnapshotWrites(true ));
+@@ -1944,2 +1681,11 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
++    auto test_device = new TestDeviceInfo(fake_super, "_b");
++    test_device->set_recovery(true);
++    auto new_sm = NewManagerForFirstStageMount(test_device);
++    ASSERT_TRUE(new_sm->HandleImminentDataWipe());
++    MountMetadata();
++    EXPECT_EQ(new_sm->GetUpdateState(), UpdateState::None);
++    ASSERT_FALSE(test_device->IsSlotUnbootable(1));
++    ASSERT_FALSE(test_device->IsSlotUnbootable(0));
++    ASSERT_TRUE(UnmapAll());
++    test_device = new TestDeviceInfo(fake_super, "_b");
++    auto init = NewManagerForFirstStageMount(test_device);
+@@ -1947 +1693,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name)) << name;
+@@ -1949,2 +1696,7 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
++}
++TEST_F(SnapshotUpdateTest, Hashtree) {
++    constexpr auto partition_size = 4_MiB;
++    constexpr auto data_size = 3_MiB;
++    constexpr auto hashtree_size = 512_KiB;
++    constexpr auto fec_size = partition_size - data_size - hashtree_size;
++    const auto block_size = manifest_.block_size();
+@@ -1952 +1704,10 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    AddOperationForPartitions();
++    AddOperation(sys_, data_size);
++    sys_->set_estimate_cow_size(partition_size + data_size);
++    sys_->mutable_hash_tree_data_extent()->set_start_block(0);
++    sys_->mutable_hash_tree_data_extent()->set_num_blocks(data_size / block_size);
++    sys_->mutable_hash_tree_extent()->set_start_block(data_size / block_size);
++    sys_->mutable_hash_tree_extent()->set_num_blocks(hashtree_size / block_size);
++    sys_->mutable_fec_data_extent()->set_start_block(0);
++    sys_->mutable_fec_data_extent()->set_num_blocks((data_size + hashtree_size) / block_size);
++    sys_->mutable_fec_extent()->set_start_block((data_size + hashtree_size) / block_size);
++    sys_->mutable_fec_extent()->set_num_blocks(fec_size / block_size);
+@@ -1955,4 +1716,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots({"vnd_b", "prd_b"}));
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
+@@ -1961,5 +1720,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
++    auto init = NewManagerForFirstStageMount("_b");
++    ASSERT_NE(init, nullptr);
++    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
++    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(IsPartitionUnchanged("sys_b"));
+@@ -1967,4 +1726,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
++TEST_F(SnapshotUpdateTest, Overflow) {
++    if (snapuserd_required_) {
++        GTEST_SKIP() << "No overflow bit set for snapuserd COWs";
+@@ -1971,0 +1730,13 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    const auto actual_write_size = GetSize(sys_);
++    const auto declared_write_size = actual_write_size - 1_MiB;
++    AddOperation(sys_, declared_write_size);
++    ASSERT_TRUE(sm->BeginUpdate());
++    ASSERT_TRUE(sm->CreateUpdateSnapshots(manifest_));
++    ASSERT_TRUE(MapUpdateSnapshots({"vnd_b", "prd_b"}));
++    ASSERT_TRUE(WriteSnapshotAndHash(sys_));
++    std::vector<android::dm::DeviceMapper::TargetInfo> table;
++    ASSERT_TRUE(DeviceMapper::Instance().GetTableStatus("sys_b", &table));
++    ASSERT_EQ(1u, table.size());
++    EXPECT_TRUE(table[0].IsOverflowSnapshot());
++    ASSERT_FALSE(sm->FinishedSnapshotWrites(false))
++            << "FinishedSnapshotWrites should detect overflow of CoW device.";
+@@ -1973 +1744,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-            return true;
++std::pair<uint64_t, uint64_t> GetBigFileLimit() {
++    struct statvfs fs;
++    if (statvfs("/data", &fs) < 0) {
++        PLOG(ERROR) << "statfs failed";
++        return {0, 0};
+@@ -1975,13 +1750,4 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++    auto fs_limit = static_cast<uint64_t>(fs.f_blocks) * (fs.f_bsize - 1);
++    auto fs_free = static_cast<uint64_t>(fs.f_bfree) * fs.f_bsize;
++    LOG(INFO) << "Big file limit: " << fs_limit << ", free space: " << fs_free;
++    return {fs_limit, fs_free};
+@@ -1989,5 +1755,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++TEST_F(SnapshotUpdateTest, LowSpace) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping test on legacy VAB";
+@@ -1995,2 +1759,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
++    auto fs = GetBigFileLimit();
++    ASSERT_NE(fs.first, 0);
++    constexpr uint64_t partition_size = 10_MiB;
+@@ -1997,0 +1763,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, partition_size);
++    sys_->set_estimate_cow_size(fs.first);
++    vnd_->set_estimate_cow_size(fs.first);
++    prd_->set_estimate_cow_size(fs.first);
+@@ -1999,0 +1770,19 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    auto res = sm->CreateUpdateSnapshots(manifest_);
++    ASSERT_FALSE(res);
++    ASSERT_EQ(Return::ErrorCode::NO_SPACE, res.error_code());
++    auto expected_delta = fs.first - fs.second;
++    ASSERT_GE(res.required_size(), expected_delta / 2);
++}
++TEST_F(SnapshotUpdateTest, AddPartition) {
++    group_->add_partition_names("dlkm");
++    auto dlkm = manifest_.add_partitions();
++    dlkm->set_partition_name("dlkm");
++    dlkm->set_estimate_cow_size(2_MiB);
++    SetSize(dlkm, 3_MiB);
++    constexpr uint64_t partition_size = 3788_KiB;
++    SetSize(sys_, partition_size);
++    SetSize(vnd_, partition_size);
++    SetSize(prd_, partition_size);
++    SetSize(dlkm, partition_size);
++    AddOperationForPartitions({sys_, vnd_, prd_, dlkm});
++    ASSERT_TRUE(sm->BeginUpdate());
+@@ -2001,2 +1790,5 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
++    for (const auto& partition : {sys_, vnd_, prd_, dlkm}) {
++        ASSERT_TRUE(WriteSnapshotAndHash(partition));
++    }
++    for (const auto& name : {"sys_a", "vnd_a", "prd_a"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
+@@ -2004 +1795,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(WriteSnapshots());
+@@ -2007,19 +1798 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -2026,0 +1800,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(init->EnsureSnapuserdConnected());
++    init->set_use_first_stage_snapuserd(true);
+@@ -2029,2 +1804,8 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
++    std::vector<std::string> partitions = {"sys_b", "vnd_b", "prd_b", "dlkm_b"};
++    for (const auto& name : partitions) {
++        ASSERT_TRUE(IsPartitionUnchanged(name));
++    }
++    ASSERT_TRUE(init->PerformInitTransition(SnapshotManager::InitTransition::SECOND_STAGE));
++    for (const auto& name : partitions) {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete(name + "-user-cow-init"));
++    }
+@@ -2035,4 +1816 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
++    ASSERT_TRUE(init->InitiateMerge());
+@@ -2039,0 +1818,4 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    for (const auto& name : {"sys_b", "vnd_b", "prd_b", "dlkm_b"}) {
++        ASSERT_TRUE(IsPartitionUnchanged(name))
++                << "Content of " << name << " changes after the merge";
++    }
+@@ -2051,3 +1833,6 @@ private:
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
++TEST_F(SnapshotUpdateTest, DaemonTransition) {
++    if (!snapuserd_required_) {
++        GTEST_SKIP() << "Skipping snapuserd test";
++    }
++    ASSERT_TRUE(sm->EnsureSnapuserdConnected());
++    sm->set_use_first_stage_snapuserd(true);
+@@ -2057,4 +1842 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
++    ASSERT_TRUE(MapUpdateSnapshots());
+@@ -2063,19 +1845 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
++    auto init = NewManagerForFirstStageMount("_b");
+@@ -2082,0 +1847,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(init->EnsureSnapuserdConnected());
++    init->set_use_first_stage_snapuserd(true);
+@@ -2085,5 +1851,21 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++    bool userspace_snapshots = init->UpdateUsesUserSnapshots();
++    if (userspace_snapshots) {
++        ASSERT_EQ(access("/dev/dm-user/sys_b-init", F_OK), 0);
++        ASSERT_EQ(access("/dev/dm-user/sys_b", F_OK), -1);
++    } else {
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow-init", F_OK), 0);
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow", F_OK), -1);
++    }
++    ASSERT_TRUE(init->PerformInitTransition(SnapshotManager::InitTransition::SECOND_STAGE));
++    if (userspace_snapshots) {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("sys_b-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("vnd_b-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("prd_b-init"));
++        ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted("/dev/dm-user/sys_b-init", 10s));
++        ASSERT_EQ(access("/dev/dm-user/sys_b", F_OK), 0);
++    } else {
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("sys_b-user-cow-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("vnd_b-user-cow-init"));
++        ASSERT_TRUE(init->snapuserd_client()->WaitForDeviceDelete("prd_b-user-cow-init"));
++        ASSERT_TRUE(android::fs_mgr::WaitForFileDeleted("/dev/dm-user/sys_b-user-cow-init", 10s));
++        ASSERT_EQ(access("/dev/dm-user/sys_b-user-cow", F_OK), 0);
+@@ -2091,5 +1872,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
+@@ -2097,3 +1874 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
++TEST_F(SnapshotUpdateTest, MapAllSnapshots) {
+@@ -2103,3 +1877,0 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+@@ -2108,34 +1880,3 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
+-    }
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    ASSERT_TRUE(sm->MapAllSnapshots(10s));
++    ASSERT_TRUE(IsPartitionUnchanged("sys_b"));
++    ASSERT_TRUE(sm->UnmapAllSnapshots());
+@@ -2143,3 +1884 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    constexpr uint64_t partition_size = 3788_KiB;
+-    SetSize(sys_, partition_size);
++TEST_F(SnapshotUpdateTest, CancelOnTargetSlot) {
+@@ -2146,0 +1886,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
++    ASSERT_TRUE(UnmapAll());
++    test_device->set_slot_suffix("_b");
+@@ -2149,33 +1890,14 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    if (sm->UpdateUsesUserSnapshots()) {
+-        GTEST_SKIP() << "Test does not apply to userspace snapshots";
+-    }
+-    ASSERT_TRUE(WriteSnapshots());
+-    ASSERT_TRUE(sm->FinishedSnapshotWrites(false));
+-    ASSERT_TRUE(UnmapAll());
+-    class DmStatusFailure final : public DeviceMapperWrapper {
+-      public:
+-        bool GetTableStatus(const std::string& name, std::vector<TargetInfo>* table) override {
+-            if (!DeviceMapperWrapper::GetTableStatus(name, table)) {
+-                return false;
+-            }
+-            if (name == "sys_b" && !table->empty()) {
+-                auto& info = table->at(0);
+-                if (DeviceMapper::GetTargetType(info.spec) == "snapshot-merge") {
+-                    info.data = "Merge failed";
+-                }
+-            }
+-            return true;
+-        }
+-    };
+-    DmStatusFailure wrapper;
+-    auto info = new TestDeviceInfo(fake_super, "_b");
+-    info->set_dm(&wrapper);
+-    auto init = NewManagerForFirstStageMount(info);
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->NeedSnapshotsInFirstStageMount());
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_TRUE(init->InitiateMerge());
+-    ASSERT_EQ(UpdateState::MergeFailed, init->ProcessUpdateState());
+-    if (ShouldSkipLegacyMerging()) {
+-        LOG(INFO) << "Skipping legacy merge in test";
+-        return;
++    std::string path;
++    ASSERT_TRUE(CreateLogicalPartition(
++            CreateLogicalPartitionParams{
++                    .block_device = fake_super,
++                    .metadata_slot = 0,
++                    .partition_name = "sys_a",
++                    .timeout_ms = 1s,
++                    .partition_opener = opener_.get(),
++            },
++            &path));
++    bool userspace_snapshots = sm->UpdateUsesUserSnapshots();
++    unique_fd fd;
++    if (!userspace_snapshots) {
++        fd.reset(open(path.c_str(), O_RDONLY));
+@@ -2183,5 +1905,2 @@ TEST_F(SnapshotUpdateTest, QueryStatusError) {
+-    ASSERT_TRUE(UnmapAll());
+-    init = NewManagerForFirstStageMount("_b");
+-    ASSERT_NE(init, nullptr);
+-    ASSERT_TRUE(init->CreateLogicalAndSnapshotPartitions("super", snapshot_timeout_));
+-    ASSERT_EQ(UpdateState::MergeCompleted, init->ProcessUpdateState());
++    test_device->set_slot_suffix("_a");
++    ASSERT_TRUE(sm->BeginUpdate());
+@@ -2306,0 +2026,6 @@ TEST_P(FlashAfterUpdateTest, FlashSlotAfterUpdate) {
++INSTANTIATE_TEST_SUITE_P(Snapshot, FlashAfterUpdateTest, Combine(Values(0, 1), Bool()),
++                         [](const TestParamInfo<FlashAfterUpdateTest::ParamType>& info) {
++                             return "Flash"s + (std::get<0>(info.param) ? "New"s : "Old"s) +
++                                    "Slot"s + (std::get<1>(info.param) ? "After"s : "Before"s) +
++                                    "Merge"s;
++                         });
+@@ -2344,2 +2069 @@ public:
+-    () = delete;{}
+-    () = delete;{}
++    ~SnapshotTestEnvironment() override {}

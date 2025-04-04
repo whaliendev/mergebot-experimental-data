@@ -1,0 +1,90 @@
+diff --git a/./output/grpc/a3b54cdf-94f908ae-bceec94e/src@core@transport@chttp2_transport.no_comments_merged.c b/./output/grpc/a3b54cdf-94f908ae-bceec94e/src@core@transport@chttp2_transport.no_comments_truth.c
+index ff69ac3..71228a5 100644
+--- a/./output/grpc/a3b54cdf-94f908ae-bceec94e/src@core@transport@chttp2_transport.no_comments_merged.c
++++ b/./output/grpc/a3b54cdf-94f908ae-bceec94e/src@core@transport@chttp2_transport.no_comments_truth.c
+@@ -1237 +1236,0 @@ static void reading_action_locked(grpc_exec_ctx *exec_ctx,
+-<<<<<<< HEAD
+@@ -1241,83 +1239,0 @@ static void reading_action_locked(grpc_exec_ctx *exec_ctx,
+-||||||| bceec94ea4
+-    gpr_mu_unlock(&t->mu);
+-    GPR_TIMER_BEGIN("recv_data.parse", 0);
+-    for (; i < t->read_buffer.count &&
+-               grpc_chttp2_perform_read(exec_ctx, transport_parsing,
+-                                        t->read_buffer.slices[i]);
+-         i++)
+-      ;
+-    GPR_TIMER_END("recv_data.parse", 0);
+-    gpr_mu_lock(&t->mu);
+-    gpr_slice_buffer_move_into(&t->parsing.qbuf, &t->global.qbuf);
+-    if (i != t->read_buffer.count) {
+-      unlock(exec_ctx, t);
+-      lock(t);
+-      drop_connection(exec_ctx, t);
+-    }
+-    grpc_chttp2_stream_map_move_into(&t->new_stream_map,
+-                                     &t->parsing_stream_map);
+-    transport_global->concurrent_stream_count =
+-        (uint32_t)grpc_chttp2_stream_map_size(&t->parsing_stream_map);
+-    if (transport_parsing->initial_window_update != 0) {
+-      grpc_chttp2_stream_map_for_each(&t->parsing_stream_map,
+-                                      update_global_window, t);
+-      transport_parsing->initial_window_update = 0;
+-    }
+-    grpc_chttp2_publish_reads(exec_ctx, transport_global, transport_parsing);
+-    t->parsing_active = 0;
+-    if (t->post_parsing_op) {
+-      grpc_transport_op *op = t->post_parsing_op;
+-      t->post_parsing_op = NULL;
+-      perform_transport_op_locked(exec_ctx, t, op);
+-      gpr_free(op);
+-    }
+-    while (grpc_chttp2_list_pop_closed_waiting_for_parsing(transport_global,
+-                                                           &stream_global)) {
+-      GPR_ASSERT(stream_global->in_stream_map);
+-      GPR_ASSERT(stream_global->write_closed);
+-      GPR_ASSERT(stream_global->read_closed);
+-      remove_stream(exec_ctx, t, stream_global->id);
+-      GRPC_CHTTP2_STREAM_UNREF(exec_ctx, stream_global, "chttp2");
+-    }
+-=======
+-    gpr_mu_unlock(&t->mu);
+-    GPR_TIMER_BEGIN("recv_data.parse", 0);
+-    for (; i < t->read_buffer.count &&
+-           grpc_chttp2_perform_read(exec_ctx, transport_parsing,
+-                                    t->read_buffer.slices[i]);
+-         i++)
+-      ;
+-    GPR_TIMER_END("recv_data.parse", 0);
+-    gpr_mu_lock(&t->mu);
+-    gpr_slice_buffer_move_into(&t->parsing.qbuf, &t->global.qbuf);
+-    if (i != t->read_buffer.count) {
+-      unlock(exec_ctx, t);
+-      lock(t);
+-      drop_connection(exec_ctx, t);
+-    }
+-    grpc_chttp2_stream_map_move_into(&t->new_stream_map,
+-                                     &t->parsing_stream_map);
+-    transport_global->concurrent_stream_count =
+-        (uint32_t)grpc_chttp2_stream_map_size(&t->parsing_stream_map);
+-    if (transport_parsing->initial_window_update != 0) {
+-      grpc_chttp2_stream_map_for_each(&t->parsing_stream_map,
+-                                      update_global_window, t);
+-      transport_parsing->initial_window_update = 0;
+-    }
+-    grpc_chttp2_publish_reads(exec_ctx, transport_global, transport_parsing);
+-    t->parsing_active = 0;
+-    if (t->post_parsing_op) {
+-      grpc_transport_op *op = t->post_parsing_op;
+-      t->post_parsing_op = NULL;
+-      perform_transport_op_locked(exec_ctx, t, op);
+-      gpr_free(op);
+-    }
+-    while (grpc_chttp2_list_pop_closed_waiting_for_parsing(transport_global,
+-                                                           &stream_global)) {
+-      GPR_ASSERT(stream_global->in_stream_map);
+-      GPR_ASSERT(stream_global->write_closed);
+-      GPR_ASSERT(stream_global->read_closed);
+-      remove_stream(exec_ctx, t, stream_global->id);
+-      GRPC_CHTTP2_STREAM_UNREF(exec_ctx, stream_global, "chttp2");
+-    }
+->>>>>>> 94f908ae

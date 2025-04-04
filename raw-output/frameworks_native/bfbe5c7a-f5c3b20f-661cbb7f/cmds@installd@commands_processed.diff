@@ -1,0 +1,1226 @@
+--- a/output/frameworks_native/bfbe5c7a-f5c3b20f-661cbb7f/cmds@installd@commands.no_comments_mergebot.cpp
++++ b/output/frameworks_native/bfbe5c7a-f5c3b20f-661cbb7f/cmds@installd@commands.no_comments_truth.cpp
+@@ -76,0 +77,6 @@ binder::Status checkUid(uid_t expectedUid) {
++#define ENFORCE_UID(uid) { \
++    binder::Status status = checkUid((uid)); \
++    if (!status.isOk()) { \
++        return status; \
++    } \
++}
+@@ -112 +118 @@ static std::string create_primary_profile(const std::string& profile_dir) {
+-static int restorecon_app_data_lazy(const std::string& path, const char* path, const char* seinfo, const std::string& seInfo, uid_t uid) {
++static int restorecon_app_data_lazy(const std::string& path, const std::string& seInfo, uid_t uid) {
+@@ -116 +122 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+-    if (lgetfilecon(path, &before) < 0) {
++    if (lgetfilecon(path.c_str(), &before) < 0) {
+@@ -120,5 +125,0 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+-<<<<<<< HEAD
+-    if (selinux_android_restorecon_pkgdir(path, seinfo, uid, 0) < 0) {
+-||||||| 661cbb7f1b
+-    if (selinux_android_restorecon_pkgdir(path.c_str(), seinfo, uid, 0) < 0) {
+-=======
+@@ -126 +126,0 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+->>>>>>> f5c3b20f
+@@ -130 +130 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+-    if (lgetfilecon(path, &after) < 0) {
++    if (lgetfilecon(path.c_str(), &after) < 0) {
+@@ -137,5 +136,0 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+-<<<<<<< HEAD
+-        if (selinux_android_restorecon_pkgdir(path, seinfo, uid,
+-||||||| 661cbb7f1b
+-        if (selinux_android_restorecon_pkgdir(path.c_str(), seinfo, uid,
+-=======
+@@ -143 +137,0 @@ static int restorecon_app_data_lazy(const std::string& path, const char* path, c
+->>>>>>> f5c3b20f
+@@ -156,0 +151,4 @@ done:
++static int restorecon_app_data_lazy(const std::string& parent, const char* name,
++        const std::string& seInfo, uid_t uid) {
++    return restorecon_app_data_lazy(StringPrintf("%s/%s", parent.c_str(), name), seInfo, uid);
++}
+@@ -580,201 +583,10 @@ static void add_app_data_size(std::string& path, int64_t *codesize, int64_t *dat
+-static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vdex_fd, int image_fd,
+-        const char* input_file_name, const char* output_file_name, int swap_fd,
+-        const char *instruction_set, const char* compiler_filter, bool vm_safe_mode,
+-        bool debuggable, bool post_bootcomplete, int profile_fd, const char* shared_libraries) {
+-    static const unsigned int MAX_INSTRUCTION_SET_LEN = 7;
+-    if (strlen(instruction_set) >= MAX_INSTRUCTION_SET_LEN) {
+-        ALOGE("Instruction set %s longer than max length of %d",
+-              instruction_set, MAX_INSTRUCTION_SET_LEN);
+-        return;
+-    }
+-    char dex2oat_Xms_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xms_flag = get_property("dalvik.vm.dex2oat-Xms", dex2oat_Xms_flag, NULL) > 0;
+-    char dex2oat_Xmx_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xmx_flag = get_property("dalvik.vm.dex2oat-Xmx", dex2oat_Xmx_flag, NULL) > 0;
+-    char dex2oat_threads_buf[kPropertyValueMax];
+-    bool have_dex2oat_threads_flag = get_property(post_bootcomplete
+-                                                      ? "dalvik.vm.dex2oat-threads"
+-                                                      : "dalvik.vm.boot-dex2oat-threads",
+-                                                  dex2oat_threads_buf,
+-                                                  NULL) > 0;
+-    char dex2oat_threads_arg[kPropertyValueMax + 2];
+-    if (have_dex2oat_threads_flag) {
+-        sprintf(dex2oat_threads_arg, "-j%s", dex2oat_threads_buf);
+-    }
+-    char dex2oat_isa_features_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_features_key, "dalvik.vm.isa.%s.features", instruction_set);
+-    char dex2oat_isa_features[kPropertyValueMax];
+-    bool have_dex2oat_isa_features = get_property(dex2oat_isa_features_key,
+-                                                  dex2oat_isa_features, NULL) > 0;
+-    char dex2oat_isa_variant_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_variant_key, "dalvik.vm.isa.%s.variant", instruction_set);
+-    char dex2oat_isa_variant[kPropertyValueMax];
+-    bool have_dex2oat_isa_variant = get_property(dex2oat_isa_variant_key,
+-                                                 dex2oat_isa_variant, NULL) > 0;
+-    const char *dex2oat_norelocation = "-Xnorelocate";
+-    bool have_dex2oat_relocation_skip_flag = false;
+-    char dex2oat_flags[kPropertyValueMax];
+-    int dex2oat_flags_count = get_property("dalvik.vm.dex2oat-flags",
+-                                 dex2oat_flags, NULL) <= 0 ? 0 : split_count(dex2oat_flags);
+-    ALOGV("dalvik.vm.dex2oat-flags=%s\n", dex2oat_flags);
+-    char vold_decrypt[kPropertyValueMax];
+-    bool have_vold_decrypt = get_property("vold.decrypt", vold_decrypt, "") > 0;
+-    bool skip_compilation = (have_vold_decrypt &&
+-                             (strcmp(vold_decrypt, "trigger_restart_min_framework") == 0 ||
+-                             (strcmp(vold_decrypt, "1") == 0)));
+-    bool generate_debug_info = property_get_bool("debug.generate-debug-info");
+-    char app_image_format[kPropertyValueMax];
+-    char image_format_arg[strlen("--image-format=") + kPropertyValueMax];
+-    bool have_app_image_format =
+-            image_fd >= 0 && get_property("dalvik.vm.appimageformat", app_image_format, NULL) > 0;
+-    if (have_app_image_format) {
+-        sprintf(image_format_arg, "--image-format=%s", app_image_format);
+-    }
+-    char dex2oat_large_app_threshold[kPropertyValueMax];
+-    bool have_dex2oat_large_app_threshold =
+-            get_property("dalvik.vm.dex2oat-very-large", dex2oat_large_app_threshold, NULL) > 0;
+-    char dex2oat_large_app_threshold_arg[strlen("--very-large-app-threshold=") + kPropertyValueMax];
+-    if (have_dex2oat_large_app_threshold) {
+-        sprintf(dex2oat_large_app_threshold_arg,
+-                "--very-large-app-threshold=%s",
+-                dex2oat_large_app_threshold);
+-    }
+-    static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+-    static const char* RUNTIME_ARG = "--runtime-arg";
+-    static const int MAX_INT_LEN = 12;
+-    char zip_fd_arg[strlen("--zip-fd=") + MAX_INT_LEN];
+-    char zip_location_arg[strlen("--zip-location=") + PKG_PATH_MAX];
+-    char input_vdex_fd_arg[strlen("--input-vdex-fd=") + MAX_INT_LEN];
+-    char output_vdex_fd_arg[strlen("--output-vdex-fd=") + MAX_INT_LEN];
+-    char oat_fd_arg[strlen("--oat-fd=") + MAX_INT_LEN];
+-    char oat_location_arg[strlen("--oat-location=") + PKG_PATH_MAX];
+-    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
+-    char instruction_set_variant_arg[strlen("--instruction-set-variant=") + kPropertyValueMax];
+-    char instruction_set_features_arg[strlen("--instruction-set-features=") + kPropertyValueMax];
+-    char dex2oat_Xms_arg[strlen("-Xms") + kPropertyValueMax];
+-    char dex2oat_Xmx_arg[strlen("-Xmx") + kPropertyValueMax];
+-    char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + kPropertyValueMax];
+-    bool have_dex2oat_swap_fd = false;
+-    char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
+-    bool have_dex2oat_image_fd = false;
+-    char dex2oat_image_fd[strlen("--app-image-fd=") + MAX_INT_LEN];
+-    sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+-    sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+-    sprintf(input_vdex_fd_arg, "--input-vdex-fd=%d", input_vdex_fd);
+-    sprintf(output_vdex_fd_arg, "--output-vdex-fd=%d", output_vdex_fd);
+-    sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
+-    sprintf(oat_location_arg, "--oat-location=%s", output_file_name);
+-    sprintf(instruction_set_arg, "--instruction-set=%s", instruction_set);
+-    sprintf(instruction_set_variant_arg, "--instruction-set-variant=%s", dex2oat_isa_variant);
+-    sprintf(instruction_set_features_arg, "--instruction-set-features=%s", dex2oat_isa_features);
+-    if (swap_fd >= 0) {
+-        have_dex2oat_swap_fd = true;
+-        sprintf(dex2oat_swap_fd, "--swap-fd=%d", swap_fd);
+-    }
+-    if (image_fd >= 0) {
+-        have_dex2oat_image_fd = true;
+-        sprintf(dex2oat_image_fd, "--app-image-fd=%d", image_fd);
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        sprintf(dex2oat_Xms_arg, "-Xms%s", dex2oat_Xms_flag);
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        sprintf(dex2oat_Xmx_arg, "-Xmx%s", dex2oat_Xmx_flag);
+-    }
+-    bool have_dex2oat_compiler_filter_flag;
+-    if (skip_compilation) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=verify-none");
+-        have_dex2oat_compiler_filter_flag = true;
+-        have_dex2oat_relocation_skip_flag = true;
+-    } else if (vm_safe_mode) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=interpret-only");
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else if (compiler_filter != nullptr &&
+-            strlen(compiler_filter) + strlen("--compiler-filter=") <
+-                    arraysize(dex2oat_compiler_filter_arg)) {
+-        sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", compiler_filter);
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else {
+-        char dex2oat_compiler_filter_flag[kPropertyValueMax];
+-        have_dex2oat_compiler_filter_flag = get_property("dalvik.vm.dex2oat-filter",
+-                                                         dex2oat_compiler_filter_flag, NULL) > 0;
+-        if (have_dex2oat_compiler_filter_flag) {
+-            sprintf(dex2oat_compiler_filter_arg,
+-                    "--compiler-filter=%s",
+-                    dex2oat_compiler_filter_flag);
+-        }
+-    }
+-    if (!debuggable) {
+-        char prop_buf[kPropertyValueMax];
+-        debuggable =
+-                (get_property("dalvik.vm.always_debuggable", prop_buf, "0") > 0) &&
+-                (prop_buf[0] == '1');
+-    }
+-    char profile_arg[strlen("--profile-file-fd=") + MAX_INT_LEN];
+-    if (profile_fd != -1) {
+-        sprintf(profile_arg, "--profile-file-fd=%d", profile_fd);
+-    }
+-    ALOGV("Running %s in=%s out=%s\n", DEX2OAT_BIN, input_file_name, output_file_name);
+-    const char* argv[9
+-                     + (have_dex2oat_isa_variant ? 1 : 0)
+-                     + (have_dex2oat_isa_features ? 1 : 0)
+-                     + (have_dex2oat_Xms_flag ? 2 : 0)
+-                     + (have_dex2oat_Xmx_flag ? 2 : 0)
+-                     + (have_dex2oat_compiler_filter_flag ? 1 : 0)
+-                     + (have_dex2oat_threads_flag ? 1 : 0)
+-                     + (have_dex2oat_swap_fd ? 1 : 0)
+-                     + (have_dex2oat_image_fd ? 1 : 0)
+-                     + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+-                     + (generate_debug_info ? 1 : 0)
+-                     + (debuggable ? 1 : 0)
+-                     + (have_app_image_format ? 1 : 0)
+-                     + dex2oat_flags_count
+-                     + (profile_fd == -1 ? 0 : 1)
+-                     + (shared_libraries != nullptr ? 4 : 0)
+-                     + (have_dex2oat_large_app_threshold ? 1 : 0)];
+-    int i = 0;
+-    argv[i++] = DEX2OAT_BIN;
+-    argv[i++] = zip_fd_arg;
+-    argv[i++] = zip_location_arg;
+-    argv[i++] = input_vdex_fd_arg;
+-    argv[i++] = output_vdex_fd_arg;
+-    argv[i++] = oat_fd_arg;
+-    argv[i++] = oat_location_arg;
+-    argv[i++] = instruction_set_arg;
+-    if (have_dex2oat_isa_variant) {
+-        argv[i++] = instruction_set_variant_arg;
+-    }
+-    if (have_dex2oat_isa_features) {
+-        argv[i++] = instruction_set_features_arg;
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xms_arg;
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xmx_arg;
+-    }
+-    if (have_dex2oat_compiler_filter_flag) {
+-        argv[i++] = dex2oat_compiler_filter_arg;
+-    }
+-    if (have_dex2oat_threads_flag) {
+-        argv[i++] = dex2oat_threads_arg;
+-    }
+-    if (have_dex2oat_swap_fd) {
+-        argv[i++] = dex2oat_swap_fd;
+-    }
+-    if (have_dex2oat_image_fd) {
+-        argv[i++] = dex2oat_image_fd;
+-    }
+-    if (generate_debug_info) {
+-        argv[i++] = "--generate-debug-info";
+-    }
+-    if (debuggable) {
+-        argv[i++] = "--debuggable";
+-    }
+-    if (have_app_image_format) {
+-        argv[i++] = image_format_arg;
+-    }
+-    if (have_dex2oat_large_app_threshold) {
+-        argv[i++] = dex2oat_large_app_threshold_arg;
++int get_app_size(const char *uuid, const char *pkgname, int userid, int flags, ino_t ce_data_inode,
++        const char *code_path, int64_t *codesize, int64_t *datasize, int64_t *cachesize,
++        int64_t* asecsize) {
++    DIR *d;
++    int dfd;
++    d = opendir(code_path);
++    if (d != nullptr) {
++        dfd = dirfd(d);
++        *codesize += calculate_dir_size(dfd);
++        closedir(d);
+@@ -782,2 +594,3 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    if (dex2oat_flags_count) {
+-        i += split(dex2oat_flags, argv + i);
++    if (flags & FLAG_STORAGE_CE) {
++        auto path = create_data_user_ce_package_path(uuid, userid, pkgname, ce_data_inode);
++        add_app_data_size(path, codesize, datasize, cachesize);
+@@ -785,3 +598,3 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    if (have_dex2oat_relocation_skip_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_norelocation;
++    if (flags & FLAG_STORAGE_DE) {
++        auto path = create_data_user_de_package_path(uuid, userid, pkgname);
++        add_app_data_size(path, codesize, datasize, cachesize);
+@@ -789,2 +602,2 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    if (profile_fd != -1) {
+-        argv[i++] = profile_arg;
++    *asecsize = 0;
++    return 0;
+@@ -792,5 +605,4 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    if (shared_libraries != nullptr) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = "-classpath";
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = shared_libraries;
++int get_app_data_inode(const char *uuid, const char *pkgname, int userid, int flags, ino_t *inode) {
++    if (flags & FLAG_STORAGE_CE) {
++        auto path = create_data_user_ce_package_path(uuid, userid, pkgname);
++        return get_path_inode(path, inode);
+@@ -798,3 +610 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    argv[i] = NULL;
+-    execv(DEX2OAT_BIN, (char * const *)argv);
+-    ALOGE("execv(%s) failed: %s\n", DEX2OAT_BIN, strerror(errno));
++    return -1;
+@@ -802,4 +612,31 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vdex_fd, int image_fd,
+-        const char* input_file_name, const char* output_file_name, int swap_fd,
+-        const char *instruction_set, const char* compiler_filter, bool vm_safe_mode,
+-        bool debuggable, bool post_bootcomplete, int profile_fd, const char* shared_libraries) {
++static int split_count(const char *str)
++{
++  char *ctx;
++  int count = 0;
++  char buf[kPropertyValueMax];
++  strncpy(buf, str, sizeof(buf));
++  char *pBuf = buf;
++  while(strtok_r(pBuf, " ", &ctx) != NULL) {
++    count++;
++    pBuf = NULL;
++  }
++  return count;
++}
++static int split(char *buf, const char **argv)
++{
++  char *ctx;
++  int count = 0;
++  char *tok;
++  char *pBuf = buf;
++  while((tok = strtok_r(pBuf, " ", &ctx)) != NULL) {
++    argv[count++] = tok;
++    pBuf = NULL;
++  }
++  return count;
++}
++static void run_patchoat(int input_oat_fd, int input_vdex_fd, int out_oat_fd, int out_vdex_fd,
++    const char* input_oat_file_name, const char* input_vdex_file_name,
++    const char* output_oat_file_name, const char* output_vdex_file_name,
++    const char *pkgname ATTRIBUTE_UNUSED, const char *instruction_set)
++{
++    static const int MAX_INT_LEN = 12;
+@@ -806,0 +644 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
++    static const char* PATCHOAT_BIN = "/system/bin/patchoat";
+@@ -812,723 +650,2 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    char dex2oat_Xms_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xms_flag = get_property("dalvik.vm.dex2oat-Xms", dex2oat_Xms_flag, NULL) > 0;
+-    char dex2oat_Xmx_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xmx_flag = get_property("dalvik.vm.dex2oat-Xmx", dex2oat_Xmx_flag, NULL) > 0;
+-    char dex2oat_threads_buf[kPropertyValueMax];
+-    bool have_dex2oat_threads_flag = get_property(post_bootcomplete
+-                                                      ? "dalvik.vm.dex2oat-threads"
+-                                                      : "dalvik.vm.boot-dex2oat-threads",
+-                                                  dex2oat_threads_buf,
+-                                                  NULL) > 0;
+-    char dex2oat_threads_arg[kPropertyValueMax + 2];
+-    if (have_dex2oat_threads_flag) {
+-        sprintf(dex2oat_threads_arg, "-j%s", dex2oat_threads_buf);
+-    }
+-    char dex2oat_isa_features_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_features_key, "dalvik.vm.isa.%s.features", instruction_set);
+-    char dex2oat_isa_features[kPropertyValueMax];
+-    bool have_dex2oat_isa_features = get_property(dex2oat_isa_features_key,
+-                                                  dex2oat_isa_features, NULL) > 0;
+-    char dex2oat_isa_variant_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_variant_key, "dalvik.vm.isa.%s.variant", instruction_set);
+-    char dex2oat_isa_variant[kPropertyValueMax];
+-    bool have_dex2oat_isa_variant = get_property(dex2oat_isa_variant_key,
+-                                                 dex2oat_isa_variant, NULL) > 0;
+-    const char *dex2oat_norelocation = "-Xnorelocate";
+-    bool have_dex2oat_relocation_skip_flag = false;
+-    char dex2oat_flags[kPropertyValueMax];
+-    int dex2oat_flags_count = get_property("dalvik.vm.dex2oat-flags",
+-                                 dex2oat_flags, NULL) <= 0 ? 0 : split_count(dex2oat_flags);
+-    ALOGV("dalvik.vm.dex2oat-flags=%s\n", dex2oat_flags);
+-    char vold_decrypt[kPropertyValueMax];
+-    bool have_vold_decrypt = get_property("vold.decrypt", vold_decrypt, "") > 0;
+-    bool skip_compilation = (have_vold_decrypt &&
+-                             (strcmp(vold_decrypt, "trigger_restart_min_framework") == 0 ||
+-                             (strcmp(vold_decrypt, "1") == 0)));
+-    bool generate_debug_info = property_get_bool("debug.generate-debug-info");
+-    char app_image_format[kPropertyValueMax];
+-    char image_format_arg[strlen("--image-format=") + kPropertyValueMax];
+-    bool have_app_image_format =
+-            image_fd >= 0 && get_property("dalvik.vm.appimageformat", app_image_format, NULL) > 0;
+-    if (have_app_image_format) {
+-        sprintf(image_format_arg, "--image-format=%s", app_image_format);
+-    }
+-    char dex2oat_large_app_threshold[kPropertyValueMax];
+-    bool have_dex2oat_large_app_threshold =
+-            get_property("dalvik.vm.dex2oat-very-large", dex2oat_large_app_threshold, NULL) > 0;
+-    char dex2oat_large_app_threshold_arg[strlen("--very-large-app-threshold=") + kPropertyValueMax];
+-    if (have_dex2oat_large_app_threshold) {
+-        sprintf(dex2oat_large_app_threshold_arg,
+-                "--very-large-app-threshold=%s",
+-                dex2oat_large_app_threshold);
+-    }
+-    static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+-    static const char* RUNTIME_ARG = "--runtime-arg";
+-    static const int MAX_INT_LEN = 12;
+-    char zip_fd_arg[strlen("--zip-fd=") + MAX_INT_LEN];
+-    char zip_location_arg[strlen("--zip-location=") + PKG_PATH_MAX];
+-    char input_vdex_fd_arg[strlen("--input-vdex-fd=") + MAX_INT_LEN];
+-    char output_vdex_fd_arg[strlen("--output-vdex-fd=") + MAX_INT_LEN];
+-    char oat_fd_arg[strlen("--oat-fd=") + MAX_INT_LEN];
+-    char oat_location_arg[strlen("--oat-location=") + PKG_PATH_MAX];
+-    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
+-    char instruction_set_variant_arg[strlen("--instruction-set-variant=") + kPropertyValueMax];
+-    char instruction_set_features_arg[strlen("--instruction-set-features=") + kPropertyValueMax];
+-    char dex2oat_Xms_arg[strlen("-Xms") + kPropertyValueMax];
+-    char dex2oat_Xmx_arg[strlen("-Xmx") + kPropertyValueMax];
+-    char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + kPropertyValueMax];
+-    bool have_dex2oat_swap_fd = false;
+-    char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
+-    bool have_dex2oat_image_fd = false;
+-    char dex2oat_image_fd[strlen("--app-image-fd=") + MAX_INT_LEN];
+-    sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+-    sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+-    sprintf(input_vdex_fd_arg, "--input-vdex-fd=%d", input_vdex_fd);
+-    sprintf(output_vdex_fd_arg, "--output-vdex-fd=%d", output_vdex_fd);
+-    sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
+-    sprintf(oat_location_arg, "--oat-location=%s", output_file_name);
+-    sprintf(instruction_set_arg, "--instruction-set=%s", instruction_set);
+-    sprintf(instruction_set_variant_arg, "--instruction-set-variant=%s", dex2oat_isa_variant);
+-    sprintf(instruction_set_features_arg, "--instruction-set-features=%s", dex2oat_isa_features);
+-    if (swap_fd >= 0) {
+-        have_dex2oat_swap_fd = true;
+-        sprintf(dex2oat_swap_fd, "--swap-fd=%d", swap_fd);
+-    }
+-    if (image_fd >= 0) {
+-        have_dex2oat_image_fd = true;
+-        sprintf(dex2oat_image_fd, "--app-image-fd=%d", image_fd);
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        sprintf(dex2oat_Xms_arg, "-Xms%s", dex2oat_Xms_flag);
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        sprintf(dex2oat_Xmx_arg, "-Xmx%s", dex2oat_Xmx_flag);
+-    }
+-    bool have_dex2oat_compiler_filter_flag;
+-    if (skip_compilation) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=verify-none");
+-        have_dex2oat_compiler_filter_flag = true;
+-        have_dex2oat_relocation_skip_flag = true;
+-    } else if (vm_safe_mode) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=interpret-only");
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else if (compiler_filter != nullptr &&
+-            strlen(compiler_filter) + strlen("--compiler-filter=") <
+-                    arraysize(dex2oat_compiler_filter_arg)) {
+-        sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", compiler_filter);
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else {
+-        char dex2oat_compiler_filter_flag[kPropertyValueMax];
+-        have_dex2oat_compiler_filter_flag = get_property("dalvik.vm.dex2oat-filter",
+-                                                         dex2oat_compiler_filter_flag, NULL) > 0;
+-        if (have_dex2oat_compiler_filter_flag) {
+-            sprintf(dex2oat_compiler_filter_arg,
+-                    "--compiler-filter=%s",
+-                    dex2oat_compiler_filter_flag);
+-        }
+-    }
+-    if (!debuggable) {
+-        char prop_buf[kPropertyValueMax];
+-        debuggable =
+-                (get_property("dalvik.vm.always_debuggable", prop_buf, "0") > 0) &&
+-                (prop_buf[0] == '1');
+-    }
+-    char profile_arg[strlen("--profile-file-fd=") + MAX_INT_LEN];
+-    if (profile_fd != -1) {
+-        sprintf(profile_arg, "--profile-file-fd=%d", profile_fd);
+-    }
+-    ALOGV("Running %s in=%s out=%s\n", DEX2OAT_BIN, input_file_name, output_file_name);
+-    const char* argv[9
+-                     + (have_dex2oat_isa_variant ? 1 : 0)
+-                     + (have_dex2oat_isa_features ? 1 : 0)
+-                     + (have_dex2oat_Xms_flag ? 2 : 0)
+-                     + (have_dex2oat_Xmx_flag ? 2 : 0)
+-                     + (have_dex2oat_compiler_filter_flag ? 1 : 0)
+-                     + (have_dex2oat_threads_flag ? 1 : 0)
+-                     + (have_dex2oat_swap_fd ? 1 : 0)
+-                     + (have_dex2oat_image_fd ? 1 : 0)
+-                     + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+-                     + (generate_debug_info ? 1 : 0)
+-                     + (debuggable ? 1 : 0)
+-                     + (have_app_image_format ? 1 : 0)
+-                     + dex2oat_flags_count
+-                     + (profile_fd == -1 ? 0 : 1)
+-                     + (shared_libraries != nullptr ? 4 : 0)
+-                     + (have_dex2oat_large_app_threshold ? 1 : 0)];
+-    int i = 0;
+-    argv[i++] = DEX2OAT_BIN;
+-    argv[i++] = zip_fd_arg;
+-    argv[i++] = zip_location_arg;
+-    argv[i++] = input_vdex_fd_arg;
+-    argv[i++] = output_vdex_fd_arg;
+-    argv[i++] = oat_fd_arg;
+-    argv[i++] = oat_location_arg;
+-    argv[i++] = instruction_set_arg;
+-    if (have_dex2oat_isa_variant) {
+-        argv[i++] = instruction_set_variant_arg;
+-    }
+-    if (have_dex2oat_isa_features) {
+-        argv[i++] = instruction_set_features_arg;
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xms_arg;
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xmx_arg;
+-    }
+-    if (have_dex2oat_compiler_filter_flag) {
+-        argv[i++] = dex2oat_compiler_filter_arg;
+-    }
+-    if (have_dex2oat_threads_flag) {
+-        argv[i++] = dex2oat_threads_arg;
+-    }
+-    if (have_dex2oat_swap_fd) {
+-        argv[i++] = dex2oat_swap_fd;
+-    }
+-    if (have_dex2oat_image_fd) {
+-        argv[i++] = dex2oat_image_fd;
+-    }
+-    if (generate_debug_info) {
+-        argv[i++] = "--generate-debug-info";
+-    }
+-    if (debuggable) {
+-        argv[i++] = "--debuggable";
+-    }
+-    if (have_app_image_format) {
+-        argv[i++] = image_format_arg;
+-    }
+-    if (have_dex2oat_large_app_threshold) {
+-        argv[i++] = dex2oat_large_app_threshold_arg;
+-    }
+-    if (dex2oat_flags_count) {
+-        i += split(dex2oat_flags, argv + i);
+-    }
+-    if (have_dex2oat_relocation_skip_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_norelocation;
+-    }
+-    if (profile_fd != -1) {
+-        argv[i++] = profile_arg;
+-    }
+-    if (shared_libraries != nullptr) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = "-classpath";
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = shared_libraries;
+-    }
+-    argv[i] = NULL;
+-    execv(DEX2OAT_BIN, (char * const *)argv);
+-    ALOGE("execv(%s) failed: %s\n", DEX2OAT_BIN, strerror(errno));
+-}
+-static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vdex_fd, int image_fd,
+-        const char* input_file_name, const char* output_file_name, int swap_fd,
+-        const char *instruction_set, const char* compiler_filter, bool vm_safe_mode,
+-        bool debuggable, bool post_bootcomplete, int profile_fd, const char* shared_libraries) {
+-    static const unsigned int MAX_INSTRUCTION_SET_LEN = 7;
+-    if (strlen(instruction_set) >= MAX_INSTRUCTION_SET_LEN) {
+-        ALOGE("Instruction set %s longer than max length of %d",
+-              instruction_set, MAX_INSTRUCTION_SET_LEN);
+-        return;
+-    }
+-    char dex2oat_Xms_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xms_flag = get_property("dalvik.vm.dex2oat-Xms", dex2oat_Xms_flag, NULL) > 0;
+-    char dex2oat_Xmx_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xmx_flag = get_property("dalvik.vm.dex2oat-Xmx", dex2oat_Xmx_flag, NULL) > 0;
+-    char dex2oat_threads_buf[kPropertyValueMax];
+-    bool have_dex2oat_threads_flag = get_property(post_bootcomplete
+-                                                      ? "dalvik.vm.dex2oat-threads"
+-                                                      : "dalvik.vm.boot-dex2oat-threads",
+-                                                  dex2oat_threads_buf,
+-                                                  NULL) > 0;
+-    char dex2oat_threads_arg[kPropertyValueMax + 2];
+-    if (have_dex2oat_threads_flag) {
+-        sprintf(dex2oat_threads_arg, "-j%s", dex2oat_threads_buf);
+-    }
+-    char dex2oat_isa_features_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_features_key, "dalvik.vm.isa.%s.features", instruction_set);
+-    char dex2oat_isa_features[kPropertyValueMax];
+-    bool have_dex2oat_isa_features = get_property(dex2oat_isa_features_key,
+-                                                  dex2oat_isa_features, NULL) > 0;
+-    char dex2oat_isa_variant_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_variant_key, "dalvik.vm.isa.%s.variant", instruction_set);
+-    char dex2oat_isa_variant[kPropertyValueMax];
+-    bool have_dex2oat_isa_variant = get_property(dex2oat_isa_variant_key,
+-                                                 dex2oat_isa_variant, NULL) > 0;
+-    const char *dex2oat_norelocation = "-Xnorelocate";
+-    bool have_dex2oat_relocation_skip_flag = false;
+-    char dex2oat_flags[kPropertyValueMax];
+-    int dex2oat_flags_count = get_property("dalvik.vm.dex2oat-flags",
+-                                 dex2oat_flags, NULL) <= 0 ? 0 : split_count(dex2oat_flags);
+-    ALOGV("dalvik.vm.dex2oat-flags=%s\n", dex2oat_flags);
+-    char vold_decrypt[kPropertyValueMax];
+-    bool have_vold_decrypt = get_property("vold.decrypt", vold_decrypt, "") > 0;
+-    bool skip_compilation = (have_vold_decrypt &&
+-                             (strcmp(vold_decrypt, "trigger_restart_min_framework") == 0 ||
+-                             (strcmp(vold_decrypt, "1") == 0)));
+-    bool generate_debug_info = property_get_bool("debug.generate-debug-info");
+-    char app_image_format[kPropertyValueMax];
+-    char image_format_arg[strlen("--image-format=") + kPropertyValueMax];
+-    bool have_app_image_format =
+-            image_fd >= 0 && get_property("dalvik.vm.appimageformat", app_image_format, NULL) > 0;
+-    if (have_app_image_format) {
+-        sprintf(image_format_arg, "--image-format=%s", app_image_format);
+-    }
+-    char dex2oat_large_app_threshold[kPropertyValueMax];
+-    bool have_dex2oat_large_app_threshold =
+-            get_property("dalvik.vm.dex2oat-very-large", dex2oat_large_app_threshold, NULL) > 0;
+-    char dex2oat_large_app_threshold_arg[strlen("--very-large-app-threshold=") + kPropertyValueMax];
+-    if (have_dex2oat_large_app_threshold) {
+-        sprintf(dex2oat_large_app_threshold_arg,
+-                "--very-large-app-threshold=%s",
+-                dex2oat_large_app_threshold);
+-    }
+-    static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+-    static const char* RUNTIME_ARG = "--runtime-arg";
+-    static const int MAX_INT_LEN = 12;
+-    char zip_fd_arg[strlen("--zip-fd=") + MAX_INT_LEN];
+-    char zip_location_arg[strlen("--zip-location=") + PKG_PATH_MAX];
+-    char input_vdex_fd_arg[strlen("--input-vdex-fd=") + MAX_INT_LEN];
+-    char output_vdex_fd_arg[strlen("--output-vdex-fd=") + MAX_INT_LEN];
+-    char oat_fd_arg[strlen("--oat-fd=") + MAX_INT_LEN];
+-    char oat_location_arg[strlen("--oat-location=") + PKG_PATH_MAX];
+-    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
+-    char instruction_set_variant_arg[strlen("--instruction-set-variant=") + kPropertyValueMax];
+-    char instruction_set_features_arg[strlen("--instruction-set-features=") + kPropertyValueMax];
+-    char dex2oat_Xms_arg[strlen("-Xms") + kPropertyValueMax];
+-    char dex2oat_Xmx_arg[strlen("-Xmx") + kPropertyValueMax];
+-    char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + kPropertyValueMax];
+-    bool have_dex2oat_swap_fd = false;
+-    char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
+-    bool have_dex2oat_image_fd = false;
+-    char dex2oat_image_fd[strlen("--app-image-fd=") + MAX_INT_LEN];
+-    sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+-    sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+-    sprintf(input_vdex_fd_arg, "--input-vdex-fd=%d", input_vdex_fd);
+-    sprintf(output_vdex_fd_arg, "--output-vdex-fd=%d", output_vdex_fd);
+-    sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
+-    sprintf(oat_location_arg, "--oat-location=%s", output_file_name);
+-    sprintf(instruction_set_arg, "--instruction-set=%s", instruction_set);
+-    sprintf(instruction_set_variant_arg, "--instruction-set-variant=%s", dex2oat_isa_variant);
+-    sprintf(instruction_set_features_arg, "--instruction-set-features=%s", dex2oat_isa_features);
+-    if (swap_fd >= 0) {
+-        have_dex2oat_swap_fd = true;
+-        sprintf(dex2oat_swap_fd, "--swap-fd=%d", swap_fd);
+-    }
+-    if (image_fd >= 0) {
+-        have_dex2oat_image_fd = true;
+-        sprintf(dex2oat_image_fd, "--app-image-fd=%d", image_fd);
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        sprintf(dex2oat_Xms_arg, "-Xms%s", dex2oat_Xms_flag);
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        sprintf(dex2oat_Xmx_arg, "-Xmx%s", dex2oat_Xmx_flag);
+-    }
+-    bool have_dex2oat_compiler_filter_flag;
+-    if (skip_compilation) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=verify-none");
+-        have_dex2oat_compiler_filter_flag = true;
+-        have_dex2oat_relocation_skip_flag = true;
+-    } else if (vm_safe_mode) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=interpret-only");
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else if (compiler_filter != nullptr &&
+-            strlen(compiler_filter) + strlen("--compiler-filter=") <
+-                    arraysize(dex2oat_compiler_filter_arg)) {
+-        sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", compiler_filter);
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else {
+-        char dex2oat_compiler_filter_flag[kPropertyValueMax];
+-        have_dex2oat_compiler_filter_flag = get_property("dalvik.vm.dex2oat-filter",
+-                                                         dex2oat_compiler_filter_flag, NULL) > 0;
+-        if (have_dex2oat_compiler_filter_flag) {
+-            sprintf(dex2oat_compiler_filter_arg,
+-                    "--compiler-filter=%s",
+-                    dex2oat_compiler_filter_flag);
+-        }
+-    }
+-    if (!debuggable) {
+-        char prop_buf[kPropertyValueMax];
+-        debuggable =
+-                (get_property("dalvik.vm.always_debuggable", prop_buf, "0") > 0) &&
+-                (prop_buf[0] == '1');
+-    }
+-    char profile_arg[strlen("--profile-file-fd=") + MAX_INT_LEN];
+-    if (profile_fd != -1) {
+-        sprintf(profile_arg, "--profile-file-fd=%d", profile_fd);
+-    }
+-    ALOGV("Running %s in=%s out=%s\n", DEX2OAT_BIN, input_file_name, output_file_name);
+-    const char* argv[9
+-                     + (have_dex2oat_isa_variant ? 1 : 0)
+-                     + (have_dex2oat_isa_features ? 1 : 0)
+-                     + (have_dex2oat_Xms_flag ? 2 : 0)
+-                     + (have_dex2oat_Xmx_flag ? 2 : 0)
+-                     + (have_dex2oat_compiler_filter_flag ? 1 : 0)
+-                     + (have_dex2oat_threads_flag ? 1 : 0)
+-                     + (have_dex2oat_swap_fd ? 1 : 0)
+-                     + (have_dex2oat_image_fd ? 1 : 0)
+-                     + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+-                     + (generate_debug_info ? 1 : 0)
+-                     + (debuggable ? 1 : 0)
+-                     + (have_app_image_format ? 1 : 0)
+-                     + dex2oat_flags_count
+-                     + (profile_fd == -1 ? 0 : 1)
+-                     + (shared_libraries != nullptr ? 4 : 0)
+-                     + (have_dex2oat_large_app_threshold ? 1 : 0)];
+-    int i = 0;
+-    argv[i++] = DEX2OAT_BIN;
+-    argv[i++] = zip_fd_arg;
+-    argv[i++] = zip_location_arg;
+-    argv[i++] = input_vdex_fd_arg;
+-    argv[i++] = output_vdex_fd_arg;
+-    argv[i++] = oat_fd_arg;
+-    argv[i++] = oat_location_arg;
+-    argv[i++] = instruction_set_arg;
+-    if (have_dex2oat_isa_variant) {
+-        argv[i++] = instruction_set_variant_arg;
+-    }
+-    if (have_dex2oat_isa_features) {
+-        argv[i++] = instruction_set_features_arg;
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xms_arg;
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xmx_arg;
+-    }
+-    if (have_dex2oat_compiler_filter_flag) {
+-        argv[i++] = dex2oat_compiler_filter_arg;
+-    }
+-    if (have_dex2oat_threads_flag) {
+-        argv[i++] = dex2oat_threads_arg;
+-    }
+-    if (have_dex2oat_swap_fd) {
+-        argv[i++] = dex2oat_swap_fd;
+-    }
+-    if (have_dex2oat_image_fd) {
+-        argv[i++] = dex2oat_image_fd;
+-    }
+-    if (generate_debug_info) {
+-        argv[i++] = "--generate-debug-info";
+-    }
+-    if (debuggable) {
+-        argv[i++] = "--debuggable";
+-    }
+-    if (have_app_image_format) {
+-        argv[i++] = image_format_arg;
+-    }
+-    if (have_dex2oat_large_app_threshold) {
+-        argv[i++] = dex2oat_large_app_threshold_arg;
+-    }
+-    if (dex2oat_flags_count) {
+-        i += split(dex2oat_flags, argv + i);
+-    }
+-    if (have_dex2oat_relocation_skip_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_norelocation;
+-    }
+-    if (profile_fd != -1) {
+-        argv[i++] = profile_arg;
+-    }
+-    if (shared_libraries != nullptr) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = "-classpath";
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = shared_libraries;
+-    }
+-    argv[i] = NULL;
+-    execv(DEX2OAT_BIN, (char * const *)argv);
+-    ALOGE("execv(%s) failed: %s\n", DEX2OAT_BIN, strerror(errno));
+-}
+-static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vdex_fd, int image_fd,
+-        const char* input_file_name, const char* output_file_name, int swap_fd,
+-        const char *instruction_set, const char* compiler_filter, bool vm_safe_mode,
+-        bool debuggable, bool post_bootcomplete, int profile_fd, const char* shared_libraries) {
+-    static const unsigned int MAX_INSTRUCTION_SET_LEN = 7;
+-    if (strlen(instruction_set) >= MAX_INSTRUCTION_SET_LEN) {
+-        ALOGE("Instruction set %s longer than max length of %d",
+-              instruction_set, MAX_INSTRUCTION_SET_LEN);
+-        return;
+-    }
+-    char dex2oat_Xms_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xms_flag = get_property("dalvik.vm.dex2oat-Xms", dex2oat_Xms_flag, NULL) > 0;
+-    char dex2oat_Xmx_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xmx_flag = get_property("dalvik.vm.dex2oat-Xmx", dex2oat_Xmx_flag, NULL) > 0;
+-    char dex2oat_threads_buf[kPropertyValueMax];
+-    bool have_dex2oat_threads_flag = get_property(post_bootcomplete
+-                                                      ? "dalvik.vm.dex2oat-threads"
+-                                                      : "dalvik.vm.boot-dex2oat-threads",
+-                                                  dex2oat_threads_buf,
+-                                                  NULL) > 0;
+-    char dex2oat_threads_arg[kPropertyValueMax + 2];
+-    if (have_dex2oat_threads_flag) {
+-        sprintf(dex2oat_threads_arg, "-j%s", dex2oat_threads_buf);
+-    }
+-    char dex2oat_isa_features_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_features_key, "dalvik.vm.isa.%s.features", instruction_set);
+-    char dex2oat_isa_features[kPropertyValueMax];
+-    bool have_dex2oat_isa_features = get_property(dex2oat_isa_features_key,
+-                                                  dex2oat_isa_features, NULL) > 0;
+-    char dex2oat_isa_variant_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_variant_key, "dalvik.vm.isa.%s.variant", instruction_set);
+-    char dex2oat_isa_variant[kPropertyValueMax];
+-    bool have_dex2oat_isa_variant = get_property(dex2oat_isa_variant_key,
+-                                                 dex2oat_isa_variant, NULL) > 0;
+-    const char *dex2oat_norelocation = "-Xnorelocate";
+-    bool have_dex2oat_relocation_skip_flag = false;
+-    char dex2oat_flags[kPropertyValueMax];
+-    int dex2oat_flags_count = get_property("dalvik.vm.dex2oat-flags",
+-                                 dex2oat_flags, NULL) <= 0 ? 0 : split_count(dex2oat_flags);
+-    ALOGV("dalvik.vm.dex2oat-flags=%s\n", dex2oat_flags);
+-    char vold_decrypt[kPropertyValueMax];
+-    bool have_vold_decrypt = get_property("vold.decrypt", vold_decrypt, "") > 0;
+-    bool skip_compilation = (have_vold_decrypt &&
+-                             (strcmp(vold_decrypt, "trigger_restart_min_framework") == 0 ||
+-                             (strcmp(vold_decrypt, "1") == 0)));
+-    bool generate_debug_info = property_get_bool("debug.generate-debug-info");
+-    char app_image_format[kPropertyValueMax];
+-    char image_format_arg[strlen("--image-format=") + kPropertyValueMax];
+-    bool have_app_image_format =
+-            image_fd >= 0 && get_property("dalvik.vm.appimageformat", app_image_format, NULL) > 0;
+-    if (have_app_image_format) {
+-        sprintf(image_format_arg, "--image-format=%s", app_image_format);
+-    }
+-    char dex2oat_large_app_threshold[kPropertyValueMax];
+-    bool have_dex2oat_large_app_threshold =
+-            get_property("dalvik.vm.dex2oat-very-large", dex2oat_large_app_threshold, NULL) > 0;
+-    char dex2oat_large_app_threshold_arg[strlen("--very-large-app-threshold=") + kPropertyValueMax];
+-    if (have_dex2oat_large_app_threshold) {
+-        sprintf(dex2oat_large_app_threshold_arg,
+-                "--very-large-app-threshold=%s",
+-                dex2oat_large_app_threshold);
+-    }
+-    static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+-    static const char* RUNTIME_ARG = "--runtime-arg";
+-    static const int MAX_INT_LEN = 12;
+-    char zip_fd_arg[strlen("--zip-fd=") + MAX_INT_LEN];
+-    char zip_location_arg[strlen("--zip-location=") + PKG_PATH_MAX];
+-    char input_vdex_fd_arg[strlen("--input-vdex-fd=") + MAX_INT_LEN];
+-    char output_vdex_fd_arg[strlen("--output-vdex-fd=") + MAX_INT_LEN];
+-    char oat_fd_arg[strlen("--oat-fd=") + MAX_INT_LEN];
+-    char oat_location_arg[strlen("--oat-location=") + PKG_PATH_MAX];
+-    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
+-    char instruction_set_variant_arg[strlen("--instruction-set-variant=") + kPropertyValueMax];
+-    char instruction_set_features_arg[strlen("--instruction-set-features=") + kPropertyValueMax];
+-    char dex2oat_Xms_arg[strlen("-Xms") + kPropertyValueMax];
+-    char dex2oat_Xmx_arg[strlen("-Xmx") + kPropertyValueMax];
+-    char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + kPropertyValueMax];
+-    bool have_dex2oat_swap_fd = false;
+-    char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
+-    bool have_dex2oat_image_fd = false;
+-    char dex2oat_image_fd[strlen("--app-image-fd=") + MAX_INT_LEN];
+-    sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+-    sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+-    sprintf(input_vdex_fd_arg, "--input-vdex-fd=%d", input_vdex_fd);
+-    sprintf(output_vdex_fd_arg, "--output-vdex-fd=%d", output_vdex_fd);
+-    sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
+-    sprintf(oat_location_arg, "--oat-location=%s", output_file_name);
+-    sprintf(instruction_set_arg, "--instruction-set=%s", instruction_set);
+-    sprintf(instruction_set_variant_arg, "--instruction-set-variant=%s", dex2oat_isa_variant);
+-    sprintf(instruction_set_features_arg, "--instruction-set-features=%s", dex2oat_isa_features);
+-    if (swap_fd >= 0) {
+-        have_dex2oat_swap_fd = true;
+-        sprintf(dex2oat_swap_fd, "--swap-fd=%d", swap_fd);
+-    }
+-    if (image_fd >= 0) {
+-        have_dex2oat_image_fd = true;
+-        sprintf(dex2oat_image_fd, "--app-image-fd=%d", image_fd);
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        sprintf(dex2oat_Xms_arg, "-Xms%s", dex2oat_Xms_flag);
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        sprintf(dex2oat_Xmx_arg, "-Xmx%s", dex2oat_Xmx_flag);
+-    }
+-    bool have_dex2oat_compiler_filter_flag;
+-    if (skip_compilation) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=verify-none");
+-        have_dex2oat_compiler_filter_flag = true;
+-        have_dex2oat_relocation_skip_flag = true;
+-    } else if (vm_safe_mode) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=interpret-only");
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else if (compiler_filter != nullptr &&
+-            strlen(compiler_filter) + strlen("--compiler-filter=") <
+-                    arraysize(dex2oat_compiler_filter_arg)) {
+-        sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", compiler_filter);
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else {
+-        char dex2oat_compiler_filter_flag[kPropertyValueMax];
+-        have_dex2oat_compiler_filter_flag = get_property("dalvik.vm.dex2oat-filter",
+-                                                         dex2oat_compiler_filter_flag, NULL) > 0;
+-        if (have_dex2oat_compiler_filter_flag) {
+-            sprintf(dex2oat_compiler_filter_arg,
+-                    "--compiler-filter=%s",
+-                    dex2oat_compiler_filter_flag);
+-        }
+-    }
+-    if (!debuggable) {
+-        char prop_buf[kPropertyValueMax];
+-        debuggable =
+-                (get_property("dalvik.vm.always_debuggable", prop_buf, "0") > 0) &&
+-                (prop_buf[0] == '1');
+-    }
+-    char profile_arg[strlen("--profile-file-fd=") + MAX_INT_LEN];
+-    if (profile_fd != -1) {
+-        sprintf(profile_arg, "--profile-file-fd=%d", profile_fd);
+-    }
+-    ALOGV("Running %s in=%s out=%s\n", DEX2OAT_BIN, input_file_name, output_file_name);
+-    const char* argv[9
+-                     + (have_dex2oat_isa_variant ? 1 : 0)
+-                     + (have_dex2oat_isa_features ? 1 : 0)
+-                     + (have_dex2oat_Xms_flag ? 2 : 0)
+-                     + (have_dex2oat_Xmx_flag ? 2 : 0)
+-                     + (have_dex2oat_compiler_filter_flag ? 1 : 0)
+-                     + (have_dex2oat_threads_flag ? 1 : 0)
+-                     + (have_dex2oat_swap_fd ? 1 : 0)
+-                     + (have_dex2oat_image_fd ? 1 : 0)
+-                     + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+-                     + (generate_debug_info ? 1 : 0)
+-                     + (debuggable ? 1 : 0)
+-                     + (have_app_image_format ? 1 : 0)
+-                     + dex2oat_flags_count
+-                     + (profile_fd == -1 ? 0 : 1)
+-                     + (shared_libraries != nullptr ? 4 : 0)
+-                     + (have_dex2oat_large_app_threshold ? 1 : 0)];
+-    int i = 0;
+-    argv[i++] = DEX2OAT_BIN;
+-    argv[i++] = zip_fd_arg;
+-    argv[i++] = zip_location_arg;
+-    argv[i++] = input_vdex_fd_arg;
+-    argv[i++] = output_vdex_fd_arg;
+-    argv[i++] = oat_fd_arg;
+-    argv[i++] = oat_location_arg;
+-    argv[i++] = instruction_set_arg;
+-    if (have_dex2oat_isa_variant) {
+-        argv[i++] = instruction_set_variant_arg;
+-    }
+-    if (have_dex2oat_isa_features) {
+-        argv[i++] = instruction_set_features_arg;
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xms_arg;
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xmx_arg;
+-    }
+-    if (have_dex2oat_compiler_filter_flag) {
+-        argv[i++] = dex2oat_compiler_filter_arg;
+-    }
+-    if (have_dex2oat_threads_flag) {
+-        argv[i++] = dex2oat_threads_arg;
+-    }
+-    if (have_dex2oat_swap_fd) {
+-        argv[i++] = dex2oat_swap_fd;
+-    }
+-    if (have_dex2oat_image_fd) {
+-        argv[i++] = dex2oat_image_fd;
+-    }
+-    if (generate_debug_info) {
+-        argv[i++] = "--generate-debug-info";
+-    }
+-    if (debuggable) {
+-        argv[i++] = "--debuggable";
+-    }
+-    if (have_app_image_format) {
+-        argv[i++] = image_format_arg;
+-    }
+-    if (have_dex2oat_large_app_threshold) {
+-        argv[i++] = dex2oat_large_app_threshold_arg;
+-    }
+-    if (dex2oat_flags_count) {
+-        i += split(dex2oat_flags, argv + i);
+-    }
+-    if (have_dex2oat_relocation_skip_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_norelocation;
+-    }
+-    if (profile_fd != -1) {
+-        argv[i++] = profile_arg;
+-    }
+-    if (shared_libraries != nullptr) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = "-classpath";
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = shared_libraries;
+-    }
+-    argv[i] = NULL;
+-    execv(DEX2OAT_BIN, (char * const *)argv);
+-    ALOGE("execv(%s) failed: %s\n", DEX2OAT_BIN, strerror(errno));
+-}
+-static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vdex_fd, int image_fd,
+-        const char* input_file_name, const char* output_file_name, int swap_fd,
+-        const char *instruction_set, const char* compiler_filter, bool vm_safe_mode,
+-        bool debuggable, bool post_bootcomplete, int profile_fd, const char* shared_libraries) {
+-    static const unsigned int MAX_INSTRUCTION_SET_LEN = 7;
+-    if (strlen(instruction_set) >= MAX_INSTRUCTION_SET_LEN) {
+-        ALOGE("Instruction set %s longer than max length of %d",
+-              instruction_set, MAX_INSTRUCTION_SET_LEN);
+-        return;
+-    }
+-    char dex2oat_Xms_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xms_flag = get_property("dalvik.vm.dex2oat-Xms", dex2oat_Xms_flag, NULL) > 0;
+-    char dex2oat_Xmx_flag[kPropertyValueMax];
+-    bool have_dex2oat_Xmx_flag = get_property("dalvik.vm.dex2oat-Xmx", dex2oat_Xmx_flag, NULL) > 0;
+-    char dex2oat_threads_buf[kPropertyValueMax];
+-    bool have_dex2oat_threads_flag = get_property(post_bootcomplete
+-                                                      ? "dalvik.vm.dex2oat-threads"
+-                                                      : "dalvik.vm.boot-dex2oat-threads",
+-                                                  dex2oat_threads_buf,
+-                                                  NULL) > 0;
+-    char dex2oat_threads_arg[kPropertyValueMax + 2];
+-    if (have_dex2oat_threads_flag) {
+-        sprintf(dex2oat_threads_arg, "-j%s", dex2oat_threads_buf);
+-    }
+-    char dex2oat_isa_features_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_features_key, "dalvik.vm.isa.%s.features", instruction_set);
+-    char dex2oat_isa_features[kPropertyValueMax];
+-    bool have_dex2oat_isa_features = get_property(dex2oat_isa_features_key,
+-                                                  dex2oat_isa_features, NULL) > 0;
+-    char dex2oat_isa_variant_key[kPropertyKeyMax];
+-    sprintf(dex2oat_isa_variant_key, "dalvik.vm.isa.%s.variant", instruction_set);
+-    char dex2oat_isa_variant[kPropertyValueMax];
+-    bool have_dex2oat_isa_variant = get_property(dex2oat_isa_variant_key,
+-                                                 dex2oat_isa_variant, NULL) > 0;
+-    const char *dex2oat_norelocation = "-Xnorelocate";
+-    bool have_dex2oat_relocation_skip_flag = false;
+-    char dex2oat_flags[kPropertyValueMax];
+-    int dex2oat_flags_count = get_property("dalvik.vm.dex2oat-flags",
+-                                 dex2oat_flags, NULL) <= 0 ? 0 : split_count(dex2oat_flags);
+-    ALOGV("dalvik.vm.dex2oat-flags=%s\n", dex2oat_flags);
+-    char vold_decrypt[kPropertyValueMax];
+-    bool have_vold_decrypt = get_property("vold.decrypt", vold_decrypt, "") > 0;
+-    bool skip_compilation = (have_vold_decrypt &&
+-                             (strcmp(vold_decrypt, "trigger_restart_min_framework") == 0 ||
+-                             (strcmp(vold_decrypt, "1") == 0)));
+-    bool generate_debug_info = property_get_bool("debug.generate-debug-info");
+-    char app_image_format[kPropertyValueMax];
+-    char image_format_arg[strlen("--image-format=") + kPropertyValueMax];
+-    bool have_app_image_format =
+-            image_fd >= 0 && get_property("dalvik.vm.appimageformat", app_image_format, NULL) > 0;
+-    if (have_app_image_format) {
+-        sprintf(image_format_arg, "--image-format=%s", app_image_format);
+-    }
+-    char dex2oat_large_app_threshold[kPropertyValueMax];
+-    bool have_dex2oat_large_app_threshold =
+-            get_property("dalvik.vm.dex2oat-very-large", dex2oat_large_app_threshold, NULL) > 0;
+-    char dex2oat_large_app_threshold_arg[strlen("--very-large-app-threshold=") + kPropertyValueMax];
+-    if (have_dex2oat_large_app_threshold) {
+-        sprintf(dex2oat_large_app_threshold_arg,
+-                "--very-large-app-threshold=%s",
+-                dex2oat_large_app_threshold);
+-    }
+-    static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+-    static const char* RUNTIME_ARG = "--runtime-arg";
+-    static const int MAX_INT_LEN = 12;
+-    char zip_fd_arg[strlen("--zip-fd=") + MAX_INT_LEN];
+-    char zip_location_arg[strlen("--zip-location=") + PKG_PATH_MAX];
++    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
++    char input_oat_fd_arg[strlen("--input-oat-fd=") + MAX_INT_LEN];
+@@ -1535,0 +653 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
++    char output_oat_fd_arg[strlen("--output-oat-fd=") + MAX_INT_LEN];
+@@ -1537,18 +655,2 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    char oat_fd_arg[strlen("--oat-fd=") + MAX_INT_LEN];
+-    char oat_location_arg[strlen("--oat-location=") + PKG_PATH_MAX];
+-    char instruction_set_arg[strlen("--instruction-set=") + MAX_INSTRUCTION_SET_LEN];
+-    char instruction_set_variant_arg[strlen("--instruction-set-variant=") + kPropertyValueMax];
+-    char instruction_set_features_arg[strlen("--instruction-set-features=") + kPropertyValueMax];
+-    char dex2oat_Xms_arg[strlen("-Xms") + kPropertyValueMax];
+-    char dex2oat_Xmx_arg[strlen("-Xmx") + kPropertyValueMax];
+-    char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + kPropertyValueMax];
+-    bool have_dex2oat_swap_fd = false;
+-    char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
+-    bool have_dex2oat_image_fd = false;
+-    char dex2oat_image_fd[strlen("--app-image-fd=") + MAX_INT_LEN];
+-    sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+-    sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+-    sprintf(input_vdex_fd_arg, "--input-vdex-fd=%d", input_vdex_fd);
+-    sprintf(output_vdex_fd_arg, "--output-vdex-fd=%d", output_vdex_fd);
+-    sprintf(oat_fd_arg, "--oat-fd=%d", oat_fd);
+-    sprintf(oat_location_arg, "--oat-location=%s", output_file_name);
++    const char* patched_image_location_arg = "--patched-image-location=/system/framework/boot.art";
++    const char* no_lock_arg = "--no-lock-output";
+@@ -1556,133 +658,21 @@ static void run_dex2oat(int zip_fd, int oat_fd, int input_vdex_fd, int output_vd
+-    sprintf(instruction_set_variant_arg, "--instruction-set-variant=%s", dex2oat_isa_variant);
+-    sprintf(instruction_set_features_arg, "--instruction-set-features=%s", dex2oat_isa_features);
+-    if (swap_fd >= 0) {
+-        have_dex2oat_swap_fd = true;
+-        sprintf(dex2oat_swap_fd, "--swap-fd=%d", swap_fd);
+-    }
+-    if (image_fd >= 0) {
+-        have_dex2oat_image_fd = true;
+-        sprintf(dex2oat_image_fd, "--app-image-fd=%d", image_fd);
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        sprintf(dex2oat_Xms_arg, "-Xms%s", dex2oat_Xms_flag);
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        sprintf(dex2oat_Xmx_arg, "-Xmx%s", dex2oat_Xmx_flag);
+-    }
+-    bool have_dex2oat_compiler_filter_flag;
+-    if (skip_compilation) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=verify-none");
+-        have_dex2oat_compiler_filter_flag = true;
+-        have_dex2oat_relocation_skip_flag = true;
+-    } else if (vm_safe_mode) {
+-        strcpy(dex2oat_compiler_filter_arg, "--compiler-filter=interpret-only");
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else if (compiler_filter != nullptr &&
+-            strlen(compiler_filter) + strlen("--compiler-filter=") <
+-                    arraysize(dex2oat_compiler_filter_arg)) {
+-        sprintf(dex2oat_compiler_filter_arg, "--compiler-filter=%s", compiler_filter);
+-        have_dex2oat_compiler_filter_flag = true;
+-    } else {
+-        char dex2oat_compiler_filter_flag[kPropertyValueMax];
+-        have_dex2oat_compiler_filter_flag = get_property("dalvik.vm.dex2oat-filter",
+-                                                         dex2oat_compiler_filter_flag, NULL) > 0;
+-        if (have_dex2oat_compiler_filter_flag) {
+-            sprintf(dex2oat_compiler_filter_arg,
+-                    "--compiler-filter=%s",
+-                    dex2oat_compiler_filter_flag);
+-        }
+-    }
+-    if (!debuggable) {
+-        char prop_buf[kPropertyValueMax];
+-        debuggable =
+-                (get_property("dalvik.vm.always_debuggable", prop_buf, "0") > 0) &&
+-                (prop_buf[0] == '1');
+-    }
+-    char profile_arg[strlen("--profile-file-fd=") + MAX_INT_LEN];
+-    if (profile_fd != -1) {
+-        sprintf(profile_arg, "--profile-file-fd=%d", profile_fd);
+-    }
+-    ALOGV("Running %s in=%s out=%s\n", DEX2OAT_BIN, input_file_name, output_file_name);
+-    const char* argv[9
+-                     + (have_dex2oat_isa_variant ? 1 : 0)
+-                     + (have_dex2oat_isa_features ? 1 : 0)
+-                     + (have_dex2oat_Xms_flag ? 2 : 0)
+-                     + (have_dex2oat_Xmx_flag ? 2 : 0)
+-                     + (have_dex2oat_compiler_filter_flag ? 1 : 0)
+-                     + (have_dex2oat_threads_flag ? 1 : 0)
+-                     + (have_dex2oat_swap_fd ? 1 : 0)
+-                     + (have_dex2oat_image_fd ? 1 : 0)
+-                     + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+-                     + (generate_debug_info ? 1 : 0)
+-                     + (debuggable ? 1 : 0)
+-                     + (have_app_image_format ? 1 : 0)
+-                     + dex2oat_flags_count
+-                     + (profile_fd == -1 ? 0 : 1)
+-                     + (shared_libraries != nullptr ? 4 : 0)
+-                     + (have_dex2oat_large_app_threshold ? 1 : 0)];
+-    int i = 0;
+-    argv[i++] = DEX2OAT_BIN;
+-    argv[i++] = zip_fd_arg;
+-    argv[i++] = zip_location_arg;
+-    argv[i++] = input_vdex_fd_arg;
+-    argv[i++] = output_vdex_fd_arg;
+-    argv[i++] = oat_fd_arg;
+-    argv[i++] = oat_location_arg;
+-    argv[i++] = instruction_set_arg;
+-    if (have_dex2oat_isa_variant) {
+-        argv[i++] = instruction_set_variant_arg;
+-    }
+-    if (have_dex2oat_isa_features) {
+-        argv[i++] = instruction_set_features_arg;
+-    }
+-    if (have_dex2oat_Xms_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xms_arg;
+-    }
+-    if (have_dex2oat_Xmx_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_Xmx_arg;
+-    }
+-    if (have_dex2oat_compiler_filter_flag) {
+-        argv[i++] = dex2oat_compiler_filter_arg;
+-    }
+-    if (have_dex2oat_threads_flag) {
+-        argv[i++] = dex2oat_threads_arg;
+-    }
+-    if (have_dex2oat_swap_fd) {
+-        argv[i++] = dex2oat_swap_fd;
+-    }
+-    if (have_dex2oat_image_fd) {
+-        argv[i++] = dex2oat_image_fd;
+-    }
+-    if (generate_debug_info) {
+-        argv[i++] = "--generate-debug-info";
+-    }
+-    if (debuggable) {
+-        argv[i++] = "--debuggable";
+-    }
+-    if (have_app_image_format) {
+-        argv[i++] = image_format_arg;
+-    }
+-    if (have_dex2oat_large_app_threshold) {
+-        argv[i++] = dex2oat_large_app_threshold_arg;
+-    }
+-    if (dex2oat_flags_count) {
+-        i += split(dex2oat_flags, argv + i);
+-    }
+-    if (have_dex2oat_relocation_skip_flag) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = dex2oat_norelocation;
+-    }
+-    if (profile_fd != -1) {
+-        argv[i++] = profile_arg;
+-    }
+-    if (shared_libraries != nullptr) {
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = "-classpath";
+-        argv[i++] = RUNTIME_ARG;
+-        argv[i++] = shared_libraries;
+-    }
+-    argv[i] = NULL;
+-    execv(DEX2OAT_BIN, (char * const *)argv);
+-    ALOGE("execv(%s) failed: %s\n", DEX2OAT_BIN, strerror(errno));
++    sprintf(output_oat_fd_arg, "--output-oat-fd=%d", out_oat_fd);
++    sprintf(input_oat_fd_arg, "--input-oat-fd=%d", input_oat_fd);
++    ALOGV("Running %s isa=%s in-oat-fd=%d (%s) in-vdex-fd=%d (%s) "
++          "out-oat-fd=%d (%s) out-vdex-fd=%d (%s)\n",
++          PATCHOAT_BIN, instruction_set,
++          input_oat_fd, input_oat_file_name,
++          input_vdex_fd, input_vdex_file_name,
++          out_oat_fd, output_oat_file_name,
++          out_vdex_fd, output_vdex_file_name);
++    char* argv[9];
++    argv[0] = (char*) PATCHOAT_BIN;
++    argv[1] = (char*) patched_image_location_arg;
++    argv[2] = (char*) no_lock_arg;
++    argv[3] = instruction_set_arg;
++    argv[4] = input_oat_fd_arg;
++    argv[5] = input_vdex_fd_arg;
++    argv[6] = output_oat_fd_arg;
++    argv[7] = output_vdex_fd_arg;
++    argv[8] = NULL;
++    execv(PATCHOAT_BIN, (char* const *)argv);
++    ALOGE("execv(%s) failed: %s\n", PATCHOAT_BIN, strerror(errno));

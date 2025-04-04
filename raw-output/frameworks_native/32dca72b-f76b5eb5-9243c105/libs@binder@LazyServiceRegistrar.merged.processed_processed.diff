@@ -1,0 +1,66 @@
+--- a/./output/frameworks_native/32dca72b-f76b5eb5-9243c105/libs@binder@LazyServiceRegistrar.no_comments_merged.cpp
++++ b/./output/frameworks_native/32dca72b-f76b5eb5-9243c105/libs@binder@LazyServiceRegistrar.no_comments_truth.cpp
+@@ -20,0 +21,2 @@ private:
++    void tryShutdown();
++    size_t mNumConnectedServices;
+@@ -25 +26,0 @@ private:
+-        bool clients = false;
+@@ -27,3 +27,0 @@ private:
+-    std::map<std::string, Service>::iterator assertRegisteredService(const sp<IBinder>& service);
+-    void tryShutdown();
+-    size_t mNumConnectedServices;
+@@ -57,5 +55 @@ bool ClientCounterCallbackImpl::registerService(const sp<IBinder>& service, cons
+-        mRegisteredServices[name] = {
+-              .service = service,
+-              .allowIsolated = allowIsolated,
+-              .dumpFlags = dumpFlags
+-        };
++        mRegisteredServices[name] = {service, allowIsolated, dumpFlags};
+@@ -65,16 +58,0 @@ bool ClientCounterCallbackImpl::registerService(const sp<IBinder>& service, cons
+-<<<<<<< HEAD
+-std::map<std::string, ClientCounterCallback::Service>::iterator ClientCounterCallback::assertRegisteredService(const sp<IBinder>& service) {
+-    LOG_ALWAYS_FATAL_IF(service == nullptr, "Got onClients callback for null service");
+-    for (auto it = mRegisteredServices.begin(); it != mRegisteredServices.end(); ++it) {
+-        auto const& [name, registered] = *it;
+-        (void) name;
+-        if (registered.service != service) continue;
+-        return it;
+-    }
+-    LOG_ALWAYS_FATAL("Got callback on service which we did not register: %s", String8(service->getInterfaceDescriptor()).c_str());
+-    __builtin_unreachable();
+-}
+-void ClientCounterCallback::forcePersist(bool persist) {
+-||||||| 9243c1057f
+-void ClientCounterCallback::forcePersist(bool persist) {
+-=======
+@@ -82 +59,0 @@ void ClientCounterCallbackImpl::forcePersist(bool persist) {
+->>>>>>> f76b5eb5
+@@ -88,22 +64,0 @@ void ClientCounterCallbackImpl::forcePersist(bool persist) {
+-<<<<<<< HEAD
+-Status ClientCounterCallback::onClients(const sp<IBinder>& service, bool clients) {
+-    auto & [name, registered] = *assertRegisteredService(service);
+-    if (registered.clients == clients) {
+-        LOG_ALWAYS_FATAL("Process already thought %s had clients: %d but servicemanager has "
+-                         "notified has clients: %d", name.c_str(), registered.clients, clients);
+-    }
+-    registered.clients = clients;
+-    {
+-         size_t numWithClients = 0;
+-         for (const auto& [name, registered] : mRegisteredServices) {
+-             (void) name;
+-             if (registered.clients) numWithClients++;
+-         }
+-         mNumConnectedServices = numWithClients;
+-||||||| 9243c1057f
+-Status ClientCounterCallback::onClients(const sp<IBinder>& service, bool clients) {
+-    if (clients) {
+-        mNumConnectedServices++;
+-    } else {
+-        mNumConnectedServices--;
+-=======
+@@ -115 +69,0 @@ Status ClientCounterCallbackImpl::onClients(const sp<IBinder>& service, bool cli
+->>>>>>> f76b5eb5
+@@ -118 +72,2 @@ Status ClientCounterCallbackImpl::onClients(const sp<IBinder>& service, bool cli
+-          mNumConnectedServices, mRegisteredServices.size(), name.c_str(), clients);
++          mNumConnectedServices, mRegisteredServices.size(),
++          String8(service->getInterfaceDescriptor()).string(), clients);

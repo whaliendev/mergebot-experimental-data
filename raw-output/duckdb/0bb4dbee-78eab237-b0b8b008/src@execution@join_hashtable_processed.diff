@@ -1,0 +1,167 @@
+--- a/output/duckdb/0bb4dbee-78eab237-b0b8b008/src@execution@join_hashtable.no_comments_mergebot.cpp
++++ b/output/duckdb/0bb4dbee-78eab237-b0b8b008/src@execution@join_hashtable.no_comments_truth.cpp
+@@ -6 +5,0 @@
+-#include "duckdb/common/vector_operations/unary_executor.hpp"
+@@ -85,0 +85,2 @@ void JoinHashTable::Hash(DataChunk &keys, const SelectionVector &sel, idx_t coun
++<<<<<<< HEAD
++=======
+@@ -107,0 +110 @@ static void TemplatedSerializeVData(VectorData &vdata, const SelectionVector &se
++>>>>>>> master
+@@ -114,0 +118,85 @@ static void InitializeOuterJoin(idx_t count, data_ptr_t key_locations[]) {
++<<<<<<< HEAD
++=======
++void JoinHashTable::SerializeVectorData(VectorData &vdata, PhysicalType type, const SelectionVector &sel, idx_t count,
++                                        data_ptr_t key_locations[]) {
++ switch (type) {
++ case PhysicalType::BOOL:
++ case PhysicalType::INT8:
++  TemplatedSerializeVData<int8_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::INT16:
++  TemplatedSerializeVData<int16_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::INT32:
++  TemplatedSerializeVData<int32_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::INT64:
++  TemplatedSerializeVData<int64_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::UINT8:
++  TemplatedSerializeVData<uint8_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::UINT16:
++  TemplatedSerializeVData<uint16_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::UINT32:
++  TemplatedSerializeVData<uint32_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::UINT64:
++  TemplatedSerializeVData<uint64_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::INT128:
++  TemplatedSerializeVData<hugeint_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::FLOAT:
++  TemplatedSerializeVData<float>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::DOUBLE:
++  TemplatedSerializeVData<double>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::HASH:
++  TemplatedSerializeVData<hash_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::INTERVAL:
++  TemplatedSerializeVData<interval_t>(vdata, sel, count, key_locations);
++  break;
++ case PhysicalType::VARCHAR: {
++  StringHeap local_heap;
++  auto source = (string_t *)vdata.data;
++  for (idx_t i = 0; i < count; i++) {
++   auto idx = sel.get_index(i);
++   auto source_idx = vdata.sel->get_index(idx);
++   string_t new_val;
++   if ((*vdata.nullmask)[source_idx]) {
++    new_val = NullValue<string_t>();
++   } else if (source[source_idx].IsInlined()) {
++    new_val = source[source_idx];
++   } else {
++    new_val = local_heap.AddBlob(source[source_idx].GetDataUnsafe(), source[source_idx].GetSize());
++   }
++   Store<string_t>(new_val, key_locations[i]);
++   key_locations[i] += sizeof(string_t);
++  }
++  lock_guard<mutex> append_lock(ht_lock);
++  string_heap.MergeHeap(local_heap);
++  break;
++ }
++ default:
++  throw NotImplementedException("FIXME: unimplemented serialize");
++ }
++}
++void JoinHashTable::SerializeVector(Vector &v, idx_t vcount, const SelectionVector &sel, idx_t count,
++                                    data_ptr_t key_locations[]) {
++ VectorData vdata;
++ v.Orrify(vcount, vdata);
++ SerializeVectorData(vdata, v.type.InternalType(), sel, count, key_locations);
++}
++idx_t JoinHashTable::AppendToBlock(HTDataBlock &block, BufferHandle &handle, vector<BlockAppendEntry> &append_entries,
++                                   idx_t remaining) {
++ idx_t append_count = MinValue<idx_t>(remaining, block.capacity - block.count);
++ auto dataptr = handle.node->buffer + block.count * entry_size;
++ append_entries.emplace_back(dataptr, append_count);
++ block.count += append_count;
++ return append_count;
++}
++>>>>>>> master
+@@ -175 +262,0 @@ void JoinHashTable::Build(DataChunk &keys, DataChunk &payload) {
+-<<<<<<< HEAD
+@@ -178,69 +264,0 @@ void JoinHashTable::Build(DataChunk &keys, DataChunk &payload) {
+-||||||| b0b8b00819
+- idx_t remaining = added_count;
+- {
+-  lock_guard<mutex> append_lock(ht_lock);
+-  if (blocks.size() != 0) {
+-   auto &last_block = blocks.back();
+-   if (last_block.count < last_block.capacity) {
+-    auto handle = buffer_manager.Pin(last_block.block);
+-    idx_t append_count = AppendToBlock(last_block, *handle, append_entries, remaining);
+-    remaining -= append_count;
+-    handles.push_back(move(handle));
+-   }
+-  }
+-  while (remaining > 0) {
+-   auto block = buffer_manager.RegisterMemory(block_capacity * entry_size, false);
+-   auto handle = buffer_manager.Pin(block);
+-   HTDataBlock new_block;
+-   new_block.count = 0;
+-   new_block.capacity = block_capacity;
+-   new_block.block = move(block);
+-   idx_t append_count = AppendToBlock(new_block, *handle, append_entries, remaining);
+-   remaining -= append_count;
+-   handles.push_back(move(handle));
+-   blocks.push_back(move(new_block));
+-  }
+- }
+- idx_t append_idx = 0;
+- for (auto &append_entry : append_entries) {
+-  idx_t next = append_idx + append_entry.count;
+-  for (; append_idx < next; append_idx++) {
+-   key_locations[append_idx] = append_entry.baseptr;
+-   append_entry.baseptr += entry_size;
+-  }
+- }
+-=======
+- idx_t remaining = added_count;
+- {
+-  lock_guard<mutex> append_lock(ht_lock);
+-  if (!blocks.empty()) {
+-   auto &last_block = blocks.back();
+-   if (last_block.count < last_block.capacity) {
+-    auto handle = buffer_manager.Pin(last_block.block);
+-    idx_t append_count = AppendToBlock(last_block, *handle, append_entries, remaining);
+-    remaining -= append_count;
+-    handles.push_back(move(handle));
+-   }
+-  }
+-  while (remaining > 0) {
+-   auto block = buffer_manager.RegisterMemory(block_capacity * entry_size, false);
+-   auto handle = buffer_manager.Pin(block);
+-   HTDataBlock new_block;
+-   new_block.count = 0;
+-   new_block.capacity = block_capacity;
+-   new_block.block = move(block);
+-   idx_t append_count = AppendToBlock(new_block, *handle, append_entries, remaining);
+-   remaining -= append_count;
+-   handles.push_back(move(handle));
+-   blocks.push_back(move(new_block));
+-  }
+- }
+- idx_t append_idx = 0;
+- for (auto &append_entry : append_entries) {
+-  idx_t next = append_idx + append_entry.count;
+-  for (; append_idx < next; append_idx++) {
+-   key_locations[append_idx] = append_entry.baseptr;
+-   append_entry.baseptr += entry_size;
+-  }
+- }
+->>>>>>> 78eab237

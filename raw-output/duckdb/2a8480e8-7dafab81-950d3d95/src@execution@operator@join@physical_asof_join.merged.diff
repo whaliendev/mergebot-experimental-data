@@ -1,0 +1,332 @@
+diff --git a/./output/duckdb/2a8480e8-7dafab81-950d3d95/src@execution@operator@join@physical_asof_join.no_comments_merged.cpp b/./output/duckdb/2a8480e8-7dafab81-950d3d95/src@execution@operator@join@physical_asof_join.no_comments_truth.cpp
+index 7d870e4..fbc04ba 100644
+--- a/./output/duckdb/2a8480e8-7dafab81-950d3d95/src@execution@operator@join@physical_asof_join.no_comments_merged.cpp
++++ b/./output/duckdb/2a8480e8-7dafab81-950d3d95/src@execution@operator@join@physical_asof_join.no_comments_truth.cpp
+@@ -210 +209,0 @@ bool AsOfLocalState::Sink(DataChunk &input) {
+-<<<<<<< HEAD
+@@ -212,37 +210,0 @@ bool AsOfLocalState::Sink(DataChunk &input) {
+-||||||| merged common ancestors
+- DataChunk payload_chunk;
+- payload_chunk.InitializeEmpty({LogicalType::UINTEGER});
+- FlatVector::SetData(payload_chunk.data[0], (data_ptr_t)lhs_sel.data());
+- payload_chunk.SetCardinality(lhs_valid);
+- local_sort.SinkChunk(lhs_keys, payload_chunk);
+- global_state.external = force_external;
+- global_state.AddLocalState(local_sort);
+- global_state.PrepareMergePhase();
+- while (global_state.sorted_blocks.size() > 1) {
+-  MergeSorter merge_sorter(*lhs_global_state, buffer_manager);
+-  merge_sorter.PerformInMergeRound();
+-  global_state.CompleteMergeRound();
+- }
+- D_ASSERT(global_state.sorted_blocks.size() == 1);
+- auto scanner = make_uniq<PayloadScanner>(*global_state.sorted_blocks[0]->payload_data, global_state, false);
+- lhs_sorted.Reset();
+- scanner->Scan(lhs_sorted);
+-=======
+- DataChunk payload_chunk;
+- payload_chunk.InitializeEmpty({LogicalType::UINTEGER});
+- FlatVector::SetData(payload_chunk.data[0], data_ptr_cast(lhs_sel.data()));
+- payload_chunk.SetCardinality(lhs_valid);
+- local_sort.SinkChunk(lhs_keys, payload_chunk);
+- global_state.external = force_external;
+- global_state.AddLocalState(local_sort);
+- global_state.PrepareMergePhase();
+- while (global_state.sorted_blocks.size() > 1) {
+-  MergeSorter merge_sorter(*lhs_global_state, buffer_manager);
+-  merge_sorter.PerformInMergeRound();
+-  global_state.CompleteMergeRound();
+- }
+- D_ASSERT(global_state.sorted_blocks.size() == 1);
+- auto scanner = make_uniq<PayloadScanner>(*global_state.sorted_blocks[0]->payload_data, global_state, false);
+- lhs_sorted.Reset();
+- scanner->Scan(lhs_sorted);
+->>>>>>> 7dafab81
+@@ -253 +214,0 @@ OperatorResultType AsOfLocalState::ExecuteInternal(ExecutionContext &context, Da
+-<<<<<<< HEAD
+@@ -258,285 +218,0 @@ OperatorResultType AsOfLocalState::ExecuteInternal(ExecutionContext &context, Da
+-||||||| merged common ancestors
+- auto &gsink = op.sink_state->Cast<AsOfGlobalSinkState>();
+- auto &global_partition = gsink.global_partition;
+- UnifiedVectorFormat bin_unified;
+- bin_vector.ToUnifiedFormat(lhs_valid, bin_unified);
+- const auto bins = (hash_t *)bin_unified.data;
+- hash_t prev_bin = global_partition.bin_groups.size();
+- optional_ptr<PartitionGlobalHashGroup> hash_group;
+- optional_ptr<OuterJoinMarker> right_outer;
+- SBIterator left(*lhs_global_state, ExpressionType::COMPARE_LESSTHANOREQUALTO);
+- unique_ptr<SBIterator> right;
+- lhs_match_count = 0;
+- const auto sorted_sel = FlatVector::GetData<sel_t>(lhs_sorted.data[0]);
+- for (idx_t i = 0; i < lhs_valid; ++i) {
+-  const auto idx = sorted_sel[i];
+-  const auto curr_bin = bins[bin_unified.sel->get_index(idx)];
+-  if (!hash_group || curr_bin != prev_bin) {
+-   prev_bin = curr_bin;
+-   const auto group_idx = global_partition.bin_groups[curr_bin];
+-   if (group_idx >= global_partition.hash_groups.size()) {
+-    hash_group = nullptr;
+-    right_outer = nullptr;
+-    right.reset();
+-    continue;
+-   }
+-   hash_group = global_partition.hash_groups[group_idx].get();
+-   right_outer = gsink.right_outers.data() + group_idx;
+-   right = make_uniq<SBIterator>(*(hash_group->global_sort), ExpressionType::COMPARE_LESSTHANOREQUALTO);
+-  }
+-  left.SetIndex(i);
+-  if (!right->Compare(left)) {
+-   continue;
+-  }
+-  idx_t bound = 1;
+-  idx_t begin = right->GetIndex();
+-  right->SetIndex(begin + bound);
+-  while (right->GetIndex() < hash_group->count) {
+-   if (right->Compare(left)) {
+-    bound *= 2;
+-    right->SetIndex(begin + bound);
+-   } else {
+-    break;
+-   }
+-  }
+-  auto first = begin + bound / 2;
+-  auto last = MinValue<idx_t>(begin + bound, hash_group->count);
+-  while (first < last) {
+-   const auto mid = first + (last - first) / 2;
+-   right->SetIndex(mid);
+-   if (right->Compare(left)) {
+-    first = mid + 1;
+-   } else {
+-    last = mid;
+-   }
+-  }
+-  right->SetIndex(--first);
+-  if (!op.lhs_partitions.empty() && hash_group->ComparePartitions(left, *right)) {
+-   continue;
+-  }
+-  right_outer->SetMatch(first);
+-  left_outer.SetMatch(idx);
+-  if (found_match) {
+-   found_match[idx] = true;
+-  }
+-  if (matches) {
+-   matches[idx] = Match(curr_bin, first);
+-  }
+-  lhs_matched.set_index(lhs_match_count++, idx);
+- }
+-}
+-unique_ptr<OperatorState> PhysicalAsOfJoin::GetOperatorState(ExecutionContext &context) const {
+- auto &config = ClientConfig::GetConfig(context.client);
+- return make_uniq<AsOfLocalState>(context.client, *this, config.force_external);
+-}
+-void PhysicalAsOfJoin::ResolveSimpleJoin(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
+-                                         OperatorState &lstate_p) const {
+- auto &lstate = lstate_p.Cast<AsOfLocalState>();
+- auto &gsink = sink_state->Cast<AsOfGlobalSinkState>();
+- bool found_match[STANDARD_VECTOR_SIZE] = {false};
+- lstate.ResolveJoin(input, found_match);
+- switch (join_type) {
+- case JoinType::MARK: {
+-  PhysicalJoin::ConstructMarkJoinResult(lstate.lhs_keys, input, chunk, found_match, gsink.has_null);
+-  break;
+- }
+- case JoinType::SEMI:
+-  PhysicalJoin::ConstructSemiJoinResult(input, chunk, found_match);
+-  break;
+- case JoinType::ANTI:
+-  PhysicalJoin::ConstructAntiJoinResult(input, chunk, found_match);
+-  break;
+- default:
+-  throw NotImplementedException("Unimplemented join type for AsOf join");
+- }
+-}
+-OperatorResultType PhysicalAsOfJoin::ResolveComplexJoin(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
+-                                                        OperatorState &lstate_p) const {
+- auto &lstate = lstate_p.Cast<AsOfLocalState>();
+- auto &gsink = sink_state->Cast<AsOfGlobalSinkState>();
+- if (!lstate.fetch_next_left) {
+-  lstate.fetch_next_left = true;
+-  if (lstate.left_outer.Enabled()) {
+-   lstate.left_outer.ConstructLeftJoinResult(input, chunk);
+-   lstate.left_outer.Reset();
+-  }
+-  return OperatorResultType::NEED_MORE_INPUT;
+- }
+- AsOfLocalState::Match matches[STANDARD_VECTOR_SIZE];
+- lstate.ResolveJoin(input, nullptr, matches);
+- lstate.group_payload.Reset();
+- lstate.rhs_payload.Reset();
+- auto &global_partition = gsink.global_partition;
+- hash_t scan_bin = global_partition.bin_groups.size();
+- optional_ptr<PartitionGlobalHashGroup> hash_group;
+- unique_ptr<PayloadScanner> scanner;
+- for (idx_t i = 0; i < lstate.lhs_match_count; ++i) {
+-  const auto idx = lstate.lhs_matched[i];
+-  const auto match_bin = matches[idx].first;
+-  const auto match_pos = matches[idx].second;
+-  if (match_bin != scan_bin) {
+-   const auto group_idx = global_partition.bin_groups[match_bin];
+-   hash_group = global_partition.hash_groups[group_idx].get();
+-   scan_bin = match_bin;
+-   scanner = make_uniq<PayloadScanner>(*hash_group->global_sort, false);
+-   lstate.group_payload.Reset();
+-  }
+-  while (match_pos >= scanner->Scanned()) {
+-   lstate.group_payload.Reset();
+-   scanner->Scan(lstate.group_payload);
+-  }
+-  const auto source_offset = match_pos - (scanner->Scanned() - lstate.group_payload.size());
+-  for (idx_t col_idx = 0; col_idx < right_projection_map.size(); ++col_idx) {
+-   const auto rhs_idx = right_projection_map[col_idx];
+-   auto &source = lstate.group_payload.data[rhs_idx];
+-   auto &target = chunk.data[input.ColumnCount() + col_idx];
+-   VectorOperations::Copy(source, target, source_offset + 1, source_offset, i);
+-  }
+- }
+- chunk.Slice(input, lstate.lhs_matched, lstate.lhs_match_count);
+- if (lstate.left_outer.Enabled()) {
+-  lstate.fetch_next_left = false;
+-  return OperatorResultType::HAVE_MORE_OUTPUT;
+-=======
+- auto &gsink = op.sink_state->Cast<AsOfGlobalSinkState>();
+- auto &global_partition = gsink.global_partition;
+- UnifiedVectorFormat bin_unified;
+- bin_vector.ToUnifiedFormat(lhs_valid, bin_unified);
+- const auto bins = UnifiedVectorFormat::GetData<hash_t>(bin_unified);
+- hash_t prev_bin = global_partition.bin_groups.size();
+- optional_ptr<PartitionGlobalHashGroup> hash_group;
+- optional_ptr<OuterJoinMarker> right_outer;
+- SBIterator left(*lhs_global_state, ExpressionType::COMPARE_LESSTHANOREQUALTO);
+- unique_ptr<SBIterator> right;
+- lhs_match_count = 0;
+- const auto sorted_sel = FlatVector::GetData<sel_t>(lhs_sorted.data[0]);
+- for (idx_t i = 0; i < lhs_valid; ++i) {
+-  const auto idx = sorted_sel[i];
+-  const auto curr_bin = bins[bin_unified.sel->get_index(idx)];
+-  if (!hash_group || curr_bin != prev_bin) {
+-   prev_bin = curr_bin;
+-   const auto group_idx = global_partition.bin_groups[curr_bin];
+-   if (group_idx >= global_partition.hash_groups.size()) {
+-    hash_group = nullptr;
+-    right_outer = nullptr;
+-    right.reset();
+-    continue;
+-   }
+-   hash_group = global_partition.hash_groups[group_idx].get();
+-   right_outer = gsink.right_outers.data() + group_idx;
+-   right = make_uniq<SBIterator>(*(hash_group->global_sort), ExpressionType::COMPARE_LESSTHANOREQUALTO);
+-  }
+-  left.SetIndex(i);
+-  if (!right->Compare(left)) {
+-   continue;
+-  }
+-  idx_t bound = 1;
+-  idx_t begin = right->GetIndex();
+-  right->SetIndex(begin + bound);
+-  while (right->GetIndex() < hash_group->count) {
+-   if (right->Compare(left)) {
+-    bound *= 2;
+-    right->SetIndex(begin + bound);
+-   } else {
+-    break;
+-   }
+-  }
+-  auto first = begin + bound / 2;
+-  auto last = MinValue<idx_t>(begin + bound, hash_group->count);
+-  while (first < last) {
+-   const auto mid = first + (last - first) / 2;
+-   right->SetIndex(mid);
+-   if (right->Compare(left)) {
+-    first = mid + 1;
+-   } else {
+-    last = mid;
+-   }
+-  }
+-  right->SetIndex(--first);
+-  if (!op.lhs_partitions.empty() && hash_group->ComparePartitions(left, *right)) {
+-   continue;
+-  }
+-  right_outer->SetMatch(first);
+-  left_outer.SetMatch(idx);
+-  if (found_match) {
+-   found_match[idx] = true;
+-  }
+-  if (matches) {
+-   matches[idx] = Match(curr_bin, first);
+-  }
+-  lhs_matched.set_index(lhs_match_count++, idx);
+- }
+-}
+-unique_ptr<OperatorState> PhysicalAsOfJoin::GetOperatorState(ExecutionContext &context) const {
+- auto &config = ClientConfig::GetConfig(context.client);
+- return make_uniq<AsOfLocalState>(context.client, *this, config.force_external);
+-}
+-void PhysicalAsOfJoin::ResolveSimpleJoin(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
+-                                         OperatorState &lstate_p) const {
+- auto &lstate = lstate_p.Cast<AsOfLocalState>();
+- auto &gsink = sink_state->Cast<AsOfGlobalSinkState>();
+- bool found_match[STANDARD_VECTOR_SIZE] = {false};
+- lstate.ResolveJoin(input, found_match);
+- switch (join_type) {
+- case JoinType::MARK: {
+-  PhysicalJoin::ConstructMarkJoinResult(lstate.lhs_keys, input, chunk, found_match, gsink.has_null);
+-  break;
+- }
+- case JoinType::SEMI:
+-  PhysicalJoin::ConstructSemiJoinResult(input, chunk, found_match);
+-  break;
+- case JoinType::ANTI:
+-  PhysicalJoin::ConstructAntiJoinResult(input, chunk, found_match);
+-  break;
+- default:
+-  throw NotImplementedException("Unimplemented join type for AsOf join");
+- }
+-}
+-OperatorResultType PhysicalAsOfJoin::ResolveComplexJoin(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
+-                                                        OperatorState &lstate_p) const {
+- auto &lstate = lstate_p.Cast<AsOfLocalState>();
+- auto &gsink = sink_state->Cast<AsOfGlobalSinkState>();
+- if (!lstate.fetch_next_left) {
+-  lstate.fetch_next_left = true;
+-  if (lstate.left_outer.Enabled()) {
+-   lstate.left_outer.ConstructLeftJoinResult(input, chunk);
+-   lstate.left_outer.Reset();
+-  }
+-  return OperatorResultType::NEED_MORE_INPUT;
+- }
+- AsOfLocalState::Match matches[STANDARD_VECTOR_SIZE];
+- lstate.ResolveJoin(input, nullptr, matches);
+- lstate.group_payload.Reset();
+- lstate.rhs_payload.Reset();
+- auto &global_partition = gsink.global_partition;
+- hash_t scan_bin = global_partition.bin_groups.size();
+- optional_ptr<PartitionGlobalHashGroup> hash_group;
+- unique_ptr<PayloadScanner> scanner;
+- for (idx_t i = 0; i < lstate.lhs_match_count; ++i) {
+-  const auto idx = lstate.lhs_matched[i];
+-  const auto match_bin = matches[idx].first;
+-  const auto match_pos = matches[idx].second;
+-  if (match_bin != scan_bin) {
+-   const auto group_idx = global_partition.bin_groups[match_bin];
+-   hash_group = global_partition.hash_groups[group_idx].get();
+-   scan_bin = match_bin;
+-   scanner = make_uniq<PayloadScanner>(*hash_group->global_sort, false);
+-   lstate.group_payload.Reset();
+-  }
+-  while (match_pos >= scanner->Scanned()) {
+-   lstate.group_payload.Reset();
+-   scanner->Scan(lstate.group_payload);
+-  }
+-  const auto source_offset = match_pos - (scanner->Scanned() - lstate.group_payload.size());
+-  for (idx_t col_idx = 0; col_idx < right_projection_map.size(); ++col_idx) {
+-   const auto rhs_idx = right_projection_map[col_idx];
+-   auto &source = lstate.group_payload.data[rhs_idx];
+-   auto &target = chunk.data[input.ColumnCount() + col_idx];
+-   VectorOperations::Copy(source, target, source_offset + 1, source_offset, i);
+-  }
+- }
+- chunk.Slice(input, lstate.lhs_matched, lstate.lhs_match_count);
+- if (lstate.left_outer.Enabled()) {
+-  lstate.fetch_next_left = false;
+-  return OperatorResultType::HAVE_MORE_OUTPUT;
+->>>>>>> 7dafab81

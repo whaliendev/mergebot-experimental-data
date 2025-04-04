@@ -1,0 +1,173 @@
+diff --git a/output/frameworks_native/9a715075-16080c0c-cbd7c0aa/services@surfaceflinger@Layer.no_comments_mergebot.cpp b/output/frameworks_native/9a715075-16080c0c-cbd7c0aa/services@surfaceflinger@Layer.no_comments_truth.cpp
+index a3292dd..660d2bb 100644
+--- a/output/frameworks_native/9a715075-16080c0c-cbd7c0aa/services@surfaceflinger@Layer.no_comments_mergebot.cpp
++++ b/output/frameworks_native/9a715075-16080c0c-cbd7c0aa/services@surfaceflinger@Layer.no_comments_truth.cpp
+@@ -595 +594,0 @@ void Layer::pushPendingState() {
+-<<<<<<< HEAD
+@@ -598,7 +596,0 @@ void Layer::pushPendingState() {
+-||||||| cbd7c0aad3
+-            auto syncPoint = std::make_shared<SyncPoint>(mCurrentState.frameNumber_legacy, this);
+-=======
+-            auto syncPoint = std::make_shared<SyncPoint>(mCurrentState.frameNumber_legacy,
+-                                                         this,
+-                                                         barrierLayer);
+->>>>>>> 16080c0c
+@@ -622 +613,0 @@ void Layer::popPendingState(State* stateToCommit) {
+-<<<<<<< HEAD
+@@ -625,5 +615,0 @@ void Layer::popPendingState(State* stateToCommit) {
+-||||||| cbd7c0aad3
+-    mPendingStates.removeAt(0);
+-=======
+-    mPendingStates.pop_front();
+->>>>>>> 16080c0c
+@@ -1021 +1007,2 @@ bool Layer::isLayerFocusedBasedOnPriority(int32_t priority) {
+-}uint32_t Layer::getLayerStack() const {
++};
++uint32_t Layer::getLayerStack() const {
+@@ -1114,3 +1101,12 @@ Layer::FrameRate Layer::getFrameRateForLayerTree() const {
+-void Layer::deferTransactionUntil_legacy(const sp<IBinder>& barrierHandle, uint64_t frameNumber) {
+-    sp<Handle> handle = static_cast<Handle*>(barrierHandle.get());
+-    deferTransactionUntil_legacy(handle->owner.promote(), frameNumber);
++void Layer::deferTransactionUntil_legacy(const sp<Layer>& barrierLayer, uint64_t frameNumber) {
++    ATRACE_CALL();
++    if (mLayerDetached) {
++        return;
++    }
++    mCurrentState.barrierLayer_legacy = barrierLayer;
++    mCurrentState.barrierFrameNumber = frameNumber;
++    mCurrentState.modified = true;
++    pushPendingState();
++    mCurrentState.barrierLayer_legacy = nullptr;
++    mCurrentState.barrierFrameNumber = 0;
++    mCurrentState.modified = false;
+@@ -1338,5 +1334,3 @@ ssize_t Layer::removeChild(const sp<Layer>& layer) {
+-bool Layer::reparentChildren(const sp<IBinder>& newParentHandle) {
+-    sp<Handle> handle = nullptr;
+-    sp<Layer> newParent = nullptr;
+-    if (newParentHandle == nullptr) {
+-        return false;
++void Layer::reparentChildren(const sp<Layer>& newParent) {
++    if (attachChildren()) {
++        setTransactionFlags(eTransactionNeeded);
+@@ -1344,5 +1338,2 @@ bool Layer::reparentChildren(const sp<IBinder>& newParentHandle) {
+-    handle = static_cast<Handle*>(newParentHandle.get());
+-    newParent = handle->owner.promote();
+-    if (newParent == nullptr) {
+-        ALOGE("Unable to promote Layer handle");
+-        return false;
++    for (const sp<Layer>& child : mCurrentChildren) {
++        newParent->addChild(child);
+@@ -1350,2 +1341,2 @@ bool Layer::reparentChildren(const sp<IBinder>& newParentHandle) {
+-    reparentChildren(newParent);
+-    return true;
++    mCurrentChildren.clear();
++    updateTreeHasFrameRateVote();
+@@ -1710 +1701,2 @@ void Layer::setInputInfo(const InputWindowInfo& info) {
+-LayerProto* Layer::writeToProto(LayersProto& layersProto, uint32_t traceFlags, const DisplayDevice* display) {
++LayerProto* Layer::writeToProto(LayersProto& layersProto, uint32_t traceFlags,
++                                const DisplayDevice* display) {
+@@ -1993,4 +1985,5 @@ void Layer::updateClonedDrawingState(std::map<sp<Layer>, sp<Layer>>& clonedLayer
+-std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-    return stream << "{rate=" << rate.rate
+-                  << " type=" << Layer::frameRateCompatibilityString(rate.type)
+-                  << " seamlessness=" << toString(rate.seamlessness) << "}";
++void Layer::updateClonedChildren(const sp<Layer>& mirrorRoot,
++                                 std::map<sp<Layer>, sp<Layer>>& clonedLayersMap) {
++    mDrawingChildren.clear();
++    if (!isClonedFromAlive()) {
++        return;
+@@ -1998,4 +1991,4 @@ std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-    return stream << "{rate=" << rate.rate
+-                  << " type=" << Layer::frameRateCompatibilityString(rate.type)
+-                  << " seamlessness=" << toString(rate.seamlessness) << "}";
++    sp<Layer> clonedFrom = getClonedFrom();
++    for (sp<Layer>& child : clonedFrom->mDrawingChildren) {
++        if (child == mirrorRoot) {
++            continue;
+@@ -2003,4 +1996,7 @@ std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-    return stream << "{rate=" << rate.rate
+-                  << " type=" << Layer::frameRateCompatibilityString(rate.type)
+-                  << " seamlessness=" << toString(rate.seamlessness) << "}";
++        sp<Layer> clonedChild = clonedLayersMap[child];
++        if (clonedChild == nullptr) {
++            clonedChild = child->createClone();
++            clonedLayersMap[child] = clonedChild;
++        }
++        addChildToDrawing(clonedChild);
++        clonedChild->updateClonedChildren(mirrorRoot, clonedLayersMap);
+@@ -2008,4 +2004,59 @@ std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-    return stream << "{rate=" << rate.rate
+-                  << " type=" << Layer::frameRateCompatibilityString(rate.type)
+-                  << " seamlessness=" << toString(rate.seamlessness) << "}";
++}
++void Layer::updateClonedInputInfo(const std::map<sp<Layer>, sp<Layer>>& clonedLayersMap) {
++    auto cropLayer = mDrawingState.touchableRegionCrop.promote();
++    if (cropLayer != nullptr) {
++        if (clonedLayersMap.count(cropLayer) == 0) {
++            mDrawingState.touchableRegionCrop = this;
++        } else {
++            const sp<Layer>& clonedCropLayer = clonedLayersMap.at(cropLayer);
++            mDrawingState.touchableRegionCrop = clonedCropLayer;
++        }
++    }
++    mDrawingState.inputInfo.flags &= ~InputWindowInfo::Flag::WATCH_OUTSIDE_TOUCH;
++}
++void Layer::updateClonedRelatives(const std::map<sp<Layer>, sp<Layer>>& clonedLayersMap) {
++    mDrawingState.zOrderRelativeOf = nullptr;
++    mDrawingState.zOrderRelatives.clear();
++    if (!isClonedFromAlive()) {
++        return;
++    }
++    const sp<Layer>& clonedFrom = getClonedFrom();
++    for (wp<Layer>& relativeWeak : clonedFrom->mDrawingState.zOrderRelatives) {
++        const sp<Layer>& relative = relativeWeak.promote();
++        if (clonedLayersMap.count(relative) > 0) {
++            auto& clonedRelative = clonedLayersMap.at(relative);
++            mDrawingState.zOrderRelatives.add(clonedRelative);
++        }
++    }
++    const sp<Layer>& relativeOf = clonedFrom->mDrawingState.zOrderRelativeOf.promote();
++    if (clonedLayersMap.count(relativeOf) > 0) {
++        const sp<Layer>& clonedRelativeOf = clonedLayersMap.at(relativeOf);
++        mDrawingState.zOrderRelativeOf = clonedRelativeOf;
++    }
++    updateClonedInputInfo(clonedLayersMap);
++    for (sp<Layer>& child : mDrawingChildren) {
++        child->updateClonedRelatives(clonedLayersMap);
++    }
++}
++void Layer::addChildToDrawing(const sp<Layer>& layer) {
++    mDrawingChildren.add(layer);
++    layer->mDrawingParent = this;
++}
++Layer::FrameRateCompatibility Layer::FrameRate::convertCompatibility(int8_t compatibility) {
++    switch (compatibility) {
++        case ANATIVEWINDOW_FRAME_RATE_COMPATIBILITY_DEFAULT:
++            return FrameRateCompatibility::Default;
++        case ANATIVEWINDOW_FRAME_RATE_COMPATIBILITY_FIXED_SOURCE:
++            return FrameRateCompatibility::ExactOrMultiple;
++        default:
++            LOG_ALWAYS_FATAL("Invalid frame rate compatibility value %d", compatibility);
++            return FrameRateCompatibility::Default;
++    }
++}
++bool Layer::getPrimaryDisplayOnly() const {
++    const State& s(mDrawingState);
++    if (s.flags & layer_state_t::eLayerSkipScreenshot) {
++        return true;
++    }
++    sp<Layer> parent = mDrawingParent.promote();
++    return parent == nullptr ? false : parent->getPrimaryDisplayOnly();
+@@ -2018 +2069,8 @@ std::ostream& operator<<(std::ostream& stream, const Layer::FrameRate& rate) {
+-}
++};
++#if defined(__gl_h_)
++#error "don't include gl/gl.h in this file"
++#endif
++#if defined(__gl2_h_)
++#error "don't include gl2/gl2.h in this file"
++#endif
++#pragma clang diagnostic pop

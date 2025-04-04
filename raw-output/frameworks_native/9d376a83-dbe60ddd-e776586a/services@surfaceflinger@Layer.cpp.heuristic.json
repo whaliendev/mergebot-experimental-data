@@ -1,0 +1,38 @@
+[
+  {
+    "code": [
+      "    mCurrentCrop.makeInvalid();",
+      "    glGenTextures(1, &mTextureName);",
+      "}",
+      "",
+      "void Layer::destroy(RefBase const* base) {",
+      "    mFlinger->destroyLayer(static_cast<LayerBase const*>(base));",
+      "}",
+      "",
+      "void Layer::onFirstRef()",
+      "{",
+      "    LayerBaseClient::onFirstRef();",
+      "    setDestroyer(this);",
+      "",
+      "    struct FrameQueuedListener : public SurfaceTexture::FrameAvailableListener {",
+      "        FrameQueuedListener(Layer* layer) : mLayer(layer) { }",
+      "    private:",
+      "        wp<Layer> mLayer;",
+      "        virtual void onFrameAvailable() {",
+      "            sp<Layer> that(mLayer.promote());",
+      "            if (that != 0) {",
+      "                that->onFrameQueued();",
+      "            }",
+      "        }",
+      "    };",
+      "    mSurfaceTexture = new SurfaceTextureLayer(mTextureName, this);",
+      "    mSurfaceTexture->setFrameAvailableListener(new FrameQueuedListener(this));",
+      "    mSurfaceTexture->setSynchronousMode(true);",
+      "    mSurfaceTexture->setBufferCountServer(2);"
+    ],
+    "label": "",
+    "index": 0,
+    "confidence": 0.7,
+    "desc": "Added code or method extraction, accept our side."
+  }
+]

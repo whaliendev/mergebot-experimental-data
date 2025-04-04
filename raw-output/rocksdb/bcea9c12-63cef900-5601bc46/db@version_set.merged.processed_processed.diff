@@ -1,0 +1,112 @@
+--- a/./output/rocksdb/bcea9c12-63cef900-5601bc46/db@version_set.no_comments_merged.cc
++++ b/./output/rocksdb/bcea9c12-63cef900-5601bc46/db@version_set.no_comments_truth.cc
+@@ -3,5 +2,0 @@
+-<<<<<<< HEAD
+-#define __STDC_FORMAT_MACROS 
+-#include <inttypes.h>
+-||||||| 5601bc461
+-=======
+@@ -9 +3,0 @@
+->>>>>>> 63cef900
+@@ -1216,2 +1210,2 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+-    manifest_file_number_ = NewFileNumber();
++  } else {
++    pending_manifest_file_number_ = manifest_file_number_;
+@@ -1220,2 +1213,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-    new_manifest_filename = DescriptorFileName(dbname_, manifest_file_number_);
+-    edit->SetNextFile(next_file_number_);
+@@ -1225,10 +1216,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 5601bc461
+-    manifest_file_number_ = NewFileNumber();
+-  }
+-  if (new_descriptor_log) {
+-    new_manifest_filename = DescriptorFileName(dbname_, manifest_file_number_);
+-    edit->SetNextFile(next_file_number_);
+-=======
+-  } else {
+-    pending_manifest_file_number_ = manifest_file_number_;
+->>>>>>> 63cef900
+@@ -1320 +1301,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+@@ -1344,14 +1324,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 5601bc461
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+-    if (max_log_number_in_batch != 0) {
+-      assert(log_number_ < max_log_number_in_batch);
+-      log_number_ = max_log_number_in_batch;
+-=======
+-    manifest_file_number_ = pending_manifest_file_number_;
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+-    if (max_log_number_in_batch != 0) {
+-      assert(log_number_ < max_log_number_in_batch);
+-      log_number_ = max_log_number_in_batch;
+->>>>>>> 63cef900
+@@ -1359 +1326 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
++    manifest_file_number_ = pending_manifest_file_number_;
+@@ -1362,5 +1328,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 5601bc461
+-    prev_log_number_ = edit->prev_log_number_;
+-=======
+-    prev_log_number_ = edit->prev_log_number_;
+->>>>>>> 63cef900
+@@ -1498 +1459,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1552,3 +1513,2 @@ Status VersionSet::Recover(
+-            s = Status::Corruption(
+-                "Log Numbers in MANIFEST are not always increasing");
+-          }
++            log_number_decrease = true;
++          } else {
+@@ -1557,0 +1518 @@ Status VersionSet::Recover(
++        }
+@@ -1564,8 +1524,0 @@ Status VersionSet::Recover(
+-||||||| 5601bc461
+-      if (edit.has_log_number_) {
+-        if (have_log_number && log_number > edit.log_number_) {
+-          s = Status::Corruption("log number decreases");
+-          break;
+-=======
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+@@ -1573,7 +1525,0 @@ Status VersionSet::Recover(
+-      if (edit.has_log_number_) {
+-        if (have_log_number && log_number >= edit.log_number_) {
+-          log_number_decrease = true;
+-        } else {
+-          log_number = edit.log_number_;
+-          have_log_number = true;
+->>>>>>> 63cef900
+@@ -1580,0 +1527,2 @@ Status VersionSet::Recover(
++      if (edit.has_version_number_) {
++        have_version_number = true;
+@@ -1600 +1548,3 @@ Status VersionSet::Recover(
+-        s = Status::Corruption("log number decreases");
++        s = Status::Corruption(
++            "MANIFEST corruption - Log numbers in records NOT "
++            "monotonically increasing");
+@@ -1602,2 +1552,3 @@ Status VersionSet::Recover(
+-        Log(options_->info_log, "decreasing of log_number is detected "
+-            "in MANIFEST\n");
++        Log(options_->info_log,
++            "MANIFEST corruption detected, but ignored - Log numbers in "
++            "records NOT monotonically increasing");
+@@ -1949,9 +1900 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-<<<<<<< HEAD
+-||||||| 5601bc461
+-  VersionEdit edit;
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+-=======
+-  VersionEdit edit;
+-  edit.SetVersionNumber();
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+->>>>>>> 63cef900
++  bool first_record = false;
+@@ -1960,0 +1904,4 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
++      if (first_record) {
++        edit.SetVersionNumber();
++        first_record = false;
++      }

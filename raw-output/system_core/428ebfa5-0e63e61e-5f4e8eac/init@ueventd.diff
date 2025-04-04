@@ -1,0 +1,77 @@
+diff --git a/output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@ueventd.no_comments_mergebot.cpp b/output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@ueventd.no_comments_truth.cpp
+index 3ea31c9..39185f4 100644
+--- a/output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@ueventd.no_comments_mergebot.cpp
++++ b/output/system_core/428ebfa5-0e63e61e-5f4e8eac/init@ueventd.no_comments_truth.cpp
+@@ -4,4 +3,0 @@
+-#include <grp.h>
+-#include <poll.h>
+-#include <pwd.h>
+-#include <sys/types.h>
+@@ -26,40 +21,0 @@
+-int ueventd_main(int argc, char** argv) {
+-    umask(000);
+-    InitKernelLogging(argv);
+-    LOG(INFO) << "ueventd started!";
+-    selinux_callback cb;
+-    cb.func_log = selinux_klog_callback;
+-    selinux_set_callback(SELINUX_CB_LOG, cb);
+-    DeviceHandler device_handler = CreateDeviceHandler();
+-    UeventListener uevent_listener;
+-    if (access(COLDBOOT_DONE, F_OK) != 0) {
+-        ColdBoot cold_boot(uevent_listener, device_handler);
+-        cold_boot.Run();
+-    }
+-<<<<<<< HEAD
+-    uevent_listener.Poll([&device_handler](const Uevent& uevent) {
+-        HandleFirmwareEvent(uevent);
+-        device_handler.HandleDeviceEvent(uevent);
+-        return ListenerAction::kContinue;
+-    });
+-||||||| 5f4e8eac8
+-    device_init();
+-    device_poll();
+-=======
+-    device_init();
+-    pollfd ufd;
+-    ufd.events = POLLIN;
+-    ufd.fd = get_device_fd();
+-    while (true) {
+-        ufd.revents = 0;
+-        int nr = poll(&ufd, 1, -1);
+-        if (nr <= 0) {
+-            continue;
+-        }
+-        if (ufd.revents & POLLIN) {
+-            handle_device_fd();
+-        }
+-    }
+->>>>>>> 0e63e61e
+-    return 0;
+-}
+@@ -68 +24,4 @@ public:
+-    ColdBoot(UeventListener& uevent_listener, DeviceHandler& device_handler): uevent_listener_(uevent_listener), device_handler_(device_handler), num_handler_subprocesses_(std::thread::hardware_concurrency() ?: 4) {}
++    ColdBoot(UeventListener& uevent_listener, DeviceHandler& device_handler)
++        : uevent_listener_(uevent_listener),
++          device_handler_(device_handler),
++          num_handler_subprocesses_(std::thread::hardware_concurrency() ?: 4) {}
+@@ -160,0 +120,20 @@ DeviceHandler CreateDeviceHandler() {
++int ueventd_main(int argc, char** argv) {
++    umask(000);
++    InitKernelLogging(argv);
++    LOG(INFO) << "ueventd started!";
++    selinux_callback cb;
++    cb.func_log = selinux_klog_callback;
++    selinux_set_callback(SELINUX_CB_LOG, cb);
++    DeviceHandler device_handler = CreateDeviceHandler();
++    UeventListener uevent_listener;
++    if (access(COLDBOOT_DONE, F_OK) != 0) {
++        ColdBoot cold_boot(uevent_listener, device_handler);
++        cold_boot.Run();
++    }
++    uevent_listener.Poll([&device_handler](const Uevent& uevent) {
++        HandleFirmwareEvent(uevent);
++        device_handler.HandleDeviceEvent(uevent);
++        return ListenerAction::kContinue;
++    });
++    return 0;
++}

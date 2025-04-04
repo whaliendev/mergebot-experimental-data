@@ -1,0 +1,72 @@
+--- a/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_impl.no_comments_mergebot.cc
++++ b/output/rocksdb/5b0fe6c7-8eedf13a-51d2adfb/db@db_impl.no_comments_truth.cc
+@@ -7,0 +8 @@
++#include <algorithm>
+@@ -103,2 +104,28 @@ Options SanitizeOptions(const std::string& dbname,
+-DBImpl::DBImpl(const Options& options, const std::string& dbname): env_(options.env), internal_comparator_(options.comparator), internal_filter_policy_(options.filter_policy), options_(SanitizeOptions(
+-          dbname, &internal_comparator_, &internal_filter_policy_, options)), owns_info_log_(options_.info_log != options.info_log), owns_cache_(options_.block_cache != options.block_cache), dbname_(dbname), db_lock_(NULL), shutting_down_(NULL), bg_cv_(&mutex_), mem_(new MemTable(internal_comparator_)), imm_(NULL), mem_(new MemTable(internal_comparator_, NumberLevels())), bg_compaction_scheduled_(false), logfile_(NULL), logfile_number_(0), log_(NULL), tmp_batch_(new WriteBatch), bg_compaction_scheduled_(0), bg_logstats_scheduled_(false), manual_compaction_(NULL), logger_(NULL), disable_delete_obsolete_files_(false), delete_obsolete_files_last_run_(0), delayed_writes_(0), stall_level0_slowdown_(0), stall_memtable_compaction_(0), stall_level0_num_files_(0), started_at_(options.env->NowMicros()) {
++DBImpl::DBImpl(const Options& options, const std::string& dbname)
++    : env_(options.env),
++      internal_comparator_(options.comparator),
++      internal_filter_policy_(options.filter_policy),
++      options_(SanitizeOptions(
++          dbname, &internal_comparator_, &internal_filter_policy_, options)),
++      owns_info_log_(options_.info_log != options.info_log),
++      owns_cache_(options_.block_cache != options.block_cache),
++      dbname_(dbname),
++      db_lock_(NULL),
++      shutting_down_(NULL),
++      bg_cv_(&mutex_),
++      mem_(new MemTable(internal_comparator_, NumberLevels())),
++      logfile_(NULL),
++      logfile_number_(0),
++      log_(NULL),
++      tmp_batch_(new WriteBatch),
++      bg_compaction_scheduled_(0),
++      bg_logstats_scheduled_(false),
++      manual_compaction_(NULL),
++      logger_(NULL),
++      disable_delete_obsolete_files_(false),
++      delete_obsolete_files_last_run_(0),
++      stall_level0_slowdown_(0),
++      stall_memtable_compaction_(0),
++      stall_level0_num_files_(0),
++      started_at_(options.env->NowMicros()),
++      delayed_writes_(0) {
+@@ -446,0 +474 @@ Status DBImpl::WriteLevel0TableForRecovery(MemTable* mem, VersionEdit* edit) {
++  stats.files_out_levelnp1 = 1;
+@@ -489 +516,0 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
+-  stats.files_out_levelnp1 = 1;
+@@ -1023,2 +1050,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
+-  int MBpersec = ((stats.bytes_read + stats.bytes_written))
+-                                     /stats.micros;
+@@ -1033,6 +1058,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
+-<<<<<<< HEAD
+-      "compacted to: %s %d MBytes/sec", versions_->LevelSummary(&tmp),
+-                                       MBpersec);
+-||||||| 51d2adfbe
+-      "compacted to: %s", versions_->LevelSummary(&tmp));
+-=======
+@@ -1051 +1070,0 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
+->>>>>>> 8eedf13a
+@@ -1058,2 +1077 @@ struct IterState {
+-  MemTable* mem;
+-  MemTable* imm;
++  std::vector<MemTable*> mem;
+@@ -1064,2 +1082,3 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-  state->mem->Unref();
+-  if (state->imm != NULL) state->imm->Unref();
++  for (unsigned int i = 0; i < state->mem.size(); i++) {
++    state->mem[i]->Unref();
++  }
+@@ -1294 +1312,0 @@ Status DBImpl::MakeRoomForWrite(bool force) {
+-<<<<<<< HEAD
+@@ -1296,5 +1313,0 @@ Status DBImpl::MakeRoomForWrite(bool force) {
+-      Log(options_.info_log, "wait for fewer level0 files...\n");
+-||||||| 51d2adfbe
+-      Log(options_.info_log, "waiting...\n");
+-=======
+-      Log(options_.info_log, "waiting...\n");
+@@ -1302 +1315 @@ Status DBImpl::MakeRoomForWrite(bool force) {
+->>>>>>> 8eedf13a
++      Log(options_.info_log, "wait for fewer level0 files...\n");

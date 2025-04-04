@@ -1,0 +1,10 @@
+<<<<<<< HEAD
+#define GRPC_OBJC_VERSION_STRING @"1.33.0-dev"
+#define GRPC_C_VERSION_STRING @"12.0.0"
+||||||| c02c680074
+#define GRPC_OBJC_VERSION_STRING @"1.32.0-dev"
+#define GRPC_C_VERSION_STRING @"11.0.0"
+=======
+#define GRPC_OBJC_VERSION_STRING @"1.32.0"
+#define GRPC_C_VERSION_STRING @"12.0.0"
+>>>>>>> 0b55c341

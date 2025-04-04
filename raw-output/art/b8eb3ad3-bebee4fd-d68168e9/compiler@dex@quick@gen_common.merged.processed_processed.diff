@@ -1,0 +1,93 @@
+--- a/./output/art/b8eb3ad3-bebee4fd-d68168e9/compiler@dex@quick@gen_common.no_comments_merged.cc
++++ b/./output/art/b8eb3ad3-bebee4fd-d68168e9/compiler@dex@quick@gen_common.no_comments_truth.cc
+@@ -980 +979,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-<<<<<<< HEAD
+@@ -984,6 +982,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-||||||| d68168e9f0
+-=======
+-    if (can_assume_type_is_in_dex_cache) {
+-      LoadValueDirectFixed(rl_src, TargetReg(kArg0, kRef));
+-    }
+->>>>>>> bebee4fd
+@@ -995 +987,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-<<<<<<< HEAD
+@@ -1025,42 +1016,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-||||||| d68168e9f0
+-      LIR* hop_branch = OpCmpImmBranch(kCondNe, class_reg, 0, NULL);
+-      if (cu_->target64) {
+-        CallRuntimeHelperImm(QUICK_ENTRYPOINT_OFFSET(8, pInitializeType), type_idx, true);
+-      } else {
+-        CallRuntimeHelperImm(QUICK_ENTRYPOINT_OFFSET(4, pInitializeType), type_idx, true);
+-      }
+-      OpRegCopy(TargetReg(kArg2, kRef), TargetReg(kRet0, kRef));
+-      LoadValueDirectFixed(rl_src, TargetReg(kArg0, kRef));
+-      LIR* hop_target = NewLIR0(kPseudoTargetLabel);
+-      hop_branch->target = hop_target;
+-=======
+-      LIR* slow_path_branch = OpCmpImmBranch(kCondEq, class_reg, 0, NULL);
+-      LIR* slow_path_target = NewLIR0(kPseudoTargetLabel);
+-      LoadValueDirectFixed(rl_src, TargetReg(kArg0, kRef));
+-      class InitTypeSlowPath : public Mir2Lir::LIRSlowPath {
+-       public:
+-        InitTypeSlowPath(Mir2Lir* m2l, LIR* branch, LIR* cont, uint32_t type_idx,
+-                         RegLocation rl_src)
+-            : LIRSlowPath(m2l, m2l->GetCurrentDexPc(), branch, cont), type_idx_(type_idx),
+-              rl_src_(rl_src) {
+-        }
+-        void Compile() OVERRIDE {
+-          GenerateTargetLabel();
+-          if (cu_->target64) {
+-            m2l_->CallRuntimeHelperImm(QUICK_ENTRYPOINT_OFFSET(8, pInitializeType), type_idx_,
+-                                       true);
+-          } else {
+-            m2l_->CallRuntimeHelperImm(QUICK_ENTRYPOINT_OFFSET(4, pInitializeType), type_idx_,
+-                                       true);
+-          }
+-          m2l_->OpRegCopy(m2l_->TargetReg(kArg2, kRef),
+-                          m2l_->TargetReg(kRet0, kRef));
+-          m2l_->OpUnconditionalBranch(cont_);
+-        }
+-       private:
+-        uint32_t type_idx_;
+-        RegLocation rl_src_;
+-      };
+-      AddSlowPath(new (arena_) InitTypeSlowPath(this, slow_path_branch, slow_path_target,
+-                                                type_idx, rl_src));
+->>>>>>> bebee4fd
+@@ -1080 +1029,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-<<<<<<< HEAD
+@@ -1083,16 +1031,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-||||||| d68168e9f0
+-    if (cu_->instruction_set == kThumb2) {
+-      OpRegReg(kOpCmp, TargetReg(kArg1, kRef), TargetReg(kArg2, kRef));
+-      LIR* it = OpIT(kCondEq, "E");
+-      LoadConstant(rl_result.reg, 1);
+-      LoadConstant(rl_result.reg, 0);
+-      OpEndIT(it);
+-    } else {
+-      LoadConstant(rl_result.reg, 0);
+-      branchover = OpCmpBranch(kCondNe, TargetReg(kArg1, kRef), TargetReg(kArg2, kRef), NULL);
+-      LoadConstant(rl_result.reg, 1);
+-    }
+-=======
+-    GenSelectConst32(TargetReg(kArg1, kRef), TargetReg(kArg2, kRef), kCondEq, 1, 0, rl_result.reg,
+-                     kCoreReg);
+->>>>>>> bebee4fd
+@@ -1121 +1053,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-<<<<<<< HEAD
+@@ -1128,15 +1059,0 @@ void Mir2Lir::GenInstanceofCallingHelper(bool needs_access_check, bool type_know
+-||||||| d68168e9f0
+-      RegStorage r_tgt = cu_->target64 ?
+-          LoadHelper(QUICK_ENTRYPOINT_OFFSET(8, pInstanceofNonTrivial)) :
+-          LoadHelper(QUICK_ENTRYPOINT_OFFSET(4, pInstanceofNonTrivial));
+-      OpRegCopy(TargetReg(kArg0, kRef), TargetReg(kArg2, kRef));
+-      OpReg(kOpBlx, r_tgt);
+-      FreeTemp(r_tgt);
+-=======
+-      OpRegCopy(TargetReg(kArg0, kRef), TargetReg(kArg2, kRef));
+-      if (cu_->target64) {
+-        CallRuntimeHelper(QUICK_ENTRYPOINT_OFFSET(8, pInstanceofNonTrivial), false);
+-      } else {
+-        CallRuntimeHelper(QUICK_ENTRYPOINT_OFFSET(4, pInstanceofNonTrivial), false);
+-      }
+->>>>>>> bebee4fd

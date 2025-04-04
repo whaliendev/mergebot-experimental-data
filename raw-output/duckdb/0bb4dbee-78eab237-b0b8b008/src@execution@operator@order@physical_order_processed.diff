@@ -1,0 +1,248 @@
+--- a/output/duckdb/0bb4dbee-78eab237-b0b8b008/src@execution@operator@order@physical_order.no_comments_mergebot.cpp
++++ b/output/duckdb/0bb4dbee-78eab237-b0b8b008/src@execution@operator@order@physical_order.no_comments_truth.cpp
+@@ -7,4 +6,0 @@
+-#include "duckdb/common/value_operations/value_operations.hpp"
+-#include "duckdb/common/vector_operations/vector_operations.hpp"
+-#include "duckdb/execution/expression_executor.hpp"
+-#include "duckdb/storage/data_table.hpp"
+@@ -12 +8,4 @@ namespace duckdb {
+-class PhysicalOrderOperatorState : public PhysicalOperatorState {
++PhysicalOrder::PhysicalOrder(vector<LogicalType> types, vector<BoundOrderByNode> orders)
++    : PhysicalSink(PhysicalOperatorType::ORDER_BY, move(types)), orders(move(orders)) {
++}
++struct ContinuousBlock {
+@@ -14,2 +13 @@ public:
+- PhysicalOrderOperatorState(PhysicalOperator &op, PhysicalOperator *child)
+-     : PhysicalOperatorState(op, child), current_block(0), position(0) {
++ ContinuousBlock(BufferManager &buffer_manager_) : buffer_manager(buffer_manager_), curr_block_idx(0) {
+@@ -17,2 +15,68 @@ public:
+- idx_t current_block;
+- idx_t position;
++ BufferManager &buffer_manager;
++ idx_t sorting_entry_size;
++ idx_t payload_entry_size;
++ vector<shared_ptr<RowDataBlock>> sorting;
++ vector<shared_ptr<RowDataBlock>> payload;
++ idx_t start;
++ idx_t end;
++ data_ptr_t sorting_ptr;
++ data_ptr_t payload_ptr;
++ bool IsDone() const {
++  return curr_block_idx >= sorting.size();
++ }
++ void PinBlock() {
++  if (IsDone()) {
++   return;
++  }
++  curr_entry_idx = curr_block_idx == 0 ? start : 0;
++  curr_block_end = curr_block_idx == sorting.size() - 1 ? end : sorting[curr_block_idx]->count;
++  sorting_handle = buffer_manager.Pin(sorting[curr_block_idx]->block);
++  payload_handle = buffer_manager.Pin(payload[curr_block_idx]->block);
++  sorting_ptr = sorting_handle->node->buffer + curr_entry_idx * sorting_entry_size;
++  payload_ptr = payload_handle->node->buffer + curr_entry_idx * payload_entry_size;
++ }
++ void Advance() {
++  curr_entry_idx++;
++  if (curr_entry_idx < curr_block_end) {
++   sorting_ptr += sorting_entry_size;
++   payload_ptr += payload_entry_size;
++  } else {
++   curr_block_idx++;
++   PinBlock();
++  }
++ }
++ void FlushData(ContinuousBlock &result) {
++  if (result.sorting.back()->count + (curr_block_end - curr_entry_idx) > result.sorting.back()->capacity) {
++   result.sorting.emplace_back(
++       make_shared<RowDataBlock>(buffer_manager, sorting[0]->capacity, sorting_entry_size));
++   result.payload.emplace_back(
++       make_shared<RowDataBlock>(buffer_manager, payload[0]->capacity, payload_entry_size));
++  }
++  auto write_sort = result.sorting.back();
++  auto write_payl = result.payload.back();
++  auto write_sort_handle = buffer_manager.Pin(result.sorting.back()->block);
++  auto write_payl_handle = buffer_manager.Pin(result.payload.back()->block);
++  auto write_sort_ptr = write_sort_handle->node->buffer + write_sort->count * sorting_entry_size;
++  auto write_payl_ptr = write_payl_handle->node->buffer + write_payl->count * payload_entry_size;
++  for (; curr_entry_idx < curr_block_end; curr_entry_idx++) {
++   memcpy(write_sort_ptr, sorting_ptr, sorting_entry_size);
++   memcpy(write_payl_ptr, payload_ptr, payload_entry_size);
++   write_sort_ptr += sorting_entry_size;
++   write_payl_ptr += payload_entry_size;
++   write_sort->count++;
++   write_payl->count++;
++   sorting_ptr += sorting_entry_size;
++   payload_ptr += payload_entry_size;
++  }
++  curr_block_idx++;
++  for (; curr_block_idx < sorting.size(); curr_block_idx++) {
++   result.sorting.push_back(move(sorting[curr_block_idx]));
++   result.payload.push_back(move(payload[curr_block_idx]));
++  }
++ }
++private:
++ idx_t curr_block_idx;
++ idx_t curr_entry_idx;
++ idx_t curr_block_end;
++ unique_ptr<BufferHandle> sorting_handle;
++ unique_ptr<BufferHandle> payload_handle;
+@@ -43 +108 @@ public:
+- const SelectionVector *sel_ptr = &FlatVector::IncrementalSelectionVector;
++ const SelectionVector *sel_ptr = &FlatVector::INCREMENTAL_SELECTION_VECTOR;
+@@ -134 +199 @@ template <class TYPE>
+-static int8_t templated_compare_value(data_ptr_t &l_val, data_ptr_t &r_val) {
++static int8_t TemplatedCompareValue(data_ptr_t &l_val, data_ptr_t &r_val) {
+@@ -145 +210,2 @@ static int8_t templated_compare_value(data_ptr_t &l_val, data_ptr_t &r_val) {
+-static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, data_ptr_t &l_val, data_ptr_t &r_val, const idx_t &sort_idx, OrderGlobalState &state) {
++static int32_t CompareValue(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, data_ptr_t &l_val, data_ptr_t &r_val,
++                            const idx_t &sort_idx, OrderGlobalState &state) {
+@@ -158 +224 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<int8_t>(l_val, r_val);
++  return TemplatedCompareValue<int8_t>(l_val, r_val);
+@@ -160 +226 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<int16_t>(l_val, r_val);
++  return TemplatedCompareValue<int16_t>(l_val, r_val);
+@@ -162 +228 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<int32_t>(l_val, r_val);
++  return TemplatedCompareValue<int32_t>(l_val, r_val);
+@@ -164 +230 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<int64_t>(l_val, r_val);
++  return TemplatedCompareValue<int64_t>(l_val, r_val);
+@@ -166 +232 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<uint8_t>(l_val, r_val);
++  return TemplatedCompareValue<uint8_t>(l_val, r_val);
+@@ -168 +234 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<uint16_t>(l_val, r_val);
++  return TemplatedCompareValue<uint16_t>(l_val, r_val);
+@@ -170 +236 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<uint32_t>(l_val, r_val);
++  return TemplatedCompareValue<uint32_t>(l_val, r_val);
+@@ -172 +238 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<uint64_t>(l_val, r_val);
++  return TemplatedCompareValue<uint64_t>(l_val, r_val);
+@@ -174 +240 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<hugeint_t>(l_val, r_val);
++  return TemplatedCompareValue<hugeint_t>(l_val, r_val);
+@@ -176 +242 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<float>(l_val, r_val);
++  return TemplatedCompareValue<float>(l_val, r_val);
+@@ -178 +244 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<double>(l_val, r_val);
++  return TemplatedCompareValue<double>(l_val, r_val);
+@@ -180 +246 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<string_t>(l_val, r_val);
++  return TemplatedCompareValue<string_t>(l_val, r_val);
+@@ -182 +248 @@ static int32_t compare_value(data_ptr_t &l_nullmask, data_ptr_t &r_nullmask, dat
+-  return templated_compare_value<interval_t>(l_val, r_val);
++  return TemplatedCompareValue<interval_t>(l_val, r_val);
+@@ -191 +257 @@ static int compare_tuple(data_ptr_t &l_start, data_ptr_t &r_start, OrderGlobalSt
+-  auto comp_res = compare_value(l_start, r_start, l_val, r_val, i, state);
++  auto comp_res = CompareValue(l_start, r_start, l_val, r_val, i, state);
+@@ -373,0 +447,11 @@ void PhysicalOrder::Finalize(Pipeline &pipeline, ClientContext &context, unique_
++class PhysicalOrderOperatorState : public PhysicalOperatorState {
++public:
++ PhysicalOrderOperatorState(PhysicalOperator &op, PhysicalOperator *child)
++     : PhysicalOperatorState(op, child), current_block(0), position(0) {
++ }
++ idx_t current_block;
++ idx_t position;
++};
++unique_ptr<PhysicalOperatorState> PhysicalOrder::GetOperatorState() {
++ return make_unique<PhysicalOrderOperatorState>(*this, children[0].get());
++}
+@@ -375,2 +459 @@ void PhysicalOrder::GetChunkInternal(ExecutionContext &context, DataChunk &chunk
+-<<<<<<< HEAD
+- auto state = reinterpret_cast<PhysicalOrderOperatorState *>(state_);
++ auto state = reinterpret_cast<PhysicalOrderOperatorState *>(state_p);
+@@ -383,11 +465,0 @@ void PhysicalOrder::GetChunkInternal(ExecutionContext &context, DataChunk &chunk
+-||||||| b0b8b00819
+- auto state = reinterpret_cast<PhysicalOrderOperatorState *>(state_);
+- auto &sink = (OrderByGlobalOperatorState &)*this->sink_state;
+- ChunkCollection &big_data = sink.sorted_data;
+- if (state->position >= big_data.Count()) {
+-=======
+- auto state = reinterpret_cast<PhysicalOrderOperatorState *>(state_p);
+- auto &sink = (OrderByGlobalOperatorState &)*this->sink_state;
+- ChunkCollection &big_data = sink.sorted_data;
+- if (state->position >= big_data.Count()) {
+->>>>>>> 78eab237
+@@ -405,3 +476,0 @@ void PhysicalOrder::GetChunkInternal(ExecutionContext &context, DataChunk &chunk
+-unique_ptr<PhysicalOperatorState> PhysicalOrder::GetOperatorState() {
+- return make_unique<PhysicalOrderOperatorState>(*this, children[0].get());
+-}
+@@ -419,75 +487,0 @@ string PhysicalOrder::ParamsToString() const {
+-PhysicalOrder::PhysicalOrder(vector<LogicalType> types, vector<BoundOrderByNode> orders): PhysicalSink(PhysicalOperatorType::ORDER_BY, move(types)), orders(move(orders)) {
+-}
+-struct ContinuousBlock {
+-public:
+- ContinuousBlock(BufferManager &buffer_manager_): buffer_manager(buffer_manager_), curr_block_idx(0) {
+- }
+- BufferManager &buffer_manager;
+- idx_t sorting_entry_size;
+- idx_t payload_entry_size;
+- vector<shared_ptr<RowDataBlock>> sorting;
+- vector<shared_ptr<RowDataBlock>> payload;
+- idx_t start;
+- idx_t end;
+- data_ptr_t sorting_ptr;
+- data_ptr_t payload_ptr;
+- bool IsDone() const {
+-  return curr_block_idx >= sorting.size();
+- }
+- void PinBlock() {
+-  if (IsDone()) {
+-   return;
+-  }
+-  curr_entry_idx = curr_block_idx == 0 ? start : 0;
+-  curr_block_end = curr_block_idx == sorting.size() - 1 ? end : sorting[curr_block_idx]->count;
+-  sorting_handle = buffer_manager.Pin(sorting[curr_block_idx]->block);
+-  payload_handle = buffer_manager.Pin(payload[curr_block_idx]->block);
+-  sorting_ptr = sorting_handle->node->buffer + curr_entry_idx * sorting_entry_size;
+-  payload_ptr = payload_handle->node->buffer + curr_entry_idx * payload_entry_size;
+- }
+- void Advance() {
+-  curr_entry_idx++;
+-  if (curr_entry_idx < curr_block_end) {
+-   sorting_ptr += sorting_entry_size;
+-   payload_ptr += payload_entry_size;
+-  } else {
+-   curr_block_idx++;
+-   PinBlock();
+-  }
+- }
+- void FlushData(ContinuousBlock &result) {
+-  if (result.sorting.back()->count + (curr_block_end - curr_entry_idx) > result.sorting.back()->capacity) {
+-   result.sorting.emplace_back(
+-       make_shared<RowDataBlock>(buffer_manager, sorting[0]->capacity, sorting_entry_size));
+-   result.payload.emplace_back(
+-       make_shared<RowDataBlock>(buffer_manager, payload[0]->capacity, payload_entry_size));
+-  }
+-  auto write_sort = result.sorting.back();
+-  auto write_payl = result.payload.back();
+-  auto write_sort_handle = buffer_manager.Pin(result.sorting.back()->block);
+-  auto write_payl_handle = buffer_manager.Pin(result.payload.back()->block);
+-  auto write_sort_ptr = write_sort_handle->node->buffer + write_sort->count * sorting_entry_size;
+-  auto write_payl_ptr = write_payl_handle->node->buffer + write_payl->count * payload_entry_size;
+-  for (; curr_entry_idx < curr_block_end; curr_entry_idx++) {
+-   memcpy(write_sort_ptr, sorting_ptr, sorting_entry_size);
+-   memcpy(write_payl_ptr, payload_ptr, payload_entry_size);
+-   write_sort_ptr += sorting_entry_size;
+-   write_payl_ptr += payload_entry_size;
+-   write_sort->count++;
+-   write_payl->count++;
+-   sorting_ptr += sorting_entry_size;
+-   payload_ptr += payload_entry_size;
+-  }
+-  curr_block_idx++;
+-  for (; curr_block_idx < sorting.size(); curr_block_idx++) {
+-   result.sorting.push_back(move(sorting[curr_block_idx]));
+-   result.payload.push_back(move(payload[curr_block_idx]));
+-  }
+- }
+-private:
+- idx_t curr_block_idx;
+- idx_t curr_entry_idx;
+- idx_t curr_block_end;
+- unique_ptr<BufferHandle> sorting_handle;
+- unique_ptr<BufferHandle> payload_handle;
+-};

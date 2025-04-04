@@ -1,0 +1,93 @@
+diff --git a/./output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_merged.cpp b/./output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_truth.cpp
+index 5f10205..8f0e20e 100644
+--- a/./output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_merged.cpp
++++ b/./output/frameworks_native/84218a21-9c647ace-5502d9f7/services@surfaceflinger@Scheduler@RefreshRateConfigs.no_comments_truth.cpp
+@@ -129 +128,0 @@ float RefreshRateConfigs::calculateLayerScoreLocked(const LayerRequirement& laye
+-    constexpr float kScoreForFractionalPairs = .8f;
+@@ -137,71 +135,0 @@ float RefreshRateConfigs::calculateLayerScoreLocked(const LayerRequirement& laye
+-<<<<<<< HEAD
+-||||||| 5502d9f7a2
+-    const auto displayPeriod = refreshRate.getVsyncPeriod();
+-    const auto layerPeriod = layer.desiredRefreshRate.getPeriodNsecs();
+-    if (layer.vote == LayerVoteType::ExplicitDefault) {
+-        auto actualLayerPeriod = displayPeriod;
+-        int multiplier = 1;
+-        while (layerPeriod > actualLayerPeriod + MARGIN_FOR_PERIOD_CALCULATION) {
+-            multiplier++;
+-            actualLayerPeriod = displayPeriod * multiplier;
+-        }
+-        return std::min(1.0f,
+-                        static_cast<float>(layerPeriod) / static_cast<float>(actualLayerPeriod));
+-    }
+-    if (layer.vote == LayerVoteType::ExplicitExactOrMultiple ||
+-        layer.vote == LayerVoteType::Heuristic) {
+-        const auto [displayFramesQuotient, displayFramesRemainder] =
+-                getDisplayFrames(layerPeriod, displayPeriod);
+-        static constexpr size_t MAX_FRAMES_TO_FIT = 10;
+-        if (displayFramesRemainder == 0) {
+-            return 1.0f * seamlessness;
+-        }
+-        if (displayFramesQuotient == 0) {
+-            return (static_cast<float>(layerPeriod) / static_cast<float>(displayPeriod)) *
+-                    (1.0f / (MAX_FRAMES_TO_FIT + 1));
+-        }
+-        auto diff = std::abs(displayFramesRemainder - (displayPeriod - displayFramesRemainder));
+-        int iter = 2;
+-        while (diff > MARGIN_FOR_PERIOD_CALCULATION && iter < MAX_FRAMES_TO_FIT) {
+-            diff = diff - (displayPeriod - diff);
+-            iter++;
+-        }
+-        return (1.0f / iter) * seamlessness;
+-    }
+-=======
+-    const auto displayPeriod = refreshRate.getVsyncPeriod();
+-    const auto layerPeriod = layer.desiredRefreshRate.getPeriodNsecs();
+-    if (layer.vote == LayerVoteType::ExplicitDefault) {
+-        auto actualLayerPeriod = displayPeriod;
+-        int multiplier = 1;
+-        while (layerPeriod > actualLayerPeriod + MARGIN_FOR_PERIOD_CALCULATION) {
+-            multiplier++;
+-            actualLayerPeriod = displayPeriod * multiplier;
+-        }
+-        return std::min(1.0f,
+-                        static_cast<float>(layerPeriod) / static_cast<float>(actualLayerPeriod));
+-    }
+-    if (layer.vote == LayerVoteType::ExplicitExactOrMultiple ||
+-        layer.vote == LayerVoteType::Heuristic) {
+-        if (isFractionalPairOrMultiple(refreshRate.getFps(), layer.desiredRefreshRate)) {
+-            return kScoreForFractionalPairs * seamlessness;
+-        }
+-        const auto [displayFramesQuotient, displayFramesRemainder] =
+-                getDisplayFrames(layerPeriod, displayPeriod);
+-        static constexpr size_t MAX_FRAMES_TO_FIT = 10;
+-        if (displayFramesRemainder == 0) {
+-            return 1.0f * seamlessness;
+-        }
+-        if (displayFramesQuotient == 0) {
+-            return (static_cast<float>(layerPeriod) / static_cast<float>(displayPeriod)) *
+-                    (1.0f / (MAX_FRAMES_TO_FIT + 1));
+-        }
+-        auto diff = std::abs(displayFramesRemainder - (displayPeriod - displayFramesRemainder));
+-        int iter = 2;
+-        while (diff > MARGIN_FOR_PERIOD_CALCULATION && iter < MAX_FRAMES_TO_FIT) {
+-            diff = diff - (displayPeriod - diff);
+-            iter++;
+-        }
+-        return (1.0f / iter) * seamlessness;
+-    }
+->>>>>>> 9c647ace
+@@ -809 +736,0 @@ int RefreshRateConfigs::getFrameRateDivider(Fps displayFrameRate, Fps layerFrame
+-<<<<<<< HEAD
+@@ -819,12 +745,0 @@ bool RefreshRateConfigs::isFractionalPairOrMultiple(Fps smaller, Fps bigger) {
+-||||||| 5502d9f7a2
+-=======
+-bool RefreshRateConfigs::isFractionalPairOrMultiple(Fps smaller, Fps bigger) {
+-    if (smaller.getValue() > bigger.getValue()) {
+-        return isFractionalPairOrMultiple(bigger, smaller);
+-    }
+-    const auto multiplier = std::round(bigger.getValue() / smaller.getValue());
+-    constexpr float kCoef = 1000.f / 1001.f;
+-    return bigger.equalsWithMargin(Fps(smaller.getValue() * multiplier / kCoef)) ||
+-            bigger.equalsWithMargin(Fps(smaller.getValue() * multiplier * kCoef));
+-}
+->>>>>>> 9c647ace

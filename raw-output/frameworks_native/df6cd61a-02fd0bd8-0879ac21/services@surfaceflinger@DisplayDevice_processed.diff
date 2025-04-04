@@ -1,0 +1,68 @@
+--- a/output/frameworks_native/df6cd61a-02fd0bd8-0879ac21/services@surfaceflinger@DisplayDevice.no_comments_mergebot.h
++++ b/output/frameworks_native/df6cd61a-02fd0bd8-0879ac21/services@surfaceflinger@DisplayDevice.no_comments_truth.h
+@@ -29 +28,0 @@
+-#include "Scheduler/RefreshRateConfigs.h"
+@@ -70,14 +69,3 @@ public:
+-void stageBrightness(float brightness)private:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
+-    scheduler::RefreshRateSelector& refreshRateSelector() const { return *mRefreshRateSelector; }
+-    std::shared_ptr<scheduler::RefreshRateSelector> holdRefreshRateSelector() const {
+-        return mRefreshRateSelector;
+-    }
+-void enableRefreshRateOverlay(bool enable, bool showSpinner, bool showRenderRate,
+-                                  bool showInMiddle)void persistBrightness(bool needsComposite)private:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
+-bool isBrightnessStale() constprivate:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
++    void stageBrightness(float brightness) REQUIRES(kMainThreadContext);
++    void persistBrightness(bool needsComposite) REQUIRES(kMainThreadContext);
++    bool isBrightnessStale() const REQUIRES(kMainThreadContext);
+@@ -88,3 +76 @@ public:
+-std::optional<float> getStagedBrightness() constprivate:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
++    std::optional<float> getStagedBrightness() const REQUIRES(kMainThreadContext);
+@@ -150,9 +136,4 @@ public:
+-DesiredActiveModeAction setDesiredActiveMode(const ActiveModeInfo&, bool force = false)private:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
+-std::optional<ActiveModeInfo> getDesiredActiveMode() constprivate:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
+-void clearDesiredActiveModeState()private:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
++    DesiredActiveModeAction setDesiredActiveMode(const ActiveModeInfo&, bool force = false)
++            EXCLUDES(mActiveModeLock);
++    std::optional<ActiveModeInfo> getDesiredActiveMode() const EXCLUDES(mActiveModeLock);
++    void clearDesiredActiveModeState() EXCLUDES(mActiveModeLock);
+@@ -159,0 +141,3 @@ ActiveModeInfo getUpcomingActiveMode() const REQUIRES(kMainThreadContext) {
++        return mUpcomingActiveMode;
++    }
++    scheduler::FrameRateMode getActiveMode() const REQUIRES(kMainThreadContext) {
+@@ -162,4 +146 @@ ActiveModeInfo getUpcomingActiveMode() const REQUIRES(kMainThreadContext) {
+-private:
+-                                       GUARDED_BY(kMainThreadContext);
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
++    void setActiveMode(DisplayModeId, Fps displayFps, Fps renderFps);
+@@ -169,3 +150,7 @@ public:
+-private:
+-                                       GUARDED_BY(kMainThreadContext);
+-public:
++            REQUIRES(kMainThreadContext);
++    scheduler::RefreshRateSelector& refreshRateSelector() const { return *mRefreshRateSelector; }
++    std::shared_ptr<scheduler::RefreshRateSelector> holdRefreshRateSelector() const {
++        return mRefreshRateSelector;
++    }
++    void enableRefreshRateOverlay(bool enable, bool showSpinner, bool showRenderRate,
++                                  bool showInMiddle) REQUIRES(kMainThreadContext);
+@@ -200 +185 @@ private:
+-ActiveModeInfo mDesiredActiveMode GUARDED_BY(kMainThreadContext);
++    ActiveModeInfo mDesiredActiveMode GUARDED_BY(mActiveModeLock);
+@@ -202 +187 @@ ActiveModeInfo mDesiredActiveMode GUARDED_BY(kMainThreadContext);
+-                                       GUARDED_BY(kMainThreadContext);
++            GUARDED_BY(mActiveModeLock) = {"DesiredActiveModeChanged", false};

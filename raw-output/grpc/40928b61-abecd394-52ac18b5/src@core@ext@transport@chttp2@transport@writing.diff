@@ -1,0 +1,606 @@
+diff --git a/output/grpc/40928b61-abecd394-52ac18b5/src@core@ext@transport@chttp2@transport@writing.no_comments_mergebot.cc b/output/grpc/40928b61-abecd394-52ac18b5/src@core@ext@transport@chttp2@transport@writing.no_comments_truth.cc
+index 5abeabf..ffaca91 100644
+--- a/output/grpc/40928b61-abecd394-52ac18b5/src@core@ext@transport@chttp2@transport@writing.no_comments_mergebot.cc
++++ b/output/grpc/40928b61-abecd394-52ac18b5/src@core@ext@transport@chttp2@transport@writing.no_comments_truth.cc
+@@ -109 +109,2 @@ static bool update_list(grpc_exec_ctx *exec_ctx, grpc_chttp2_transport *t,
+-static void report_stall(grpc_chttp2_transport *t, grpc_chttp2_stream *s, const char *staller) {
++static void report_stall(grpc_chttp2_transport *t, grpc_chttp2_stream *s,
++                         const char *staller) {
+@@ -175 +176,2 @@ public:
+-        grpc_chttp2_flowctl_maybe_send_transport_update(&t_->flow_control);
++        grpc_chttp2_flowctl_maybe_send_transport_update(&t_->flow_control,
++                                                        t_->outbuf.count > 0);
+@@ -177,2 +178,0 @@ public:
+-      maybe_initiate_ping(exec_ctx, t_,
+-                          GRPC_CHTTP2_PING_BEFORE_TRANSPORT_WINDOW_UPDATE);
+@@ -222,2 +222 @@ public:
+-      t_->ping_recv_state.last_ping_recv_time =
+-          gpr_inf_past(GPR_CLOCK_MONOTONIC);
++      t_->ping_recv_state.last_ping_recv_time = GRPC_MILLIS_INF_PAST;
+@@ -247 +246,6 @@ public:
+-  DataSendContext(WriteContext *write_context, grpc_chttp2_transport *t, grpc_chttp2_stream *s): write_context_(write_context), t_(t), s_(s), sending_bytes_before_(s_->sending_bytes) {}
++  DataSendContext(WriteContext *write_context, grpc_chttp2_transport *t,
++                  grpc_chttp2_stream *s)
++      : write_context_(write_context),
++        t_(t),
++        s_(s),
++        sending_bytes_before_(s_->sending_bytes) {}
+@@ -320 +324,5 @@ public:
+-  StreamWriteContext(WriteContext *write_context, grpc_chttp2_stream *s): write_context_(write_context), t_(write_context->transport()), s_(s), sent_initial_metadata_(s->sent_initial_metadata) {
++  StreamWriteContext(WriteContext *write_context, grpc_chttp2_stream *s)
++      : write_context_(write_context),
++        t_(write_context->transport()),
++        s_(s),
++        sent_initial_metadata_(s->sent_initial_metadata) {
+@@ -379,0 +388 @@ public:
++        report_stall(t_, s_, "transport");
+@@ -381,0 +391 @@ public:
++        report_stall(t_, s_, "stream");
+@@ -476 +485,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-<<<<<<< HEAD
+@@ -478,0 +488 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
++  ctx.FlushPingAcks();
+@@ -481,54 +490,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-||||||| 52ac18b54e
+-  grpc_chttp2_stream *s;
+-  int flow_control_writes = 0;
+-  int initial_metadata_writes = 0;
+-  int trailing_metadata_writes = 0;
+-  int message_writes = 0;
+-  GRPC_STATS_INC_HTTP2_WRITES_BEGUN(exec_ctx);
+-  GPR_TIMER_BEGIN("grpc_chttp2_begin_write", 0);
+-  if (t->dirtied_local_settings && !t->sent_local_settings) {
+-    grpc_slice_buffer_add(
+-        &t->outbuf,
+-        grpc_chttp2_settings_create(
+-            t->settings[GRPC_SENT_SETTINGS], t->settings[GRPC_LOCAL_SETTINGS],
+-            t->force_send_settings, GRPC_CHTTP2_NUM_SETTINGS));
+-    t->force_send_settings = 0;
+-    t->dirtied_local_settings = 0;
+-    t->sent_local_settings = 1;
+-    GRPC_STATS_INC_HTTP2_SETTINGS_WRITES(exec_ctx);
+-  }
+-  grpc_slice_buffer_move_into(&t->qbuf, &t->outbuf);
+-  GPR_ASSERT(t->qbuf.count == 0);
+-  grpc_chttp2_hpack_compressor_set_max_table_size(
+-      &t->hpack_compressor,
+-      t->settings[GRPC_PEER_SETTINGS][GRPC_CHTTP2_SETTINGS_HEADER_TABLE_SIZE]);
+-=======
+-  grpc_chttp2_stream *s;
+-  int flow_control_writes = 0;
+-  int initial_metadata_writes = 0;
+-  int trailing_metadata_writes = 0;
+-  int message_writes = 0;
+-  GRPC_STATS_INC_HTTP2_WRITES_BEGUN(exec_ctx);
+-  GPR_TIMER_BEGIN("grpc_chttp2_begin_write", 0);
+-  if (t->dirtied_local_settings && !t->sent_local_settings) {
+-    grpc_slice_buffer_add(
+-        &t->outbuf,
+-        grpc_chttp2_settings_create(
+-            t->settings[GRPC_SENT_SETTINGS], t->settings[GRPC_LOCAL_SETTINGS],
+-            t->force_send_settings, GRPC_CHTTP2_NUM_SETTINGS));
+-    t->force_send_settings = 0;
+-    t->dirtied_local_settings = 0;
+-    t->sent_local_settings = 1;
+-    GRPC_STATS_INC_HTTP2_SETTINGS_WRITES(exec_ctx);
+-  }
+-  for (size_t i = 0; i < t->ping_ack_count; i++) {
+-    grpc_slice_buffer_add(&t->outbuf,
+-                          grpc_chttp2_ping_create(1, t->ping_acks[i]));
+-  }
+-  t->ping_ack_count = 0;
+-  grpc_slice_buffer_move_into(&t->qbuf, &t->outbuf);
+-  GPR_ASSERT(t->qbuf.count == 0);
+-  grpc_chttp2_hpack_compressor_set_max_table_size(
+-      &t->hpack_compressor,
+-      t->settings[GRPC_PEER_SETTINGS][GRPC_CHTTP2_SETTINGS_HEADER_TABLE_SIZE]);
+->>>>>>> abecd394
+@@ -538 +493,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-<<<<<<< HEAD
+@@ -546,464 +500,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-||||||| 52ac18b54e
+-  while (true) {
+-    if (t->outbuf.length > target_write_size(t)) {
+-      result.partial = true;
+-      break;
+-    }
+-    if (!grpc_chttp2_list_pop_writable_stream(t, &s)) {
+-      break;
+-    }
+-    bool sent_initial_metadata = s->sent_initial_metadata;
+-    bool now_writing = false;
+-    GRPC_CHTTP2_IF_TRACING(
+-        gpr_log(GPR_DEBUG, "W:%p %s[%d] im-(sent,send)=(%d,%d) announce=%d", t,
+-                t->is_client ? "CLIENT" : "SERVER", s->id,
+-                sent_initial_metadata, s->send_initial_metadata != NULL,
+-                (int)(s->flow_control.local_window_delta -
+-                      s->flow_control.announced_window_delta)));
+-    grpc_mdelem *extra_headers_for_trailing_metadata[2];
+-    size_t num_extra_headers_for_trailing_metadata = 0;
+-    if (!sent_initial_metadata && s->send_initial_metadata != NULL) {
+-      if (t->is_client || s->fetching_send_message != NULL ||
+-          s->flow_controlled_buffer.length != 0 ||
+-          s->send_trailing_metadata == NULL ||
+-          !is_default_initial_metadata(s->send_initial_metadata)) {
+-        grpc_encode_header_options hopt = {
+-            s->id,
+-            false,
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_GRPC_ALLOW_TRUE_BINARY_METADATA] !=
+-                0,
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-            &s->stats.outgoing
+-        };
+-        grpc_chttp2_encode_header(exec_ctx, &t->hpack_compressor, NULL, 0,
+-                                  s->send_initial_metadata, &hopt, &t->outbuf);
+-        now_writing = true;
+-        if (!t->is_client) {
+-          t->ping_recv_state.last_ping_recv_time =
+-              gpr_inf_past(GPR_CLOCK_MONOTONIC);
+-          t->ping_recv_state.ping_strikes = 0;
+-        }
+-        initial_metadata_writes++;
+-      } else {
+-        GRPC_CHTTP2_IF_TRACING(
+-            gpr_log(GPR_INFO, "not sending initial_metadata (Trailers-Only)"));
+-        if (s->send_initial_metadata->idx.named.status != NULL) {
+-          extra_headers_for_trailing_metadata
+-              [num_extra_headers_for_trailing_metadata++] =
+-                  &s->send_initial_metadata->idx.named.status->md;
+-        }
+-        if (s->send_initial_metadata->idx.named.content_type != NULL) {
+-          extra_headers_for_trailing_metadata
+-              [num_extra_headers_for_trailing_metadata++] =
+-                  &s->send_initial_metadata->idx.named.content_type->md;
+-        }
+-        trailing_metadata_writes++;
+-      }
+-      s->send_initial_metadata = NULL;
+-      s->sent_initial_metadata = true;
+-      sent_initial_metadata = true;
+-      result.early_results_scheduled = true;
+-      grpc_chttp2_complete_closure_step(
+-          exec_ctx, t, s, &s->send_initial_metadata_finished, GRPC_ERROR_NONE,
+-          "send_initial_metadata_finished");
+-    }
+-    uint32_t stream_announce = grpc_chttp2_flowctl_maybe_send_stream_update(
+-        &t->flow_control, &s->flow_control);
+-    if (stream_announce > 0) {
+-      grpc_slice_buffer_add(
+-          &t->outbuf, grpc_chttp2_window_update_create(s->id, stream_announce,
+-                                                       &s->stats.outgoing));
+-      if (!t->is_client) {
+-        t->ping_recv_state.last_ping_recv_time =
+-            gpr_inf_past(GPR_CLOCK_MONOTONIC);
+-        t->ping_recv_state.ping_strikes = 0;
+-      }
+-      flow_control_writes++;
+-    }
+-    if (sent_initial_metadata) {
+-      if (s->flow_controlled_buffer.length > 0 ||
+-          s->compressed_data_buffer.length > 0) {
+-        uint32_t stream_remote_window = (uint32_t)GPR_MAX(
+-            0,
+-            s->flow_control.remote_window_delta +
+-                (int64_t)t->settings[GRPC_PEER_SETTINGS]
+-                                    [GRPC_CHTTP2_SETTINGS_INITIAL_WINDOW_SIZE]);
+-        uint32_t max_outgoing = (uint32_t)GPR_MIN(
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-            GPR_MIN(stream_remote_window, t->flow_control.remote_window));
+-        if (max_outgoing > 0) {
+-          bool is_last_data_frame = false;
+-          bool is_last_frame = false;
+-          size_t sending_bytes_before = s->sending_bytes;
+-          while ((s->flow_controlled_buffer.length > 0 ||
+-                  s->compressed_data_buffer.length > 0) &&
+-                 max_outgoing > 0) {
+-            if (s->compressed_data_buffer.length > 0) {
+-              uint32_t send_bytes = (uint32_t)GPR_MIN(
+-                  max_outgoing, s->compressed_data_buffer.length);
+-              is_last_data_frame =
+-                  (send_bytes == s->compressed_data_buffer.length &&
+-                   s->flow_controlled_buffer.length == 0 &&
+-                   s->fetching_send_message == NULL);
+-              if (is_last_data_frame && s->send_trailing_metadata != NULL &&
+-                  s->stream_compression_ctx != NULL) {
+-                if (!grpc_stream_compress(
+-                        s->stream_compression_ctx, &s->flow_controlled_buffer,
+-                        &s->compressed_data_buffer, NULL, MAX_SIZE_T,
+-                        GRPC_STREAM_COMPRESSION_FLUSH_FINISH)) {
+-                  gpr_log(GPR_ERROR, "Stream compression failed.");
+-                }
+-                grpc_stream_compression_context_destroy(
+-                    s->stream_compression_ctx);
+-                s->stream_compression_ctx = NULL;
+-                continue;
+-              }
+-              is_last_frame =
+-                  is_last_data_frame && s->send_trailing_metadata != NULL &&
+-                  grpc_metadata_batch_is_empty(s->send_trailing_metadata);
+-              grpc_chttp2_encode_data(s->id, &s->compressed_data_buffer,
+-                                      send_bytes, is_last_frame,
+-                                      &s->stats.outgoing, &t->outbuf);
+-              grpc_chttp2_flowctl_sent_data(&t->flow_control, &s->flow_control,
+-                                            send_bytes);
+-              max_outgoing -= send_bytes;
+-              if (s->compressed_data_buffer.length == 0) {
+-                s->sending_bytes += s->uncompressed_data_size;
+-              }
+-            } else {
+-              if (s->stream_compression_ctx == NULL) {
+-                s->stream_compression_ctx =
+-                    grpc_stream_compression_context_create(
+-                        s->stream_compression_method);
+-              }
+-              s->uncompressed_data_size = s->flow_controlled_buffer.length;
+-              if (!grpc_stream_compress(
+-                      s->stream_compression_ctx, &s->flow_controlled_buffer,
+-                      &s->compressed_data_buffer, NULL, MAX_SIZE_T,
+-                      GRPC_STREAM_COMPRESSION_FLUSH_SYNC)) {
+-                gpr_log(GPR_ERROR, "Stream compression failed.");
+-              }
+-            }
+-          }
+-          if (!t->is_client) {
+-            t->ping_recv_state.last_ping_recv_time =
+-                gpr_inf_past(GPR_CLOCK_MONOTONIC);
+-            t->ping_recv_state.ping_strikes = 0;
+-          }
+-          if (is_last_frame) {
+-            s->send_trailing_metadata = NULL;
+-            s->sent_trailing_metadata = true;
+-            if (!t->is_client && !s->read_closed) {
+-              grpc_slice_buffer_add(&t->outbuf, grpc_chttp2_rst_stream_create(
+-                                                    s->id, GRPC_HTTP2_NO_ERROR,
+-                                                    &s->stats.outgoing));
+-            }
+-            grpc_chttp2_mark_stream_closed(exec_ctx, t, s, !t->is_client, 1,
+-                                           GRPC_ERROR_NONE);
+-          }
+-          result.early_results_scheduled |=
+-              update_list(exec_ctx, t, s,
+-                          (int64_t)(s->sending_bytes - sending_bytes_before),
+-                          &s->on_flow_controlled_cbs,
+-                          &s->flow_controlled_bytes_flowed, GRPC_ERROR_NONE);
+-          now_writing = true;
+-          if (s->flow_controlled_buffer.length > 0 ||
+-              s->compressed_data_buffer.length > 0) {
+-            GRPC_CHTTP2_STREAM_REF(s, "chttp2_writing:fork");
+-            grpc_chttp2_list_add_writable_stream(t, s);
+-          }
+-          message_writes++;
+-        } else if (t->flow_control.remote_window == 0) {
+-          grpc_chttp2_list_add_stalled_by_transport(t, s);
+-          now_writing = true;
+-        } else if (stream_remote_window == 0) {
+-          grpc_chttp2_list_add_stalled_by_stream(t, s);
+-          now_writing = true;
+-        }
+-      }
+-      if (s->send_trailing_metadata != NULL &&
+-          s->fetching_send_message == NULL &&
+-          s->flow_controlled_buffer.length == 0 &&
+-          s->compressed_data_buffer.length == 0) {
+-        GRPC_CHTTP2_IF_TRACING(gpr_log(GPR_INFO, "sending trailing_metadata"));
+-        if (grpc_metadata_batch_is_empty(s->send_trailing_metadata)) {
+-          grpc_chttp2_encode_data(s->id, &s->flow_controlled_buffer, 0, true,
+-                                  &s->stats.outgoing, &t->outbuf);
+-        } else {
+-          grpc_encode_header_options hopt = {
+-              s->id, true,
+-              t->settings
+-                      [GRPC_PEER_SETTINGS]
+-                      [GRPC_CHTTP2_SETTINGS_GRPC_ALLOW_TRUE_BINARY_METADATA] !=
+-                  0,
+-              t->settings[GRPC_PEER_SETTINGS]
+-                         [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-              &s->stats.outgoing};
+-          grpc_chttp2_encode_header(exec_ctx, &t->hpack_compressor,
+-                                    extra_headers_for_trailing_metadata,
+-                                    num_extra_headers_for_trailing_metadata,
+-                                    s->send_trailing_metadata, &hopt,
+-                                    &t->outbuf);
+-          trailing_metadata_writes++;
+-        }
+-        s->send_trailing_metadata = NULL;
+-        s->sent_trailing_metadata = true;
+-        if (!t->is_client && !s->read_closed) {
+-          grpc_slice_buffer_add(
+-              &t->outbuf, grpc_chttp2_rst_stream_create(
+-                              s->id, GRPC_HTTP2_NO_ERROR, &s->stats.outgoing));
+-        }
+-        grpc_chttp2_mark_stream_closed(exec_ctx, t, s, !t->is_client, 1,
+-                                       GRPC_ERROR_NONE);
+-        now_writing = true;
+-        result.early_results_scheduled = true;
+-        grpc_chttp2_complete_closure_step(
+-            exec_ctx, t, s, &s->send_trailing_metadata_finished,
+-            GRPC_ERROR_NONE, "send_trailing_metadata_finished");
+-      }
+-    }
+-    if (now_writing) {
+-      GRPC_STATS_INC_HTTP2_SEND_INITIAL_METADATA_PER_WRITE(
+-          exec_ctx, initial_metadata_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_MESSAGE_PER_WRITE(exec_ctx, message_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_TRAILING_METADATA_PER_WRITE(
+-          exec_ctx, trailing_metadata_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_FLOWCTL_PER_WRITE(exec_ctx,
+-                                                  flow_control_writes);
+-=======
+-  while (true) {
+-    if (t->outbuf.length > target_write_size(t)) {
+-      result.partial = true;
+-      break;
+-    }
+-    if (!grpc_chttp2_list_pop_writable_stream(t, &s)) {
+-      break;
+-    }
+-    bool sent_initial_metadata = s->sent_initial_metadata;
+-    bool now_writing = false;
+-    GRPC_CHTTP2_IF_TRACING(
+-        gpr_log(GPR_DEBUG, "W:%p %s[%d] im-(sent,send)=(%d,%d) announce=%d", t,
+-                t->is_client ? "CLIENT" : "SERVER", s->id,
+-                sent_initial_metadata, s->send_initial_metadata != NULL,
+-                (int)(s->flow_control.local_window_delta -
+-                      s->flow_control.announced_window_delta)));
+-    grpc_mdelem *extra_headers_for_trailing_metadata[2];
+-    size_t num_extra_headers_for_trailing_metadata = 0;
+-    if (!sent_initial_metadata && s->send_initial_metadata != NULL) {
+-      if (t->is_client || s->fetching_send_message != NULL ||
+-          s->flow_controlled_buffer.length != 0 ||
+-          s->send_trailing_metadata == NULL ||
+-          !is_default_initial_metadata(s->send_initial_metadata)) {
+-        grpc_encode_header_options hopt = {
+-            s->id,
+-            false,
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_GRPC_ALLOW_TRUE_BINARY_METADATA] !=
+-                0,
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-            &s->stats.outgoing
+-        };
+-        grpc_chttp2_encode_header(exec_ctx, &t->hpack_compressor, NULL, 0,
+-                                  s->send_initial_metadata, &hopt, &t->outbuf);
+-        now_writing = true;
+-        if (!t->is_client) {
+-          t->ping_recv_state.last_ping_recv_time = GRPC_MILLIS_INF_PAST;
+-          t->ping_recv_state.ping_strikes = 0;
+-        }
+-        initial_metadata_writes++;
+-      } else {
+-        GRPC_CHTTP2_IF_TRACING(
+-            gpr_log(GPR_INFO, "not sending initial_metadata (Trailers-Only)"));
+-        if (s->send_initial_metadata->idx.named.status != NULL) {
+-          extra_headers_for_trailing_metadata
+-              [num_extra_headers_for_trailing_metadata++] =
+-                  &s->send_initial_metadata->idx.named.status->md;
+-        }
+-        if (s->send_initial_metadata->idx.named.content_type != NULL) {
+-          extra_headers_for_trailing_metadata
+-              [num_extra_headers_for_trailing_metadata++] =
+-                  &s->send_initial_metadata->idx.named.content_type->md;
+-        }
+-        trailing_metadata_writes++;
+-      }
+-      s->send_initial_metadata = NULL;
+-      s->sent_initial_metadata = true;
+-      sent_initial_metadata = true;
+-      result.early_results_scheduled = true;
+-      grpc_chttp2_complete_closure_step(
+-          exec_ctx, t, s, &s->send_initial_metadata_finished, GRPC_ERROR_NONE,
+-          "send_initial_metadata_finished");
+-    }
+-    uint32_t stream_announce = grpc_chttp2_flowctl_maybe_send_stream_update(
+-        &t->flow_control, &s->flow_control);
+-    if (stream_announce > 0) {
+-      grpc_slice_buffer_add(
+-          &t->outbuf, grpc_chttp2_window_update_create(s->id, stream_announce,
+-                                                       &s->stats.outgoing));
+-      if (!t->is_client) {
+-        t->ping_recv_state.last_ping_recv_time = GRPC_MILLIS_INF_PAST;
+-        t->ping_recv_state.ping_strikes = 0;
+-      }
+-      flow_control_writes++;
+-    }
+-    if (sent_initial_metadata) {
+-      if (s->flow_controlled_buffer.length > 0 ||
+-          s->compressed_data_buffer.length > 0) {
+-        uint32_t stream_remote_window = (uint32_t)GPR_MAX(
+-            0,
+-            s->flow_control.remote_window_delta +
+-                (int64_t)t->settings[GRPC_PEER_SETTINGS]
+-                                    [GRPC_CHTTP2_SETTINGS_INITIAL_WINDOW_SIZE]);
+-        uint32_t max_outgoing = (uint32_t)GPR_MIN(
+-            t->settings[GRPC_PEER_SETTINGS]
+-                       [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-            GPR_MIN(stream_remote_window, t->flow_control.remote_window));
+-        if (max_outgoing > 0) {
+-          bool is_last_data_frame = false;
+-          bool is_last_frame = false;
+-          size_t sending_bytes_before = s->sending_bytes;
+-          while ((s->flow_controlled_buffer.length > 0 ||
+-                  s->compressed_data_buffer.length > 0) &&
+-                 max_outgoing > 0) {
+-            if (s->compressed_data_buffer.length > 0) {
+-              uint32_t send_bytes = (uint32_t)GPR_MIN(
+-                  max_outgoing, s->compressed_data_buffer.length);
+-              is_last_data_frame =
+-                  (send_bytes == s->compressed_data_buffer.length &&
+-                   s->flow_controlled_buffer.length == 0 &&
+-                   s->fetching_send_message == NULL);
+-              if (is_last_data_frame && s->send_trailing_metadata != NULL &&
+-                  s->stream_compression_ctx != NULL) {
+-                if (!grpc_stream_compress(
+-                        s->stream_compression_ctx, &s->flow_controlled_buffer,
+-                        &s->compressed_data_buffer, NULL, MAX_SIZE_T,
+-                        GRPC_STREAM_COMPRESSION_FLUSH_FINISH)) {
+-                  gpr_log(GPR_ERROR, "Stream compression failed.");
+-                }
+-                grpc_stream_compression_context_destroy(
+-                    s->stream_compression_ctx);
+-                s->stream_compression_ctx = NULL;
+-                continue;
+-              }
+-              is_last_frame =
+-                  is_last_data_frame && s->send_trailing_metadata != NULL &&
+-                  grpc_metadata_batch_is_empty(s->send_trailing_metadata);
+-              grpc_chttp2_encode_data(s->id, &s->compressed_data_buffer,
+-                                      send_bytes, is_last_frame,
+-                                      &s->stats.outgoing, &t->outbuf);
+-              grpc_chttp2_flowctl_sent_data(&t->flow_control, &s->flow_control,
+-                                            send_bytes);
+-              max_outgoing -= send_bytes;
+-              if (s->compressed_data_buffer.length == 0) {
+-                s->sending_bytes += s->uncompressed_data_size;
+-              }
+-            } else {
+-              if (s->stream_compression_ctx == NULL) {
+-                s->stream_compression_ctx =
+-                    grpc_stream_compression_context_create(
+-                        s->stream_compression_method);
+-              }
+-              s->uncompressed_data_size = s->flow_controlled_buffer.length;
+-              if (!grpc_stream_compress(
+-                      s->stream_compression_ctx, &s->flow_controlled_buffer,
+-                      &s->compressed_data_buffer, NULL, MAX_SIZE_T,
+-                      GRPC_STREAM_COMPRESSION_FLUSH_SYNC)) {
+-                gpr_log(GPR_ERROR, "Stream compression failed.");
+-              }
+-            }
+-          }
+-          if (!t->is_client) {
+-            t->ping_recv_state.last_ping_recv_time = 0;
+-            t->ping_recv_state.ping_strikes = 0;
+-          }
+-          if (is_last_frame) {
+-            s->send_trailing_metadata = NULL;
+-            s->sent_trailing_metadata = true;
+-            if (!t->is_client && !s->read_closed) {
+-              grpc_slice_buffer_add(&t->outbuf, grpc_chttp2_rst_stream_create(
+-                                                    s->id, GRPC_HTTP2_NO_ERROR,
+-                                                    &s->stats.outgoing));
+-            }
+-            grpc_chttp2_mark_stream_closed(exec_ctx, t, s, !t->is_client, 1,
+-                                           GRPC_ERROR_NONE);
+-          }
+-          result.early_results_scheduled |=
+-              update_list(exec_ctx, t, s,
+-                          (int64_t)(s->sending_bytes - sending_bytes_before),
+-                          &s->on_flow_controlled_cbs,
+-                          &s->flow_controlled_bytes_flowed, GRPC_ERROR_NONE);
+-          now_writing = true;
+-          if (s->flow_controlled_buffer.length > 0 ||
+-              s->compressed_data_buffer.length > 0) {
+-            GRPC_CHTTP2_STREAM_REF(s, "chttp2_writing:fork");
+-            grpc_chttp2_list_add_writable_stream(t, s);
+-          }
+-          message_writes++;
+-        } else if (t->flow_control.remote_window == 0) {
+-          report_stall(t, s, "transport");
+-          grpc_chttp2_list_add_stalled_by_transport(t, s);
+-          now_writing = true;
+-        } else if (stream_remote_window == 0) {
+-          report_stall(t, s, "stream");
+-          grpc_chttp2_list_add_stalled_by_stream(t, s);
+-          now_writing = true;
+-        }
+-      }
+-      if (s->send_trailing_metadata != NULL &&
+-          s->fetching_send_message == NULL &&
+-          s->flow_controlled_buffer.length == 0 &&
+-          s->compressed_data_buffer.length == 0) {
+-        GRPC_CHTTP2_IF_TRACING(gpr_log(GPR_INFO, "sending trailing_metadata"));
+-        if (grpc_metadata_batch_is_empty(s->send_trailing_metadata)) {
+-          grpc_chttp2_encode_data(s->id, &s->flow_controlled_buffer, 0, true,
+-                                  &s->stats.outgoing, &t->outbuf);
+-        } else {
+-          grpc_encode_header_options hopt = {
+-              s->id, true,
+-              t->settings
+-                      [GRPC_PEER_SETTINGS]
+-                      [GRPC_CHTTP2_SETTINGS_GRPC_ALLOW_TRUE_BINARY_METADATA] !=
+-                  0,
+-              t->settings[GRPC_PEER_SETTINGS]
+-                         [GRPC_CHTTP2_SETTINGS_MAX_FRAME_SIZE],
+-              &s->stats.outgoing};
+-          grpc_chttp2_encode_header(exec_ctx, &t->hpack_compressor,
+-                                    extra_headers_for_trailing_metadata,
+-                                    num_extra_headers_for_trailing_metadata,
+-                                    s->send_trailing_metadata, &hopt,
+-                                    &t->outbuf);
+-          trailing_metadata_writes++;
+-        }
+-        s->send_trailing_metadata = NULL;
+-        s->sent_trailing_metadata = true;
+-        if (!t->is_client) {
+-          t->ping_recv_state.last_ping_recv_time = GRPC_MILLIS_INF_PAST;
+-          t->ping_recv_state.ping_strikes = 0;
+-        }
+-        if (!t->is_client && !s->read_closed) {
+-          grpc_slice_buffer_add(
+-              &t->outbuf, grpc_chttp2_rst_stream_create(
+-                              s->id, GRPC_HTTP2_NO_ERROR, &s->stats.outgoing));
+-        }
+-        grpc_chttp2_mark_stream_closed(exec_ctx, t, s, !t->is_client, 1,
+-                                       GRPC_ERROR_NONE);
+-        now_writing = true;
+-        result.early_results_scheduled = true;
+-        grpc_chttp2_complete_closure_step(
+-            exec_ctx, t, s, &s->send_trailing_metadata_finished,
+-            GRPC_ERROR_NONE, "send_trailing_metadata_finished");
+-      }
+-    }
+-    if (now_writing) {
+-      GRPC_STATS_INC_HTTP2_SEND_INITIAL_METADATA_PER_WRITE(
+-          exec_ctx, initial_metadata_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_MESSAGE_PER_WRITE(exec_ctx, message_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_TRAILING_METADATA_PER_WRITE(
+-          exec_ctx, trailing_metadata_writes);
+-      GRPC_STATS_INC_HTTP2_SEND_FLOWCTL_PER_WRITE(exec_ctx,
+-                                                  flow_control_writes);
+->>>>>>> abecd394
+@@ -1018 +508,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-<<<<<<< HEAD
+@@ -1020,25 +509,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-  ctx.FlushPingAcks();
+-  maybe_initiate_ping(exec_ctx, t, GRPC_CHTTP2_PING_ON_NEXT_WRITE);
+-||||||| 52ac18b54e
+-  uint32_t transport_announce =
+-      grpc_chttp2_flowctl_maybe_send_transport_update(&t->flow_control);
+-  if (transport_announce) {
+-    maybe_initiate_ping(exec_ctx, t,
+-                        GRPC_CHTTP2_PING_BEFORE_TRANSPORT_WINDOW_UPDATE);
+-    grpc_transport_one_way_stats throwaway_stats;
+-    grpc_slice_buffer_add(
+-        &t->outbuf, grpc_chttp2_window_update_create(0, transport_announce,
+-                                                     &throwaway_stats));
+-    if (!t->is_client) {
+-      t->ping_recv_state.last_ping_recv_time =
+-          gpr_inf_past(GPR_CLOCK_MONOTONIC);
+-      t->ping_recv_state.ping_strikes = 0;
+-    }
+-  }
+-  for (size_t i = 0; i < t->ping_ack_count; i++) {
+-    grpc_slice_buffer_add(&t->outbuf,
+-                          grpc_chttp2_ping_create(1, t->ping_acks[i]));
+-  }
+-  t->ping_ack_count = 0;
+-  maybe_initiate_ping(exec_ctx, t, GRPC_CHTTP2_PING_ON_NEXT_WRITE);
+-=======
+@@ -1046,13 +510,0 @@ grpc_chttp2_begin_write_result grpc_chttp2_begin_write(
+-  uint32_t transport_announce = grpc_chttp2_flowctl_maybe_send_transport_update(
+-      &t->flow_control, t->outbuf.count > 0);
+-  if (transport_announce) {
+-    grpc_transport_one_way_stats throwaway_stats;
+-    grpc_slice_buffer_add(
+-        &t->outbuf, grpc_chttp2_window_update_create(0, transport_announce,
+-                                                     &throwaway_stats));
+-    if (!t->is_client) {
+-      t->ping_recv_state.last_ping_recv_time = GRPC_MILLIS_INF_PAST;
+-      t->ping_recv_state.ping_strikes = 0;
+-    }
+-  }
+->>>>>>> abecd394

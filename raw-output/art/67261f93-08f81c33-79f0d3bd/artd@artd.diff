@@ -1,0 +1,57 @@
+diff --git a/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_mergebot.h b/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_truth.h
+index 964abe0..075777f 100644
+--- a/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_mergebot.h
++++ b/output/art/67261f93-08f81c33-79f0d3bd/artd@artd.no_comments_truth.h
+@@ -30 +30,2 @@ public:
+-  () = delete;{}
++  explicit ArtdCancellationSignal(std::function<int(pid_t, int)> kill_func)
++      : kill_(std::move(kill_func)) {}
+@@ -35,2 +36 @@ private:
+-bool is_cancelled_
+-  std::unordered_set<pid_t> pids_ GUARDED_BY(mu_);
++  bool is_cancelled_ GUARDED_BY(mu_) = false;
+@@ -43,2 +43,9 @@ public:
+-  () = delete;{}
+-  () = delete;{}
++  explicit Artd(std::unique_ptr<art::tools::SystemProperties> props =
++                    std::make_unique<art::tools::SystemProperties>(),
++                std::unique_ptr<ExecUtils> exec_utils = std::make_unique<ExecUtils>(),
++                std::function<int(pid_t, int)> kill_func = kill,
++                std::function<int(int, struct stat*)> fstat_func = fstat)
++      : props_(std::move(props)),
++        exec_utils_(std::move(exec_utils)),
++        kill_(std::move(kill_func)),
++        fstat_(std::move(fstat_func)) {}
+@@ -127 +134 @@ private:
+-                                                        GUARDED_BY(ofa_context_mu_);
++      EXCLUDES(ofa_context_mu_);
+@@ -129,8 +136,8 @@ private:
+-                                                        GUARDED_BY(ofa_context_mu_);
+-android::base::Result<const std::vector<std::string>*> GetBootClassPath() GUARDED_BY(ofa_context_mu_);
+-bool UseJitZygote() GUARDED_BY(ofa_context_mu_);
+-bool UseJitZygoteLocked() GUARDED_BY(ofa_context_mu_);
+-const std::string& GetUserDefinedBootImageLocations() GUARDED_BY(ofa_context_mu_);
+-const std::string& GetUserDefinedBootImageLocationsLocked() GUARDED_BY(ofa_context_mu_);
+-bool DenyArtApexDataFiles() GUARDED_BY(ofa_context_mu_);
+-bool DenyArtApexDataFilesLocked() GUARDED_BY(ofa_context_mu_);
++      EXCLUDES(cache_mu_);
++  android::base::Result<const std::vector<std::string>*> GetBootClassPath() EXCLUDES(cache_mu_);
++  bool UseJitZygote() EXCLUDES(cache_mu_);
++  bool UseJitZygoteLocked() REQUIRES(cache_mu_);
++  const std::string& GetUserDefinedBootImageLocations() EXCLUDES(cache_mu_);
++  const std::string& GetUserDefinedBootImageLocationsLocked() REQUIRES(cache_mu_);
++  bool DenyArtApexDataFiles() EXCLUDES(cache_mu_);
++  bool DenyArtApexDataFilesLocked() REQUIRES(cache_mu_);
+@@ -162,7 +169,5 @@ bool DenyArtApexDataFilesLocked() GUARDED_BY(ofa_context_mu_);
+-                                                        GUARDED_BY(ofa_context_mu_);
+-                                                        GUARDED_BY(ofa_context_mu_);
+-                                                        GUARDED_BY(ofa_context_mu_);
+-                                                        GUARDED_BY(ofa_context_mu_);
+-std::optional<bool> cached_use_jit_zygote_ GUARDED_BY(ofa_context_mu_);
+-std::optional<std::string> cached_user_defined_boot_image_locations_ GUARDED_BY(ofa_context_mu_);
+-std::optional<bool> cached_deny_art_apex_data_files_ GUARDED_BY(ofa_context_mu_);
++  std::optional<std::vector<std::string>> cached_boot_image_locations_ GUARDED_BY(cache_mu_);
++  std::optional<std::vector<std::string>> cached_boot_class_path_ GUARDED_BY(cache_mu_);
++  std::optional<bool> cached_use_jit_zygote_ GUARDED_BY(cache_mu_);
++  std::optional<std::string> cached_user_defined_boot_image_locations_ GUARDED_BY(cache_mu_);
++  std::optional<bool> cached_deny_art_apex_data_files_ GUARDED_BY(cache_mu_);

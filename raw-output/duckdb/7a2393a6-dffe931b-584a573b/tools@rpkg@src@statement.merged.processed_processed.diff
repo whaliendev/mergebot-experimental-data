@@ -1,0 +1,765 @@
+--- a/./output/duckdb/7a2393a6-dffe931b-584a573b/tools@rpkg@src@statement.no_comments_merged.cpp
++++ b/./output/duckdb/7a2393a6-dffe931b-584a573b/tools@rpkg@src@statement.no_comments_truth.cpp
+@@ -137,762 +136,0 @@ static cpp11::list construct_retlist(unique_ptr<PreparedStatement> stmt, const s
+-<<<<<<< HEAD
+-static SEXP allocate(const LogicalType &type, RProtector &r_varvalue, idx_t nrows) {
+- SEXP varvalue = NULL;
+- switch (type.id()) {
+- case LogicalTypeId::BOOLEAN:
+-  varvalue = r_varvalue.Protect(NEW_LOGICAL(nrows));
+-  break;
+- case LogicalTypeId::UTINYINT:
+- case LogicalTypeId::TINYINT:
+- case LogicalTypeId::SMALLINT:
+- case LogicalTypeId::USMALLINT:
+- case LogicalTypeId::INTEGER:
+-  varvalue = r_varvalue.Protect(NEW_INTEGER(nrows));
+-  break;
+- case LogicalTypeId::UINTEGER:
+- case LogicalTypeId::UBIGINT:
+- case LogicalTypeId::BIGINT:
+- case LogicalTypeId::HUGEINT:
+- case LogicalTypeId::FLOAT:
+- case LogicalTypeId::DOUBLE:
+- case LogicalTypeId::DECIMAL:
+- case LogicalTypeId::TIMESTAMP_SEC:
+- case LogicalTypeId::TIMESTAMP_MS:
+- case LogicalTypeId::TIMESTAMP:
+- case LogicalTypeId::TIMESTAMP_TZ:
+- case LogicalTypeId::TIMESTAMP_NS:
+- case LogicalTypeId::DATE:
+- case LogicalTypeId::TIME:
+- case LogicalTypeId::INTERVAL:
+-  varvalue = r_varvalue.Protect(NEW_NUMERIC(nrows));
+-  break;
+- case LogicalTypeId::LIST:
+-  varvalue = r_varvalue.Protect(NEW_LIST(nrows));
+-  break;
+- case LogicalTypeId::STRUCT: {
+-  cpp11::writable::list dest_list;
+-  for (const auto &child : StructType::GetChildTypes(type)) {
+-   const auto &name = child.first;
+-   const auto &child_type = child.second;
+-   RProtector child_protector;
+-   auto dest_child = allocate(child_type, child_protector, nrows);
+-   dest_list.push_back(cpp11::named_arg(name.c_str()) = std::move(dest_child));
+-  }
+-  dest_list.attr(R_ClassSymbol) = RStrings::get().dataframe_str;
+-  dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(nrows)};
+-  varvalue = r_varvalue.Protect(cpp11::as_sexp(dest_list));
+-  break;
+- }
+- case LogicalTypeId::VARCHAR: {
+-  auto wrapper = new DuckDBAltrepStringWrapper();
+-  wrapper->length = nrows;
+-  wrapper->string_data = std::unique_ptr<string_t[]>(new string_t[nrows]);
+-  wrapper->mask_data = std::unique_ptr<bool[]>(new bool[nrows]);
+-  cpp11::external_pointer<DuckDBAltrepStringWrapper> ptr(wrapper);
+-  varvalue = r_varvalue.Protect(R_new_altrep(AltrepString::rclass, ptr, R_NilValue));
+-  break;
+- }
+- case LogicalTypeId::UUID:
+-  varvalue = r_varvalue.Protect(NEW_STRING(nrows));
+-  break;
+- case LogicalTypeId::BLOB:
+-  varvalue = r_varvalue.Protect(NEW_LIST(nrows));
+-  break;
+- case LogicalTypeId::ENUM: {
+-  auto physical_type = type.InternalType();
+-  if (physical_type == PhysicalType::UINT64) {
+-   varvalue = r_varvalue.Protect(NEW_STRING(nrows));
+-  } else {
+-   varvalue = r_varvalue.Protect(NEW_INTEGER(nrows));
+-  }
+-  break;
+- }
+- default:
+-  cpp11::stop("rapi_execute: Unknown column type for execute: %s", type.ToString().c_str());
+- }
+- if (!varvalue) {
+-  throw std::bad_alloc();
+- }
+- return varvalue;
+-}
+-template <LogicalTypeId>
+-double ConvertTimestampValue(int64_t timestamp);
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_SEC>(int64_t timestamp) {
+- return static_cast<double>(timestamp);
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_MS>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::MSECS_PER_SEC;
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::MICROS_PER_SEC;
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_TZ>(int64_t timestamp) {
+- return ConvertTimestampValue<LogicalTypeId::TIMESTAMP>(timestamp);
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_NS>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::NANOS_PER_SEC;
+-}
+-template <LogicalTypeId LT>
+-void ConvertTimestampVector(Vector &src_vec, size_t count, SEXP &dest, uint64_t dest_offset) {
+- auto src_data = FlatVector::GetData<int64_t>(src_vec);
+- auto &mask = FlatVector::Validity(src_vec);
+- double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+- for (size_t row_idx = 0; row_idx < count; row_idx++) {
+-  dest_ptr[row_idx] = !mask.RowIsValid(row_idx) ? NA_REAL : ConvertTimestampValue<LT>(src_data[row_idx]);
+- }
+- SET_CLASS(dest, RStrings::get().POSIXct_POSIXt_str);
+- Rf_setAttrib(dest, RStrings::get().tzone_sym, RStrings::get().UTC_str);
+-}
+-std::once_flag nanosecond_coercion_warning;
+-static void transform(Vector &src_vec, SEXP &dest, idx_t dest_offset, idx_t n, bool integer64) {
+- switch (src_vec.GetType().id()) {
+- case LogicalTypeId::BOOLEAN:
+-  VectorToR<int8_t, uint32_t>(src_vec, n, LOGICAL_POINTER(dest), dest_offset, NA_LOGICAL);
+-  break;
+- case LogicalTypeId::UTINYINT:
+-  VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::TINYINT:
+-  VectorToR<int8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::USMALLINT:
+-  VectorToR<uint16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::SMALLINT:
+-  VectorToR<int16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::INTEGER:
+-  VectorToR<int32_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::TIMESTAMP_SEC:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_SEC>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_MS:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_MS>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_TZ:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_TZ>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_NS:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_NS>(src_vec, n, dest, dest_offset);
+-  std::call_once(nanosecond_coercion_warning, Rf_warning,
+-                 "Coercing nanoseconds to a lower resolution may result in a loss of data.");
+-  break;
+- case LogicalTypeId::DATE: {
+-  auto src_data = FlatVector::GetData<date_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   dest_ptr[row_idx] = !mask.RowIsValid(row_idx) ? NA_REAL : (double)int32_t(src_data[row_idx]);
+-  }
+-  SET_CLASS(dest, RStrings::get().Date_str);
+-  break;
+- }
+- case LogicalTypeId::TIME: {
+-  auto src_data = FlatVector::GetData<dtime_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    dest_ptr[row_idx] = src_data[row_idx].micros / Interval::MICROS_PER_SEC;
+-   }
+-  }
+-  SET_CLASS(dest, RStrings::get().difftime_str);
+-  Rf_setAttrib(dest, RStrings::get().units_sym, RStrings::get().secs_str);
+-  break;
+- }
+- case LogicalTypeId::INTERVAL: {
+-  auto src_data = FlatVector::GetData<interval_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    dest_ptr[row_idx] = Interval::GetMicro(src_data[row_idx]) / Interval::MICROS_PER_SEC;
+-   }
+-  }
+-  SET_CLASS(dest, RStrings::get().difftime_str);
+-  Rf_setAttrib(dest, RStrings::get().units_sym, RStrings::get().secs_str);
+-  break;
+- }
+- case LogicalTypeId::UINTEGER:
+-  VectorToR<uint32_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::UBIGINT:
+-  if (integer64) {
+-   VectorToR<uint64_t, int64_t>(src_vec, n, NUMERIC_POINTER(dest), dest_offset,
+-                                NumericLimits<int64_t>::Minimum());
+-   Rf_setAttrib(dest, R_ClassSymbol, RStrings::get().integer64_str);
+-  } else {
+-   VectorToR<uint64_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  }
+-  break;
+- case LogicalTypeId::BIGINT:
+-  if (integer64) {
+-   VectorToR<int64_t, int64_t>(src_vec, n, NUMERIC_POINTER(dest), dest_offset,
+-                               NumericLimits<int64_t>::Minimum());
+-   Rf_setAttrib(dest, R_ClassSymbol, RStrings::get().integer64_str);
+-  } else {
+-   VectorToR<int64_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  }
+-  break;
+- case LogicalTypeId::HUGEINT: {
+-  auto src_data = FlatVector::GetData<hugeint_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    Hugeint::TryCast(src_data[row_idx], dest_ptr[row_idx]);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::DECIMAL: {
+-  auto &decimal_type = src_vec.GetType();
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  auto dec_scale = DecimalType::GetScale(decimal_type);
+-  switch (decimal_type.InternalType()) {
+-  case PhysicalType::INT16:
+-   RDecimalCastLoop<int16_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT32:
+-   RDecimalCastLoop<int32_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT64:
+-   RDecimalCastLoop<int64_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT128:
+-   RDecimalCastLoop<hugeint_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  default:
+-   throw NotImplementedException("Unimplemented internal type for DECIMAL");
+-  }
+-  break;
+- }
+- case LogicalTypeId::FLOAT:
+-  VectorToR<float, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::DOUBLE:
+-  VectorToR<double, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::VARCHAR: {
+-  auto wrapper = (DuckDBAltrepStringWrapper *)R_ExternalPtrAddr(R_altrep_data1(dest));
+-  auto src_data = FlatVector::GetData<string_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   auto valid = mask.RowIsValid(row_idx);
+-   auto dest_idx = dest_offset + row_idx;
+-   wrapper->mask_data[dest_idx] = valid;
+-   if (valid) {
+-    wrapper->string_data[dest_idx] =
+-        src_data[row_idx].IsInlined() ? src_data[row_idx] : wrapper->heap.AddString(src_data[row_idx]);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::LIST: {
+-  auto src_data = ListVector::GetData(src_vec);
+-  auto &child_type = ListType::GetChildType(src_vec.GetType());
+-  Vector child_vector(child_type, nullptr);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
+-    SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
+-   } else {
+-    const auto end = src_data[row_idx].offset + src_data[row_idx].length;
+-    child_vector.Slice(ListVector::GetEntry(src_vec), src_data[row_idx].offset, end);
+-    RProtector ele_prot;
+-    auto list_element =
+-        allocate(ListType::GetChildType(src_vec.GetType()), ele_prot, src_data[row_idx].length);
+-    transform(child_vector, list_element, 0, src_data[row_idx].length, integer64);
+-    SET_ELEMENT(dest, dest_offset + row_idx, list_element);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::STRUCT: {
+-  const auto &children = StructVector::GetEntries(src_vec);
+-  for (size_t i = 0; i < children.size(); i++) {
+-   const auto &struct_child = children[i];
+-   SEXP child_dest = VECTOR_ELT(dest, i);
+-   transform(*struct_child, child_dest, dest_offset, n, integer64);
+-  }
+-  break;
+- }
+- case LogicalTypeId::BLOB: {
+-  auto src_ptr = FlatVector::GetData<string_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    SET_VECTOR_ELT(dest, dest_offset + row_idx, R_NilValue);
+-   } else {
+-    SEXP rawval = NEW_RAW(src_ptr[row_idx].GetSize());
+-    if (!rawval) {
+-     throw std::bad_alloc();
+-    }
+-    memcpy(RAW_POINTER(rawval), src_ptr[row_idx].GetDataUnsafe(), src_ptr[row_idx].GetSize());
+-    SET_VECTOR_ELT(dest, dest_offset + row_idx, rawval);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::ENUM: {
+-  auto physical_type = src_vec.GetType().InternalType();
+-  auto dummy = NEW_STRING(1);
+-  ptrdiff_t sexp_header_size = (data_ptr_t)DATAPTR(dummy) - (data_ptr_t)dummy;
+-  if (physical_type == PhysicalType::UINT64) {
+-   auto src_ptr = FlatVector::GetData<uint64_t>(src_vec);
+-   auto &mask = FlatVector::Validity(src_vec);
+-   for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-    if (!mask.RowIsValid(row_idx)) {
+-     SET_STRING_ELT(dest, dest_offset + row_idx, NA_STRING);
+-    } else {
+-     SET_STRING_ELT(dest, dest_offset + row_idx,
+-                    (SEXP)((data_ptr_t)src_ptr[row_idx] - sexp_header_size));
+-    }
+-   }
+-   break;
+-  }
+-  switch (physical_type) {
+-  case PhysicalType::UINT8:
+-   VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  case PhysicalType::UINT16:
+-   VectorToR<uint16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  case PhysicalType::UINT32:
+-   VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  default:
+-   cpp11::stop("rapi_execute: Unknown enum type for convert: %s", TypeIdToString(physical_type).c_str());
+-  }
+-  auto dest_ptr = ((int32_t *)INTEGER_POINTER(dest)) + dest_offset;
+-  for (idx_t i = 0; i < n; i++) {
+-   if (dest_ptr[i] == NA_INTEGER) {
+-    continue;
+-   }
+-   dest_ptr[i]++;
+-  }
+-  auto &str_vec = EnumType::GetValuesInsertOrder(src_vec.GetType());
+-  auto size = EnumType::GetSize(src_vec.GetType());
+-  vector<string> str_c_vec(size);
+-  for (idx_t i = 0; i < size; i++) {
+-   str_c_vec[i] = str_vec.GetValue(i).ToString();
+-  }
+-  SET_LEVELS(dest, StringsToSexp(str_c_vec));
+-  SET_CLASS(dest, RStrings::get().factor_str);
+-  break;
+- }
+- case LogicalTypeId::UUID: {
+-  auto src_ptr = FlatVector::GetData<hugeint_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    SET_STRING_ELT(dest, dest_offset + row_idx, NA_STRING);
+-   } else {
+-    char uuid_buf[UUID::STRING_SIZE];
+-    UUID::ToString(src_ptr[row_idx], uuid_buf);
+-    SET_STRING_ELT(dest, dest_offset + row_idx, Rf_mkCharLen(uuid_buf, UUID::STRING_SIZE));
+-   }
+-  }
+-  break;
+- }
+- default:
+-  cpp11::stop("rapi_execute: Unknown column type for convert: %s", src_vec.GetType().ToString().c_str());
+-  break;
+- }
+-}
+-||||||| 584a573b5e
+-static SEXP allocate(const LogicalType &type, RProtector &r_varvalue, idx_t nrows) {
+- SEXP varvalue = NULL;
+- switch (type.id()) {
+- case LogicalTypeId::BOOLEAN:
+-  varvalue = r_varvalue.Protect(NEW_LOGICAL(nrows));
+-  break;
+- case LogicalTypeId::UTINYINT:
+- case LogicalTypeId::TINYINT:
+- case LogicalTypeId::SMALLINT:
+- case LogicalTypeId::USMALLINT:
+- case LogicalTypeId::INTEGER:
+-  varvalue = r_varvalue.Protect(NEW_INTEGER(nrows));
+-  break;
+- case LogicalTypeId::UINTEGER:
+- case LogicalTypeId::UBIGINT:
+- case LogicalTypeId::BIGINT:
+- case LogicalTypeId::HUGEINT:
+- case LogicalTypeId::FLOAT:
+- case LogicalTypeId::DOUBLE:
+- case LogicalTypeId::DECIMAL:
+- case LogicalTypeId::TIMESTAMP_SEC:
+- case LogicalTypeId::TIMESTAMP_MS:
+- case LogicalTypeId::TIMESTAMP:
+- case LogicalTypeId::TIMESTAMP_TZ:
+- case LogicalTypeId::TIMESTAMP_NS:
+- case LogicalTypeId::DATE:
+- case LogicalTypeId::TIME:
+- case LogicalTypeId::INTERVAL:
+-  varvalue = r_varvalue.Protect(NEW_NUMERIC(nrows));
+-  break;
+- case LogicalTypeId::LIST:
+-  varvalue = r_varvalue.Protect(NEW_LIST(nrows));
+-  break;
+- case LogicalTypeId::STRUCT: {
+-  cpp11::writable::list dest_list;
+-  for (const auto &child : StructType::GetChildTypes(type)) {
+-   const auto &name = child.first;
+-   const auto &child_type = child.second;
+-   RProtector child_protector;
+-   auto dest_child = allocate(child_type, child_protector, nrows);
+-   dest_list.push_back(cpp11::named_arg(name.c_str()) = std::move(dest_child));
+-  }
+-  dest_list.attr(R_ClassSymbol) = RStrings::get().dataframe_str;
+-  dest_list.attr(R_RowNamesSymbol) = {NA_INTEGER, -static_cast<int>(nrows)};
+-  varvalue = r_varvalue.Protect(cpp11::as_sexp(dest_list));
+-  break;
+- }
+- case LogicalTypeId::JSON:
+- case LogicalTypeId::VARCHAR: {
+-  auto wrapper = new DuckDBAltrepStringWrapper();
+-  wrapper->length = nrows;
+-  wrapper->string_data = std::unique_ptr<string_t[]>(new string_t[nrows]);
+-  wrapper->mask_data = std::unique_ptr<bool[]>(new bool[nrows]);
+-  cpp11::external_pointer<DuckDBAltrepStringWrapper> ptr(wrapper);
+-  varvalue = r_varvalue.Protect(R_new_altrep(AltrepString::rclass, ptr, R_NilValue));
+-  break;
+- }
+- case LogicalTypeId::UUID:
+-  varvalue = r_varvalue.Protect(NEW_STRING(nrows));
+-  break;
+- case LogicalTypeId::BLOB:
+-  varvalue = r_varvalue.Protect(NEW_LIST(nrows));
+-  break;
+- case LogicalTypeId::ENUM: {
+-  auto physical_type = type.InternalType();
+-  if (physical_type == PhysicalType::UINT64) {
+-   varvalue = r_varvalue.Protect(NEW_STRING(nrows));
+-  } else {
+-   varvalue = r_varvalue.Protect(NEW_INTEGER(nrows));
+-  }
+-  break;
+- }
+- default:
+-  cpp11::stop("rapi_execute: Unknown column type for execute: %s", type.ToString().c_str());
+- }
+- if (!varvalue) {
+-  throw std::bad_alloc();
+- }
+- return varvalue;
+-}
+-template <LogicalTypeId>
+-double ConvertTimestampValue(int64_t timestamp);
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_SEC>(int64_t timestamp) {
+- return static_cast<double>(timestamp);
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_MS>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::MSECS_PER_SEC;
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::MICROS_PER_SEC;
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_TZ>(int64_t timestamp) {
+- return ConvertTimestampValue<LogicalTypeId::TIMESTAMP>(timestamp);
+-}
+-template <>
+-double ConvertTimestampValue<LogicalTypeId::TIMESTAMP_NS>(int64_t timestamp) {
+- return static_cast<double>(timestamp) / Interval::NANOS_PER_SEC;
+-}
+-template <LogicalTypeId LT>
+-void ConvertTimestampVector(Vector &src_vec, size_t count, SEXP &dest, uint64_t dest_offset) {
+- auto src_data = FlatVector::GetData<int64_t>(src_vec);
+- auto &mask = FlatVector::Validity(src_vec);
+- double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+- for (size_t row_idx = 0; row_idx < count; row_idx++) {
+-  dest_ptr[row_idx] = !mask.RowIsValid(row_idx) ? NA_REAL : ConvertTimestampValue<LT>(src_data[row_idx]);
+- }
+- SET_CLASS(dest, RStrings::get().POSIXct_POSIXt_str);
+- Rf_setAttrib(dest, RStrings::get().tzone_sym, RStrings::get().UTC_str);
+-}
+-std::once_flag nanosecond_coercion_warning;
+-static void transform(Vector &src_vec, SEXP &dest, idx_t dest_offset, idx_t n, bool integer64) {
+- switch (src_vec.GetType().id()) {
+- case LogicalTypeId::BOOLEAN:
+-  VectorToR<int8_t, uint32_t>(src_vec, n, LOGICAL_POINTER(dest), dest_offset, NA_LOGICAL);
+-  break;
+- case LogicalTypeId::UTINYINT:
+-  VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::TINYINT:
+-  VectorToR<int8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::USMALLINT:
+-  VectorToR<uint16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::SMALLINT:
+-  VectorToR<int16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::INTEGER:
+-  VectorToR<int32_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-  break;
+- case LogicalTypeId::TIMESTAMP_SEC:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_SEC>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_MS:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_MS>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_TZ:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_TZ>(src_vec, n, dest, dest_offset);
+-  break;
+- case LogicalTypeId::TIMESTAMP_NS:
+-  ConvertTimestampVector<LogicalTypeId::TIMESTAMP_NS>(src_vec, n, dest, dest_offset);
+-  std::call_once(nanosecond_coercion_warning, Rf_warning,
+-                 "Coercing nanoseconds to a lower resolution may result in a loss of data.");
+-  break;
+- case LogicalTypeId::DATE: {
+-  auto src_data = FlatVector::GetData<date_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   dest_ptr[row_idx] = !mask.RowIsValid(row_idx) ? NA_REAL : (double)int32_t(src_data[row_idx]);
+-  }
+-  SET_CLASS(dest, RStrings::get().Date_str);
+-  break;
+- }
+- case LogicalTypeId::TIME: {
+-  auto src_data = FlatVector::GetData<dtime_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    dest_ptr[row_idx] = src_data[row_idx].micros / Interval::MICROS_PER_SEC;
+-   }
+-  }
+-  SET_CLASS(dest, RStrings::get().difftime_str);
+-  Rf_setAttrib(dest, RStrings::get().units_sym, RStrings::get().secs_str);
+-  break;
+- }
+- case LogicalTypeId::INTERVAL: {
+-  auto src_data = FlatVector::GetData<interval_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    dest_ptr[row_idx] = Interval::GetMicro(src_data[row_idx]) / Interval::MICROS_PER_SEC;
+-   }
+-  }
+-  SET_CLASS(dest, RStrings::get().difftime_str);
+-  Rf_setAttrib(dest, RStrings::get().units_sym, RStrings::get().secs_str);
+-  break;
+- }
+- case LogicalTypeId::UINTEGER:
+-  VectorToR<uint32_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::UBIGINT:
+-  if (integer64) {
+-   VectorToR<uint64_t, int64_t>(src_vec, n, NUMERIC_POINTER(dest), dest_offset,
+-                                NumericLimits<int64_t>::Minimum());
+-   Rf_setAttrib(dest, R_ClassSymbol, RStrings::get().integer64_str);
+-  } else {
+-   VectorToR<uint64_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  }
+-  break;
+- case LogicalTypeId::BIGINT:
+-  if (integer64) {
+-   VectorToR<int64_t, int64_t>(src_vec, n, NUMERIC_POINTER(dest), dest_offset,
+-                               NumericLimits<int64_t>::Minimum());
+-   Rf_setAttrib(dest, R_ClassSymbol, RStrings::get().integer64_str);
+-  } else {
+-   VectorToR<int64_t, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  }
+-  break;
+- case LogicalTypeId::HUGEINT: {
+-  auto src_data = FlatVector::GetData<hugeint_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    dest_ptr[row_idx] = NA_REAL;
+-   } else {
+-    Hugeint::TryCast(src_data[row_idx], dest_ptr[row_idx]);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::DECIMAL: {
+-  auto &decimal_type = src_vec.GetType();
+-  double *dest_ptr = ((double *)NUMERIC_POINTER(dest)) + dest_offset;
+-  auto dec_scale = DecimalType::GetScale(decimal_type);
+-  switch (decimal_type.InternalType()) {
+-  case PhysicalType::INT16:
+-   RDecimalCastLoop<int16_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT32:
+-   RDecimalCastLoop<int32_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT64:
+-   RDecimalCastLoop<int64_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  case PhysicalType::INT128:
+-   RDecimalCastLoop<hugeint_t>(src_vec, n, dest_ptr, dec_scale);
+-   break;
+-  default:
+-   throw NotImplementedException("Unimplemented internal type for DECIMAL");
+-  }
+-  break;
+- }
+- case LogicalTypeId::FLOAT:
+-  VectorToR<float, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::DOUBLE:
+-  VectorToR<double, double>(src_vec, n, NUMERIC_POINTER(dest), dest_offset, NA_REAL);
+-  break;
+- case LogicalTypeId::JSON:
+- case LogicalTypeId::VARCHAR: {
+-  auto wrapper = (DuckDBAltrepStringWrapper *)R_ExternalPtrAddr(R_altrep_data1(dest));
+-  auto src_data = FlatVector::GetData<string_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   auto valid = mask.RowIsValid(row_idx);
+-   auto dest_idx = dest_offset + row_idx;
+-   wrapper->mask_data[dest_idx] = valid;
+-   if (valid) {
+-    wrapper->string_data[dest_idx] =
+-        src_data[row_idx].IsInlined() ? src_data[row_idx] : wrapper->heap.AddString(src_data[row_idx]);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::LIST: {
+-  auto src_data = ListVector::GetData(src_vec);
+-  auto &child_type = ListType::GetChildType(src_vec.GetType());
+-  Vector child_vector(child_type, nullptr);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!FlatVector::Validity(src_vec).RowIsValid(row_idx)) {
+-    SET_ELEMENT(dest, dest_offset + row_idx, R_NilValue);
+-   } else {
+-    const auto end = src_data[row_idx].offset + src_data[row_idx].length;
+-    child_vector.Slice(ListVector::GetEntry(src_vec), src_data[row_idx].offset, end);
+-    RProtector ele_prot;
+-    auto list_element =
+-        allocate(ListType::GetChildType(src_vec.GetType()), ele_prot, src_data[row_idx].length);
+-    transform(child_vector, list_element, 0, src_data[row_idx].length, integer64);
+-    SET_ELEMENT(dest, dest_offset + row_idx, list_element);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::STRUCT: {
+-  const auto &children = StructVector::GetEntries(src_vec);
+-  for (size_t i = 0; i < children.size(); i++) {
+-   const auto &struct_child = children[i];
+-   SEXP child_dest = VECTOR_ELT(dest, i);
+-   transform(*struct_child, child_dest, dest_offset, n, integer64);
+-  }
+-  break;
+- }
+- case LogicalTypeId::BLOB: {
+-  auto src_ptr = FlatVector::GetData<string_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    SET_VECTOR_ELT(dest, dest_offset + row_idx, R_NilValue);
+-   } else {
+-    SEXP rawval = NEW_RAW(src_ptr[row_idx].GetSize());
+-    if (!rawval) {
+-     throw std::bad_alloc();
+-    }
+-    memcpy(RAW_POINTER(rawval), src_ptr[row_idx].GetDataUnsafe(), src_ptr[row_idx].GetSize());
+-    SET_VECTOR_ELT(dest, dest_offset + row_idx, rawval);
+-   }
+-  }
+-  break;
+- }
+- case LogicalTypeId::ENUM: {
+-  auto physical_type = src_vec.GetType().InternalType();
+-  auto dummy = NEW_STRING(1);
+-  ptrdiff_t sexp_header_size = (data_ptr_t)DATAPTR(dummy) - (data_ptr_t)dummy;
+-  if (physical_type == PhysicalType::UINT64) {
+-   auto src_ptr = FlatVector::GetData<uint64_t>(src_vec);
+-   auto &mask = FlatVector::Validity(src_vec);
+-   for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-    if (!mask.RowIsValid(row_idx)) {
+-     SET_STRING_ELT(dest, dest_offset + row_idx, NA_STRING);
+-    } else {
+-     SET_STRING_ELT(dest, dest_offset + row_idx,
+-                    (SEXP)((data_ptr_t)src_ptr[row_idx] - sexp_header_size));
+-    }
+-   }
+-   break;
+-  }
+-  switch (physical_type) {
+-  case PhysicalType::UINT8:
+-   VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  case PhysicalType::UINT16:
+-   VectorToR<uint16_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  case PhysicalType::UINT32:
+-   VectorToR<uint8_t, uint32_t>(src_vec, n, INTEGER_POINTER(dest), dest_offset, NA_INTEGER);
+-   break;
+-  default:
+-   cpp11::stop("rapi_execute: Unknown enum type for convert: %s", TypeIdToString(physical_type).c_str());
+-  }
+-  auto dest_ptr = ((int32_t *)INTEGER_POINTER(dest)) + dest_offset;
+-  for (idx_t i = 0; i < n; i++) {
+-   if (dest_ptr[i] == NA_INTEGER) {
+-    continue;
+-   }
+-   dest_ptr[i]++;
+-  }
+-  auto &str_vec = EnumType::GetValuesInsertOrder(src_vec.GetType());
+-  auto size = EnumType::GetSize(src_vec.GetType());
+-  vector<string> str_c_vec(size);
+-  for (idx_t i = 0; i < size; i++) {
+-   str_c_vec[i] = str_vec.GetValue(i).ToString();
+-  }
+-  SET_LEVELS(dest, StringsToSexp(str_c_vec));
+-  SET_CLASS(dest, RStrings::get().factor_str);
+-  break;
+- }
+- case LogicalTypeId::UUID: {
+-  auto src_ptr = FlatVector::GetData<hugeint_t>(src_vec);
+-  auto &mask = FlatVector::Validity(src_vec);
+-  for (size_t row_idx = 0; row_idx < n; row_idx++) {
+-   if (!mask.RowIsValid(row_idx)) {
+-    SET_STRING_ELT(dest, dest_offset + row_idx, NA_STRING);
+-   } else {
+-    char uuid_buf[UUID::STRING_SIZE];
+-    UUID::ToString(src_ptr[row_idx], uuid_buf);
+-    SET_STRING_ELT(dest, dest_offset + row_idx, Rf_mkCharLen(uuid_buf, UUID::STRING_SIZE));
+-   }
+-  }
+-  break;
+- }
+- default:
+-  cpp11::stop("rapi_execute: Unknown column type for convert: %s", src_vec.GetType().ToString().c_str());
+-  break;
+- }
+-}
+-=======
+->>>>>>> dffe931b

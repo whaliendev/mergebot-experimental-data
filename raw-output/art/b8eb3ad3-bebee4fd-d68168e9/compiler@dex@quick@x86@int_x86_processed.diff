@@ -1,0 +1,60 @@
+--- a/output/art/b8eb3ad3-bebee4fd-d68168e9/compiler@dex@quick@x86@int_x86.no_comments_mergebot.cc
++++ b/output/art/b8eb3ad3-bebee4fd-d68168e9/compiler@dex@quick@x86@int_x86.no_comments_truth.cc
+@@ -166,2 +166,15 @@ void X86Mir2Lir::OpRegCopyWide(RegStorage r_dest, RegStorage r_src) {
+-void X86Mir2Lir::GenSelectConst01(RegStorage left_op, RegStorage right_op, ConditionCode code, bool true_val, RegStorage rs_dest) {
+-  LoadConstant(rs_dest, 0);
++void X86Mir2Lir::GenSelectConst32(RegStorage left_op, RegStorage right_op, ConditionCode code,
++                                  int32_t true_val, int32_t false_val, RegStorage rs_dest,
++                                  int dest_reg_class) {
++  DCHECK(!left_op.IsPair() && !right_op.IsPair() && !rs_dest.IsPair());
++  DCHECK(!left_op.IsFloat() && !right_op.IsFloat() && !rs_dest.IsFloat());
++  if (true_val == false_val) {
++    LoadConstantNoClobber(rs_dest, true_val);
++    return;
++  }
++  const bool dest_intersect = IsSameReg(rs_dest, left_op) || IsSameReg(rs_dest, right_op);
++  const bool zero_one_case = (true_val == 0 && false_val == 1) || (true_val == 1 && false_val == 0);
++  if (zero_one_case && IsByteRegister(rs_dest)) {
++    if (!dest_intersect) {
++      LoadConstantNoClobber(rs_dest, 0);
++    }
+@@ -170 +183,3 @@ void X86Mir2Lir::GenSelectConst01(RegStorage left_op, RegStorage right_op, Condi
+-          X86ConditionEncoding(true_val ? code : FlipComparisonOrder(code)));
++            X86ConditionEncoding(true_val == 1 ? code : FlipComparisonOrder(code)));
++    if (dest_intersect) {
++      NewLIR2(rs_dest.Is64Bit() ? kX86Movzx8qRR : kX86Movzx8RR, rs_dest.GetReg(), rs_dest.GetReg());
+@@ -172,5 +187,27 @@ void X86Mir2Lir::GenSelectConst01(RegStorage left_op, RegStorage right_op, Condi
+-void X86Mir2Lir::GenSelectConst32(RegStorage left_op, RegStorage right_op, ConditionCode code, int32_t true_val, int32_t false_val, RegStorage rs_dest, int dest_reg_class) {
+-  if ((true_val == 0 && false_val == 1) || (true_val == 1 && false_val == 0)) {
+-    if (rs_dest.Is64Bit() || rs_dest.GetRegNum() < 4) {
+-      GenSelectConst01(left_op, right_op, code, true_val == 1, rs_dest);
+-      return;
++  } else {
++    RegStorage temp_reg = AllocTypedTemp(false, dest_reg_class, false);
++    if (temp_reg.Valid()) {
++      if (false_val == 0 && dest_intersect) {
++        code = FlipComparisonOrder(code);
++        std::swap(true_val, false_val);
++      }
++      if (!dest_intersect) {
++        LoadConstantNoClobber(rs_dest, false_val);
++      }
++      LoadConstantNoClobber(temp_reg, true_val);
++      OpRegReg(kOpCmp, left_op, right_op);
++      if (dest_intersect) {
++        LoadConstantNoClobber(rs_dest, false_val);
++        DCHECK(!last_lir_insn_->u.m.def_mask->HasBit(ResourceMask::kCCode));
++      }
++      OpCondRegReg(kOpCmov, code, rs_dest, temp_reg);
++      FreeTemp(temp_reg);
++    } else {
++      LIR* cmp_branch = OpCmpBranch(code, left_op, right_op, nullptr);
++      LoadConstantNoClobber(rs_dest, false_val);
++      LIR* that_is_it = NewLIR1(kX86Jmp8, 0);
++      LIR* true_case = NewLIR0(kPseudoTargetLabel);
++      cmp_branch->target = true_case;
++      LoadConstantNoClobber(rs_dest, true_val);
++      LIR* end = NewLIR0(kPseudoTargetLabel);
++      that_is_it->target = end;
+@@ -179 +215,0 @@ void X86Mir2Lir::GenSelectConst32(RegStorage left_op, RegStorage right_op, Condi
+-  UNIMPLEMENTED(FATAL) << "General GenSelectConst32 not implemented for x86.";

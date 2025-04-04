@@ -1,0 +1,111 @@
+--- a/output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_mergebot.c
++++ b/output/system_core/fdfb9a01-5d1d32dc-83cda925/lmkd@lmkd.no_comments_truth.c
+@@ -220,0 +251,2 @@ static struct proc *pidhash[PIDHASH_SZ];
++#define pid_hashfn(x) ((((x) >> 8) ^ (x)) & (PIDHASH_SZ - 1))
++#define ADJTOSLOT(adj) ((adj) + -OOM_SCORE_ADJ_MIN)
+@@ -367,0 +400,5 @@ static bool writefilestring(const char *path, const char *s,
++static inline long get_time_diff_ms(struct timespec *from,
++                                    struct timespec *to) {
++    return (to->tv_sec - from->tv_sec) * (long)MS_PER_SEC +
++           (to->tv_nsec - from->tv_nsec) / (long)NS_PER_MS;
++}
+@@ -634 +670,0 @@ static void ctrl_command_handler(int dsock_idx) {
+-<<<<<<< HEAD
+@@ -648,8 +683,0 @@ static void ctrl_command_handler(int dsock_idx) {
+-||||||| 83cda925e
+-=======
+-    case LMK_PROCPURGE:
+-        if (nargs != 0)
+-            goto wronglen;
+-        cmd_procpurge();
+-        break;
+->>>>>>> 5d1d32dc
+@@ -768,64 +795,0 @@ static int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {
+-#ifdef LMKD_LOG_STATS
+-static void memory_stat_parse_line(char* line, struct memory_stat* mem_st) {
+-    char key[LINE_MAX + 1];
+-    int64_t value;
+-    sscanf(line, "%" STRINGIFY(LINE_MAX) "s  %" SCNd64 "", key, &value);
+-    if (strcmp(key, "total_") < 0) {
+-        return;
+-    }
+-    if (!strcmp(key, "total_pgfault"))
+-        mem_st->pgfault = value;
+-    else if (!strcmp(key, "total_pgmajfault"))
+-        mem_st->pgmajfault = value;
+-    else if (!strcmp(key, "total_rss"))
+-        mem_st->rss_in_bytes = value;
+-    else if (!strcmp(key, "total_cache"))
+-        mem_st->cache_in_bytes = value;
+-    else if (!strcmp(key, "total_swap"))
+-        mem_st->swap_in_bytes = value;
+-}
+-static int memory_stat_from_cgroup(struct memory_stat* mem_st, int pid, uid_t uid) {
+-    FILE* fp;
+-    char buf[PATH_MAX];
+-    snprintf(buf, sizeof(buf), MEMCG_PROCESS_MEMORY_STAT_PATH, uid, pid);
+-    fp = fopen(buf, "r");
+-    if (fp == NULL) {
+-        ALOGE("%s open failed: %s", buf, strerror(errno));
+-        return -1;
+-    }
+-    while (fgets(buf, PAGE_SIZE, fp) != NULL) {
+-        memory_stat_parse_line(buf, mem_st);
+-    }
+-    fclose(fp);
+-    return 0;
+-}
+-static int memory_stat_from_procfs(struct memory_stat* mem_st, int pid) {
+-    char path[PATH_MAX];
+-    char buffer[PROC_STAT_BUFFER_SIZE];
+-    int fd, ret;
+-    snprintf(path, sizeof(path), PROC_STAT_FILE_PATH, pid);
+-    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {
+-        ALOGE("%s open failed: %s", path, strerror(errno));
+-        return -1;
+-    }
+-    ret = read(fd, buffer, sizeof(buffer));
+-    if (ret < 0) {
+-        ALOGE("%s read failed: %s", path, strerror(errno));
+-        close(fd);
+-        return -1;
+-    }
+-    close(fd);
+-    int64_t pgfault = 0, pgmajfault = 0, rss_in_pages = 0;
+-    if (sscanf(buffer,
+-               "%*u %*s %*s %*d %*d %*d %*d %*d %*d %" SCNd64 " %*d "
+-               "%" SCNd64 " %*d %*u %*u %*d %*d %*d %*d %*d %*d "
+-               "%*d %*d %" SCNd64 "",
+-               &pgfault, &pgmajfault, &rss_in_pages) != 3) {
+-        return -1;
+-    }
+-    mem_st->pgfault = pgfault;
+-    mem_st->pgmajfault = pgmajfault;
+-    mem_st->rss_in_bytes = (rss_in_pages * PAGE_SIZE);
+-    return 0;
+-}
+-#endif
+@@ -1094 +1057,0 @@ static int kill_one_process(struct proc* procp, int min_oom_score) {
+-<<<<<<< HEAD
+@@ -1101,8 +1063,0 @@ static int kill_one_process(struct proc* procp, int min_oom_score) {
+-||||||| 83cda925e
+-                    mem_st.cache_in_bytes, mem_st.swap_in_bytes);
+-=======
+-                    mem_st.cache_in_bytes, mem_st.swap_in_bytes);
+-        } else if (enable_stats_log) {
+-            stats_write_lmk_kill_occurred(log_ctx, LMK_KILL_OCCURRED, uid, taskname, procp->oomadj,
+-                                          -1, -1, tasksize * BYTES_IN_KILOBYTE, -1, -1);
+->>>>>>> 5d1d32dc
+@@ -1198,5 +1152,0 @@ enum vmpressure_level downgrade_level(enum vmpressure_level level) {
+-static inline long get_time_diff_ms(struct timespec *from,
+-                                    struct timespec *to) {
+-    return (to->tv_sec - from->tv_sec) * (long)MS_PER_SEC +
+-           (to->tv_nsec - from->tv_nsec) / (long)NS_PER_MS;
+-}
+@@ -1626 +1575,0 @@ int main(int argc __unused, char **argv __unused) {
+-<<<<<<< HEAD
+@@ -1632,4 +1580,0 @@ int main(int argc __unused, char **argv __unused) {
+-||||||| 83cda925e
+-=======
+-    per_app_memcg = property_get_bool("ro.config.per_app_memcg", low_ram_device);
+->>>>>>> 5d1d32dc

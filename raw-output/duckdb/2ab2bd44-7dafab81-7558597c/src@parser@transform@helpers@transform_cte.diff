@@ -1,0 +1,76 @@
+diff --git a/output/duckdb/2ab2bd44-7dafab81-7558597c/src@parser@transform@helpers@transform_cte.no_comments_mergebot.cpp b/output/duckdb/2ab2bd44-7dafab81-7558597c/src@parser@transform@helpers@transform_cte.no_comments_truth.cpp
+index 80ee1e1..8f7c037 100644
+--- a/output/duckdb/2ab2bd44-7dafab81-7558597c/src@parser@transform@helpers@transform_cte.no_comments_mergebot.cpp
++++ b/output/duckdb/2ab2bd44-7dafab81-7558597c/src@parser@transform@helpers@transform_cte.no_comments_truth.cpp
+@@ -29,56 +29,2 @@ void Transformer::ExtractCTEsRecursive(CommonTableExpressionMap &cte_map) {
+-void Transformer::TransformCTE(duckdb_libpgquery::PGWithClause *de_with_clause, CommonTableExpressionMap &cte_map, vector<unique_ptr<CTENode>> *materialized_ctes) {
+- D_ASSERT(de_with_clause);
+- stored_cte_map.push_back(&cte_map);
+- D_ASSERT(de_with_clause->ctes);
+- for (auto cte_ele = de_with_clause->ctes->head; cte_ele != nullptr; cte_ele = cte_ele->next) {
+-  auto info = make_uniq<CommonTableExpressionInfo>();
+-  auto cte = reinterpret_cast<duckdb_libpgquery::PGCommonTableExpr *>(cte_ele->data.ptr_value);
+-  if (cte->aliascolnames) {
+-   for (auto node = cte->aliascolnames->head; node != nullptr; node = node->next) {
+-    info->aliases.emplace_back(
+-        reinterpret_cast<duckdb_libpgquery::PGValue *>(node->data.ptr_value)->val.str);
+-   }
+-  }
+-  if (cte->ctecolnames) {
+-   throw NotImplementedException("Column name setting not supported in CTEs");
+-  }
+-  if (cte->ctecoltypes) {
+-   throw NotImplementedException("Column type setting not supported in CTEs");
+-  }
+-  if (cte->ctecoltypmods) {
+-   throw NotImplementedException("Column type modification not supported in CTEs");
+-  }
+-  if (cte->ctecolcollations) {
+-   throw NotImplementedException("CTE collations not supported");
+-  }
+-  if (!cte->ctequery || cte->ctequery->type != duckdb_libpgquery::T_PGSelectStmt) {
+-   throw NotImplementedException("A CTE needs a SELECT");
+-  }
+-  if (cte->cterecursive || de_with_clause->recursive) {
+-   info->query = TransformRecursiveCTE(cte, *info);
+-  } else {
+-   Transformer cte_transformer(*this);
+-   info->query = cte_transformer.TransformSelect(cte->ctequery);
+-  }
+-  D_ASSERT(info->query);
+-  auto cte_name = string(cte->ctename);
+-  auto it = cte_map.map.find(cte_name);
+-  if (it != cte_map.map.end()) {
+-   throw ParserException("Duplicate CTE name \"%s\"", cte_name);
+-  }
+-#ifdef DUCKDB_ALTERNATIVE_VERIFY
+-  if (materialized_ctes && cte->ctematerialized == duckdb_libpgquery::PGCTEMaterializeDefault) {
+-#else
+-  if (materialized_ctes && cte->ctematerialized == duckdb_libpgquery::PGCTEMaterializeAlways) {
+-#endif
+-   auto materialize = make_uniq<CTENode>();
+-   materialize->query = info->query->node->Copy();
+-   materialize->ctename = cte_name;
+-   materialize->aliases = info->aliases;
+-   materialized_ctes->push_back(std::move(materialize));
+-   info->materialized = CTEMaterialize::CTE_MATERIALIZE_ALWAYS;
+-  }
+-  cte_map.map[cte_name] = std::move(info);
+- }
+-}
+-void Transformer::TransformCTE(duckdb_libpgquery::PGWithClause &de_with_clause, CommonTableExpressionMap &cte_map) {
++void Transformer::TransformCTE(duckdb_libpgquery::PGWithClause &de_with_clause, CommonTableExpressionMap &cte_map,
++                               vector<unique_ptr<CTENode>> &materialized_ctes) {
+@@ -123,0 +70,12 @@ void Transformer::TransformCTE(duckdb_libpgquery::PGWithClause &de_with_clause,
++#ifdef DUCKDB_ALTERNATIVE_VERIFY
++  if (cte.ctematerialized == duckdb_libpgquery::PGCTEMaterializeDefault) {
++#else
++  if (cte.ctematerialized == duckdb_libpgquery::PGCTEMaterializeAlways) {
++#endif
++   auto materialize = make_uniq<CTENode>();
++   materialize->query = info->query->node->Copy();
++   materialize->ctename = cte_name;
++   materialize->aliases = info->aliases;
++   materialized_ctes.push_back(std::move(materialize));
++   info->materialized = CTEMaterialize::CTE_MATERIALIZE_ALWAYS;
++  }

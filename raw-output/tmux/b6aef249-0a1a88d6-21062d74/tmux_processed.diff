@@ -1,0 +1,128 @@
+--- a/output/tmux/b6aef249-0a1a88d6-21062d74/tmux.no_comments_mergebot.h
++++ b/output/tmux/b6aef249-0a1a88d6-21062d74/tmux.no_comments_truth.h
+@@ -4 +3,0 @@
+-#include <sys/param.h>
+@@ -6,6 +4,0 @@
+-#include <sys/queue.h>
+-#include <bitstring.h>
+-#include <imsg.h>
+-#include <sys/tree.h>
+-#include <stdint.h>
+-#include <getopt.h>
+@@ -15 +7,0 @@
+-#include <signal.h>
+@@ -29,0 +22,2 @@ extern char **environ;
++#define fatal(msg) log_fatal("%s: %s", __func__, msg);
++#define fatalx(msg) log_fatalx("%s: %s", __func__, msg);
+@@ -30,0 +25 @@ extern char **environ;
++#define printflike(a,b) __attribute__ ((format (printf, a, b)))
+@@ -142,0 +306 @@ struct tty_term_code_entry {
++ARRAY_DECL(causelist, char *);
+@@ -182,0 +467 @@ struct mode_key_binding {
++RB_HEAD(mode_key_tree, mode_key_binding);
+@@ -223,9 +508,7 @@ struct utf8_data {
+-struct grid_line {
+- u_int cellsize;
+- struct grid_cell *celldata;
+- int flags;
+-} __packed;
+-struct grid_line {
+- u_int cellsize;
+- struct grid_cell *celldata;
+- int flags;
++struct grid_cell {
++ u_char attr;
++ u_char flags;
++ u_char fg;
++ u_char bg;
++ u_char xstate;
++ u_char xdata[UTF8_SIZE];
+@@ -273,0 +557 @@ struct job {
++LIST_HEAD(joblist, job);
+@@ -300,0 +585,4 @@ struct screen_write_ctx {
++#define screen_size_x(s) ((s)->grid->sx)
++#define screen_size_y(s) ((s)->grid->sy)
++#define screen_hsize(s) ((s)->grid->hsize)
++#define screen_hlimit(s) ((s)->grid->hlimit)
+@@ -406,4 +694,2 @@ struct window_pane {
+-                       RB_ENTRY(window_pane)
+-                       tree_entry;
+-                       RB_ENTRY(window_pane)
+-                       RB_ENTRY(window_pane)
++ TAILQ_ENTRY(window_pane) entry;
++ RB_ENTRY(window_pane) tree_entry;
+@@ -410,0 +697,3 @@ struct window_pane {
++TAILQ_HEAD(window_panes, window_pane);
++RB_HEAD(window_pane_tree, window_pane);
++ARRAY_DECL(window_pane_list, struct window_pane *);
+@@ -433,0 +723 @@ struct window {
++ARRAY_DECL(windows, struct window *);
+@@ -447,0 +738,2 @@ struct winlink {
++RB_HEAD(winlinks, winlink);
++TAILQ_HEAD(winlink_stack, winlink);
+@@ -450,0 +745 @@ LAYOUT_LEFTRIGHT,LAYOUT_TOPBOTTOM, LAYOUT_WINDOWPANE
++TAILQ_HEAD(layout_cells, layout_cell);
+@@ -468,6 +763,2 @@ struct paste_buffer {
+-                        time_entry;
+-                        time_entry;
+-                        name_entry;
+-                        time_entry;
+-                        time_entry;
+-                        time_entry;
++ RB_ENTRY(paste_buffer) name_entry;
++ RB_ENTRY(paste_buffer) time_entry;
+@@ -479,0 +771 @@ struct environ_entry {
++RB_HEAD(environ, environ_entry);
+@@ -483,0 +776 @@ TAILQ_ENTRY(session_group) entry;
++TAILQ_HEAD(session_groups, session_group);
+@@ -503,2 +796 @@ struct session {
+- RB_ENTRY(session) entry;
+- RB_ENTRY(session) entry;
++ TAILQ_ENTRY(session) gentry;
+@@ -506,0 +799,2 @@ struct session {
++RB_HEAD(sessions, session);
++ARRAY_DECL(sessionslist, struct session *);
+@@ -517 +811 @@ struct tty_term {
+- LIST_ENTRY(tty_term) entry;
++ char acs[UCHAR_MAX + 1][2];
+@@ -523,0 +818 @@ struct tty_term {
++LIST_HEAD(tty_terms, tty_term);
+@@ -612,0 +908 @@ struct status_out {
++RB_HEAD(status_out_tree, status_out);
+@@ -676,0 +973 @@ ARRAY_DECL(, struct message_entry) message_log;
++ARRAY_DECL(clients, struct client *);
+@@ -681,0 +979 @@ struct args_entry {
++RB_HEAD(args_tree, args_entry);
+@@ -698,0 +997 @@ struct cmd_list {
++};
+@@ -705,0 +1008 @@ struct cmd_q_item {
++TAILQ_HEAD(cmd_q_items, cmd_q_item);
+@@ -737,3 +1040 @@ struct key_binding {
+-                       entry;
+-                       entry;
+-                       entry;
++ RB_ENTRY(key_binding) entry;
+@@ -740,0 +1042 @@ struct key_binding {
++RB_HEAD(key_bindings, key_binding);
+@@ -758,0 +1068 @@ struct format_entry {
++RB_HEAD(format_tree, format_entry);
+@@ -794,0 +1105 @@ int format_cmp(struct format_entry *, struct format_entry *);
++RB_PROTOTYPE(format_tree, format_entry, entry, format_cmp);
+@@ -817,0 +1129 @@ int mode_key_cmp(struct mode_key_binding *, struct mode_key_binding *);
++RB_PROTOTYPE(mode_key_tree, mode_key_binding, entry, mode_key_cmp);
+@@ -837,0 +1150 @@ int options_cmp(struct options_entry *, struct options_entry *);
++RB_PROTOTYPE(options_tree, options_entry, entry, options_cmp);
+@@ -866,0 +1180 @@ int environ_cmp(struct environ_entry *, struct environ_entry *);
++RB_PROTOTYPE(environ, environ_entry, entry, environ_cmp);
+@@ -958,0 +1273 @@ int args_cmp(struct args_entry *, struct args_entry *);
++RB_PROTOTYPE(args_tree, args_entry, entry, args_cmp);
+@@ -1094,0 +1410 @@ int key_bindings_cmp(struct key_binding *, struct key_binding *);
++RB_PROTOTYPE(key_bindings, key_binding, entry, key_bindings_cmp);
+@@ -1150,0 +1467 @@ int status_out_cmp(struct status_out *, struct status_out *);
++RB_PROTOTYPE(status_out_tree, status_out, entry, status_out_cmp);
+@@ -1288,0 +1606 @@ int winlink_cmp(struct winlink *, struct winlink *);
++RB_PROTOTYPE(winlinks, winlink, entry, winlink_cmp);
+@@ -1289,0 +1608 @@ int window_pane_cmp(struct window_pane *, struct window_pane *);
++RB_PROTOTYPE(window_pane_tree, window_pane, tree_entry, window_pane_cmp);
+@@ -1446,0 +1766 @@ int session_cmp(struct session *, struct session *);
++RB_PROTOTYPE(sessions, session, entry, session_cmp);

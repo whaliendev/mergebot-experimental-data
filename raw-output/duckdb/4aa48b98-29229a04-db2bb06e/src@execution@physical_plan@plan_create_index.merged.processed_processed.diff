@@ -1,0 +1,76 @@
+--- a/./output/duckdb/4aa48b98-29229a04-db2bb06e/src@execution@physical_plan@plan_create_index.no_comments_merged.cpp
++++ b/./output/duckdb/4aa48b98-29229a04-db2bb06e/src@execution@physical_plan@plan_create_index.no_comments_truth.cpp
+@@ -39 +39 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-  select_list.push_back(move(op.expressions[i]));
++  select_list.push_back(std::move(op.expressions[i]));
+@@ -43,2 +43,3 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+- auto projection = make_unique<PhysicalProjection>(new_column_types, move(select_list), op.estimated_cardinality);
+- projection->children.push_back(move(table_scan));
++ auto projection =
++     make_unique<PhysicalProjection>(new_column_types, std::move(select_list), op.estimated_cardinality);
++ projection->children.push_back(std::move(table_scan));
+@@ -51 +51,0 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-<<<<<<< HEAD
+@@ -53,10 +52,0 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-  is_not_null_expr->children.push_back(move(bound_ref));
+-  filter_select_list.push_back(move(is_not_null_expr));
+-||||||| db2bb06ef5
+-  auto bound_ref =
+-      make_unique<BoundReferenceExpression>(op.info->names[op.info->column_ids[i]], op.info->scan_types[i], i);
+-  is_not_null_expr->children.push_back(move(bound_ref));
+-  filter_select_list.push_back(move(is_not_null_expr));
+-=======
+-  auto bound_ref =
+-      make_unique<BoundReferenceExpression>(op.info->names[op.info->column_ids[i]], op.info->scan_types[i], i);
+@@ -65 +54,0 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+->>>>>>> 29229a04
+@@ -67 +55,0 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-<<<<<<< HEAD
+@@ -69,7 +57 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-     make_unique<PhysicalFilter>(move(filter_types), move(filter_select_list), op.estimated_cardinality);
+-||||||| db2bb06ef5
+- auto null_filter = make_unique<PhysicalFilter>(move(filter_types), move(filter_select_list), STANDARD_VECTOR_SIZE);
+-=======
+- auto null_filter =
+-     make_unique<PhysicalFilter>(std::move(filter_types), std::move(filter_select_list), STANDARD_VECTOR_SIZE);
+->>>>>>> 29229a04
++     make_unique<PhysicalFilter>(std::move(filter_types), std::move(filter_select_list), op.estimated_cardinality);
+@@ -77,2 +59 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-<<<<<<< HEAD
+- null_filter->children.push_back(move(projection));
++ null_filter->children.push_back(std::move(projection));
+@@ -83 +64 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-  orders.emplace_back(OrderType::ASCENDING, OrderByNullType::NULLS_FIRST, move(col_expr));
++  orders.emplace_back(OrderType::ASCENDING, OrderByNullType::NULLS_FIRST, std::move(col_expr));
+@@ -87,14 +68,3 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+- auto physical_order =
+-     make_unique<PhysicalOrder>(new_column_types, move(orders), move(projections), op.estimated_cardinality);
+- physical_order->children.push_back(move(null_filter));
+-||||||| db2bb06ef5
+- null_filter->children.push_back(move(table_scan));
+-=======
+- null_filter->children.push_back(std::move(table_scan));
+->>>>>>> 29229a04
+-<<<<<<< HEAD
+- auto physical_create_index = make_unique<PhysicalCreateIndex>(
+-     op, op.table, op.info->column_ids, move(op.info), move(op.unbound_expressions), op.estimated_cardinality);
+- physical_create_index->children.push_back(move(physical_order));
+- return move(physical_create_index);
+-||||||| db2bb06ef5
++ auto physical_order = make_unique<PhysicalOrder>(new_column_types, std::move(orders), std::move(projections),
++                                                  op.estimated_cardinality);
++ physical_order->children.push_back(std::move(null_filter));
+@@ -102,7 +72 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+-     make_unique<PhysicalCreateIndex>(op, op.table, op.info->column_ids, move(op.expressions), move(op.info),
+-                                      move(op.unbound_expressions), op.estimated_cardinality);
+- physical_create_index->children.push_back(move(null_filter));
+- return move(physical_create_index);
+-=======
+- auto physical_create_index = make_unique<PhysicalCreateIndex>(
+-     op, op.table, op.info->column_ids, std::move(op.expressions), std::move(op.info),
++     make_unique<PhysicalCreateIndex>(op, op.table, op.info->column_ids, std::move(op.info),
+@@ -110 +74 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+- physical_create_index->children.push_back(std::move(null_filter));
++ physical_create_index->children.push_back(std::move(physical_order));
+@@ -112 +75,0 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalCreateInde
+->>>>>>> 29229a04

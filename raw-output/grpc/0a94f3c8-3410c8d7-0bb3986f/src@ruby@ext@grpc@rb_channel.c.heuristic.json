@@ -1,0 +1,196 @@
+[
+  {
+    "code": [
+      "    bg_watched_channel *bg);",
+      "static void *wait_until_channel_polling_thread_started_no_gil(void *);",
+      "static void wait_until_channel_polling_thread_started_unblocking_func(void *);",
+      "static void *channel_init_try_register_connection_polling_without_gil(",
+      "    void *arg);",
+      "",
+      "typedef struct channel_init_try_register_stack {",
+      "  grpc_channel *channel;",
+      "  grpc_rb_channel *wrapper;",
+      "} channel_init_try_register_stack;"
+    ],
+    "label": "",
+    "index": 0,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "desc": "De facto one-sided modification, accept their side.",
+    "confidence": 0.7,
+    "index": 1,
+    "label": "",
+    "code": [
+      "  rb_thread_call_without_gvl(",
+      "      wait_until_channel_polling_thread_started_no_gil,",
+      "      &stop_waiting_for_thread_start,",
+      "      wait_until_channel_polling_thread_started_unblocking_func,",
+      "      &stop_waiting_for_thread_start);"
+    ]
+  },
+  {
+    "code": [
+      "  stack.channel = ch;",
+      "  stack.wrapper = wrapper;",
+      "  rb_thread_call_without_gvl(",
+      "      channel_init_try_register_connection_polling_without_gil, &stack, NULL,",
+      "      NULL);"
+    ],
+    "label": "",
+    "index": 2,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [
+      "",
+      "  stack.bg = wrapper->bg_wrapped;",
+      "  stack.try_to_connect = RTEST(try_to_connect_param) ? 1 : 0;",
+      "  rb_thread_call_without_gvl(get_state_without_gil, &stack, NULL, NULL);",
+      "",
+      "  return LONG2NUM(stack.out);"
+    ],
+    "label": "",
+    "index": 3,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "desc": "De facto one-sided modification, accept their side.",
+    "confidence": 0.7,
+    "index": 4,
+    "label": "",
+    "code": [
+      "static void *wait_for_watch_state_op_complete_without_gvl(void *arg) {",
+      "  watch_state_stack *stack = (watch_state_stack *)arg;",
+      "  watch_state_op *op = NULL;",
+      "  void *success = (void *)0;"
+    ]
+  },
+  {
+    "desc": "De facto one-sided modification, accept their side.",
+    "confidence": 0.7,
+    "index": 5,
+    "label": "",
+    "code": [
+      "  gpr_mu_lock(&global_connection_polling_mu);",
+      "  // its unsafe to do a \"watch\" after \"channel polling abort\" because the cq has",
+      "  // been shut down.",
+      "  if (abort_channel_polling) {",
+      "    gpr_mu_unlock(&global_connection_polling_mu);",
+      "    return (void *)0;"
+    ]
+  },
+  {
+    "desc": "De facto one-sided modification, accept their side.",
+    "confidence": 0.7,
+    "index": 6,
+    "label": "",
+    "code": [
+      "  op = gpr_zalloc(sizeof(watch_state_op));",
+      "  op->op_type = WATCH_STATE_API;",
+      "  grpc_channel_watch_connectivity_state(stack->channel, stack->last_state,",
+      "                                        stack->deadline, channel_polling_cq,",
+      "                                        op);"
+    ]
+  },
+  {
+    "desc": "De facto one-sided modification, accept their side.",
+    "confidence": 0.7,
+    "index": 7,
+    "label": "",
+    "code": [
+      "static void wait_for_watch_state_op_complete_unblocking_func(void *arg) {",
+      "  bg_watched_channel *bg = (bg_watched_channel *)arg;",
+      "  gpr_mu_lock(&global_connection_polling_mu);",
+      "  if (!bg->channel_destroyed) {",
+      "    grpc_channel_destroy(bg->channel);",
+      "    bg->channel_destroyed = 1;",
+      "  }",
+      "  gpr_mu_unlock(&global_connection_polling_mu);"
+    ]
+  },
+  {
+    "code": [
+      "  void *op_success = 0;"
+    ],
+    "label": "",
+    "index": 8,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [
+      "",
+      "  op_success = rb_thread_call_without_gvl(",
+      "      wait_for_watch_state_op_complete_without_gvl, &stack,",
+      "      wait_for_watch_state_op_complete_unblocking_func, wrapper->bg_wrapped);",
+      "",
+      "  return op_success ? Qtrue : Qfalse;"
+    ],
+    "label": "",
+    "index": 9,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [
+      "/* Needs to be called under global_connection_polling_mu */",
+      "static int bg_watched_channel_list_lookup(bg_watched_channel *target) {",
+      "  bg_watched_channel *cur = bg_watched_channel_list_head;"
+    ],
+    "label": "",
+    "index": 10,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [
+      "      op = (watch_state_op *)event.tag;",
+      "      if (op->op_type == CONTINUOUS_WATCH) {",
+      "        bg = (bg_watched_channel *)op->op.continuous_watch_callback_args.bg;",
+      "        bg->refcount--;",
+      "        grpc_rb_channel_try_register_connection_polling(bg);",
+      "        gpr_free(op);",
+      "      } else if (op->op_type == WATCH_STATE_API) {",
+      "        grpc_rb_channel_watch_connection_state_op_complete(",
+      "            (watch_state_op *)event.tag, event.success);",
+      "      } else {",
+      "        GPR_ASSERT(0);",
+      "      }"
+    ],
+    "label": "",
+    "index": 11,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [
+      "static void wait_until_channel_polling_thread_started_unblocking_func(",
+      "    void *arg) {",
+      "  int *stop_waiting = (int *)arg;",
+      "  gpr_mu_lock(&global_connection_polling_mu);",
+      "  gpr_log(GPR_DEBUG,",
+      "          \"GRPC_RUBY: interrupt wait for channel polling thread to start\");",
+      "  *stop_waiting = 1;",
+      "  gpr_cv_broadcast(&global_connection_polling_cv);",
+      "  gpr_mu_unlock(&global_connection_polling_mu);",
+      "}",
+      "",
+      "static void *set_abort_channel_polling_without_gil(void *arg) {"
+    ],
+    "label": "",
+    "index": 13,
+    "confidence": 0.7,
+    "desc": "De facto one-sided modification, accept their side."
+  },
+  {
+    "code": [],
+    "label": "",
+    "index": 14,
+    "confidence": 0.7,
+    "desc": "Single side deletion."
+  }
+]

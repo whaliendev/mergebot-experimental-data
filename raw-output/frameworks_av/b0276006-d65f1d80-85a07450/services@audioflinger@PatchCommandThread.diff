@@ -1,0 +1,44 @@
+diff --git a/output/frameworks_av/b0276006-d65f1d80-85a07450/services@audioflinger@PatchCommandThread.no_comments_mergebot.h b/output/frameworks_av/b0276006-d65f1d80-85a07450/services@audioflinger@PatchCommandThread.no_comments_truth.h
+index 0e582ca..e3f3a0d 100644
+--- a/output/frameworks_av/b0276006-d65f1d80-85a07450/services@audioflinger@PatchCommandThread.no_comments_mergebot.h
++++ b/output/frameworks_av/b0276006-d65f1d80-85a07450/services@audioflinger@PatchCommandThread.no_comments_truth.h
+@@ -27,0 +28 @@ public:
++            EXCLUDES_PatchCommandThread_ListenerMutex;
+@@ -29 +30,4 @@ public:
+-    void releaseAudioPatch(audio_patch_handle_t handle)
++            EXCLUDES_PatchCommandThread_Mutex;
++    void releaseAudioPatch(audio_patch_handle_t handle) EXCLUDES_PatchCommandThread_Mutex;
++    void updateAudioPatch(audio_patch_handle_t oldHandle, audio_patch_handle_t newHandle,
++            const IAfPatchPanel::Patch& patch) EXCLUDES_PatchCommandThread_Mutex;
+@@ -34,2 +38,4 @@ public:
+-            const IAfPatchPanel::Patch& patch)
+-    void releaseAudioPatchCommand(audio_patch_handle_t handle)
++            const IAfPatchPanel::Patch& patch) EXCLUDES_PatchCommandThread_Mutex;
++    void releaseAudioPatchCommand(audio_patch_handle_t handle) EXCLUDES_PatchCommandThread_Mutex;
++    void updateAudioPatchCommand(audio_patch_handle_t oldHandle, audio_patch_handle_t newHandle,
++            const IAfPatchPanel::Patch& patch) EXCLUDES_PatchCommandThread_Mutex;
+@@ -37 +43 @@ private:
+-    class CommandData: public RefBase {};
++    class CommandData;
+@@ -70,7 +76,6 @@ private:
+-    void sendCommand(const sp<Command>& command)
+-    audio_utils::mutex& mutex() const { return mMutex; }
+-    audio_utils::mutex& listenerMutex() const { return mListenerMutex; }
+-    mutable audio_utils::mutex mMutex;
+-    audio_utils::condition_variable mWaitWorkCV;
+-    std::vector<wp<PatchCommandListener>> mListeners GUARDED_BY(listenerMutex());
+-audio_utils::mutex& mutex() const RETURN_CAPABILITY(audio_utils::PatchCommandThread_ListenerMutex){
++    void sendCommand(const sp<Command>& command) EXCLUDES_PatchCommandThread_Mutex;
++    audio_utils::mutex& mutex() const RETURN_CAPABILITY(audio_utils::PatchCommandThread_Mutex) {
++        return mMutex;
++    }
++    audio_utils::mutex& listenerMutex() const
++            RETURN_CAPABILITY(audio_utils::PatchCommandThread_ListenerMutex) {
+@@ -79,4 +84,3 @@ audio_utils::mutex& mutex() const RETURN_CAPABILITY(audio_utils::PatchCommandThr
+-public:
+-void updateAudioPatchCommand(audio_patch_handle_t oldHandle, audio_patch_handle_t newHandle,
+-            const IAfPatchPanel::Patch& patch)void updateAudioPatch(audio_patch_handle_t oldHandle, audio_patch_handle_t newHandle,
+-            const IAfPatchPanel::Patch& patch)private:
++    mutable audio_utils::mutex mMutex;
++    audio_utils::condition_variable mWaitWorkCV;
++    std::deque<sp<Command>> mCommands GUARDED_BY(mutex());

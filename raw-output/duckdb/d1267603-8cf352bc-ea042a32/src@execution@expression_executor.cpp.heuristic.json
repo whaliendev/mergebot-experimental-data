@@ -1,0 +1,48 @@
+[
+  {
+    "desc": "List merge.",
+    "confidence": 0.4,
+    "index": 0,
+    "label": "",
+    "code": [
+      "void ExpressionExecutor::Merge(std::vector<std::unique_ptr<Expression>> &expressions) {",
+      "\tassert(expressions.size() > 0);",
+      "\t//evaluate all expressions",
+      "\tfor (index_t i = 0; i < expressions.size(); i++) {",
+      "\t\t//return if no more true rows",
+      "\t\tif (chunk->size() != 0) {",
+      "\t\t\t//evaluate current expression",
+      "\t\t\tVector intermediate;",
+      "\t\t\tExecute(*expressions[i], intermediate);",
+      "\t\t\tassert(intermediate.type == TypeId::BOOLEAN);",
+      "\t\t\t//if constant and false/null, set count == 0 to fetch the next chunk",
+      "\t\t\tif (intermediate.IsConstant()) {",
+      "\t\t\t\tif (!intermediate.data[0] || intermediate.nullmask[0]) {",
+      "\t\t\t\t\tchunk->data[0].count = 0;",
+      "\t\t\t\t\tbreak;",
+      "\t\t\t\t}",
+      "\t\t\t} else {",
+      "\t\t\t\tchunk->SetSelectionVector(intermediate);",
+      "\t\t\t}",
+      "\t\t} else {",
+      "\t\t\tbreak;",
+      "\t\t}",
+      "\t}",
+      "void ExpressionExecutor::ExecuteExpression(Vector &result) {",
+      "\tassert(expressions.size() == 1);",
+      "\tExecuteExpression(0, result);"
+    ]
+  },
+  {
+    "code": [
+      "\tassert(result.type == vector.type);",
+      "\tvector.Move(result);",
+      "}",
+      ""
+    ],
+    "label": "",
+    "index": 1,
+    "confidence": 0.7,
+    "desc": "Added code or method extraction, accept their side."
+  }
+]

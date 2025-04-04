@@ -1,0 +1,544 @@
+diff --git a/output/art/f2445572-a2ea7405-c9d45055/runtime@class_linker.no_comments_mergebot.cc b/output/art/f2445572-a2ea7405-c9d45055/runtime@class_linker.no_comments_truth.cc
+index 9bfae69..060be8c 100644
+--- a/output/art/f2445572-a2ea7405-c9d45055/runtime@class_linker.no_comments_mergebot.cc
++++ b/output/art/f2445572-a2ea7405-c9d45055/runtime@class_linker.no_comments_truth.cc
+@@ -42 +41,0 @@
+-#include "mirror/art_method-inl.h"
+@@ -69,0 +69 @@ static void ThrowNoClassDefFoundError(const char* fmt, ...)
++    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -77 +77,2 @@ static void ThrowNoClassDefFoundError(const char* fmt, ...) {
+-bool ClassLinker::HasInitWithString(Thread* self, ClassLinker* class_linker, const char* descriptor) {
++bool ClassLinker::HasInitWithString(
++    Thread* self, ClassLinker* class_linker, const char* descriptor) {
+@@ -170,0 +172,5 @@ static void AddFieldGap(uint32_t gap_start, uint32_t gap_end, FieldGaps* gaps) {
++template<int n>
++static void ShuffleForward(size_t* current_field_idx,
++                           MemberOffset* field_offset,
++                           std::deque<ArtField*>* grouped_and_sorted_fields,
++                           FieldGaps* gaps)
+@@ -517 +523 @@ public:
+-  DexFileAndClassPair(const DexFileAndClassPair&)
++  DexFileAndClassPair(const DexFileAndClassPair&) = default;
+@@ -740,0 +747,29 @@ static void SanityCheckArtMethod(ArtMethod* m, mirror::Class* expected_class,
++    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++  if (m->IsRuntimeMethod()) {
++    CHECK(m->GetDeclaringClass() == nullptr) << PrettyMethod(m);
++  } else if (m->IsMiranda()) {
++    CHECK(m->GetDeclaringClass() != nullptr) << PrettyMethod(m);
++  } else if (expected_class != nullptr) {
++    CHECK_EQ(m->GetDeclaringClassUnchecked(), expected_class) << PrettyMethod(m);
++  }
++  if (space != nullptr) {
++    auto& header = space->GetImageHeader();
++    auto& methods = header.GetMethodsSection();
++    auto offset = reinterpret_cast<uint8_t*>(m) - space->Begin();
++    CHECK(methods.Contains(offset)) << m << " not in " << methods;
++  }
++}
++static void SanityCheckArtMethodPointerArray(
++    mirror::PointerArray* arr, mirror::Class* expected_class, size_t pointer_size,
++    gc::space::ImageSpace* space) SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++  CHECK(arr != nullptr);
++  for (int32_t j = 0; j < arr->GetLength(); ++j) {
++    auto* method = arr->GetElementPtrSize<ArtMethod*>(j, pointer_size);
++    if (expected_class != nullptr) {
++      CHECK(method != nullptr);
++    }
++    if (method != nullptr) {
++      SanityCheckArtMethod(method, expected_class, space);
++    }
++  }
++}
+@@ -1543,0 +1579,43 @@ const OatFile::OatMethod ClassLinker::FindOatMethodFor(ArtMethod* method, bool*
++const void* ClassLinker::GetQuickOatCodeFor(ArtMethod* method) {
++  CHECK(!method->IsAbstract()) << PrettyMethod(method);
++  if (method->IsProxyMethod()) {
++    return GetQuickProxyInvokeHandler();
++  }
++  bool found;
++  OatFile::OatMethod oat_method = FindOatMethodFor(method, &found);
++  if (found) {
++    auto* code = oat_method.GetQuickCode();
++    if (code != nullptr) {
++      return code;
++    }
++  }
++  jit::Jit* const jit = Runtime::Current()->GetJit();
++  if (jit != nullptr) {
++    auto* code = jit->GetCodeCache()->GetCodeFor(method);
++    if (code != nullptr) {
++      return code;
++    }
++  }
++  if (method->IsNative()) {
++    return GetQuickGenericJniStub();
++  }
++  return GetQuickToInterpreterBridge();
++}
++const void* ClassLinker::GetOatMethodQuickCodeFor(ArtMethod* method) {
++  if (method->IsNative() || method->IsAbstract() || method->IsProxyMethod()) {
++    return nullptr;
++  }
++  bool found;
++  OatFile::OatMethod oat_method = FindOatMethodFor(method, &found);
++  if (found) {
++    return oat_method.GetQuickCode();
++  }
++  jit::Jit* jit = Runtime::Current()->GetJit();
++  if (jit != nullptr) {
++    auto* code = jit->GetCodeCache()->GetCodeFor(method);
++    if (code != nullptr) {
++      return code;
++    }
++  }
++  return nullptr;
++}
+@@ -1609 +1687,2 @@ void ClassLinker::FixupStaticTrampolines(mirror::Class* klass) {
+-void ClassLinker::LinkCode(ArtMethod* method, const OatFile::OatClass* oat_class, uint32_t class_def_method_index) {
++void ClassLinker::LinkCode(ArtMethod* method, const OatFile::OatClass* oat_class,
++                           uint32_t class_def_method_index) {
+@@ -1768 +1847,2 @@ void ClassLinker::LoadField(const ClassDataItemIterator& it, Handle<mirror::Clas
+-void ClassLinker::LoadMethod(Thread* self, const DexFile& dex_file, const ClassDataItemIterator& it, Handle<mirror::Class> klass, ArtMethod* dst) {
++void ClassLinker::LoadMethod(Thread* self, const DexFile& dex_file, const ClassDataItemIterator& it,
++                             Handle<mirror::Class> klass, ArtMethod* dst) {
+@@ -2061 +2141,2 @@ mirror::Class* ClassLinker::InsertClass(const char* descriptor, mirror::Class* k
+-void ClassLinker::UpdateClassVirtualMethods(mirror::Class* klass, ArtMethod* new_methods, size_t new_num_methods) {
++void ClassLinker::UpdateClassVirtualMethods(mirror::Class* klass, ArtMethod* new_methods,
++                                            size_t new_num_methods) {
+@@ -2570,0 +2652,73 @@ ArtMethod* ClassLinker::FindMethodForProxy(mirror::Class* proxy_class,
++void ClassLinker::CreateProxyConstructor(Handle<mirror::Class> klass, ArtMethod* out) {
++  CHECK_EQ(GetClassRoot(kJavaLangReflectProxy)->NumDirectMethods(), 16u);
++  ArtMethod* proxy_constructor = GetClassRoot(kJavaLangReflectProxy)->GetDirectMethodUnchecked(
++      2, image_pointer_size_);
++  GetClassRoot(kJavaLangReflectProxy)->GetDexCache()->SetResolvedMethod(
++      proxy_constructor->GetDexMethodIndex(), proxy_constructor, image_pointer_size_);
++  DCHECK(out != nullptr);
++  out->CopyFrom(proxy_constructor, image_pointer_size_);
++  out->SetAccessFlags((out->GetAccessFlags() & ~kAccProtected) | kAccPublic);
++  out->SetDeclaringClass(klass.Get());
++}
++void ClassLinker::CheckProxyConstructor(ArtMethod* constructor) const {
++  CHECK(constructor->IsConstructor());
++  auto* np = constructor->GetInterfaceMethodIfProxy(image_pointer_size_);
++  CHECK_STREQ(np->GetName(), "<init>");
++  CHECK_STREQ(np->GetSignature().ToString().c_str(), "(Ljava/lang/reflect/InvocationHandler;)V");
++  DCHECK(constructor->IsPublic());
++}
++void ClassLinker::CreateProxyMethod(Handle<mirror::Class> klass, ArtMethod* prototype,
++                                    ArtMethod* out) {
++  auto* dex_cache = prototype->GetDeclaringClass()->GetDexCache();
++  if (dex_cache->GetResolvedMethod(prototype->GetDexMethodIndex(), image_pointer_size_) !=
++      prototype) {
++    dex_cache->SetResolvedMethod(
++        prototype->GetDexMethodIndex(), prototype, image_pointer_size_);
++  }
++  DCHECK(out != nullptr);
++  out->CopyFrom(prototype, image_pointer_size_);
++  out->SetDeclaringClass(klass.Get());
++  out->SetAccessFlags((out->GetAccessFlags() & ~kAccAbstract) | kAccFinal);
++  out->SetEntryPointFromQuickCompiledCode(GetQuickProxyInvokeHandler());
++  out->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
++}
++void ClassLinker::CheckProxyMethod(ArtMethod* method, ArtMethod* prototype) const {
++  CHECK(!prototype->IsFinal());
++  CHECK(method->IsFinal());
++  CHECK(!method->IsAbstract());
++  CHECK(prototype->HasSameDexCacheResolvedMethods(method));
++  CHECK(prototype->HasSameDexCacheResolvedTypes(method));
++  auto* np = method->GetInterfaceMethodIfProxy(image_pointer_size_);
++  CHECK_EQ(prototype->GetDeclaringClass()->GetDexCache(), np->GetDexCache());
++  CHECK_EQ(prototype->GetDexMethodIndex(), method->GetDexMethodIndex());
++  CHECK_STREQ(np->GetName(), prototype->GetName());
++  CHECK_STREQ(np->GetShorty(), prototype->GetShorty());
++  CHECK_EQ(np->GetReturnType(), prototype->GetReturnType());
++}
++bool ClassLinker::CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
++                                       bool can_init_parents) {
++  if (can_init_statics && can_init_parents) {
++    return true;
++  }
++  if (!can_init_statics) {
++    ArtMethod* clinit = klass->FindClassInitializer(image_pointer_size_);
++    if (clinit != nullptr) {
++      return false;
++    }
++    if (klass->NumStaticFields() != 0) {
++      const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
++      DCHECK(dex_class_def != nullptr);
++      if (dex_class_def->static_values_off_ != 0) {
++        return false;
++      }
++    }
++  }
++  if (klass->IsInterface() || !klass->HasSuperClass()) {
++    return true;
++  }
++  mirror::Class* super_class = klass->GetSuperClass();
++  if (!can_init_parents && !super_class->IsInitialized()) {
++    return false;
++  }
++  return CanWeInitializeClass(super_class, can_init_statics, can_init_parents);
++}
+@@ -2817,60 +2970,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-static void ThrowSignatureCheckResolveReturnTypeException(Handle<mirror::Class> klass,
+-                                                          Handle<mirror::Class> super_klass,
+-                                                          Handle<mirror::ArtMethod> method,
+-                                                          mirror::ArtMethod* m)
+-    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_){
+-    DCHECK(Thread::Current()->IsExceptionPending());
+-    DCHECK(!m->IsProxyMethod());
+-    const DexFile* dex_file = m->GetDexFile();
+-    const DexFile::MethodId& method_id = dex_file->GetMethodId(m->GetDexMethodIndex());
+-    const DexFile::ProtoId& proto_id = dex_file->GetMethodPrototype(method_id);
+-    uint16_t return_type_idx = proto_id.return_type_idx_;
+-    std::string return_type = PrettyType(return_type_idx, *dex_file);
+-    std::string class_loader = PrettyTypeOf(m->GetDeclaringClass()->GetClassLoader());
+-    ThrowWrappedLinkageError(klass.Get(),
+-                           "While checking class %s method %s signature against %s %s: "
+-                           "Failed to resolve return type %s with %s",
+-                           PrettyDescriptor(klass.Get()).c_str(),
+-                           PrettyMethod(method.Get()).c_str(),
+-                           super_klass->IsInterface() ? "interface" : "superclass",
+-                           PrettyDescriptor(super_klass.Get()).c_str(),
+-                           return_type.c_str(), class_loader.c_str());
+-    }
+-static void ThrowSignatureCheckResolveArgException(Handle<mirror::Class> klass,
+-                                                   Handle<mirror::Class> super_klass,
+-                                                   Handle<mirror::ArtMethod> method,
+-                                                   mirror::ArtMethod* m,
+-                                                   uint32_t index, uint32_t arg_type_idx)
+-    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_){
+-    DCHECK(Thread::Current()->IsExceptionPending());
+-    DCHECK(!m->IsProxyMethod());
+-    const DexFile* dex_file = m->GetDexFile();
+-    std::string arg_type = PrettyType(arg_type_idx, *dex_file);
+-    std::string class_loader = PrettyTypeOf(m->GetDeclaringClass()->GetClassLoader());
+-    ThrowWrappedLinkageError(klass.Get(),
+-                           "While checking class %s method %s signature against %s %s: "
+-                           "Failed to resolve arg %u type %s with %s",
+-                           PrettyDescriptor(klass.Get()).c_str(),
+-                           PrettyMethod(method.Get()).c_str(),
+-                           super_klass->IsInterface() ? "interface" : "superclass",
+-                           PrettyDescriptor(super_klass.Get()).c_str(),
+-                           index, arg_type.c_str(), class_loader.c_str());
+-    }
+-static void ThrowSignatureMismatch(Handle<mirror::Class> klass,
+-                                   Handle<mirror::Class> super_klass,
+-                                   Handle<mirror::ArtMethod> method,
+-                                   const std::string& error_msg)
+-    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_){
+-    ThrowLinkageError(klass.Get(),
+-                    "Class %s method %s resolves differently in %s %s: %s",
+-                    PrettyDescriptor(klass.Get()).c_str(),
+-                    PrettyMethod(method.Get()).c_str(),
+-                    super_klass->IsInterface() ? "interface" : "superclass",
+-                    PrettyDescriptor(super_klass.Get()).c_str(),
+-                    error_msg.c_str());
+-    }
+-static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-                                                      Handle<mirror::Class> klass,
+-                                                      Handle<mirror::Class> super_klass,
+-                                                      Handle<mirror::ArtMethod> method1,
+-                                                      Handle<mirror::ArtMethod> method2)
+@@ -2881 +2974,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2886,7 +2978,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-=======
+-    if (UNLIKELY(return_type.Get() == nullptr)) {
+-      ThrowSignatureCheckResolveReturnTypeException(klass, super_klass, method1, method1.Get());
+-      return false;
+-    }
+->>>>>>> a2ea7405
+@@ -2894 +2979,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2899,7 +2983,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-=======
+-    if (UNLIKELY(other_return_type == nullptr)) {
+-      ThrowSignatureCheckResolveReturnTypeException(klass, super_klass, method1, method2.Get());
+-      return false;
+-    }
+->>>>>>> a2ea7405
+@@ -2920 +2997,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2924,8 +3000,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-      *error_msg = StringPrintf("Type list mismatch with %s",
+-                                PrettyMethod(method2.Get(), true).c_str());
+-=======
+-      ThrowSignatureMismatch(klass, super_klass, method1,
+-                             StringPrintf("Type list mismatch with %s",
+-                                          PrettyMethod(method2.Get(), true).c_str()));
+->>>>>>> a2ea7405
+@@ -2937 +3005,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2941,8 +3008,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-      *error_msg = StringPrintf("Type list mismatch with %s",
+-                                PrettyMethod(method2.Get(), true).c_str());
+-=======
+-      ThrowSignatureMismatch(klass, super_klass, method1,
+-                             StringPrintf("Type list mismatch with %s",
+-                                          PrettyMethod(method2.Get(), true).c_str()));
+->>>>>>> a2ea7405
+@@ -2955 +3014,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2959,8 +3017,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-    *error_msg = StringPrintf("Type list mismatch with %s",
+-                              PrettyMethod(method2.Get(), true).c_str());
+-=======
+-    ThrowSignatureMismatch(klass, super_klass, method1,
+-                           StringPrintf("Type list mismatch with %s",
+-                                        PrettyMethod(method2.Get(), true).c_str()));
+->>>>>>> a2ea7405
+@@ -2973 +3023,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -2981,11 +3030,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-        method1->GetClassFromTypeIndex(types1->GetTypeItem(i).type_idx_, true)));
+-=======
+-        method1->GetClassFromTypeIndex(param_type_idx, true)));
+-    if (UNLIKELY(param_type.Get() == nullptr)) {
+-      ThrowSignatureCheckResolveArgException(klass, super_klass, method1,
+-                                             method1.Get(), i, param_type_idx);
+-      return false;
+-    }
+-    uint32_t other_param_type_idx = types2->GetTypeItem(i).type_idx_;
+->>>>>>> a2ea7405
+@@ -2993 +3031,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-<<<<<<< HEAD
+@@ -3000,10 +3037,0 @@ static bool HasSameSignatureWithDifferentClassLoaders(Thread* self,
+-||||||| c9d450554e
+-        method2->GetClassFromTypeIndex(types2->GetTypeItem(i).type_idx_, true);
+-=======
+-        method2->GetClassFromTypeIndex(other_param_type_idx, true);
+-    if (UNLIKELY(other_param_type == nullptr)) {
+-      ThrowSignatureCheckResolveArgException(klass, super_klass, method1,
+-                                             method2.Get(), i, other_param_type_idx);
+-      return false;
+-    }
+->>>>>>> a2ea7405
+@@ -3028 +3055,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-<<<<<<< HEAD
+@@ -3031,10 +3057,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-||||||| c9d450554e
+-  StackHandleScope<2> hs(self);
+-  MutableHandle<mirror::ArtMethod> h_m(hs.NewHandle<mirror::ArtMethod>(nullptr));
+-  MutableHandle<mirror::ArtMethod> super_h_m(hs.NewHandle<mirror::ArtMethod>(nullptr));
+-=======
+-  StackHandleScope<3> hs(self);
+-  MutableHandle<mirror::Class> super_klass(hs.NewHandle<mirror::Class>(nullptr));
+-  MutableHandle<mirror::ArtMethod> h_m(hs.NewHandle<mirror::ArtMethod>(nullptr));
+-  MutableHandle<mirror::ArtMethod> super_h_m(hs.NewHandle<mirror::ArtMethod>(nullptr));
+->>>>>>> a2ea7405
+@@ -3045 +3061,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-<<<<<<< HEAD
+@@ -3052,20 +3067,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-||||||| c9d450554e
+-      h_m.Assign(klass->GetVTableEntry(i));
+-      super_h_m.Assign(klass->GetSuperClass()->GetVTableEntry(i));
+-      if (h_m.Get() != super_h_m.Get()) {
+-        std::string error_msg;
+-        if (!HasSameSignatureWithDifferentClassLoaders(self, h_m, super_h_m, &error_msg)) {
+-          ThrowLinkageError(klass.Get(),
+-                            "Class %s method %s resolves differently in superclass %s: %s",
+-                            PrettyDescriptor(klass.Get()).c_str(),
+-                            PrettyMethod(h_m.Get()).c_str(),
+-                            PrettyDescriptor(klass->GetSuperClass()).c_str(),
+-                            error_msg.c_str());
+-=======
+-      h_m.Assign(klass->GetVTableEntry(i));
+-      super_h_m.Assign(klass->GetSuperClass()->GetVTableEntry(i));
+-      if (h_m.Get() != super_h_m.Get()) {
+-        if (UNLIKELY(!HasSameSignatureWithDifferentClassLoaders(self, klass, super_klass,
+-                                                                h_m, super_h_m))) {
+-          self->AssertPendingException();
+->>>>>>> a2ea7405
+@@ -3082 +3077,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-<<<<<<< HEAD
+@@ -3090,20 +3084,0 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
+-||||||| c9d450554e
+-        h_m.Assign(klass->GetIfTable()->GetMethodArray(i)->GetWithoutChecks(j));
+-        super_h_m.Assign(klass->GetIfTable()->GetInterface(i)->GetVirtualMethod(j));
+-        if (h_m.Get() != super_h_m.Get()) {
+-          std::string error_msg;
+-          if (!HasSameSignatureWithDifferentClassLoaders(self, h_m, super_h_m, &error_msg)) {
+-            ThrowLinkageError(klass.Get(),
+-                              "Class %s method %s resolves differently in interface %s: %s",
+-                              PrettyDescriptor(klass.Get()).c_str(),
+-                              PrettyMethod(h_m.Get()).c_str(),
+-                              PrettyDescriptor(klass->GetIfTable()->GetInterface(i)).c_str(),
+-                              error_msg.c_str());
+-=======
+-        h_m.Assign(klass->GetIfTable()->GetMethodArray(i)->GetWithoutChecks(j));
+-        super_h_m.Assign(super_klass->GetVirtualMethod(j));
+-        if (h_m.Get() != super_h_m.Get()) {
+-          if (UNLIKELY(!HasSameSignatureWithDifferentClassLoaders(self, klass, super_klass,
+-                                                                  h_m, super_h_m))) {
+-            self->AssertPendingException();
+->>>>>>> a2ea7405
+@@ -3468 +3443 @@ bool ClassLinker::LinkMethods(Thread* self, Handle<mirror::Class> klass,
+-{
++class MethodNameAndSignatureComparator FINAL : public ValueObject {
+@@ -3504 +3479,2 @@ bool ClassLinker::LinkMethods(Thread* self, Handle<mirror::Class> klass,
+-}class LinkVirtualHashTable {
++};
++class LinkVirtualHashTable {
+@@ -3561 +3537 @@ private:
+-const uint32_t LinkVirtualHashTable::removed_index_ = std::numeric_limits<uint32_t>::max() - 1;
++const uint32_t LinkVirtualHashTable::invalid_index_ = std::numeric_limits<uint32_t>::max();
+@@ -4051,2 +4026,0 @@ explicit LinkFieldsComparator() SHARED_LOCKS_REQUIRED(Locks::mutator_lock_){
+-                                  SHARED_LOCKS_REQUIRED(Locks::mutator_lock_){
+-                                  }
+@@ -4209,26 +4183,5 @@ mirror::Class* ClassLinker::ResolveType(const DexFile& dex_file, uint16_t type_i
+-                                        Handle<mirror::DexCache> dex_cache,
+-                                        Handle<mirror::ClassLoader> class_loader) {
+-  DCHECK(dex_cache.Get() != nullptr);
+-  mirror::Class* resolved = dex_cache->GetResolvedType(type_idx);
+-  if (resolved == nullptr) {
+-    Thread* self = Thread::Current();
+-    const char* descriptor = dex_file.StringByTypeIdx(type_idx);
+-    resolved = FindClass(self, descriptor, class_loader);
+-    if (resolved != nullptr) {
+-      dex_cache->SetResolvedType(type_idx, resolved);
+-    } else {
+-      CHECK(self->IsExceptionPending())
+-          << "Expected pending exception for failed resolution of: " << descriptor;
+-      StackHandleScope<1> hs(self);
+-      Handle<mirror::Throwable> cause(hs.NewHandle(self->GetException()));
+-      if (cause->InstanceOf(GetClassRoot(kJavaLangClassNotFoundException))) {
+-        DCHECK(resolved == nullptr);
+-        self->ClearException();
+-        ThrowNoClassDefFoundError("Failed resolution of: %s", descriptor);
+-        self->GetException()->SetCause(cause.Get());
+-      }
+-    }
+-  }
+-  DCHECK((resolved == nullptr) || resolved->IsResolved() || resolved->IsErroneous())
+-          << PrettyDescriptor(resolved) << " " << resolved->GetStatus();
+-  return resolved;
++                                        mirror::Class* referrer) {
++  StackHandleScope<2> hs(Thread::Current());
++  Handle<mirror::DexCache> dex_cache(hs.NewHandle(referrer->GetDexCache()));
++  Handle<mirror::ClassLoader> class_loader(hs.NewHandle(referrer->GetClassLoader()));
++  return ResolveType(dex_file, type_idx, dex_cache, class_loader);
+@@ -4733,117 +4685,0 @@ ArtMethod* ClassLinker::CreateRuntimeMethod() {
+-static void SanityCheckArtMethodPointerArray(
+-    mirror::PointerArray* arr, mirror::Class* expected_class, size_t pointer_size,
+-    gc::space::ImageSpace* space)
+-const void* ClassLinker::GetQuickOatCodeFor(ArtMethod* method) {
+-  CHECK(!method->IsAbstract()) << PrettyMethod(method);
+-  if (method->IsProxyMethod()) {
+-    return GetQuickProxyInvokeHandler();
+-  }
+-  bool found;
+-  OatFile::OatMethod oat_method = FindOatMethodFor(method, &found);
+-  if (found) {
+-    auto* code = oat_method.GetQuickCode();
+-    if (code != nullptr) {
+-      return code;
+-    }
+-  }
+-  jit::Jit* const jit = Runtime::Current()->GetJit();
+-  if (jit != nullptr) {
+-    auto* code = jit->GetCodeCache()->GetCodeFor(method);
+-    if (code != nullptr) {
+-      return code;
+-    }
+-  }
+-  if (method->IsNative()) {
+-    return GetQuickGenericJniStub();
+-  }
+-  return GetQuickToInterpreterBridge();
+-}
+-const void* ClassLinker::GetOatMethodQuickCodeFor(ArtMethod* method) {
+-  if (method->IsNative() || method->IsAbstract() || method->IsProxyMethod()) {
+-    return nullptr;
+-  }
+-  bool found;
+-  OatFile::OatMethod oat_method = FindOatMethodFor(method, &found);
+-  if (found) {
+-    return oat_method.GetQuickCode();
+-  }
+-  jit::Jit* jit = Runtime::Current()->GetJit();
+-  if (jit != nullptr) {
+-    auto* code = jit->GetCodeCache()->GetCodeFor(method);
+-    if (code != nullptr) {
+-      return code;
+-    }
+-  }
+-  return nullptr;
+-}
+-void ClassLinker::CreateProxyConstructor(Handle<mirror::Class> klass, ArtMethod* out) {
+-  CHECK_EQ(GetClassRoot(kJavaLangReflectProxy)->NumDirectMethods(), 16u);
+-  ArtMethod* proxy_constructor = GetClassRoot(kJavaLangReflectProxy)->GetDirectMethodUnchecked(
+-      2, image_pointer_size_);
+-  GetClassRoot(kJavaLangReflectProxy)->GetDexCache()->SetResolvedMethod(
+-      proxy_constructor->GetDexMethodIndex(), proxy_constructor, image_pointer_size_);
+-  DCHECK(out != nullptr);
+-  out->CopyFrom(proxy_constructor, image_pointer_size_);
+-  out->SetAccessFlags((out->GetAccessFlags() & ~kAccProtected) | kAccPublic);
+-  out->SetDeclaringClass(klass.Get());
+-}
+-void ClassLinker::CheckProxyConstructor(ArtMethod* constructor) const {
+-  CHECK(constructor->IsConstructor());
+-  auto* np = constructor->GetInterfaceMethodIfProxy(image_pointer_size_);
+-  CHECK_STREQ(np->GetName(), "<init>");
+-  CHECK_STREQ(np->GetSignature().ToString().c_str(), "(Ljava/lang/reflect/InvocationHandler;)V");
+-  DCHECK(constructor->IsPublic());
+-}
+-void ClassLinker::CreateProxyMethod(Handle<mirror::Class> klass, ArtMethod* prototype, ArtMethod* out) {
+-  auto* dex_cache = prototype->GetDeclaringClass()->GetDexCache();
+-  if (dex_cache->GetResolvedMethod(prototype->GetDexMethodIndex(), image_pointer_size_) !=
+-      prototype) {
+-    dex_cache->SetResolvedMethod(
+-        prototype->GetDexMethodIndex(), prototype, image_pointer_size_);
+-  }
+-  DCHECK(out != nullptr);
+-  out->CopyFrom(prototype, image_pointer_size_);
+-  out->SetDeclaringClass(klass.Get());
+-  out->SetAccessFlags((out->GetAccessFlags() & ~kAccAbstract) | kAccFinal);
+-  out->SetEntryPointFromQuickCompiledCode(GetQuickProxyInvokeHandler());
+-  out->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
+-}
+-void ClassLinker::CheckProxyMethod(ArtMethod* method, ArtMethod* prototype) const {
+-  CHECK(!prototype->IsFinal());
+-  CHECK(method->IsFinal());
+-  CHECK(!method->IsAbstract());
+-  CHECK(prototype->HasSameDexCacheResolvedMethods(method));
+-  CHECK(prototype->HasSameDexCacheResolvedTypes(method));
+-  auto* np = method->GetInterfaceMethodIfProxy(image_pointer_size_);
+-  CHECK_EQ(prototype->GetDeclaringClass()->GetDexCache(), np->GetDexCache());
+-  CHECK_EQ(prototype->GetDexMethodIndex(), method->GetDexMethodIndex());
+-  CHECK_STREQ(np->GetName(), prototype->GetName());
+-  CHECK_STREQ(np->GetShorty(), prototype->GetShorty());
+-  CHECK_EQ(np->GetReturnType(), prototype->GetReturnType());
+-}
+-bool ClassLinker::CanWeInitializeClass(mirror::Class* klass, bool can_init_statics, bool can_init_parents) {
+-  if (can_init_statics && can_init_parents) {
+-    return true;
+-  }
+-  if (!can_init_statics) {
+-    ArtMethod* clinit = klass->FindClassInitializer(image_pointer_size_);
+-    if (clinit != nullptr) {
+-      return false;
+-    }
+-    if (klass->NumStaticFields() != 0) {
+-      const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
+-      DCHECK(dex_class_def != nullptr);
+-      if (dex_class_def->static_values_off_ != 0) {
+-        return false;
+-      }
+-    }
+-  }
+-  if (klass->IsInterface() || !klass->HasSuperClass()) {
+-    return true;
+-  }
+-  mirror::Class* super_class = klass->GetSuperClass();
+-  if (!can_init_parents && !super_class->IsInitialized()) {
+-    return false;
+-  }
+-  return CanWeInitializeClass(super_class, can_init_statics, can_init_parents);
+-}

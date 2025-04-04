@@ -1,0 +1,322 @@
+--- a/output/redis/c469f6ad-b8e02f2b-f4d37173/src@redis-cli.no_comments_mergebot.c
++++ b/output/redis/c469f6ad-b8e02f2b-f4d37173/src@redis-cli.no_comments_truth.c
+@@ -238,0 +239,3 @@ static sds getDotfilePath(char *envoverride, char *dotfilename) {
++#define isHexChar(c) (isdigit(c) || (c >= 'a' && c <= 'f'))
++#define decodeHexChar(c) (isdigit(c) ? c - '0' : c - 'a' + 10)
++#define decodeHex(h,l) ((decodeHexChar(h) << 4) + decodeHexChar(l))
+@@ -1400 +1403 @@ static void usage(void) {
+-    version, REDIS_CLI_DEFAULT_PIPE_TIMEOUT);
++    REDIS_CLI_DEFAULT_PIPE_TIMEOUT);
+@@ -1424 +1426,0 @@ static void usage(void) {
+-<<<<<<< HEAD
+@@ -1426,7 +1427,0 @@ static void usage(void) {
+-||||||| f4d37173f
+-"\n",
+-    version, REDIS_CLI_DEFAULT_PIPE_TIMEOUT);
+-=======
+-"\n",
+-    REDIS_CLI_DEFAULT_PIPE_TIMEOUT);
+->>>>>>> b8e02f2b
+@@ -6406 +6401 @@ static long getLongInfoField(char *info, char *field) {
+-void bytesToHuman(char *s, unsigned long long n) {
++void bytesToHuman(char *s, long long n) {
+@@ -6407,0 +6403,5 @@ void bytesToHuman(char *s, unsigned long long n) {
++    if (n < 0) {
++        *s = '-';
++        s++;
++        n = -n;
++    }
+@@ -6409 +6409,2 @@ void bytesToHuman(char *s, unsigned long long n) {
+-        sprintf(s,"%lluB",n);
++        sprintf(s,"%lldB",n);
++        return;
+@@ -6419,8 +6419,0 @@ void bytesToHuman(char *s, unsigned long long n) {
+-    } else if (n < (1024LL*1024*1024*1024*1024)) {
+-        d = (double)n/(1024LL*1024*1024*1024);
+-        sprintf(s,"%.2fT",d);
+-    } else if (n < (1024LL*1024*1024*1024*1024*1024)) {
+-        d = (double)n/(1024LL*1024*1024*1024*1024);
+-        sprintf(s,"%.2fP",d);
+-    } else {
+-        sprintf(s,"%lluB",n);
+@@ -6638,69 +6631,71 @@ int main(int argc, char **argv) {
+-    struct timeval tv;
+-    int j;
+-#ifdef REDIS_TEST
+-    if (argc == 3 && !strcasecmp(argv[1], "test")) {
+-        if (!strcasecmp(argv[2], "ziplist")) {
+-            return ziplistTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "quicklist")) {
+-            quicklistTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "intset")) {
+-            return intsetTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "zipmap")) {
+-            return zipmapTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "sha1test")) {
+-            return sha1Test(argc, argv);
+-        } else if (!strcasecmp(argv[2], "util")) {
+-            return utilTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "endianconv")) {
+-            return endianconvTest(argc, argv);
+-        } else if (!strcasecmp(argv[2], "crc64")) {
+-            return crc64Test(argc, argv);
+-        } else if (!strcasecmp(argv[2], "zmalloc")) {
+-            return zmalloc_test(argc, argv);
+-        }
+-        return -1;
+-    }
+-#endif
+-#ifdef INIT_SETPROCTITLE_REPLACEMENT
+-    spt_init(argc, argv);
+-#endif
+-    setlocale(LC_COLLATE,"");
+-    tzset();
+-    zmalloc_set_oom_handler(redisOutOfMemoryHandler);
+-    srand(time(NULL)^getpid());
+-    gettimeofday(&tv,NULL);
+-    uint8_t hashseed[16];
+-    getRandomBytes(hashseed,sizeof(hashseed));
+-    dictSetHashFunctionSeed(hashseed);
+-    server.sentinel_mode = checkForSentinelMode(argc,argv);
+-    initServerConfig();
+-    ACLInit();
+-    moduleInitModulesSystem();
+-    tlsInit();
+-    server.executable = getAbsolutePath(argv[0]);
+-    server.exec_argv = zmalloc(sizeof(char*)*(argc+1));
+-    server.exec_argv[argc] = NULL;
+-    for (j = 0; j < argc; j++) server.exec_argv[j] = zstrdup(argv[j]);
+-    if (server.sentinel_mode) {
+-        initSentinelConfig();
+-        initSentinel();
+-    }
+-    if (strstr(argv[0],"redis-check-rdb") != NULL)
+-        redis_check_rdb_main(argc,argv,NULL);
+-    else if (strstr(argv[0],"redis-check-aof") != NULL)
+-        redis_check_aof_main(argc,argv);
+-    if (argc >= 2) {
+-        j = 1;
+-        sds options = sdsempty();
+-        char *configfile = NULL;
+-        if (strcmp(argv[1], "-v") == 0 ||
+-            strcmp(argv[1], "--version") == 0) version();
+-        if (strcmp(argv[1], "--help") == 0 ||
+-            strcmp(argv[1], "-h") == 0) usage();
+-        if (strcmp(argv[1], "--test-memory") == 0) {
+-            if (argc == 3) {
+-                memtest(atoi(argv[2]),50);
+-                exit(0);
+-            } else {
+-                fprintf(stderr,"Please specify the amount of memory to test in megabytes.\n");
+-                fprintf(stderr,"Example: ./redis-server --test-memory 4096\n\n");
++    int firstarg;
++    config.hostip = sdsnew("127.0.0.1");
++    config.hostport = 6379;
++    config.hostsocket = NULL;
++    config.repeat = 1;
++    config.interval = 0;
++    config.dbnum = 0;
++    config.interactive = 0;
++    config.shutdown = 0;
++    config.monitor_mode = 0;
++    config.pubsub_mode = 0;
++    config.latency_mode = 0;
++    config.latency_dist_mode = 0;
++    config.latency_history = 0;
++    config.lru_test_mode = 0;
++    config.lru_test_sample_size = 0;
++    config.cluster_mode = 0;
++    config.slave_mode = 0;
++    config.getrdb_mode = 0;
++    config.stat_mode = 0;
++    config.scan_mode = 0;
++    config.intrinsic_latency_mode = 0;
++    config.pattern = NULL;
++    config.rdb_filename = NULL;
++    config.pipe_mode = 0;
++    config.pipe_timeout = REDIS_CLI_DEFAULT_PIPE_TIMEOUT;
++    config.bigkeys = 0;
++    config.hotkeys = 0;
++    config.stdinarg = 0;
++    config.auth = NULL;
++    config.user = NULL;
++    config.eval = NULL;
++    config.eval_ldb = 0;
++    config.eval_ldb_end = 0;
++    config.eval_ldb_sync = 0;
++    config.enable_ldb_on_eval = 0;
++    config.last_cmd_type = -1;
++    config.verbose = 0;
++    config.no_auth_warning = 0;
++    config.cluster_manager_command.name = NULL;
++    config.cluster_manager_command.argc = 0;
++    config.cluster_manager_command.argv = NULL;
++    config.cluster_manager_command.flags = 0;
++    config.cluster_manager_command.replicas = 0;
++    config.cluster_manager_command.from = NULL;
++    config.cluster_manager_command.to = NULL;
++    config.cluster_manager_command.weight = NULL;
++    config.cluster_manager_command.weight_argc = 0;
++    config.cluster_manager_command.slots = 0;
++    config.cluster_manager_command.timeout = CLUSTER_MANAGER_MIGRATE_TIMEOUT;
++    config.cluster_manager_command.pipeline = CLUSTER_MANAGER_MIGRATE_PIPELINE;
++    config.cluster_manager_command.threshold =
++        CLUSTER_MANAGER_REBALANCE_THRESHOLD;
++    config.cluster_manager_command.backup_dir = NULL;
++    pref.hints = 1;
++    spectrum_palette = spectrum_palette_color;
++    spectrum_palette_size = spectrum_palette_color_size;
++    if (!isatty(fileno(stdout)) && (getenv("FAKETTY") == NULL))
++        config.output = OUTPUT_RAW;
++    else
++        config.output = OUTPUT_STANDARD;
++    config.mb_delim = sdsnew("\n");
++    firstarg = parseOptions(argc,argv);
++    argc -= firstarg;
++    argv += firstarg;
++    parseEnv();
++    if (CLUSTER_MANAGER_MODE()) {
++        clusterManagerCommandProc *proc = validateClusterManagerCommand();
++        if (!proc) {
++            sdsfree(config.hostip);
++            sdsfree(config.mb_delim);
+@@ -6708,0 +6704 @@ int main(int argc, char **argv) {
++        clusterManagerMode(proc);
+@@ -6710,6 +6706,3 @@ int main(int argc, char **argv) {
+-        if (argv[j][0] != '-' || argv[j][1] != '-') {
+-            configfile = argv[j];
+-            server.configfile = getAbsolutePath(configfile);
+-            zfree(server.exec_argv[j]);
+-            server.exec_argv[j] = zstrdup(server.configfile);
+-            j++;
++    if (config.latency_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        latencyMode();
+@@ -6717,5 +6710,3 @@ int main(int argc, char **argv) {
+-        while(j != argc) {
+-            if (argv[j][0] == '-' && argv[j][1] == '-') {
+-                if (!strcmp(argv[j], "--check-rdb")) {
+-                    j++;
+-                    continue;
++    if (config.latency_dist_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        latencyDistMode();
+@@ -6723,6 +6714,4 @@ int main(int argc, char **argv) {
+-                if (sdslen(options)) options = sdscat(options,"\n");
+-                options = sdscat(options,argv[j]+2);
+-                options = sdscat(options," ");
+-            } else {
+-                options = sdscatrepr(options,argv[j],strlen(argv[j]));
+-                options = sdscat(options," ");
++    if (config.slave_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        sendCapa();
++        slaveMode();
+@@ -6730 +6719,4 @@ int main(int argc, char **argv) {
+-            j++;
++    if (config.getrdb_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        sendCapa();
++        getRDB(NULL);
+@@ -6732,6 +6724,3 @@ int main(int argc, char **argv) {
+-        if (server.sentinel_mode && configfile && *configfile == '-') {
+-            serverLog(LL_WARNING,
+-                "Sentinel config from STDIN not allowed.");
+-            serverLog(LL_WARNING,
+-                "Sentinel needs config file on disk to save state.  Exiting...");
+-            exit(1);
++    if (config.pipe_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        pipeMode();
+@@ -6739,40 +6728,3 @@ int main(int argc, char **argv) {
+-        resetServerSaveParams();
+-        loadServerConfig(configfile,options);
+-        sdsfree(options);
+-    }
+-    serverLog(LL_WARNING, "oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo");
+-    serverLog(LL_WARNING,
+-        "Redis version=%s, bits=%d, commit=%s, modified=%d, pid=%d, just started",
+-            REDIS_VERSION,
+-            (sizeof(long) == 8) ? 64 : 32,
+-            redisGitSHA1(),
+-            strtol(redisGitDirty(),NULL,10) > 0,
+-            (int)getpid());
+-    if (argc == 1) {
+-        serverLog(LL_WARNING, "Warning: no config file specified, using the default config. In order to specify a config file use %s /path/to/%s.conf", argv[0], server.sentinel_mode ? "sentinel" : "redis");
+-    } else {
+-        serverLog(LL_WARNING, "Configuration loaded");
+-    }
+-    server.supervised = redisIsSupervised(server.supervised_mode);
+-    int background = server.daemonize && !server.supervised;
+-    if (background) daemonize();
+-    initServer();
+-    if (background || server.pidfile) createPidFile();
+-    redisSetProcTitle(argv[0]);
+-    redisAsciiArt();
+-    checkTcpBacklogSettings();
+-    if (!server.sentinel_mode) {
+-        serverLog(LL_WARNING,"Server initialized");
+-    #ifdef __linux__
+-        linuxMemoryWarnings();
+-    #endif
+-        moduleLoadFromQueue();
+-        ACLLoadUsersAtStartup();
+-        InitServerLast();
+-        loadDataFromDisk();
+-        if (server.cluster_enabled) {
+-            if (verifyClusterConfigWithData() == C_ERR) {
+-                serverLog(LL_WARNING,
+-                    "You can't have keys in a DB different than DB 0 when in "
+-                    "Cluster mode. Exiting.");
+-                exit(1);
++    if (config.bigkeys) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        findBigKeys(0, 0);
+@@ -6779,0 +6732,3 @@ int main(int argc, char **argv) {
++    if (config.memkeys) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        findBigKeys(1, config.memkeys_samples);
+@@ -6781,7 +6736,3 @@ int main(int argc, char **argv) {
+-        if (server.ipfd_count > 0 || server.tlsfd_count > 0)
+-            serverLog(LL_NOTICE,"Ready to accept connections");
+-        if (server.sofd > 0)
+-            serverLog(LL_NOTICE,"The server is now ready to accept connections at %s", server.unixsocket);
+-    } else {
+-        InitServerLast();
+-        sentinelIsRunning();
++    if (config.hotkeys) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        findHotKeys();
+@@ -6789,2 +6740,24 @@ int main(int argc, char **argv) {
+-    if (server.maxmemory > 0 && server.maxmemory < 1024*1024) {
+-        serverLog(LL_WARNING,"WARNING: You specified a maxmemory value that is less than 1MB (current value is %llu bytes). Are you sure this is what you really want?", server.maxmemory);
++    if (config.stat_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        if (config.interval == 0) config.interval = 1000000;
++        statMode();
++    }
++    if (config.scan_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        scanMode();
++    }
++    if (config.lru_test_mode) {
++        if (cliConnect(0) == REDIS_ERR) exit(1);
++        LRUTestMode();
++    }
++    if (config.intrinsic_latency_mode) intrinsicLatencyMode();
++    if (argc == 0 && !config.eval) {
++        signal(SIGPIPE, SIG_IGN);
++        cliConnect(0);
++        repl();
++    }
++    if (cliConnect(0) != REDIS_OK) exit(1);
++    if (config.eval) {
++        return evalMode(argc,argv);
++    } else {
++        return noninteractive(argc,convertToSds(argc,argv));
+@@ -6792,5 +6764,0 @@ int main(int argc, char **argv) {
+-    aeSetBeforeSleepProc(server.el,beforeSleep);
+-    aeSetAfterSleepProc(server.el,afterSleep);
+-    aeMain(server.el);
+-    aeDeleteEventLoop(server.el);
+-    return 0;

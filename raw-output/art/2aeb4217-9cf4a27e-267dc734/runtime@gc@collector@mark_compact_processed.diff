@@ -1,0 +1,450 @@
+--- a/output/art/2aeb4217-9cf4a27e-267dc734/runtime@gc@collector@mark_compact.no_comments_mergebot.cc
++++ b/output/art/2aeb4217-9cf4a27e-267dc734/runtime@gc@collector@mark_compact.no_comments_truth.cc
+@@ -108,0 +109,118 @@ bool KernelSupportsUffd() {
++#if !defined(ART_FORCE_USE_READ_BARRIER) && defined(ART_USE_READ_BARRIER)
++static gc::CollectorType FetchCmdlineGcType() {
++  std::string argv;
++  gc::CollectorType gc_type = gc::CollectorType::kCollectorTypeNone;
++  if (android::base::ReadFileToString("/proc/self/cmdline", &argv)) {
++    if (argv.find("-Xgc:CMC") != std::string::npos) {
++      gc_type = gc::CollectorType::kCollectorTypeCMC;
++    } else if (argv.find("-Xgc:CC") != std::string::npos) {
++      gc_type = gc::CollectorType::kCollectorTypeCC;
++    }
++  }
++  return gc_type;
++}
++#ifdef ART_TARGET_ANDROID
++static int GetOverrideCacheInfoFd() {
++  std::string args_str;
++  if (!android::base::ReadFileToString("/proc/self/cmdline", &args_str)) {
++    LOG(WARNING) << "Failed to load /proc/self/cmdline";
++    return -1;
++  }
++  std::vector<std::string_view> args;
++  Split(std::string_view(args_str), '\0', &args);
++  for (std::string_view arg : args) {
++    if (android::base::ConsumePrefix(&arg, "--cache-info-fd=")) {
++      int fd;
++      if (!android::base::ParseInt(std::string(arg), &fd)) {
++        LOG(ERROR) << "Failed to parse --cache-info-fd (value: '" << arg << "')";
++        return -1;
++      }
++      return fd;
++    }
++  }
++  return -1;
++}
++static std::unordered_map<std::string, std::string> GetCachedProperties() {
++  static bool called = false;
++  CHECK(!called) << "GetCachedBoolProperty can be called only once";
++  called = true;
++  std::string cache_info_contents;
++  int fd = GetOverrideCacheInfoFd();
++  if (fd >= 0) {
++    if (!android::base::ReadFdToString(fd, &cache_info_contents)) {
++      PLOG(ERROR) << "Failed to read cache-info from fd " << fd;
++      return {};
++    }
++  } else {
++    std::string path = GetApexDataDalvikCacheDirectory(InstructionSet::kNone) + "/cache-info.xml";
++    if (!android::base::ReadFileToString(path, &cache_info_contents)) {
++      if (errno != ENOENT) {
++        PLOG(ERROR) << "Failed to read cache-info from the default path";
++      }
++      return {};
++    }
++  }
++  std::optional<com::android::art::CacheInfo> cache_info =
++      com::android::art::parse(cache_info_contents.c_str());
++  if (!cache_info.has_value()) {
++    LOG(ERROR) << "Failed to parse cache-info";
++    return {};
++  }
++  const com::android::art::KeyValuePairList* list = cache_info->getFirstSystemProperties();
++  if (list == nullptr) {
++    LOG(ERROR) << "Missing system properties from cache-info";
++    return {};
++  }
++  const std::vector<com::android::art::KeyValuePair>& properties = list->getItem();
++  std::unordered_map<std::string, std::string> result;
++  for (const com::android::art::KeyValuePair& pair : properties) {
++    result[pair.getK()] = pair.getV();
++  }
++  return result;
++}
++static bool GetCachedBoolProperty(
++    const std::unordered_map<std::string, std::string>& cached_properties,
++    const std::string& key,
++    bool default_value) {
++  auto it = cached_properties.find(key);
++  if (it == cached_properties.end()) {
++    return default_value;
++  }
++  ParseBoolResult result = ParseBool(it->second);
++  switch (result) {
++    case ParseBoolResult::kTrue:
++      return true;
++    case ParseBoolResult::kFalse:
++      return false;
++    case ParseBoolResult::kError:
++      return default_value;
++  }
++}
++static bool SysPropSaysUffdGc() {
++  std::unordered_map<std::string, std::string> cached_properties = GetCachedProperties();
++  bool phenotype_enable = GetCachedBoolProperty(
++      cached_properties, "persist.device_config.runtime_native_boot.enable_uffd_gc_2", false);
++  bool phenotype_force_disable = GetCachedBoolProperty(
++      cached_properties, "persist.device_config.runtime_native_boot.force_disable_uffd_gc", false);
++  bool build_enable = GetBoolProperty("ro.dalvik.vm.enable_uffd_gc", false);
++  return (phenotype_enable || build_enable || IsAtLeastT()) && !phenotype_force_disable;
++}
++#else
++static bool SysPropSaysUffdGc() { return true; }
++#endif
++static bool ShouldUseUserfaultfd() {
++  static_assert(kUseBakerReadBarrier || kUseTableLookupReadBarrier);
++#ifdef __linux__
++  gc::CollectorType gc_type = FetchCmdlineGcType();
++  return gc_type == gc::CollectorType::kCollectorTypeCMC ||
++         (gc_type == gc::CollectorType::kCollectorTypeNone &&
++          kIsTargetAndroid &&
++          SysPropSaysUffdGc() &&
++          KernelSupportsUffd());
++#else
++  return false;
++#endif
++}
++const bool gUseUserfaultfd = ShouldUseUserfaultfd();
++const bool gUseReadBarrier = !gUseUserfaultfd;
++#endif
+@@ -891,4 +1038,8 @@ void operator()([[maybe_unused]] mirror::Object* old,
+-                  [[maybe_unused]] bool is_static) constprivate:
+-  MarkCompact* const collector_;
+-public:
+-      REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++                  [[maybe_unused]] bool is_static) const ALWAYS_INLINE
++      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++    bool update = true;
++    if (kCheckBegin || kCheckEnd) {
++      uint8_t* ref = reinterpret_cast<uint8_t*>(obj_) + offset.Int32Value();
++      update = (!kCheckBegin || ref >= begin_) && (!kCheckEnd || ref < end_);
++    }
++    if (update) {
+@@ -897,5 +1048,6 @@ public:
+-private:
+-  MarkCompact* const collector_;
+-  MarkCompact* const collector_;
+-public:
+-      REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
++  }
++  void operator()([[maybe_unused]] mirror::Object* old,
++                  MemberOffset offset,
++                  [[maybe_unused]] bool is_static,
++                  [[maybe_unused]] bool is_obj_array) const ALWAYS_INLINE
++      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES_SHARED(Locks::heap_bitmap_lock_) {
+@@ -904,3 +1056 @@ public:
+-private:
+-  MarkCompact* const collector_;
+-public:
++  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const
+@@ -909 +1059,2 @@ public:
+-      collector_->UpdateRoot(root, moving_space_begin_, moving_space_end_);
++    if (!root->IsNull()) {
++      VisitRoot(root);
+@@ -911,3 +1062,2 @@ public:
+-private:
+-  MarkCompact* const collector_;
+-public:
++  }
++  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const
+@@ -1760,4 +1910 @@ void operator()(mirror::Object* obj) const ALWAYS_INLINE REQUIRES(Locks::mutator
+-private:
+-  MarkCompact* const collector_;
+-public:
+-                                                       REQUIRES(Locks::mutator_lock_) {
++  static void Callback(mirror::Object* obj, void* arg) REQUIRES(Locks::mutator_lock_) {
+@@ -1773,3 +1923,4 @@ public:
+-                                         REQUIRES_SHARED(Locks::mutator_lock_) {
+-                                         collector_->UpdateRoot(
+-                                         root, moving_space_begin_, moving_space_end_, RootInfo(RootType::kRootVMInternal));
++      REQUIRES_SHARED(Locks::classlinker_classes_lock_, Locks::mutator_lock_) {
++    ClassTable* const class_table = class_loader->GetClassTable();
++    if (class_table != nullptr) {
++      class_table->VisitRoots(*this, true);
+@@ -1777,7 +1927,0 @@ public:
+-private:
+-  MarkCompact* collector_;
+-  MarkCompact* collector_;
+-public:
+-                                         REQUIRES_SHARED(Locks::mutator_lock_) {
+-                                         collector_->UpdateRoot(
+-                                         root, moving_space_begin_, moving_space_end_, RootInfo(RootType::kRootVMInternal));
+@@ -1785,5 +1929,8 @@ public:
+-private:
+-  MarkCompact* collector_;
+-  MarkCompact* collector_;
+-public:
+-                                         REQUIRES_SHARED(Locks::mutator_lock_) {
++  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
++      REQUIRES(Locks::heap_bitmap_lock_) REQUIRES_SHARED(Locks::mutator_lock_) {
++    if (!root->IsNull()) {
++      VisitRoot(root);
++    }
++  }
++  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
++      REQUIRES(Locks::heap_bitmap_lock_) REQUIRES_SHARED(Locks::mutator_lock_) {
+@@ -1802,2 +1952,0 @@ public:
+-private:
+-                                                           ALWAYS_INLINE
+@@ -1805,43 +1954,10 @@ private:
+-                                                           switch (kind) {
+-                                                           case LinearAllocKind::kNoGCRoots:
+-                                                           break;
+-                                                           case LinearAllocKind::kGCRootArray:
+-                                                           {
+-                                                           GcRoot<mirror::Object>* root = reinterpret_cast<GcRoot<mirror::Object>*>(start_boundary);
+-                                                           GcRoot<mirror::Object>* last = reinterpret_cast<GcRoot<mirror::Object>*>(end_boundary);
+-                                                           for (; root < last; root++) {
+-                                                           VisitRootIfNonNull(root->AddressWithoutBarrier());
+-                                                           }
+-                                                           }
+-                                                           break;
+-                                                           case LinearAllocKind::kArtMethodArray:
+-                                                           {
+-                                                           LengthPrefixedArray<ArtMethod>* array = static_cast<LengthPrefixedArray<ArtMethod>*>(obj);
+-                                                           if (array->size() > 0) {
+-                                                           if (collector_->pointer_size_ == PointerSize::k64) {
+-                                                           ArtMethod::VisitArrayRoots<PointerSize::k64>(
+-                                                           *this, start_boundary, end_boundary, array);
+-                                                           } else {
+-                                                           DCHECK_EQ(collector_->pointer_size_, PointerSize::k32);
+-                                                           ArtMethod::VisitArrayRoots<PointerSize::k32>(
+-                                                           *this, start_boundary, end_boundary, array);
+-                                                           }
+-                                                           }
+-                                                           }
+-                                                           break;
+-                                                           case LinearAllocKind::kArtMethod:
+-                                                           ArtMethod::VisitRoots(*this, start_boundary, end_boundary, static_cast<ArtMethod*>(obj));
+-                                                           break;
+-                                                           case LinearAllocKind::kArtFieldArray:
+-                                                           ArtField::VisitArrayRoots(*this,
+-                                                           start_boundary,
+-                                                           end_boundary,
+-                                                           static_cast<LengthPrefixedArray<ArtField>*>(obj));
+-                                                           break;
+-                                                           case LinearAllocKind::kDexCacheArray:
+-                                                           {
+-                                                           mirror::DexCachePair<mirror::Object>* first =
+-                                                           reinterpret_cast<mirror::DexCachePair<mirror::Object>*>(start_boundary);
+-                                                           mirror::DexCachePair<mirror::Object>* last =
+-                                                           reinterpret_cast<mirror::DexCachePair<mirror::Object>*>(end_boundary);
+-                                                           mirror::DexCache::VisitDexCachePairRoots(*this, first, last);
++    DCHECK(first_obj != nullptr);
++    DCHECK_ALIGNED(page_begin, kPageSize);
++    uint8_t* page_end = page_begin + kPageSize;
++    uint32_t obj_size;
++    for (uint8_t* byte = first_obj; byte < page_end;) {
++      TrackingHeader* header = reinterpret_cast<TrackingHeader*>(byte);
++      obj_size = header->GetSize();
++      if (UNLIKELY(obj_size == 0)) {
++        last_page_touched_ = byte >= page_begin;
++        return;
+@@ -1848,0 +1965,4 @@ private:
++      uint8_t* obj = byte + sizeof(TrackingHeader);
++      uint8_t* obj_end = byte + obj_size;
++      if (header->Is16Aligned()) {
++        obj = AlignUp(obj, 16);
+@@ -1849,0 +1970,4 @@ private:
++      uint8_t* begin_boundary = std::max(obj, page_begin);
++      uint8_t* end_boundary = std::min(obj_end, page_end);
++      if (begin_boundary < end_boundary) {
++        VisitObject(header->GetKind(), obj, begin_boundary, end_boundary);
+@@ -1851,12 +1975,2 @@ private:
+-public:
+-      ALWAYS_INLINE REQUIRES_SHARED(Locks::mutator_lock_) {
+-      mirror::Object* old_ref = root->AsMirrorPtr();
+-      DCHECK_NE(old_ref, nullptr);
+-      if (MarkCompact::HasAddress(old_ref, moving_space_begin_, moving_space_end_)) {
+-      mirror::Object* new_ref = old_ref;
+-      if (reinterpret_cast<uint8_t*>(old_ref) >= collector_->black_allocations_begin_) {
+-        new_ref = collector_->PostCompactBlackObjAddr(old_ref);
+-      } else if (collector_->live_words_bitmap_->Test(old_ref)) {
+-        DCHECK(collector_->moving_space_bitmap_->Test(old_ref))
+-            << "ref:" << old_ref << " root:" << root;
+-        new_ref = collector_->PostCompactOldObjAddr(old_ref);
++      if (ArenaAllocator::IsRunningOnMemoryTool()) {
++        obj_size += ArenaAllocator::kMemoryToolRedZoneBytes;
+@@ -1864,2 +1978 @@ public:
+-      if (old_ref != new_ref) {
+-        root->Assign(new_ref);
++      byte += RoundUp(obj_size, LinearAlloc::kAlignment);
+@@ -1866,0 +1980 @@ public:
++    last_page_touched_ = true;
+@@ -1868,4 +1982,20 @@ public:
+-      }
+-private:
+-  MarkCompact* const collector_;
+-public:
++  void SingleObjectArena(uint8_t* page_begin, size_t page_size)
++      REQUIRES_SHARED(Locks::mutator_lock_) {
++    static_assert(sizeof(uint32_t) == sizeof(GcRoot<mirror::Object>));
++    DCHECK_ALIGNED(page_begin, kAlignment);
++    static constexpr uint32_t kMask = kObjectAlignment - 1;
++    size_t num_roots = page_size / sizeof(GcRoot<mirror::Object>);
++    uint32_t* root_ptr = reinterpret_cast<uint32_t*>(page_begin);
++    for (size_t i = 0; i < num_roots; root_ptr++, i++) {
++      uint32_t word = *root_ptr;
++      if (word != 0) {
++        uint32_t lsbs = word & kMask;
++        word &= ~kMask;
++        VisitRootIfNonNull(reinterpret_cast<mirror::CompressedReference<mirror::Object>*>(&word));
++        *root_ptr = word | lsbs;
++        last_page_touched_ = true;
++      }
++    }
++  }
++  bool WasLastPageTouched() const { return last_page_touched_; }
++  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const
+@@ -1873,13 +2003,2 @@ public:
+-      mirror::Object* old_ref = root->AsMirrorPtr();
+-      DCHECK_NE(old_ref, nullptr);
+-      if (MarkCompact::HasAddress(old_ref, moving_space_begin_, moving_space_end_)) {
+-      mirror::Object* new_ref = old_ref;
+-      if (reinterpret_cast<uint8_t*>(old_ref) >= collector_->black_allocations_begin_) {
+-        new_ref = collector_->PostCompactBlackObjAddr(old_ref);
+-      } else if (collector_->live_words_bitmap_->Test(old_ref)) {
+-        DCHECK(collector_->moving_space_bitmap_->Test(old_ref))
+-            << "ref:" << old_ref << " root:" << root;
+-        new_ref = collector_->PostCompactOldObjAddr(old_ref);
+-      }
+-      if (old_ref != new_ref) {
+-        root->Assign(new_ref);
++    if (!root->IsNull()) {
++      VisitRoot(root);
+@@ -1888,4 +2007 @@ public:
+-      }
+-private:
+-  MarkCompact* const collector_;
+-public:
++  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const
+@@ -1910,2 +2026,4 @@ private:
+-  MarkCompact* const collector_;
+-                                                           ALWAYS_INLINE
++  void VisitObject(LinearAllocKind kind,
++                   void* obj,
++                   uint8_t* start_boundary,
++                   uint8_t* end_boundary) const ALWAYS_INLINE
+@@ -2746,5 +2864,6 @@ void VisitRoots(mirror::Object*** roots,
+-                  [[maybe_unused]] const RootInfo& info) overrideprivate:
+-  StackReference<mirror::Object> roots_[kBufferSize];
+-                                 REQUIRES(Locks::heap_bitmap_lock_) {
+-                                 if (UNLIKELY(idx_ >= kBufferSize)) {
+-                                 Flush();
++                  [[maybe_unused]] const RootInfo& info) override
++      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_) {
++    for (size_t i = 0; i < count; i++) {
++      mirror::Object* obj = *roots[i];
++      if (mark_compact_->MarkObjectNonNullNoPush< true>(obj)) {
++        Push(obj);
+@@ -2752 +2870,0 @@ void VisitRoots(mirror::Object*** roots,
+-                                 roots_[idx_++].Assign(obj);
+@@ -2754,5 +2871,0 @@ void VisitRoots(mirror::Object*** roots,
+-  StackReference<mirror::Object> roots_[kBufferSize];
+-  StackReference<mirror::Object> roots_[kBufferSize];
+-                                 REQUIRES(Locks::heap_bitmap_lock_) {
+-                                 if (UNLIKELY(idx_ >= kBufferSize)) {
+-                                 Flush();
+@@ -2760 +2873,8 @@ void VisitRoots(mirror::Object*** roots,
+-                                 roots_[idx_++].Assign(obj);
++  void VisitRoots(mirror::CompressedReference<mirror::Object>** roots,
++                  size_t count,
++                  [[maybe_unused]] const RootInfo& info) override
++      REQUIRES_SHARED(Locks::mutator_lock_) REQUIRES(Locks::heap_bitmap_lock_) {
++    for (size_t i = 0; i < count; i++) {
++      mirror::Object* obj = roots[i]->AsMirrorPtr();
++      if (mark_compact_->MarkObjectNonNullNoPush< true>(obj)) {
++        Push(obj);
+@@ -2761,0 +2882,3 @@ void VisitRoots(mirror::Object*** roots,
++    }
++  }
++ private:
+@@ -2777,2 +2900 @@ void VisitRoots(mirror::Object*** roots,
+-  StackReference<mirror::Object> roots_[kBufferSize];
+-  StackReference<mirror::Object> roots_[kBufferSize];
++  void Push(mirror::Object* obj) REQUIRES_SHARED(Locks::mutator_lock_)
+@@ -2842,7 +2964,5 @@ public:
+-      REQUIRES_SHARED(Locks::mutator_lock_) {
+-      mark_compact_->ScanObject< false>(obj.Ptr());
+-      }
+-private:
+-  MarkCompact* const mark_compact_;
+-  MarkCompact* const mark_compact_;
+-public:
++  explicit ScanObjectVisitor(MarkCompact* const mark_compact) ALWAYS_INLINE
++      : mark_compact_(mark_compact) {}
++  void operator()(ObjPtr<mirror::Object> obj) const
++      ALWAYS_INLINE
++      REQUIRES(Locks::heap_bitmap_lock_)
+@@ -2939,2 +3058,0 @@ class MarkCompact::RefFieldsVisitor {
+-private:
+-  MarkCompact* const mark_compact_;
+@@ -2942,7 +3060,2 @@ public:
+-      REQUIRES_SHARED(Locks::mutator_lock_) {
+-      if (kCheckLocks) {
+-      Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
+-      Locks::heap_bitmap_lock_->AssertExclusiveHeld(Thread::Current());
+-      }
+-      mark_compact_->MarkObject(root->AsMirrorPtr());
+-      }
++  ALWAYS_INLINE explicit RefFieldsVisitor(MarkCompact* const mark_compact)
++    : mark_compact_(mark_compact) {}
+@@ -2952,4 +3065 @@ public:
+-private:
+-  MarkCompact* const mark_compact_;
+-public:
+-      REQUIRES_SHARED(Locks::mutator_lock_) {
++      REQUIRES(Locks::heap_bitmap_lock_) REQUIRES_SHARED(Locks::mutator_lock_) {
+@@ -2960 +3070 @@ public:
+-      mark_compact_->MarkObject(root->AsMirrorPtr());
++    mark_compact_->MarkObject(obj->GetFieldObject<mirror::Object>(offset), obj, offset);
+@@ -2962,10 +3072,3 @@ public:
+-private:
+-  MarkCompact* const mark_compact_;
+-  MarkCompact* const mark_compact_;
+-public:
+-      REQUIRES_SHARED(Locks::mutator_lock_) {
+-      if (kCheckLocks) {
+-      Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
+-      Locks::heap_bitmap_lock_->AssertExclusiveHeld(Thread::Current());
+-      }
+-      mark_compact_->MarkObject(root->AsMirrorPtr());
++  void operator()(ObjPtr<mirror::Class> klass, ObjPtr<mirror::Reference> ref) const ALWAYS_INLINE
++      REQUIRES(Locks::heap_bitmap_lock_) REQUIRES_SHARED(Locks::mutator_lock_) {
++    mark_compact_->DelayReferenceReferent(klass, ref);
+@@ -2973,8 +3076,4 @@ public:
+-private:
+-  MarkCompact* const mark_compact_;
+-  MarkCompact* const mark_compact_;
+-public:
+-      REQUIRES_SHARED(Locks::mutator_lock_) {
+-      if (kCheckLocks) {
+-      Locks::mutator_lock_->AssertSharedHeld(Thread::Current());
+-      Locks::heap_bitmap_lock_->AssertExclusiveHeld(Thread::Current());
++  void VisitRootIfNonNull(mirror::CompressedReference<mirror::Object>* root) const ALWAYS_INLINE
++      REQUIRES(Locks::heap_bitmap_lock_) REQUIRES_SHARED(Locks::mutator_lock_) {
++    if (!root->IsNull()) {
++      VisitRoot(root);
+@@ -2982 +3080,0 @@ public:
+-      mark_compact_->MarkObject(root->AsMirrorPtr());
+@@ -2984,4 +3082,2 @@ public:
+-private:
+-  MarkCompact* const mark_compact_;
+-  MarkCompact* const mark_compact_;
+-public:
++  void VisitRoot(mirror::CompressedReference<mirror::Object>* root) const
++      REQUIRES(Locks::heap_bitmap_lock_)
+@@ -3237,0 +3334 @@ void MarkCompact::FinishPhase() {
++}

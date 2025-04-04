@@ -1,0 +1,208 @@
+diff --git a/output/redis/2e19b941-ee1cef18-fd0ee469/src@config.no_comments_mergebot.c b/output/redis/2e19b941-ee1cef18-fd0ee469/src@config.no_comments_truth.c
+index 37f462d..e73b500 100644
+--- a/output/redis/2e19b941-ee1cef18-fd0ee469/src@config.no_comments_mergebot.c
++++ b/output/redis/2e19b941-ee1cef18-fd0ee469/src@config.no_comments_truth.c
+@@ -96,0 +97 @@ configYesNo configs_yesno[] = {
++    {"jemalloc-bg-thread",NULL,&server.jemalloc_bg_thread,1,1},
+@@ -386,24 +386,0 @@ void loadServerConfigFromString(char *config) {
+-<<<<<<< HEAD
+-        } else if (!strcasecmp(argv[0],"jemalloc-bg-thread") && argc == 2) {
+-            if ((server.jemalloc_bg_thread = yesnotoi(argv[1])) == -1) {
+-                err = "argument must be 'yes' or 'no'"; goto loaderr;
+-            }
+-        } else if (!strcasecmp(argv[0],"daemonize") && argc == 2) {
+-            if ((server.daemonize = yesnotoi(argv[1])) == -1) {
+-                err = "argument must be 'yes' or 'no'"; goto loaderr;
+-            }
+-        } else if (!strcasecmp(argv[0],"dynamic-hz") && argc == 2) {
+-            if ((server.dynamic_hz = yesnotoi(argv[1])) == -1) {
+-                err = "argument must be 'yes' or 'no'"; goto loaderr;
+-            }
+-||||||| fd0ee469a
+-        } else if (!strcasecmp(argv[0],"daemonize") && argc == 2) {
+-            if ((server.daemonize = yesnotoi(argv[1])) == -1) {
+-                err = "argument must be 'yes' or 'no'"; goto loaderr;
+-            }
+-        } else if (!strcasecmp(argv[0],"dynamic-hz") && argc == 2) {
+-            if ((server.dynamic_hz = yesnotoi(argv[1])) == -1) {
+-                err = "argument must be 'yes' or 'no'"; goto loaderr;
+-            }
+-=======
+->>>>>>> ee1cef18
+@@ -760,0 +738,26 @@ void loadServerConfig(char *filename, char *options) {
++#define config_set_bool_field(_name,_var) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name)) { \
++        int yn = yesnotoi(o->ptr); \
++        if (yn == -1) goto badfmt; \
++        _var = yn;
++#define config_set_numerical_field(_name,_var,min,max) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name)) { \
++        if (getLongLongFromObject(o,&ll) == C_ERR) goto badfmt; \
++        if (min != LLONG_MIN && ll < min) goto badfmt; \
++        if (max != LLONG_MAX && ll > max) goto badfmt; \
++        _var = ll;
++#define config_set_memory_field(_name,_var) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name)) { \
++        ll = memtoll(o->ptr,&err); \
++        if (err || ll < 0) goto badfmt; \
++        _var = ll;
++#define config_set_enum_field(_name,_var,_enumvar) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name)) { \
++        int enumval = configEnumGetValue(_enumvar,o->ptr); \
++        if (enumval == INT_MIN) goto badfmt; \
++        _var = enumval;
++#define config_set_special_field(_name) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name)) {
++#define config_set_special_field_with_alias(_name1,_name2) \
++    } else if (!strcasecmp(c->argv[2]->ptr,_name1) || \
++               !strcasecmp(c->argv[2]->ptr,_name2)) {
+@@ -929,47 +931,0 @@ void configSetCommand(client *c) {
+-<<<<<<< HEAD
+-    } config_set_bool_field(
+-      "jemalloc-bg-thread",server.jemalloc_bg_thread) {
+-          set_jemalloc_bg_thread(server.jemalloc_bg_thread);
+-    } config_set_bool_field(
+-      "protected-mode",server.protected_mode) {
+-    } config_set_bool_field(
+-      "gopher-enabled",server.gopher_enabled) {
+-    } config_set_bool_field(
+-      "stop-writes-on-bgsave-error",server.stop_writes_on_bgsave_err) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-eviction",server.lazyfree_lazy_eviction) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-expire",server.lazyfree_lazy_expire) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-server-del",server.lazyfree_lazy_server_del) {
+-    } config_set_bool_field(
+-      "slave-lazy-flush",server.repl_slave_lazy_flush) {
+-    } config_set_bool_field(
+-      "replica-lazy-flush",server.repl_slave_lazy_flush) {
+-    } config_set_bool_field(
+-      "no-appendfsync-on-rewrite",server.aof_no_fsync_on_rewrite) {
+-    } config_set_bool_field(
+-      "dynamic-hz",server.dynamic_hz) {
+-||||||| fd0ee469a
+-    } config_set_bool_field(
+-      "protected-mode",server.protected_mode) {
+-    } config_set_bool_field(
+-      "gopher-enabled",server.gopher_enabled) {
+-    } config_set_bool_field(
+-      "stop-writes-on-bgsave-error",server.stop_writes_on_bgsave_err) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-eviction",server.lazyfree_lazy_eviction) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-expire",server.lazyfree_lazy_expire) {
+-    } config_set_bool_field(
+-      "lazyfree-lazy-server-del",server.lazyfree_lazy_server_del) {
+-    } config_set_bool_field(
+-      "slave-lazy-flush",server.repl_slave_lazy_flush) {
+-    } config_set_bool_field(
+-      "replica-lazy-flush",server.repl_slave_lazy_flush) {
+-    } config_set_bool_field(
+-      "no-appendfsync-on-rewrite",server.aof_no_fsync_on_rewrite) {
+-    } config_set_bool_field(
+-      "dynamic-hz",server.dynamic_hz) {
+-=======
+->>>>>>> ee1cef18
+@@ -1119,0 +1076,29 @@ badfmt:
++#define config_get_string_field(_name,_var) do { \
++    if (stringmatch(pattern,_name,1)) { \
++        addReplyBulkCString(c,_name); \
++        addReplyBulkCString(c,_var ? _var : ""); \
++        matches++; \
++    } \
++} while(0);
++#define config_get_bool_field(_name,_var) do { \
++    if (stringmatch(pattern,_name,1)) { \
++        addReplyBulkCString(c,_name); \
++        addReplyBulkCString(c,_var ? "yes" : "no"); \
++        matches++; \
++    } \
++} while(0);
++#define config_get_numerical_field(_name,_var) do { \
++    if (stringmatch(pattern,_name,1)) { \
++        ll2string(buf,sizeof(buf),_var); \
++        addReplyBulkCString(c,_name); \
++        addReplyBulkCString(c,buf); \
++        matches++; \
++    } \
++} while(0);
++#define config_get_enum_field(_name,_var,_enumvar) do { \
++    if (stringmatch(pattern,_name,1)) { \
++        addReplyBulkCString(c,_name); \
++        addReplyBulkCString(c,configEnumGetNameOrUnknown(_enumvar,_var)); \
++        matches++; \
++    } \
++} while(0);
+@@ -1217,59 +1201,0 @@ void configGetCommand(client *c) {
+-<<<<<<< HEAD
+-    config_get_bool_field("jemalloc-bg-thread", server.jemalloc_bg_thread);
+-    config_get_bool_field("protected-mode", server.protected_mode);
+-    config_get_bool_field("gopher-enabled", server.gopher_enabled);
+-    config_get_bool_field("io-threads-do-reads", server.io_threads_do_reads);
+-    config_get_bool_field("repl-disable-tcp-nodelay",
+-            server.repl_disable_tcp_nodelay);
+-    config_get_bool_field("repl-diskless-sync",
+-            server.repl_diskless_sync);
+-    config_get_bool_field("aof-rewrite-incremental-fsync",
+-            server.aof_rewrite_incremental_fsync);
+-    config_get_bool_field("rdb-save-incremental-fsync",
+-            server.rdb_save_incremental_fsync);
+-    config_get_bool_field("aof-load-truncated",
+-            server.aof_load_truncated);
+-    config_get_bool_field("aof-use-rdb-preamble",
+-            server.aof_use_rdb_preamble);
+-    config_get_bool_field("lazyfree-lazy-eviction",
+-            server.lazyfree_lazy_eviction);
+-    config_get_bool_field("lazyfree-lazy-expire",
+-            server.lazyfree_lazy_expire);
+-    config_get_bool_field("lazyfree-lazy-server-del",
+-            server.lazyfree_lazy_server_del);
+-    config_get_bool_field("slave-lazy-flush",
+-            server.repl_slave_lazy_flush);
+-    config_get_bool_field("replica-lazy-flush",
+-            server.repl_slave_lazy_flush);
+-    config_get_bool_field("dynamic-hz",
+-            server.dynamic_hz);
+-||||||| fd0ee469a
+-    config_get_bool_field("protected-mode", server.protected_mode);
+-    config_get_bool_field("gopher-enabled", server.gopher_enabled);
+-    config_get_bool_field("io-threads-do-reads", server.io_threads_do_reads);
+-    config_get_bool_field("repl-disable-tcp-nodelay",
+-            server.repl_disable_tcp_nodelay);
+-    config_get_bool_field("repl-diskless-sync",
+-            server.repl_diskless_sync);
+-    config_get_bool_field("aof-rewrite-incremental-fsync",
+-            server.aof_rewrite_incremental_fsync);
+-    config_get_bool_field("rdb-save-incremental-fsync",
+-            server.rdb_save_incremental_fsync);
+-    config_get_bool_field("aof-load-truncated",
+-            server.aof_load_truncated);
+-    config_get_bool_field("aof-use-rdb-preamble",
+-            server.aof_use_rdb_preamble);
+-    config_get_bool_field("lazyfree-lazy-eviction",
+-            server.lazyfree_lazy_eviction);
+-    config_get_bool_field("lazyfree-lazy-expire",
+-            server.lazyfree_lazy_expire);
+-    config_get_bool_field("lazyfree-lazy-server-del",
+-            server.lazyfree_lazy_server_del);
+-    config_get_bool_field("slave-lazy-flush",
+-            server.repl_slave_lazy_flush);
+-    config_get_bool_field("replica-lazy-flush",
+-            server.repl_slave_lazy_flush);
+-    config_get_bool_field("dynamic-hz",
+-            server.dynamic_hz);
+-=======
+->>>>>>> ee1cef18
+@@ -1837,11 +1762,0 @@ int rewriteConfig(char *path) {
+-<<<<<<< HEAD
+-    rewriteConfigYesNoOption(state,"jemalloc-bg-thread",server.jemalloc_bg_thread,1);
+-    rewriteConfigYesNoOption(state,"protected-mode",server.protected_mode,CONFIG_DEFAULT_PROTECTED_MODE);
+-    rewriteConfigYesNoOption(state,"gopher-enabled",server.gopher_enabled,CONFIG_DEFAULT_GOPHER_ENABLED);
+-    rewriteConfigYesNoOption(state,"io-threads-do-reads",server.io_threads_do_reads,CONFIG_DEFAULT_IO_THREADS_DO_READS);
+-||||||| fd0ee469a
+-    rewriteConfigYesNoOption(state,"protected-mode",server.protected_mode,CONFIG_DEFAULT_PROTECTED_MODE);
+-    rewriteConfigYesNoOption(state,"gopher-enabled",server.gopher_enabled,CONFIG_DEFAULT_GOPHER_ENABLED);
+-    rewriteConfigYesNoOption(state,"io-threads-do-reads",server.io_threads_do_reads,CONFIG_DEFAULT_IO_THREADS_DO_READS);
+-=======
+->>>>>>> ee1cef18

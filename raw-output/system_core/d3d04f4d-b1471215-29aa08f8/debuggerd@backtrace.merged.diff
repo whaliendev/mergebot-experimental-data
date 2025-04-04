@@ -1,0 +1,83 @@
+diff --git a/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@backtrace.no_comments_merged.cpp b/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@backtrace.no_comments_truth.cpp
+index 3952133..ede61be 100644
+--- a/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@backtrace.no_comments_merged.cpp
++++ b/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@backtrace.no_comments_truth.cpp
+@@ -43 +42,0 @@ static void dump_process_footer(log_t* log, pid_t pid) {
+-<<<<<<< HEAD
+@@ -45,7 +43,0 @@ static void dump_thread(log_t* log, BacktraceMap* map, pid_t pid, pid_t tid) {
+-||||||| 29aa08f8c
+-static void dump_thread(
+-    log_t* log, pid_t tid, bool attached, bool* detach_failed, int* total_sleep_time_usec) {
+-=======
+-static void dump_thread(log_t* log, pid_t pid, pid_t tid, bool attached,
+-                        bool* detach_failed, int* total_sleep_time_usec) {
+->>>>>>> b1471215
+@@ -68 +59,0 @@ static void dump_thread(log_t* log, pid_t pid, pid_t tid, bool attached,
+-<<<<<<< HEAD
+@@ -70,19 +60,0 @@ static void dump_thread(log_t* log, pid_t pid, pid_t tid, bool attached,
+-||||||| 29aa08f8c
+-  if (!attached && ptrace(PTRACE_ATTACH, tid, 0, 0) < 0) {
+-    _LOG(log, logtype::BACKTRACE, "Could not attach to thread: %s\n", strerror(errno));
+-    return;
+-  }
+-  if (!attached && wait_for_sigstop(tid, total_sleep_time_usec, detach_failed) == -1) {
+-    return;
+-  }
+-  std::unique_ptr<Backtrace> backtrace(Backtrace::Create(tid, BACKTRACE_CURRENT_THREAD));
+-=======
+-  if (!attached && !ptrace_attach_thread(pid, tid)) {
+-    _LOG(log, logtype::BACKTRACE, "Could not attach to thread: %s\n", strerror(errno));
+-    return;
+-  }
+-  if (!attached && wait_for_sigstop(tid, total_sleep_time_usec, detach_failed) == -1) {
+-    return;
+-  }
+-  std::unique_ptr<Backtrace> backtrace(Backtrace::Create(tid, BACKTRACE_CURRENT_THREAD));
+->>>>>>> b1471215
+@@ -102 +73,0 @@ void dump_backtrace(int fd, BacktraceMap* map, pid_t pid, pid_t tid,
+-<<<<<<< HEAD
+@@ -104,6 +74,0 @@ void dump_backtrace(int fd, BacktraceMap* map, pid_t pid, pid_t tid,
+-||||||| 29aa08f8c
+-  dump_thread(&log, tid, true, detach_failed, total_sleep_time_usec);
+-=======
+-  dump_thread(&log, pid, tid, true, detach_failed, total_sleep_time_usec);
+->>>>>>> b1471215
+-<<<<<<< HEAD
+@@ -112,37 +76,0 @@ void dump_backtrace(int fd, BacktraceMap* map, pid_t pid, pid_t tid,
+-||||||| 29aa08f8c
+-  char task_path[64];
+-  snprintf(task_path, sizeof(task_path), "/proc/%d/task", pid);
+-  DIR* d = opendir(task_path);
+-  if (d != NULL) {
+-    struct dirent* de = NULL;
+-    while ((de = readdir(d)) != NULL) {
+-      if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) {
+-        continue;
+-      }
+-      char* end;
+-      pid_t new_tid = strtoul(de->d_name, &end, 10);
+-      if (*end || new_tid == tid) {
+-        continue;
+-      }
+-      dump_thread(&log, new_tid, false, detach_failed, total_sleep_time_usec);
+-    }
+-    closedir(d);
+-=======
+-  char task_path[64];
+-  snprintf(task_path, sizeof(task_path), "/proc/%d/task", pid);
+-  DIR* d = opendir(task_path);
+-  if (d != NULL) {
+-    struct dirent* de = NULL;
+-    while ((de = readdir(d)) != NULL) {
+-      if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) {
+-        continue;
+-      }
+-      char* end;
+-      pid_t new_tid = strtoul(de->d_name, &end, 10);
+-      if (*end || new_tid == tid) {
+-        continue;
+-      }
+-      dump_thread(&log, pid, new_tid, false, detach_failed, total_sleep_time_usec);
+-    }
+-    closedir(d);
+->>>>>>> b1471215

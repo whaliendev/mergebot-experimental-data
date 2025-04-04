@@ -1,0 +1,26 @@
+--- a/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@channel.no_comments_mergebot.c
++++ b/output/grpc/566316f3-9b5da208-4a92bc3c/src@core@surface@channel.no_comments_truth.c
+@@ -16,0 +17 @@ struct grpc_channel {
++#define CHANNEL_STACK_FROM_CHANNEL(c) ((grpc_channel_stack *)((c)+1))
+@@ -38,0 +42 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
++  grpc_call_op op;
+@@ -44 +47,0 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
+-  grpc_mdstr_ref(channel->path_string);
+@@ -46 +49 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
+-      channel->metadata_context, channel->path_string,
++      channel->metadata_context, grpc_mdstr_ref(channel->path_string),
+@@ -48 +51,7 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
+-  grpc_call_add_mdelem(call, path_mdelem, 0);
++  op.type = GRPC_SEND_METADATA;
++  op.dir = GRPC_CALL_DOWN;
++  op.flags = 0;
++  op.data.metadata = path_mdelem;
++  op.done_cb = do_nothing;
++  op.user_data = NULL;
++  grpc_call_execute_op(call, &op);
+@@ -53 +62,2 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
+-  grpc_call_add_mdelem(call, authority_mdelem, 0);
++  op.data.metadata = authority_mdelem;
++  grpc_call_execute_op(call, &op);
+@@ -55 +64,0 @@ grpc_call *grpc_channel_create_call_old(grpc_channel *channel, const char *metho
+-    grpc_call_op op;

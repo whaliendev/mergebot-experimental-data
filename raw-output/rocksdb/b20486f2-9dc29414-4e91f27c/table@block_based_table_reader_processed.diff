@@ -1,0 +1,28 @@
+--- a/output/rocksdb/b20486f2-9dc29414-4e91f27c/table@block_based_table_reader.no_comments_mergebot.cc
++++ b/output/rocksdb/b20486f2-9dc29414-4e91f27c/table@block_based_table_reader.no_comments_truth.cc
+@@ -42,2 +41,0 @@ BlockBasedTable::~BlockBasedTable() {
+-}{
+-  delete rep_;
+@@ -161,13 +163,2 @@ Status BlockBasedTable::Open(const Options& options, const EnvOptions& soptions,
+-  if (file_size < Footer::kEncodedLength) {
+-    return Status::InvalidArgument("file is too short to be an sstable");
+-  }
+-  char footer_space[Footer::kEncodedLength];
+-  Slice footer_input;
+-  Status s = file->Read(file_size - Footer::kEncodedLength,
+-                        Footer::kEncodedLength, &footer_input, footer_space);
+-  if (!s.ok()) return s;
+-  if (footer_input.size() != Footer::kEncodedLength) {
+-    return Status::InvalidArgument("file is too short to be an sstable");
+-  }
+-  Footer footer;
+-  s = footer.DecodeFrom(&footer_input);
++  Footer footer(kBlockBasedTableMagicNumber);
++  auto s = ReadFooterFromFile(file.get(), file_size, &footer);
+@@ -186 +177 @@ Status BlockBasedTable::Open(const Options& options, const EnvOptions& soptions,
+-  if (meta_iter->Valid() && meta_iter->key() == Slice(kPropertiesBlock)) {
++  if (meta_iter->Valid() && meta_iter->key() == kPropertiesBlock) {
+@@ -189 +180,2 @@ Status BlockBasedTable::Open(const Options& options, const EnvOptions& soptions,
+-      s = ReadProperties(meta_iter->value(), rep, &rep->table_properties);
++      s = ReadProperties(meta_iter->value(), rep->file.get(), rep->options.env,
++                         rep->options.info_log.get(), &rep->table_properties);

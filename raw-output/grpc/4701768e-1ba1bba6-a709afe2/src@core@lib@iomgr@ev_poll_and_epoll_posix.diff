@@ -1,0 +1,66 @@
+diff --git a/output/grpc/4701768e-1ba1bba6-a709afe2/src@core@lib@iomgr@ev_poll_and_epoll_posix.no_comments_mergebot.c b/output/grpc/4701768e-1ba1bba6-a709afe2/src@core@lib@iomgr@ev_poll_and_epoll_posix.no_comments_truth.c
+index 95db0bf..306cb62 100644
+--- a/output/grpc/4701768e-1ba1bba6-a709afe2/src@core@lib@iomgr@ev_poll_and_epoll_posix.no_comments_mergebot.c
++++ b/output/grpc/4701768e-1ba1bba6-a709afe2/src@core@lib@iomgr@ev_poll_and_epoll_posix.no_comments_truth.c
+@@ -1,0 +2,18 @@
++#ifdef GPR_POSIX_SOCKET
++#include "src/core/lib/iomgr/ev_poll_and_epoll_posix.h"
++#include <assert.h>
++#include <errno.h>
++#include <poll.h>
++#include <stdbool.h>
++#include <string.h>
++#include <sys/socket.h>
++#include <unistd.h>
++#include <grpc/support/alloc.h>
++#include <grpc/support/log.h>
++#include <grpc/support/string_util.h>
++#include <grpc/support/tls.h>
++#include <grpc/support/useful.h>
++#include "src/core/lib/iomgr/iomgr_internal.h"
++#include "src/core/lib/iomgr/wakeup_fd_posix.h"
++#include "src/core/lib/profiling/timers.h"
++#include "src/core/lib/support/block_annotate.h"
+@@ -95 +113 @@ static grpc_error *pollset_kick_ext(grpc_pollset *p,
+-                                    uint32_t flags)
++                                    uint32_t flags) GRPC_MUST_USE_RESULT;
+@@ -155,0 +174,11 @@ static void destroy(grpc_fd *fd) {
++#ifdef GRPC_FD_REF_COUNT_DEBUG
++#define REF_BY(fd,n,reason) ref_by(fd, n, reason, __FILE__, __LINE__)
++#define UNREF_BY(fd,n,reason) unref_by(fd, n, reason, __FILE__, __LINE__)
++static void ref_by(grpc_fd *fd, int n, const char *reason, const char *file,
++                   int line) {
++  gpr_log(GPR_DEBUG, "FD %d %p   ref %d %d -> %d [%s; %s:%d]", fd->fd, fd, n,
++          gpr_atm_no_barrier_load(&fd->refst),
++          gpr_atm_no_barrier_load(&fd->refst) + n, reason, file, line);
++#else
++#define REF_BY(fd,n,reason) ref_by(fd, n)
++#define UNREF_BY(fd,n,reason) unref_by(fd, n)
+@@ -159,0 +189,3 @@ static void ref_by(grpc_fd *fd, int n) {
++#ifdef GRPC_FD_REF_COUNT_DEBUG
++static void unref_by(grpc_fd *fd, int n, const char *reason, const char *file,
++                     int line) {
+@@ -160,0 +193,4 @@ static void ref_by(grpc_fd *fd, int n) {
++  gpr_log(GPR_DEBUG, "FD %d %p unref %d %d -> %d [%s; %s:%d]", fd->fd, fd, n,
++          gpr_atm_no_barrier_load(&fd->refst),
++          gpr_atm_no_barrier_load(&fd->refst) - n, reason, file, line);
++#else
+@@ -419,0 +456,2 @@ static void fd_end_poll(grpc_exec_ctx *exec_ctx, grpc_fd_watcher *watcher,
++GPR_TLS_DECL(g_current_thread_poller);
++GPR_TLS_DECL(g_current_thread_worker);
+@@ -526,2 +563,0 @@ static grpc_error *pollset_global_init(void) {
+-<<<<<<< HEAD
+-  grpc_wakeup_fd_global_init();
+@@ -529,6 +564,0 @@ static grpc_error *pollset_global_init(void) {
+-||||||| a709afe241
+-  grpc_wakeup_fd_global_init();
+-  grpc_wakeup_fd_init(&grpc_global_wakeup_fd);
+-=======
+-  grpc_wakeup_fd_init(&grpc_global_wakeup_fd);
+->>>>>>> 1ba1bba6
+@@ -1063 +1093,2 @@ static void poll_become_multipoller(grpc_exec_ctx *exec_ctx,
+-#endif#ifdef GPR_LINUX_MULTIPOLL_WITH_EPOLL
++#endif
++#ifdef GPR_LINUX_MULTIPOLL_WITH_EPOLL
+@@ -1487,0 +1519 @@ error:
++#endif

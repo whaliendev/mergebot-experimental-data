@@ -1,0 +1,1308 @@
+--- a/output/art/f90f33e5-d7392fae-643b5df2/runtime@class_linker.no_comments_mergebot.cc
++++ b/output/art/f90f33e5-d7392fae-643b5df2/runtime@class_linker.no_comments_truth.cc
+@@ -2,3 +1,0 @@
+-#include <fcntl.h>
+-#include <sys/file.h>
+-#include <sys/stat.h>
+@@ -48 +44,0 @@
+-#include "thread.h"
+@@ -61,0 +58 @@ static void ThrowNoClassDefFoundError(const char* fmt, ...)
++    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_);
+@@ -154,0 +153,6 @@ void AddFieldGap(uint32_t gap_start, uint32_t gap_end, FieldGaps* gaps) {
++template<int n>
++static void ShuffleForward(const size_t num_fields, size_t* current_field_idx,
++                           MemberOffset* field_offset,
++                           mirror::ObjectArray<mirror::ArtField>* fields,
++                           std::deque<mirror::ArtField*>* grouped_and_sorted_fields,
++                           FieldGaps* gaps)
+@@ -192,149 +195,0 @@ void AddFieldGap(uint32_t gap_start, uint32_t gap_end, FieldGaps* gaps) {
+-bool ClassLinker::InitializeClass(Thread* self, Handle<mirror::Class> klass, bool can_init_statics, bool can_init_parents) {
+-  if (klass->IsInitialized()) {
+-    return true;
+-  }
+-  if (!CanWeInitializeClass(klass.Get(), can_init_statics, can_init_parents)) {
+-    return false;
+-  }
+-  self->AllowThreadSuspension();
+-  uint64_t t0;
+-  {
+-    ObjectLock<mirror::Class> lock(self, klass);
+-    if (klass->IsInitialized()) {
+-      return true;
+-    }
+-    if (klass->IsErroneous()) {
+-      ThrowEarlierClassFailure(klass.Get());
+-      VlogClassInitializationFailure(klass);
+-      return false;
+-    }
+-    CHECK(klass->IsResolved()) << PrettyClass(klass.Get()) << ": state=" << klass->GetStatus();
+-    if (!klass->IsVerified()) {
+-      VerifyClass(self, klass);
+-      if (!klass->IsVerified()) {
+-        if (klass->IsErroneous()) {
+-          CHECK(self->IsExceptionPending());
+-          VlogClassInitializationFailure(klass);
+-        } else {
+-          CHECK(Runtime::Current()->IsCompiler());
+-          CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime);
+-        }
+-        return false;
+-      } else {
+-        self->AssertNoPendingException();
+-      }
+-    }
+-    if (klass->GetStatus() == mirror::Class::kStatusInitializing) {
+-      if (self->IsExceptionPending()) {
+-        VlogClassInitializationFailure(klass);
+-        return false;
+-      }
+-      if (klass->GetClinitThreadId() == self->GetTid()) {
+-        return true;
+-      }
+-      return WaitForInitializeClass(klass, self, lock);
+-    }
+-    if (!ValidateSuperClassDescriptors(klass)) {
+-      klass->SetStatus(mirror::Class::kStatusError, self);
+-      return false;
+-    }
+-    self->AllowThreadSuspension();
+-    CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusVerified) << PrettyClass(klass.Get());
+-    klass->SetClinitThreadId(self->GetTid());
+-    klass->SetStatus(mirror::Class::kStatusInitializing, self);
+-    t0 = NanoTime();
+-  }
+-  if (!klass->IsInterface() && klass->HasSuperClass()) {
+-    mirror::Class* super_class = klass->GetSuperClass();
+-    if (!super_class->IsInitialized()) {
+-      CHECK(!super_class->IsInterface());
+-      CHECK(can_init_parents);
+-      StackHandleScope<1> hs(self);
+-      Handle<mirror::Class> handle_scope_super(hs.NewHandle(super_class));
+-      bool super_initialized = InitializeClass(self, handle_scope_super, can_init_statics, true);
+-      if (!super_initialized) {
+-        CHECK(handle_scope_super->IsErroneous() && self->IsExceptionPending())
+-            << "Super class initialization failed for "
+-            << PrettyDescriptor(handle_scope_super.Get())
+-            << " that has unexpected status " << handle_scope_super->GetStatus()
+-            << "\nPending exception:\n"
+-            << (self->GetException(nullptr) != nullptr ? self->GetException(nullptr)->Dump() : "");
+-        ObjectLock<mirror::Class> lock(self, klass);
+-        klass->SetStatus(mirror::Class::kStatusError, self);
+-        return false;
+-      }
+-    }
+-  }
+-  const size_t num_static_fields = klass->NumStaticFields();
+-  if (num_static_fields > 0) {
+-    const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
+-    CHECK(dex_class_def != nullptr);
+-    const DexFile& dex_file = klass->GetDexFile();
+-    StackHandleScope<3> hs(self);
+-    Handle<mirror::ClassLoader> class_loader(hs.NewHandle(klass->GetClassLoader()));
+-    Handle<mirror::DexCache> dex_cache(hs.NewHandle(klass->GetDexCache()));
+-    for (size_t i = 0; i < num_static_fields; ++i) {
+-      mirror::ArtField* field = klass->GetStaticField(i);
+-      const uint32_t field_idx = field->GetDexFieldIndex();
+-      mirror::ArtField* resolved_field = dex_cache->GetResolvedField(field_idx);
+-      if (resolved_field == nullptr) {
+-        dex_cache->SetResolvedField(field_idx, field);
+-      } else {
+-        DCHECK_EQ(field, resolved_field);
+-      }
+-    }
+-    EncodedStaticFieldValueIterator value_it(dex_file, &dex_cache, &class_loader,
+-                                             this, *dex_class_def);
+-    const uint8_t* class_data = dex_file.GetClassData(*dex_class_def);
+-    ClassDataItemIterator field_it(dex_file, class_data);
+-    if (value_it.HasNext()) {
+-      DCHECK(field_it.HasNextStaticField());
+-      CHECK(can_init_statics);
+-      for ( ; value_it.HasNext(); value_it.Next(), field_it.Next()) {
+-        StackHandleScope<1> hs(self);
+-        Handle<mirror::ArtField> field(hs.NewHandle(
+-            ResolveField(dex_file, field_it.GetMemberIndex(), dex_cache, class_loader, true)));
+-        if (Runtime::Current()->IsActiveTransaction()) {
+-          value_it.ReadValueToField<true>(field);
+-        } else {
+-          value_it.ReadValueToField<false>(field);
+-        }
+-        DCHECK(!value_it.HasNext() || field_it.HasNextStaticField());
+-      }
+-    }
+-  }
+-  mirror::ArtMethod* clinit = klass->FindClassInitializer();
+-  if (clinit != nullptr) {
+-    CHECK(can_init_statics);
+-    JValue result;
+-    clinit->Invoke(self, nullptr, 0, &result, "V");
+-  }
+-  self->AllowThreadSuspension();
+-  uint64_t t1 = NanoTime();
+-  bool success = true;
+-  {
+-    ObjectLock<mirror::Class> lock(self, klass);
+-    if (self->IsExceptionPending()) {
+-      WrapExceptionInInitializer(klass);
+-      klass->SetStatus(mirror::Class::kStatusError, self);
+-      success = false;
+-    } else {
+-      RuntimeStats* global_stats = Runtime::Current()->GetStats();
+-      RuntimeStats* thread_stats = self->GetStats();
+-      ++global_stats->class_init_count;
+-      ++thread_stats->class_init_count;
+-      global_stats->class_init_time_ns += (t1 - t0);
+-      thread_stats->class_init_time_ns += (t1 - t0);
+-      klass->SetStatus(mirror::Class::kStatusInitialized, self);
+-      if (VLOG_IS_ON(class_linker)) {
+-        std::string temp;
+-        LOG(INFO) << "Initialized class " << klass->GetDescriptor(&temp) << " from " <<
+-            klass->GetLocation();
+-      }
+-      FixupStaticTrampolines(klass.Get());
+-    }
+-  }
+-  return success;
+-}
+-bool ClassLinker::WaitForInitializeClass(Handle<mirror::Class> klass, Thread* self,
+-                                         ObjectLock<mirror::Class>& lock)
+@@ -1317 +1171,0 @@ const OatFile* ClassLinker::PatchAndRetrieveOat(const std::string& input_oat,
+-<<<<<<< HEAD
+@@ -1320,7 +1173,0 @@ const OatFile* ClassLinker::PatchAndRetrieveOat(const std::string& input_oat,
+-||||||| 643b5df2b0
+-    std::unique_ptr<OatFile> output(OatFile::Open(output_oat, output_oat, nullptr,
+-                                                  !Runtime::Current()->IsCompiler(), error_msg));
+-=======
+-    std::unique_ptr<OatFile> output(OatFile::Open(output_oat, output_oat, nullptr,
+-                                                  !runtime->IsCompiler(), error_msg));
+->>>>>>> d7392fae
+@@ -1351,6 +1198,4 @@ const OatFile* ClassLinker::PatchAndRetrieveOat(const std::string& input_oat,
+-bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file, InstructionSet isa, bool* checksum_verified, std::string* error_msg) {
+-  std::string compound_msg("Oat file failed to verify: ");
+-  uint32_t real_image_checksum;
+-  void* real_image_oat_offset;
+-  int32_t real_patch_delta;
+-  const gc::space::ImageSpace* image_space = Runtime::Current()->GetHeap()->GetImageSpace();
++bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file, InstructionSet isa,
++                               bool* checksum_verified,
++                               std::string* error_msg) {
++  const gc::space::ImageSpace* image_space = runtime->GetHeap()->GetImageSpace();
+@@ -1361 +1206,4 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
+-  if (isa == Runtime::Current()->GetInstructionSet()) {
++  uint32_t real_image_checksum;
++  void* real_image_oat_offset;
++  int32_t real_patch_delta;
++  if (isa == runtime->GetInstructionSet()) {
+@@ -1373,0 +1222 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
++  std::string compound_msg;
+@@ -1377 +1226 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
+-    compound_msg += StringPrintf(" Oat Image Checksum Incorrect (expected 0x%x, recieved 0x%x)",
++    StringAppendF(&compound_msg, " Oat Image Checksum Incorrect (expected 0x%x, received 0x%x)",
+@@ -1387 +1236 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
+-      compound_msg += StringPrintf(" Oat Image oat offset incorrect (expected 0x%p, recieved 0x%p)",
++      StringAppendF(&compound_msg, " Oat Image oat offset incorrect (expected 0x%p, received 0x%p)",
+@@ -1393,2 +1242,2 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
+-      compound_msg += StringPrintf(" Oat image patch delta incorrect (expected 0x%x, recieved 0x%x)",
+-                                   real_patch_delta, oat_patch_delta);
++      StringAppendF(&compound_msg, " Oat image patch delta incorrect (expected 0x%x, "
++                    "received 0x%x)", real_patch_delta, oat_patch_delta);
+@@ -1401,2 +1250,2 @@ bool ClassLinker::CheckOatFile(const Runtime* runtime, const OatFile* oat_file,
+-  if (ret) {
+-    *error_msg = compound_msg;
++  if (!ret) {
++    *error_msg = "Oat file failed to verify:" + compound_msg;
+@@ -2480,0 +2341,57 @@ void ClassLinker::LoadClassMembers(Thread* self, const DexFile& dex_file, const
++void ClassLinker::LoadField(const DexFile& , const ClassDataItemIterator& it,
++                            Handle<mirror::Class> klass,
++                            Handle<mirror::ArtField> dst) {
++  uint32_t field_idx = it.GetMemberIndex();
++  dst->SetDexFieldIndex(field_idx);
++  dst->SetDeclaringClass(klass.Get());
++  dst->SetAccessFlags(it.GetFieldAccessFlags());
++}
++mirror::ArtMethod* ClassLinker::LoadMethod(Thread* self, const DexFile& dex_file,
++                                           const ClassDataItemIterator& it,
++                                           Handle<mirror::Class> klass) {
++  uint32_t dex_method_idx = it.GetMemberIndex();
++  const DexFile::MethodId& method_id = dex_file.GetMethodId(dex_method_idx);
++  const char* method_name = dex_file.StringDataByIdx(method_id.name_idx_);
++  mirror::ArtMethod* dst = AllocArtMethod(self);
++  if (UNLIKELY(dst == nullptr)) {
++    CHECK(self->IsExceptionPending());
++    return nullptr;
++  }
++  DCHECK(dst->IsArtMethod()) << PrettyDescriptor(dst->GetClass());
++  ScopedAssertNoThreadSuspension ants(self, "LoadMethod");
++  dst->SetDexMethodIndex(dex_method_idx);
++  dst->SetDeclaringClass(klass.Get());
++  dst->SetCodeItemOffset(it.GetMethodCodeItemOffset());
++  dst->SetDexCacheStrings(klass->GetDexCache()->GetStrings());
++  dst->SetDexCacheResolvedMethods(klass->GetDexCache()->GetResolvedMethods());
++  dst->SetDexCacheResolvedTypes(klass->GetDexCache()->GetResolvedTypes());
++  uint32_t access_flags = it.GetMethodAccessFlags();
++  if (UNLIKELY(strcmp("finalize", method_name) == 0)) {
++    if (strcmp("V", dex_file.GetShorty(method_id.proto_idx_)) == 0) {
++      if (klass->GetClassLoader() != nullptr) {
++        klass->SetFinalizable();
++      } else {
++        std::string temp;
++        const char* klass_descriptor = klass->GetDescriptor(&temp);
++        if (strcmp(klass_descriptor, "Ljava/lang/Object;") != 0 &&
++            strcmp(klass_descriptor, "Ljava/lang/Enum;") != 0) {
++          klass->SetFinalizable();
++        }
++      }
++    }
++  } else if (method_name[0] == '<') {
++    bool is_init = (strcmp("<init>", method_name) == 0);
++    bool is_clinit = !is_init && (strcmp("<clinit>", method_name) == 0);
++    if (UNLIKELY(!is_init && !is_clinit)) {
++      LOG(WARNING) << "Unexpected '<' at start of method name " << method_name;
++    } else {
++      if (UNLIKELY((access_flags & kAccConstructor) == 0)) {
++        LOG(WARNING) << method_name << " didn't have expected constructor access flag in class "
++            << PrettyDescriptor(klass.Get()) << " in dex file " << dex_file.GetLocation();
++        access_flags |= kAccConstructor;
++      }
++    }
++  }
++  dst->SetAccessFlags(access_flags);
++  return dst;
++}
+@@ -2488,8 +2405,5 @@ void ClassLinker::AppendToBootClassPath(Thread* self, const DexFile& dex_file) {
+-mirror::Class* ClassLinker::LookupClass(Thread* self, const char* descriptor, const mirror::ClassLoader* class_loader) {
+-  size_t hash = Hash(descriptor);
+-  {
+-    ReaderMutexLock mu(self, *Locks::classlinker_classes_lock_);
+-    mirror::Class* result = LookupClassFromTableLocked(descriptor, class_loader, hash);
+-    if (result != nullptr) {
+-      return result;
+-    }
++void ClassLinker::AppendToBootClassPath(const DexFile& dex_file,
++                                        Handle<mirror::DexCache> dex_cache) {
++  CHECK(dex_cache.Get() != nullptr) << dex_file.GetLocation();
++  boot_class_path_.push_back(&dex_file);
++  RegisterDexFile(dex_file, dex_cache);
+@@ -2497,10 +2411,6 @@ mirror::Class* ClassLinker::LookupClass(Thread* self, const char* descriptor, co
+-  if (class_loader != nullptr || !dex_cache_image_class_lookup_required_) {
+-    return nullptr;
+-  } else {
+-    mirror::Class* result = LookupClassFromImage(descriptor);
+-    if (result != nullptr) {
+-      InsertClass(descriptor, result, hash);
+-    } else {
+-      constexpr uint32_t kMaxFailedDexCacheLookups = 1000;
+-      if (++failed_dex_cache_class_lookups_ > kMaxFailedDexCacheLookups) {
+-        MoveImageClassesToClassTable();
++bool ClassLinker::IsDexFileRegisteredLocked(const DexFile& dex_file) {
++  dex_lock_.AssertSharedHeld(Thread::Current());
++  for (size_t i = 0; i != dex_caches_.size(); ++i) {
++    mirror::DexCache* dex_cache = GetDexCache(i);
++    if (dex_cache->GetDexFile() == &dex_file) {
++      return true;
+@@ -2509 +2419 @@ mirror::Class* ClassLinker::LookupClass(Thread* self, const char* descriptor, co
+-    return result;
++  return false;
+@@ -2511,350 +2421,3 @@ mirror::Class* ClassLinker::LookupClass(Thread* self, const char* descriptor, co
+-}
+-void ClassLinker::VerifyClass(Thread* self, Handle<mirror::Class> klass) {
+-  ObjectLock<mirror::Class> lock(self, klass);
+-  if (klass->IsVerified()) {
+-    EnsurePreverifiedMethods(klass);
+-    return;
+-  }
+-  if (klass->IsCompileTimeVerified() && Runtime::Current()->IsCompiler()) {
+-    return;
+-  }
+-  if (klass->IsErroneous()) {
+-    ThrowEarlierClassFailure(klass.Get());
+-    return;
+-  }
+-  if (klass->GetStatus() == mirror::Class::kStatusResolved) {
+-    klass->SetStatus(mirror::Class::kStatusVerifying, self);
+-  } else {
+-    CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime)
+-        << PrettyClass(klass.Get());
+-    CHECK(!Runtime::Current()->IsCompiler());
+-    klass->SetStatus(mirror::Class::kStatusVerifyingAtRuntime, self);
+-  }
+-  if (!Runtime::Current()->IsVerificationEnabled()) {
+-    klass->SetStatus(mirror::Class::kStatusVerified, self);
+-    EnsurePreverifiedMethods(klass);
+-    return;
+-  }
+-  StackHandleScope<2> hs(self);
+-  Handle<mirror::Class> super(hs.NewHandle(klass->GetSuperClass()));
+-  if (super.Get() != nullptr) {
+-    ObjectLock<mirror::Class> lock(self, super);
+-    if (!super->IsVerified() && !super->IsErroneous()) {
+-      VerifyClass(self, super);
+-    }
+-    if (!super->IsCompileTimeVerified()) {
+-      std::string error_msg(
+-          StringPrintf("Rejecting class %s that attempts to sub-class erroneous class %s",
+-                       PrettyDescriptor(klass.Get()).c_str(),
+-                       PrettyDescriptor(super.Get()).c_str()));
+-      LOG(ERROR) << error_msg << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8();
+-      Handle<mirror::Throwable> cause(hs.NewHandle(self->GetException(nullptr)));
+-      if (cause.Get() != nullptr) {
+-        self->ClearException();
+-      }
+-      ThrowVerifyError(klass.Get(), "%s", error_msg.c_str());
+-      if (cause.Get() != nullptr) {
+-        self->GetException(nullptr)->SetCause(cause.Get());
+-      }
+-      ClassReference ref(klass->GetDexCache()->GetDexFile(), klass->GetDexClassDefIndex());
+-      if (Runtime::Current()->IsCompiler()) {
+-        Runtime::Current()->GetCompilerCallbacks()->ClassRejected(ref);
+-      }
+-      klass->SetStatus(mirror::Class::kStatusError, self);
+-      return;
+-    }
+-  }
+-  const DexFile& dex_file = *klass->GetDexCache()->GetDexFile();
+-  mirror::Class::Status oat_file_class_status(mirror::Class::kStatusNotReady);
+-  bool preverified = VerifyClassUsingOatFile(dex_file, klass.Get(), oat_file_class_status);
+-  if (oat_file_class_status == mirror::Class::kStatusError) {
+-    VLOG(class_linker) << "Skipping runtime verification of erroneous class "
+-        << PrettyDescriptor(klass.Get()) << " in "
+-        << klass->GetDexCache()->GetLocation()->ToModifiedUtf8();
+-    ThrowVerifyError(klass.Get(), "Rejecting class %s because it failed compile-time verification",
+-                     PrettyDescriptor(klass.Get()).c_str());
+-    klass->SetStatus(mirror::Class::kStatusError, self);
+-    return;
+-  }
+-  verifier::MethodVerifier::FailureKind verifier_failure = verifier::MethodVerifier::kNoFailure;
+-  std::string error_msg;
+-  if (!preverified) {
+-    verifier_failure = verifier::MethodVerifier::VerifyClass(self, klass.Get(),
+-                                                             Runtime::Current()->IsCompiler(),
+-                                                             &error_msg);
+-  }
+-  if (preverified || verifier_failure != verifier::MethodVerifier::kHardFailure) {
+-    if (!preverified && verifier_failure != verifier::MethodVerifier::kNoFailure) {
+-      VLOG(class_linker) << "Soft verification failure in class " << PrettyDescriptor(klass.Get())
+-          << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8()
+-          << " because: " << error_msg;
+-    }
+-    self->AssertNoPendingException();
+-    ResolveClassExceptionHandlerTypes(dex_file, klass);
+-    if (verifier_failure == verifier::MethodVerifier::kNoFailure) {
+-      if (super.Get() == nullptr || super->IsVerified()) {
+-        klass->SetStatus(mirror::Class::kStatusVerified, self);
+-      } else {
+-        CHECK_EQ(super->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime);
+-        klass->SetStatus(mirror::Class::kStatusRetryVerificationAtRuntime, self);
+-        verifier_failure = verifier::MethodVerifier::kSoftFailure;
+-      }
+-    } else {
+-      CHECK_EQ(verifier_failure, verifier::MethodVerifier::kSoftFailure);
+-      if (Runtime::Current()->IsCompiler()) {
+-        klass->SetStatus(mirror::Class::kStatusRetryVerificationAtRuntime, self);
+-      } else {
+-        klass->SetStatus(mirror::Class::kStatusVerified, self);
+-        klass->SetPreverified();
+-      }
+-    }
+-  } else {
+-    LOG(ERROR) << "Verification failed on class " << PrettyDescriptor(klass.Get())
+-        << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8()
+-        << " because: " << error_msg;
+-    self->AssertNoPendingException();
+-    ThrowVerifyError(klass.Get(), "%s", error_msg.c_str());
+-    klass->SetStatus(mirror::Class::kStatusError, self);
+-  }
+-  if (preverified || verifier_failure == verifier::MethodVerifier::kNoFailure) {
+-    EnsurePreverifiedMethods(klass);
+-  }
+-}
+-bool ClassLinker::EnsureInitialized(Thread* self, Handle<mirror::Class> c, bool can_init_fields, bool can_init_parents) {
+-  DCHECK(c.Get() != nullptr);
+-  if (c->IsInitialized()) {
+-    EnsurePreverifiedMethods(c);
+-    return true;
+-  }
+-  const bool success = InitializeClass(self, c, can_init_fields, can_init_parents);
+-  if (!success) {
+-    if (can_init_fields && can_init_parents) {
+-      CHECK(self->IsExceptionPending()) << PrettyClass(c.Get());
+-    }
+-  } else {
+-    self->AssertNoPendingException();
+-  }
+-  return success;
+-}
+-ValueObject(){
+- public:
+-  explicit MethodNameAndSignatureComparator(mirror::ArtMethod* method)
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) :
+-      dex_file_(method->GetDexFile()), mid_(&dex_file_->GetMethodId(method->GetDexMethodIndex())),
+-      name_(nullptr), name_len_(0) {
+-    DCHECK(!method->IsProxyMethod()) << PrettyMethod(method);
+-  }
+-  const char* GetName() {
+-    if (name_ == nullptr) {
+-      name_ = dex_file_->StringDataAndUtf16LengthByIdx(mid_->name_idx_, &name_len_);
+-    }
+-    return name_;
+-  }
+-  bool HasSameNameAndSignature(mirror::ArtMethod* other)
+-      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
+-    DCHECK(!other->IsProxyMethod()) << PrettyMethod(other);
+-    const DexFile* other_dex_file = other->GetDexFile();
+-    const DexFile::MethodId& other_mid = other_dex_file->GetMethodId(other->GetDexMethodIndex());
+-    if (dex_file_ == other_dex_file) {
+-      return mid_->name_idx_ == other_mid.name_idx_ && mid_->proto_idx_ == other_mid.proto_idx_;
+-    }
+-    GetName();
+-    uint32_t other_name_len;
+-    const char* other_name = other_dex_file->StringDataAndUtf16LengthByIdx(other_mid.name_idx_,
+-                                                                           &other_name_len);
+-    if (name_len_ != other_name_len || strcmp(name_, other_name) != 0) {
+-      return false;
+-    }
+-    return dex_file_->GetMethodSignature(*mid_) == other_dex_file->GetMethodSignature(other_mid);
+-  }
+- private:
+-  const DexFile* const dex_file_;
+-  const DexFile::MethodId* const mid_;
+-  const char* name_;
+-  uint32_t name_len_;
+-}static OatFile::OatMethod CreateOatMethod(const void* code, const uint8_t* gc_map, bool is_portable) {
+-  CHECK_EQ(kUsePortableCompiler, is_portable);
+-  CHECK(code != nullptr);
+-  const uint8_t* base;
+-  uint32_t code_offset, gc_map_offset;
+-  if (gc_map == nullptr) {
+-    base = reinterpret_cast<const uint8_t*>(code);
+-    base -= sizeof(void*);
+-    code_offset = sizeof(void*);
+-    gc_map_offset = 0;
+-  } else {
+-    base = nullptr;
+-    code_offset = PointerToLowMemUInt32(code);
+-    gc_map_offset = PointerToLowMemUInt32(gc_map);
+-  }
+-  return OatFile::OatMethod(base, code_offset, gc_map_offset);
+-}
+-bool ClassLinker::IsPortableResolutionStub(const void* entry_point) const {
+-  return (entry_point == GetPortableResolutionStub()) ||
+-      (portable_resolution_trampoline_ == entry_point);
+-}
+-bool ClassLinker::IsQuickResolutionStub(const void* entry_point) const {
+-  return (entry_point == GetQuickResolutionStub()) ||
+-      (quick_resolution_trampoline_ == entry_point);
+-}
+-bool ClassLinker::IsPortableToInterpreterBridge(const void* entry_point) const {
+-  return (entry_point == GetPortableToInterpreterBridge());
+-}
+-bool ClassLinker::IsQuickToInterpreterBridge(const void* entry_point) const {
+-  return (entry_point == GetQuickToInterpreterBridge()) ||
+-      (quick_to_interpreter_bridge_trampoline_ == entry_point);
+-}
+-bool ClassLinker::IsQuickGenericJniStub(const void* entry_point) const {
+-  return (entry_point == GetQuickGenericJniStub()) ||
+-      (quick_generic_jni_trampoline_ == entry_point);
+-}
+-const void* ClassLinker::GetRuntimeQuickGenericJniStub() const {
+-  return GetQuickGenericJniStub();
+-}
+-void ClassLinker::SetEntryPointsToCompiledCode(mirror::ArtMethod* method, const void* method_code, bool is_portable) const {
+-  OatFile::OatMethod oat_method = CreateOatMethod(method_code, nullptr, is_portable);
+-  oat_method.LinkMethod(method);
+-  method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
+-  if (method->GetEntryPointFromPortableCompiledCode() == nullptr) {
+-    method->SetEntryPointFromPortableCompiledCode(GetPortableToQuickBridge());
+-  } else {
+-    CHECK(method->GetEntryPointFromQuickCompiledCode() == nullptr);
+-    method->SetEntryPointFromQuickCompiledCode(GetQuickToPortableBridge());
+-    method->SetIsPortableCompiled();
+-  }
+-}
+-void ClassLinker::SetEntryPointsToInterpreter(mirror::ArtMethod* method) const {
+-  if (!method->IsNative()) {
+-    method->SetEntryPointFromInterpreter(artInterpreterToInterpreterBridge);
+-    method->SetEntryPointFromPortableCompiledCode(GetPortableToInterpreterBridge());
+-    method->SetEntryPointFromQuickCompiledCode(GetQuickToInterpreterBridge());
+-  } else {
+-    const void* quick_method_code = GetQuickGenericJniStub();
+-    OatFile::OatMethod oat_method = CreateOatMethod(quick_method_code, nullptr, false);
+-    oat_method.LinkMethod(method);
+-    method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
+-    method->SetEntryPointFromPortableCompiledCode(GetPortableToQuickBridge());
+-  }
+-}
+-const char* ClassLinker::GetClassRootDescriptor(ClassRoot class_root) {
+-  static const char* class_roots_descriptors[] = {
+-    "Ljava/lang/Class;",
+-    "Ljava/lang/Object;",
+-    "[Ljava/lang/Class;",
+-    "[Ljava/lang/Object;",
+-    "Ljava/lang/String;",
+-    "Ljava/lang/DexCache;",
+-    "Ljava/lang/ref/Reference;",
+-    "Ljava/lang/reflect/ArtField;",
+-    "Ljava/lang/reflect/ArtMethod;",
+-    "Ljava/lang/reflect/Proxy;",
+-    "[Ljava/lang/String;",
+-    "[Ljava/lang/reflect/ArtField;",
+-    "[Ljava/lang/reflect/ArtMethod;",
+-    "Ljava/lang/ClassLoader;",
+-    "Ljava/lang/Throwable;",
+-    "Ljava/lang/ClassNotFoundException;",
+-    "Ljava/lang/StackTraceElement;",
+-    "Z",
+-    "B",
+-    "C",
+-    "D",
+-    "F",
+-    "I",
+-    "J",
+-    "S",
+-    "V",
+-    "[Z",
+-    "[B",
+-    "[C",
+-    "[D",
+-    "[F",
+-    "[I",
+-    "[J",
+-    "[S",
+-    "[Ljava/lang/StackTraceElement;",
+-  };
+-  COMPILE_ASSERT(arraysize(class_roots_descriptors) == size_t(kClassRootsMax),
+-                 mismatch_between_class_descriptors_and_class_root_enum);
+-  const char* descriptor = class_roots_descriptors[class_root];
+-  CHECK(descriptor != nullptr);
+-  return descriptor;
+-}
+-}
+-  Runtime* runtime = Runtime::Current();
+-void ClassLinker::LoadField(const DexFile& , const ClassDataItemIterator& it,
+-                            Handle<mirror::Class> klass,
+-                            Handle<mirror::ArtField> dst) {
+-  uint32_t field_idx = it.GetMemberIndex();
+-  dst->SetDexFieldIndex(field_idx);
+-  dst->SetDeclaringClass(klass.Get());
+-  dst->SetAccessFlags(it.GetFieldAccessFlags());
+-}
+-mirror::ArtMethod* ClassLinker::LoadMethod(Thread* self, const DexFile& dex_file,
+-                                           const ClassDataItemIterator& it,
+-                                           Handle<mirror::Class> klass) {
+-  uint32_t dex_method_idx = it.GetMemberIndex();
+-  const DexFile::MethodId& method_id = dex_file.GetMethodId(dex_method_idx);
+-  const char* method_name = dex_file.StringDataByIdx(method_id.name_idx_);
+-  mirror::ArtMethod* dst = AllocArtMethod(self);
+-  if (UNLIKELY(dst == nullptr)) {
+-    CHECK(self->IsExceptionPending());
+-    return nullptr;
+-  }
+-  DCHECK(dst->IsArtMethod()) << PrettyDescriptor(dst->GetClass());
+-  ScopedAssertNoThreadSuspension ants(self, "LoadMethod");
+-  dst->SetDexMethodIndex(dex_method_idx);
+-  dst->SetDeclaringClass(klass.Get());
+-  dst->SetCodeItemOffset(it.GetMethodCodeItemOffset());
+-  dst->SetDexCacheStrings(klass->GetDexCache()->GetStrings());
+-  dst->SetDexCacheResolvedMethods(klass->GetDexCache()->GetResolvedMethods());
+-  dst->SetDexCacheResolvedTypes(klass->GetDexCache()->GetResolvedTypes());
+-  uint32_t access_flags = it.GetMethodAccessFlags();
+-  if (UNLIKELY(strcmp("finalize", method_name) == 0)) {
+-    if (strcmp("V", dex_file.GetShorty(method_id.proto_idx_)) == 0) {
+-      if (klass->GetClassLoader() != nullptr) {
+-        klass->SetFinalizable();
+-      } else {
+-        std::string temp;
+-        const char* klass_descriptor = klass->GetDescriptor(&temp);
+-        if (strcmp(klass_descriptor, "Ljava/lang/Object;") != 0 &&
+-            strcmp(klass_descriptor, "Ljava/lang/Enum;") != 0) {
+-          klass->SetFinalizable();
+-        }
+-      }
+-    }
+-  } else if (method_name[0] == '<') {
+-    bool is_init = (strcmp("<init>", method_name) == 0);
+-    bool is_clinit = !is_init && (strcmp("<clinit>", method_name) == 0);
+-    if (UNLIKELY(!is_init && !is_clinit)) {
+-      LOG(WARNING) << "Unexpected '<' at start of method name " << method_name;
+-    } else {
+-      if (UNLIKELY((access_flags & kAccConstructor) == 0)) {
+-        LOG(WARNING) << method_name << " didn't have expected constructor access flag in class "
+-            << PrettyDescriptor(klass.Get()) << " in dex file " << dex_file.GetLocation();
+-        access_flags |= kAccConstructor;
+-      }
+-    }
+-  }
+-  dst->SetAccessFlags(access_flags);
+-  return dst;
+-}
+-void ClassLinker::AppendToBootClassPath(const DexFile& dex_file,
+-                                        Handle<mirror::DexCache> dex_cache) {
+-  CHECK(dex_cache.Get() != nullptr) << dex_file.GetLocation();
+-  boot_class_path_.push_back(&dex_file);
+-  RegisterDexFile(dex_file, dex_cache);
+-}
+-bool ClassLinker::IsDexFileRegisteredLocked(const DexFile& dex_file) {
+-  dex_lock_.AssertSharedHeld(Thread::Current());
+-  for (size_t i = 0; i != dex_caches_.size(); ++i) {
+-    mirror::DexCache* dex_cache = GetDexCache(i);
+-    if (dex_cache->GetDexFile() == &dex_file) {
+-      return true;
+-    }
+-  }
+-  return false;
+-}
+-bool ClassLinker::IsDexFileRegistered(const DexFile& dex_file) {
+-  ReaderMutexLock mu(Thread::Current(), dex_lock_);
+-  return IsDexFileRegisteredLocked(dex_file);
++bool ClassLinker::IsDexFileRegistered(const DexFile& dex_file) {
++  ReaderMutexLock mu(Thread::Current(), dex_lock_);
++  return IsDexFileRegisteredLocked(dex_file);
+@@ -3139,0 +2703,25 @@ bool ClassLinker::RemoveClass(const char* descriptor, const mirror::ClassLoader*
++mirror::Class* ClassLinker::LookupClass(Thread* self, const char* descriptor,
++                                        const mirror::ClassLoader* class_loader) {
++  size_t hash = Hash(descriptor);
++  {
++    ReaderMutexLock mu(self, *Locks::classlinker_classes_lock_);
++    mirror::Class* result = LookupClassFromTableLocked(descriptor, class_loader, hash);
++    if (result != nullptr) {
++      return result;
++    }
++  }
++  if (class_loader != nullptr || !dex_cache_image_class_lookup_required_) {
++    return nullptr;
++  } else {
++    mirror::Class* result = LookupClassFromImage(descriptor);
++    if (result != nullptr) {
++      InsertClass(descriptor, result, hash);
++    } else {
++      constexpr uint32_t kMaxFailedDexCacheLookups = 1000;
++      if (++failed_dex_cache_class_lookups_ > kMaxFailedDexCacheLookups) {
++        MoveImageClassesToClassTable();
++      }
++    }
++    return result;
++  }
++}
+@@ -3199 +2787,91 @@ void ClassLinker::MoveImageClassesToClassTable() {
+-  dex_cache_image_class_lookup_required_ = false;
++  dex_cache_image_class_lookup_required_ = false;
++}
++mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
++  ScopedAssertNoThreadSuspension ants(Thread::Current(), "Image class lookup");
++  mirror::ObjectArray<mirror::DexCache>* dex_caches = GetImageDexCaches();
++  for (int32_t i = 0; i < dex_caches->GetLength(); ++i) {
++    mirror::DexCache* dex_cache = dex_caches->Get(i);
++    const DexFile* dex_file = dex_cache->GetDexFile();
++    const DexFile::StringId* string_id = dex_file->FindStringId(descriptor);
++    if (string_id != nullptr) {
++      const DexFile::TypeId* type_id =
++          dex_file->FindTypeId(dex_file->GetIndexForStringId(*string_id));
++      if (type_id != nullptr) {
++        uint16_t type_idx = dex_file->GetIndexForTypeId(*type_id);
++        mirror::Class* klass = dex_cache->GetResolvedType(type_idx);
++        if (klass != nullptr) {
++          return klass;
++        }
++      }
++    }
++  }
++  return nullptr;
++}
++void ClassLinker::LookupClasses(const char* descriptor, std::vector<mirror::Class*>& result) {
++  result.clear();
++  if (dex_cache_image_class_lookup_required_) {
++    MoveImageClassesToClassTable();
++  }
++  size_t hash = Hash(descriptor);
++  ReaderMutexLock mu(Thread::Current(), *Locks::classlinker_classes_lock_);
++  for (auto it = class_table_.lower_bound(hash), end = class_table_.end();
++      it != end && it->first == hash; ++it) {
++    mirror::Class* klass = it->second.Read();
++    if (klass->DescriptorEquals(descriptor)) {
++      result.push_back(klass);
++    }
++  }
++}
++void ClassLinker::VerifyClass(Thread* self, Handle<mirror::Class> klass) {
++  ObjectLock<mirror::Class> lock(self, klass);
++  if (klass->IsVerified()) {
++    EnsurePreverifiedMethods(klass);
++    return;
++  }
++  if (klass->IsCompileTimeVerified() && Runtime::Current()->IsCompiler()) {
++    return;
++  }
++  if (klass->IsErroneous()) {
++    ThrowEarlierClassFailure(klass.Get());
++    return;
++  }
++  if (klass->GetStatus() == mirror::Class::kStatusResolved) {
++    klass->SetStatus(mirror::Class::kStatusVerifying, self);
++  } else {
++    CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime)
++        << PrettyClass(klass.Get());
++    CHECK(!Runtime::Current()->IsCompiler());
++    klass->SetStatus(mirror::Class::kStatusVerifyingAtRuntime, self);
++  }
++  if (!Runtime::Current()->IsVerificationEnabled()) {
++    klass->SetStatus(mirror::Class::kStatusVerified, self);
++    EnsurePreverifiedMethods(klass);
++    return;
++  }
++  StackHandleScope<2> hs(self);
++  Handle<mirror::Class> super(hs.NewHandle(klass->GetSuperClass()));
++  if (super.Get() != nullptr) {
++    ObjectLock<mirror::Class> lock(self, super);
++    if (!super->IsVerified() && !super->IsErroneous()) {
++      VerifyClass(self, super);
++    }
++    if (!super->IsCompileTimeVerified()) {
++      std::string error_msg(
++          StringPrintf("Rejecting class %s that attempts to sub-class erroneous class %s",
++                       PrettyDescriptor(klass.Get()).c_str(),
++                       PrettyDescriptor(super.Get()).c_str()));
++      LOG(ERROR) << error_msg << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8();
++      Handle<mirror::Throwable> cause(hs.NewHandle(self->GetException(nullptr)));
++      if (cause.Get() != nullptr) {
++        self->ClearException();
++      }
++      ThrowVerifyError(klass.Get(), "%s", error_msg.c_str());
++      if (cause.Get() != nullptr) {
++        self->GetException(nullptr)->SetCause(cause.Get());
++      }
++      ClassReference ref(klass->GetDexCache()->GetDexFile(), klass->GetDexClassDefIndex());
++      if (Runtime::Current()->IsCompiler()) {
++        Runtime::Current()->GetCompilerCallbacks()->ClassRejected(ref);
++      }
++      klass->SetStatus(mirror::Class::kStatusError, self);
++      return;
+@@ -3201,15 +2878,0 @@ void ClassLinker::MoveImageClassesToClassTable() {
+-mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
+-  ScopedAssertNoThreadSuspension ants(Thread::Current(), "Image class lookup");
+-  mirror::ObjectArray<mirror::DexCache>* dex_caches = GetImageDexCaches();
+-  for (int32_t i = 0; i < dex_caches->GetLength(); ++i) {
+-    mirror::DexCache* dex_cache = dex_caches->Get(i);
+-    const DexFile* dex_file = dex_cache->GetDexFile();
+-    const DexFile::StringId* string_id = dex_file->FindStringId(descriptor);
+-    if (string_id != nullptr) {
+-      const DexFile::TypeId* type_id =
+-          dex_file->FindTypeId(dex_file->GetIndexForStringId(*string_id));
+-      if (type_id != nullptr) {
+-        uint16_t type_idx = dex_file->GetIndexForTypeId(*type_id);
+-        mirror::Class* klass = dex_cache->GetResolvedType(type_idx);
+-        if (klass != nullptr) {
+-          return klass;
+@@ -3216,0 +2880,18 @@ mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
++  const DexFile& dex_file = *klass->GetDexCache()->GetDexFile();
++  mirror::Class::Status oat_file_class_status(mirror::Class::kStatusNotReady);
++  bool preverified = VerifyClassUsingOatFile(dex_file, klass.Get(), oat_file_class_status);
++  if (oat_file_class_status == mirror::Class::kStatusError) {
++    VLOG(class_linker) << "Skipping runtime verification of erroneous class "
++        << PrettyDescriptor(klass.Get()) << " in "
++        << klass->GetDexCache()->GetLocation()->ToModifiedUtf8();
++    ThrowVerifyError(klass.Get(), "Rejecting class %s because it failed compile-time verification",
++                     PrettyDescriptor(klass.Get()).c_str());
++    klass->SetStatus(mirror::Class::kStatusError, self);
++    return;
++  }
++  verifier::MethodVerifier::FailureKind verifier_failure = verifier::MethodVerifier::kNoFailure;
++  std::string error_msg;
++  if (!preverified) {
++    verifier_failure = verifier::MethodVerifier::VerifyClass(self, klass.Get(),
++                                                             Runtime::Current()->IsCompiler(),
++                                                             &error_msg);
+@@ -3217,0 +2899,5 @@ mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
++  if (preverified || verifier_failure != verifier::MethodVerifier::kHardFailure) {
++    if (!preverified && verifier_failure != verifier::MethodVerifier::kNoFailure) {
++      VLOG(class_linker) << "Soft verification failure in class " << PrettyDescriptor(klass.Get())
++          << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8()
++          << " because: " << error_msg;
+@@ -3218,0 +2905,9 @@ mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
++    self->AssertNoPendingException();
++    ResolveClassExceptionHandlerTypes(dex_file, klass);
++    if (verifier_failure == verifier::MethodVerifier::kNoFailure) {
++      if (super.Get() == nullptr || super->IsVerified()) {
++        klass->SetStatus(mirror::Class::kStatusVerified, self);
++      } else {
++        CHECK_EQ(super->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime);
++        klass->SetStatus(mirror::Class::kStatusRetryVerificationAtRuntime, self);
++        verifier_failure = verifier::MethodVerifier::kSoftFailure;
+@@ -3220 +2915,7 @@ mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
+-  return nullptr;
++    } else {
++      CHECK_EQ(verifier_failure, verifier::MethodVerifier::kSoftFailure);
++      if (Runtime::Current()->IsCompiler()) {
++        klass->SetStatus(mirror::Class::kStatusRetryVerificationAtRuntime, self);
++      } else {
++        klass->SetStatus(mirror::Class::kStatusVerified, self);
++        klass->SetPreverified();
+@@ -3222,4 +2922,0 @@ mirror::Class* ClassLinker::LookupClassFromImage(const char* descriptor) {
+-void ClassLinker::LookupClasses(const char* descriptor, std::vector<mirror::Class*>& result) {
+-  result.clear();
+-  if (dex_cache_image_class_lookup_required_) {
+-    MoveImageClassesToClassTable();
+@@ -3227,7 +2924,7 @@ void ClassLinker::LookupClasses(const char* descriptor, std::vector<mirror::Clas
+-  size_t hash = Hash(descriptor);
+-  ReaderMutexLock mu(Thread::Current(), *Locks::classlinker_classes_lock_);
+-  for (auto it = class_table_.lower_bound(hash), end = class_table_.end();
+-      it != end && it->first == hash; ++it) {
+-    mirror::Class* klass = it->second.Read();
+-    if (klass->DescriptorEquals(descriptor)) {
+-      result.push_back(klass);
++  } else {
++    LOG(ERROR) << "Verification failed on class " << PrettyDescriptor(klass.Get())
++        << " in " << klass->GetDexCache()->GetLocation()->ToModifiedUtf8()
++        << " because: " << error_msg;
++    self->AssertNoPendingException();
++    ThrowVerifyError(klass.Get(), "%s", error_msg.c_str());
++    klass->SetStatus(mirror::Class::kStatusError, self);
+@@ -3234,0 +2932,2 @@ void ClassLinker::LookupClasses(const char* descriptor, std::vector<mirror::Clas
++  if (preverified || verifier_failure == verifier::MethodVerifier::kNoFailure) {
++    EnsurePreverifiedMethods(klass);
+@@ -3313,2 +3012,3 @@ void ClassLinker::ResolveMethodExceptionHandlerTypes(const DexFile& dex_file,
+-static void CheckProxyConstructor(mirror::ArtMethod* constructor)
+-static void CheckProxyMethod(Handle<mirror::ArtMethod> method, Handle<mirror::ArtMethod> prototype)
++static void CheckProxyConstructor(mirror::ArtMethod* constructor);
++static void CheckProxyMethod(Handle<mirror::ArtMethod> method,
++                             Handle<mirror::ArtMethod> prototype);
+@@ -3515,6 +3215,164 @@ mirror::ArtMethod* ClassLinker::CreateProxyMethod(Thread* self,
+-  method->SetDeclaringClass(klass.Get());
+-  method->SetAccessFlags((method->GetAccessFlags() & ~kAccAbstract) | kAccFinal);
+-  method->SetEntryPointFromQuickCompiledCode(GetQuickProxyInvokeHandler());
+-  method->SetEntryPointFromPortableCompiledCode(GetPortableProxyInvokeHandler());
+-  method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
+-  return method;
++  method->SetDeclaringClass(klass.Get());
++  method->SetAccessFlags((method->GetAccessFlags() & ~kAccAbstract) | kAccFinal);
++  method->SetEntryPointFromQuickCompiledCode(GetQuickProxyInvokeHandler());
++  method->SetEntryPointFromPortableCompiledCode(GetPortableProxyInvokeHandler());
++  method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
++  return method;
++}
++static void CheckProxyMethod(Handle<mirror::ArtMethod> method,
++                             Handle<mirror::ArtMethod> prototype)
++    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++  CHECK(!prototype->IsFinal());
++  CHECK(method->IsFinal());
++  CHECK(!method->IsAbstract());
++  CHECK_EQ(prototype->GetDexCacheStrings(), method->GetDexCacheStrings());
++  CHECK(prototype->HasSameDexCacheResolvedMethods(method.Get()));
++  CHECK(prototype->HasSameDexCacheResolvedTypes(method.Get()));
++  CHECK_EQ(prototype->GetDexMethodIndex(), method->GetDexMethodIndex());
++  CHECK_STREQ(method->GetName(), prototype->GetName());
++  CHECK_STREQ(method->GetShorty(), prototype->GetShorty());
++  CHECK_EQ(method->GetInterfaceMethodIfProxy()->GetReturnType(), prototype->GetReturnType());
++}
++static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
++                                 bool can_init_parents)
++    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++  if (can_init_statics && can_init_parents) {
++    return true;
++  }
++  if (!can_init_statics) {
++    mirror::ArtMethod* clinit = klass->FindClassInitializer();
++    if (clinit != nullptr) {
++      return false;
++    }
++    if (klass->NumStaticFields() != 0) {
++      const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
++      DCHECK(dex_class_def != nullptr);
++      if (dex_class_def->static_values_off_ != 0) {
++        return false;
++      }
++    }
++  }
++  if (!klass->IsInterface() && klass->HasSuperClass()) {
++    mirror::Class* super_class = klass->GetSuperClass();
++    if (!can_init_parents && !super_class->IsInitialized()) {
++      return false;
++    } else {
++      if (!CanWeInitializeClass(super_class, can_init_statics, can_init_parents)) {
++        return false;
++      }
++    }
++  }
++  return true;
++}
++bool ClassLinker::InitializeClass(Thread* self, Handle<mirror::Class> klass,
++                                  bool can_init_statics, bool can_init_parents) {
++  if (klass->IsInitialized()) {
++    return true;
++  }
++  if (!CanWeInitializeClass(klass.Get(), can_init_statics, can_init_parents)) {
++    return false;
++  }
++  self->AllowThreadSuspension();
++  uint64_t t0;
++  {
++    ObjectLock<mirror::Class> lock(self, klass);
++    if (klass->IsInitialized()) {
++      return true;
++    }
++    if (klass->IsErroneous()) {
++      ThrowEarlierClassFailure(klass.Get());
++      VlogClassInitializationFailure(klass);
++      return false;
++    }
++    CHECK(klass->IsResolved()) << PrettyClass(klass.Get()) << ": state=" << klass->GetStatus();
++    if (!klass->IsVerified()) {
++      VerifyClass(self, klass);
++      if (!klass->IsVerified()) {
++        if (klass->IsErroneous()) {
++          CHECK(self->IsExceptionPending());
++          VlogClassInitializationFailure(klass);
++        } else {
++          CHECK(Runtime::Current()->IsCompiler());
++          CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusRetryVerificationAtRuntime);
++        }
++        return false;
++      } else {
++        self->AssertNoPendingException();
++      }
++    }
++    if (klass->GetStatus() == mirror::Class::kStatusInitializing) {
++      if (self->IsExceptionPending()) {
++        VlogClassInitializationFailure(klass);
++        return false;
++      }
++      if (klass->GetClinitThreadId() == self->GetTid()) {
++        return true;
++      }
++      return WaitForInitializeClass(klass, self, lock);
++    }
++    if (!ValidateSuperClassDescriptors(klass)) {
++      klass->SetStatus(mirror::Class::kStatusError, self);
++      return false;
++    }
++    self->AllowThreadSuspension();
++    CHECK_EQ(klass->GetStatus(), mirror::Class::kStatusVerified) << PrettyClass(klass.Get());
++    klass->SetClinitThreadId(self->GetTid());
++    klass->SetStatus(mirror::Class::kStatusInitializing, self);
++    t0 = NanoTime();
++  }
++  if (!klass->IsInterface() && klass->HasSuperClass()) {
++    mirror::Class* super_class = klass->GetSuperClass();
++    if (!super_class->IsInitialized()) {
++      CHECK(!super_class->IsInterface());
++      CHECK(can_init_parents);
++      StackHandleScope<1> hs(self);
++      Handle<mirror::Class> handle_scope_super(hs.NewHandle(super_class));
++      bool super_initialized = InitializeClass(self, handle_scope_super, can_init_statics, true);
++      if (!super_initialized) {
++        CHECK(handle_scope_super->IsErroneous() && self->IsExceptionPending())
++            << "Super class initialization failed for "
++            << PrettyDescriptor(handle_scope_super.Get())
++            << " that has unexpected status " << handle_scope_super->GetStatus()
++            << "\nPending exception:\n"
++            << (self->GetException(nullptr) != nullptr ? self->GetException(nullptr)->Dump() : "");
++        ObjectLock<mirror::Class> lock(self, klass);
++        klass->SetStatus(mirror::Class::kStatusError, self);
++        return false;
++      }
++    }
++  }
++  const size_t num_static_fields = klass->NumStaticFields();
++  if (num_static_fields > 0) {
++    const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
++    CHECK(dex_class_def != nullptr);
++    const DexFile& dex_file = klass->GetDexFile();
++    StackHandleScope<3> hs(self);
++    Handle<mirror::ClassLoader> class_loader(hs.NewHandle(klass->GetClassLoader()));
++    Handle<mirror::DexCache> dex_cache(hs.NewHandle(klass->GetDexCache()));
++    for (size_t i = 0; i < num_static_fields; ++i) {
++      mirror::ArtField* field = klass->GetStaticField(i);
++      const uint32_t field_idx = field->GetDexFieldIndex();
++      mirror::ArtField* resolved_field = dex_cache->GetResolvedField(field_idx);
++      if (resolved_field == nullptr) {
++        dex_cache->SetResolvedField(field_idx, field);
++      } else {
++        DCHECK_EQ(field, resolved_field);
++      }
++    }
++    EncodedStaticFieldValueIterator value_it(dex_file, &dex_cache, &class_loader,
++                                             this, *dex_class_def);
++    const uint8_t* class_data = dex_file.GetClassData(*dex_class_def);
++    ClassDataItemIterator field_it(dex_file, class_data);
++    if (value_it.HasNext()) {
++      DCHECK(field_it.HasNextStaticField());
++      CHECK(can_init_statics);
++      for ( ; value_it.HasNext(); value_it.Next(), field_it.Next()) {
++        StackHandleScope<1> hs(self);
++        Handle<mirror::ArtField> field(hs.NewHandle(
++            ResolveField(dex_file, field_it.GetMemberIndex(), dex_cache, class_loader, true)));
++        if (Runtime::Current()->IsActiveTransaction()) {
++          value_it.ReadValueToField<true>(field);
++        } else {
++          value_it.ReadValueToField<false>(field);
++        }
++        DCHECK(!value_it.HasNext() || field_it.HasNextStaticField());
+@@ -3522,12 +3379,0 @@ mirror::ArtMethod* ClassLinker::CreateProxyMethod(Thread* self,
+-static void CheckProxyMethod(Handle<mirror::ArtMethod> method, Handle<mirror::ArtMethod> prototype)
+-    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
+-    CHECK(!prototype->IsFinal());
+-    CHECK(method->IsFinal());
+-    CHECK(!method->IsAbstract());
+-    CHECK_EQ(prototype->GetDexCacheStrings(), method->GetDexCacheStrings());
+-    CHECK(prototype->HasSameDexCacheResolvedMethods(method.Get()));
+-    CHECK(prototype->HasSameDexCacheResolvedTypes(method.Get()));
+-    CHECK_EQ(prototype->GetDexMethodIndex(), method->GetDexMethodIndex());
+-    CHECK_STREQ(method->GetName(), prototype->GetName());
+-    CHECK_STREQ(method->GetShorty(), prototype->GetShorty());
+-    CHECK_EQ(method->GetInterfaceMethodIfProxy()->GetReturnType(), prototype->GetReturnType());
+@@ -3535,5 +3380,0 @@ static void CheckProxyMethod(Handle<mirror::ArtMethod> method, Handle<mirror::Ar
+-static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-                                 bool can_init_parents)
+-    SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
+-    if (can_init_statics && can_init_parents) {
+-    return true;
+@@ -3541 +3381,0 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-    if (!can_init_statics) {
+@@ -3544,9 +3384,3 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-      return false;
+-    }
+-    if (klass->NumStaticFields() != 0) {
+-      const DexFile::ClassDef* dex_class_def = klass->GetClassDef();
+-      DCHECK(dex_class_def != nullptr);
+-      if (dex_class_def->static_values_off_ != 0) {
+-        return false;
+-      }
+-    }
++    CHECK(can_init_statics);
++    JValue result;
++    clinit->Invoke(self, nullptr, 0, &result, "V");
+@@ -3554,4 +3388,9 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-    if (!klass->IsInterface() && klass->HasSuperClass()) {
+-    mirror::Class* super_class = klass->GetSuperClass();
+-    if (!can_init_parents && !super_class->IsInitialized()) {
+-      return false;
++  self->AllowThreadSuspension();
++  uint64_t t1 = NanoTime();
++  bool success = true;
++  {
++    ObjectLock<mirror::Class> lock(self, klass);
++    if (self->IsExceptionPending()) {
++      WrapExceptionInInitializer(klass);
++      klass->SetStatus(mirror::Class::kStatusError, self);
++      success = false;
+@@ -3559,2 +3398,11 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-      if (!CanWeInitializeClass(super_class, can_init_statics, can_init_parents)) {
+-        return false;
++      RuntimeStats* global_stats = Runtime::Current()->GetStats();
++      RuntimeStats* thread_stats = self->GetStats();
++      ++global_stats->class_init_count;
++      ++thread_stats->class_init_count;
++      global_stats->class_init_time_ns += (t1 - t0);
++      thread_stats->class_init_time_ns += (t1 - t0);
++      klass->SetStatus(mirror::Class::kStatusInitialized, self);
++      if (VLOG_IS_ON(class_linker)) {
++        std::string temp;
++        LOG(INFO) << "Initialized class " << klass->GetDescriptor(&temp) << " from " <<
++            klass->GetLocation();
+@@ -3561,0 +3410 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
++      FixupStaticTrampolines(klass.Get());
+@@ -3564 +3413 @@ static bool CanWeInitializeClass(mirror::Class* klass, bool can_init_statics,
+-    return true;
++  return success;
+@@ -3641,0 +3491,17 @@ bool ClassLinker::ValidateSuperClassDescriptors(Handle<mirror::Class> klass) {
++bool ClassLinker::EnsureInitialized(Thread* self, Handle<mirror::Class> c, bool can_init_fields,
++                                    bool can_init_parents) {
++  DCHECK(c.Get() != nullptr);
++  if (c->IsInitialized()) {
++    EnsurePreverifiedMethods(c);
++    return true;
++  }
++  const bool success = InitializeClass(self, c, can_init_fields, can_init_parents);
++  if (!success) {
++    if (can_init_fields && can_init_parents) {
++      CHECK(self->IsExceptionPending()) << PrettyClass(c.Get());
++    }
++  } else {
++    self->AssertNoPendingException();
++  }
++  return success;
++}
+@@ -3830,0 +3697,37 @@ bool ClassLinker::LinkMethods(Thread* self, Handle<mirror::Class> klass,
++class MethodNameAndSignatureComparator FINAL : public ValueObject {
++ public:
++  explicit MethodNameAndSignatureComparator(mirror::ArtMethod* method)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) :
++      dex_file_(method->GetDexFile()), mid_(&dex_file_->GetMethodId(method->GetDexMethodIndex())),
++      name_(nullptr), name_len_(0) {
++    DCHECK(!method->IsProxyMethod()) << PrettyMethod(method);
++  }
++  const char* GetName() {
++    if (name_ == nullptr) {
++      name_ = dex_file_->StringDataAndUtf16LengthByIdx(mid_->name_idx_, &name_len_);
++    }
++    return name_;
++  }
++  bool HasSameNameAndSignature(mirror::ArtMethod* other)
++      SHARED_LOCKS_REQUIRED(Locks::mutator_lock_) {
++    DCHECK(!other->IsProxyMethod()) << PrettyMethod(other);
++    const DexFile* other_dex_file = other->GetDexFile();
++    const DexFile::MethodId& other_mid = other_dex_file->GetMethodId(other->GetDexMethodIndex());
++    if (dex_file_ == other_dex_file) {
++      return mid_->name_idx_ == other_mid.name_idx_ && mid_->proto_idx_ == other_mid.proto_idx_;
++    }
++    GetName();
++    uint32_t other_name_len;
++    const char* other_name = other_dex_file->StringDataAndUtf16LengthByIdx(other_mid.name_idx_,
++                                                                           &other_name_len);
++    if (name_len_ != other_name_len || strcmp(name_, other_name) != 0) {
++      return false;
++    }
++    return dex_file_->GetMethodSignature(*mid_) == other_dex_file->GetMethodSignature(other_mid);
++  }
++ private:
++  const DexFile* const dex_file_;
++  const DexFile::MethodId* const mid_;
++  const char* name_;
++  uint32_t name_len_;
++};
+@@ -3883 +3786 @@ private:
+-const uint32_t LinkVirtualHashTable::removed_index_ = std::numeric_limits<uint32_t>::max() - 1;
++const uint32_t LinkVirtualHashTable::invalid_index_ = std::numeric_limits<uint32_t>::max();
+@@ -4470,26 +4373,5 @@ mirror::Class* ClassLinker::ResolveType(const DexFile& dex_file, uint16_t type_i
+-                                        Handle<mirror::DexCache> dex_cache,
+-                                        Handle<mirror::ClassLoader> class_loader) {
+-  DCHECK(dex_cache.Get() != nullptr);
+-  mirror::Class* resolved = dex_cache->GetResolvedType(type_idx);
+-  if (resolved == nullptr) {
+-    Thread* self = Thread::Current();
+-    const char* descriptor = dex_file.StringByTypeIdx(type_idx);
+-    resolved = FindClass(self, descriptor, class_loader);
+-    if (resolved != nullptr) {
+-      dex_cache->SetResolvedType(type_idx, resolved);
+-    } else {
+-      CHECK(self->IsExceptionPending())
+-          << "Expected pending exception for failed resolution of: " << descriptor;
+-      StackHandleScope<1> hs(self);
+-      Handle<mirror::Throwable> cause(hs.NewHandle(self->GetException(nullptr)));
+-      if (cause->InstanceOf(GetClassRoot(kJavaLangClassNotFoundException))) {
+-        DCHECK(resolved == nullptr);
+-        self->ClearException();
+-        ThrowNoClassDefFoundError("Failed resolution of: %s", descriptor);
+-        self->GetException(nullptr)->SetCause(cause.Get());
+-      }
+-    }
+-  }
+-  DCHECK((resolved == nullptr) || resolved->IsResolved() || resolved->IsErroneous())
+-          << PrettyDescriptor(resolved) << " " << resolved->GetStatus();
+-  return resolved;
++                                        mirror::Class* referrer) {
++  StackHandleScope<2> hs(Thread::Current());
++  Handle<mirror::DexCache> dex_cache(hs.NewHandle(referrer->GetDexCache()));
++  Handle<mirror::ClassLoader> class_loader(hs.NewHandle(referrer->GetClassLoader()));
++  return ResolveType(dex_file, type_idx, dex_cache, class_loader);
+@@ -4751,0 +4634,66 @@ void ClassLinker::DumpAllClasses(int flags) {
++static OatFile::OatMethod CreateOatMethod(const void* code, const uint8_t* gc_map,
++                                          bool is_portable) {
++  CHECK_EQ(kUsePortableCompiler, is_portable);
++  CHECK(code != nullptr);
++  const uint8_t* base;
++  uint32_t code_offset, gc_map_offset;
++  if (gc_map == nullptr) {
++    base = reinterpret_cast<const uint8_t*>(code);
++    base -= sizeof(void*);
++    code_offset = sizeof(void*);
++    gc_map_offset = 0;
++  } else {
++    base = nullptr;
++    code_offset = PointerToLowMemUInt32(code);
++    gc_map_offset = PointerToLowMemUInt32(gc_map);
++  }
++  return OatFile::OatMethod(base, code_offset, gc_map_offset);
++}
++bool ClassLinker::IsPortableResolutionStub(const void* entry_point) const {
++  return (entry_point == GetPortableResolutionStub()) ||
++      (portable_resolution_trampoline_ == entry_point);
++}
++bool ClassLinker::IsQuickResolutionStub(const void* entry_point) const {
++  return (entry_point == GetQuickResolutionStub()) ||
++      (quick_resolution_trampoline_ == entry_point);
++}
++bool ClassLinker::IsPortableToInterpreterBridge(const void* entry_point) const {
++  return (entry_point == GetPortableToInterpreterBridge());
++}
++bool ClassLinker::IsQuickToInterpreterBridge(const void* entry_point) const {
++  return (entry_point == GetQuickToInterpreterBridge()) ||
++      (quick_to_interpreter_bridge_trampoline_ == entry_point);
++}
++bool ClassLinker::IsQuickGenericJniStub(const void* entry_point) const {
++  return (entry_point == GetQuickGenericJniStub()) ||
++      (quick_generic_jni_trampoline_ == entry_point);
++}
++const void* ClassLinker::GetRuntimeQuickGenericJniStub() const {
++  return GetQuickGenericJniStub();
++}
++void ClassLinker::SetEntryPointsToCompiledCode(mirror::ArtMethod* method, const void* method_code,
++                                               bool is_portable) const {
++  OatFile::OatMethod oat_method = CreateOatMethod(method_code, nullptr, is_portable);
++  oat_method.LinkMethod(method);
++  method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
++  if (method->GetEntryPointFromPortableCompiledCode() == nullptr) {
++    method->SetEntryPointFromPortableCompiledCode(GetPortableToQuickBridge());
++  } else {
++    CHECK(method->GetEntryPointFromQuickCompiledCode() == nullptr);
++    method->SetEntryPointFromQuickCompiledCode(GetQuickToPortableBridge());
++    method->SetIsPortableCompiled();
++  }
++}
++void ClassLinker::SetEntryPointsToInterpreter(mirror::ArtMethod* method) const {
++  if (!method->IsNative()) {
++    method->SetEntryPointFromInterpreter(artInterpreterToInterpreterBridge);
++    method->SetEntryPointFromPortableCompiledCode(GetPortableToInterpreterBridge());
++    method->SetEntryPointFromQuickCompiledCode(GetQuickToInterpreterBridge());
++  } else {
++    const void* quick_method_code = GetQuickGenericJniStub();
++    OatFile::OatMethod oat_method = CreateOatMethod(quick_method_code, nullptr, false);
++    oat_method.LinkMethod(method);
++    method->SetEntryPointFromInterpreter(artInterpreterToCompiledCodeBridge);
++    method->SetEntryPointFromPortableCompiledCode(GetPortableToQuickBridge());
++  }
++}
+@@ -4782,0 +4731,45 @@ void ClassLinker::SetClassRoot(ClassRoot class_root, mirror::Class* klass) {
++const char* ClassLinker::GetClassRootDescriptor(ClassRoot class_root) {
++  static const char* class_roots_descriptors[] = {
++    "Ljava/lang/Class;",
++    "Ljava/lang/Object;",
++    "[Ljava/lang/Class;",
++    "[Ljava/lang/Object;",
++    "Ljava/lang/String;",
++    "Ljava/lang/DexCache;",
++    "Ljava/lang/ref/Reference;",
++    "Ljava/lang/reflect/ArtField;",
++    "Ljava/lang/reflect/ArtMethod;",
++    "Ljava/lang/reflect/Proxy;",
++    "[Ljava/lang/String;",
++    "[Ljava/lang/reflect/ArtField;",
++    "[Ljava/lang/reflect/ArtMethod;",
++    "Ljava/lang/ClassLoader;",
++    "Ljava/lang/Throwable;",
++    "Ljava/lang/ClassNotFoundException;",
++    "Ljava/lang/StackTraceElement;",
++    "Z",
++    "B",
++    "C",
++    "D",
++    "F",
++    "I",
++    "J",
++    "S",
++    "V",
++    "[Z",
++    "[B",
++    "[C",
++    "[D",
++    "[F",
++    "[I",
++    "[J",
++    "[S",
++    "[Ljava/lang/StackTraceElement;",
++  };
++  COMPILE_ASSERT(arraysize(class_roots_descriptors) == size_t(kClassRootsMax),
++                 mismatch_between_class_descriptors_and_class_root_enum);
++  const char* descriptor = class_roots_descriptors[class_root];
++  CHECK(descriptor != nullptr);
++  return descriptor;
++}
++}

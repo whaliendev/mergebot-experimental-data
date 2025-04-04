@@ -1,0 +1,885 @@
+diff --git a/output/art/69e76405-7758eaad-a991d427/runtime@interpreter@mterp@nterp.no_comments_mergebot.cc b/output/art/69e76405-7758eaad-a991d427/runtime@interpreter@mterp@nterp.no_comments_truth.cc
+index adee19a..7efee61 100644
+--- a/output/art/69e76405-7758eaad-a991d427/runtime@interpreter@mterp@nterp.no_comments_mergebot.cc
++++ b/output/art/69e76405-7758eaad-a991d427/runtime@interpreter@mterp@nterp.no_comments_truth.cc
+@@ -9 +8,0 @@
+-#include "interpreter/interpreter_intrinsics.h"
+@@ -16 +14,0 @@ bool IsNterpSupported() {
+-<<<<<<< HEAD
+@@ -18,5 +15,0 @@ bool IsNterpSupported() {
+-||||||| a991d42711
+-  return !kPoisonHeapReferences && gUseReadBarrier;
+-=======
+-  return !kPoisonHeapReferences;
+->>>>>>> 7758eaad
+@@ -24,75 +17,15 @@ bool IsNterpSupported() {
+-static mirror::Object* DoFilledNewArray(Thread* self,
+-                                        ArtMethod* caller,
+-                                        uint16_t* dex_pc_ptr,
+-                                        uint32_t* regs,
+-                                        bool is_range)
+-static_assert(static_cast<uint8_t>(kMaxInvokeType) < kInvalidInvokeType);
+-static constexpr uint8_t GetOpcodeInvokeType(uint8_t opcode) {
+-  switch (opcode) {
+-    case Instruction::INVOKE_DIRECT:
+-    case Instruction::INVOKE_DIRECT_RANGE:
+-      return static_cast<uint8_t>(kDirect);
+-    case Instruction::INVOKE_INTERFACE:
+-    case Instruction::INVOKE_INTERFACE_RANGE:
+-      return static_cast<uint8_t>(kInterface);
+-    case Instruction::INVOKE_STATIC:
+-    case Instruction::INVOKE_STATIC_RANGE:
+-      return static_cast<uint8_t>(kStatic);
+-    case Instruction::INVOKE_SUPER:
+-    case Instruction::INVOKE_SUPER_RANGE:
+-      return static_cast<uint8_t>(kSuper);
+-    case Instruction::INVOKE_VIRTUAL:
+-    case Instruction::INVOKE_VIRTUAL_RANGE:
+-      return static_cast<uint8_t>(kVirtual);
+-    default:
+-      return kInvalidInvokeType;
+-  }
+-}
+-static constexpr std::array<uint8_t, 256u> GenerateOpcodeInvokeTypes() {
+-  std::array<uint8_t, 256u> opcode_invoke_types{};
+-  for (size_t opcode = 0u; opcode != opcode_invoke_types.size(); ++opcode) {
+-    opcode_invoke_types[opcode] = GetOpcodeInvokeType(opcode);
+-  }
+-  return opcode_invoke_types;
+-}
+-static constexpr std::array<uint8_t, 256u> kOpcodeInvokeTypes = GenerateOpcodeInvokeTypes();
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
+-    }
+-extern "C" mirror::Object* NterpAllocateObject(Thread* self,
+-                                               ArtMethod* caller,
+-                                               uint16_t* dex_pc_ptr)
+-extern "C" mirror::Object* NterpGetClass(Thread* self, ArtMethod* caller, uint16_t* dex_pc_ptr)
+-extern "C" uint32_t NterpGetInstanceFieldOffset(Thread* self,
+-                                                ArtMethod* caller,
+-                                                const uint16_t* dex_pc_ptr,
+-                                                size_t resolve_field_type)
+-extern "C" size_t NterpGetStaticField(Thread* self,
+-                                      ArtMethod* caller,
+-                                      const uint16_t* dex_pc_ptr,
+-                                      size_t resolve_field_type)
+-extern "C" void ExecuteNterpImpl()
+-extern "C" void ExecuteNterpWithClinitImpl()const void* GetNterpEntryPoint() {
++bool CanRuntimeUseNterp() REQUIRES_SHARED(Locks::mutator_lock_) {
++  Runtime* runtime = Runtime::Current();
++  instrumentation::Instrumentation* instr = runtime->GetInstrumentation();
++  return IsNterpSupported() &&
++      !runtime->IsJavaDebuggable() &&
++      !instr->AreExitStubsInstalled() &&
++      !instr->InterpretOnly() &&
++      !runtime->IsAotCompiler() &&
++      !instr->NeedsSlowInterpreterForListeners() &&
++      !runtime->AreAsyncExceptionsThrown() &&
++      (runtime->GetJit() == nullptr || !runtime->GetJit()->JitAtFirstUse());
++}
++extern "C" void ExecuteNterpImpl() REQUIRES_SHARED(Locks::mutator_lock_);
++extern "C" void ExecuteNterpWithClinitImpl() REQUIRES_SHARED(Locks::mutator_lock_);
++const void* GetNterpEntryPoint() {
+@@ -113,30 +46,3 @@ void CheckNterpAsmConstants() {
+-static mirror::Object* DoFilledNewArray(Thread* self,
+-                                        ArtMethod* caller,
+-                                        uint16_t* dex_pc_ptr,
+-                                        uint32_t* regs,
+-                                        bool is_range)
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++inline void UpdateHotness(ArtMethod* method) REQUIRES_SHARED(Locks::mutator_lock_) {
++  constexpr uint16_t kNterpHotnessLookup = 0xf;
++  method->UpdateCounter(kNterpHotnessLookup);
+@@ -145,3 +51,2 @@ template<typename T>
+-inline void UpdateCache(Thread* self, uint16_t* dex_pc_ptr, T* value) {
+-  UpdateCache(self, dex_pc_ptr, reinterpret_cast<size_t>(value)){
+-  UpdateCache(self, dex_pc_ptr, reinterpret_cast<size_t>(value));
++inline void UpdateCache(Thread* self, const uint16_t* dex_pc_ptr, T value) {
++  self->GetInterpreterCache()->Set(self, dex_pc_ptr, value);
+@@ -150,2 +55 @@ template<typename T>
+-inline void UpdateCache(Thread* self, uint16_t* dex_pc_ptr, T* value) {
+-  UpdateCache(self, dex_pc_ptr, reinterpret_cast<size_t>(value)){
++inline void UpdateCache(Thread* self, const uint16_t* dex_pc_ptr, T* value) {
+@@ -254,23 +158 @@ extern "C" const dex::CodeItem* NterpGetCodeItem(ArtMethod* method)
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  return method->GetCodeItem();
+@@ -281,23 +163 @@ extern "C" const char* NterpGetShorty(ArtMethod* method)
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  return method->GetInterfaceMethodIfProxy(kRuntimePointerSize)->GetShorty();
+@@ -308,23 +168 @@ extern "C" const char* NterpGetShortyFromMethodId(ArtMethod* caller, uint32_t me
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  return caller->GetDexFile()->GetMethodShorty(method_index);
+@@ -335,23 +173,5 @@ extern "C" const char* NterpGetShortyFromInvokePolymorphic(ArtMethod* caller, ui
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  dex::ProtoIndex proto_idx(inst->Opcode() == Instruction::INVOKE_POLYMORPHIC
++      ? inst->VRegH_45cc()
++      : inst->VRegH_4rcc());
++  return caller->GetDexFile()->GetShorty(proto_idx);
+@@ -362,20 +182,29 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  uint16_t call_site_index = (inst->Opcode() == Instruction::INVOKE_CUSTOM
++      ? inst->VRegB_35c()
++      : inst->VRegB_3rc());
++  const DexFile* dex_file = caller->GetDexFile();
++  dex::ProtoIndex proto_idx = dex_file->GetProtoIndexForCallSite(call_site_index);
++  return dex_file->GetShorty(proto_idx);
++}
++static constexpr uint8_t kInvalidInvokeType = 255u;
++static_assert(static_cast<uint8_t>(kMaxInvokeType) < kInvalidInvokeType);
++static constexpr uint8_t GetOpcodeInvokeType(uint8_t opcode) {
++  switch (opcode) {
++    case Instruction::INVOKE_DIRECT:
++    case Instruction::INVOKE_DIRECT_RANGE:
++      return static_cast<uint8_t>(kDirect);
++    case Instruction::INVOKE_INTERFACE:
++    case Instruction::INVOKE_INTERFACE_RANGE:
++      return static_cast<uint8_t>(kInterface);
++    case Instruction::INVOKE_STATIC:
++    case Instruction::INVOKE_STATIC_RANGE:
++      return static_cast<uint8_t>(kStatic);
++    case Instruction::INVOKE_SUPER:
++    case Instruction::INVOKE_SUPER_RANGE:
++      return static_cast<uint8_t>(kSuper);
++    case Instruction::INVOKE_VIRTUAL:
++    case Instruction::INVOKE_VIRTUAL_RANGE:
++      return static_cast<uint8_t>(kVirtual);
++    default:
++      return kInvalidInvokeType;
+@@ -384 +213,6 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-    return kInstrLen;
++static constexpr std::array<uint8_t, 256u> GenerateOpcodeInvokeTypes() {
++  std::array<uint8_t, 256u> opcode_invoke_types{};
++  for (size_t opcode = 0u; opcode != opcode_invoke_types.size(); ++opcode) {
++    opcode_invoke_types[opcode] = GetOpcodeInvokeType(opcode);
++  }
++  return opcode_invoke_types;
+@@ -385,0 +220,3 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
++static constexpr std::array<uint8_t, 256u> kOpcodeInvokeTypes = GenerateOpcodeInvokeTypes();
++FLATTEN
++extern "C" size_t NterpGetMethod(Thread* self, ArtMethod* caller, const uint16_t* dex_pc_ptr)
+@@ -387,19 +224,33 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  UpdateHotness(caller);
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  Instruction::Code opcode = inst->Opcode();
++  DCHECK(IsUint<8>(static_cast<std::underlying_type_t<Instruction::Code>>(opcode)));
++  uint8_t raw_invoke_type = kOpcodeInvokeTypes[opcode];
++  DCHECK_LE(raw_invoke_type, kMaxInvokeType);
++  InvokeType invoke_type = static_cast<InvokeType>(raw_invoke_type);
++  uint16_t method_index =
++      (opcode >= Instruction::INVOKE_VIRTUAL_RANGE) ? inst->VRegB_3rc() : inst->VRegB_35c();
++  ClassLinker* const class_linker = Runtime::Current()->GetClassLinker();
++  ArtMethod* resolved_method = caller->SkipAccessChecks()
++      ? class_linker->ResolveMethod<ClassLinker::ResolveMode::kNoChecks>(
++            self, method_index, caller, invoke_type)
++      : class_linker->ResolveMethod<ClassLinker::ResolveMode::kCheckICCEAndIAE>(
++            self, method_index, caller, invoke_type);
++  if (resolved_method == nullptr) {
++    DCHECK(self->IsExceptionPending());
++    return 0;
++  }
++  if (invoke_type == kSuper) {
++    resolved_method = caller->SkipAccessChecks()
++        ? FindSuperMethodToCall< false>(method_index, resolved_method, caller, self)
++        : FindSuperMethodToCall< true>(method_index, resolved_method, caller, self);
++    if (resolved_method == nullptr) {
++      DCHECK(self->IsExceptionPending());
++      return 0;
++    }
++  }
++  if (invoke_type == kInterface) {
++    size_t result = 0u;
++    if (resolved_method->GetDeclaringClass()->IsObjectClass()) {
++      DCHECK_LT(resolved_method->GetMethodIndex(), 0x10000);
++      result = (resolved_method->GetMethodIndex() << 16) | 1U;
+@@ -407,2 +258,20 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-      return entries[mid];
+-    }
++      DCHECK(resolved_method->GetDeclaringClass()->IsInterface());
++      DCHECK(!resolved_method->IsCopied());
++      if (!resolved_method->IsAbstract()) {
++        result = reinterpret_cast<size_t>(resolved_method) | 2U;
++      } else {
++        result = reinterpret_cast<size_t>(resolved_method);
++      }
++    }
++    UpdateCache(self, dex_pc_ptr, result);
++    return result;
++  } else if (resolved_method->IsStringConstructor()) {
++    CHECK_NE(invoke_type, kSuper);
++    resolved_method = WellKnownClasses::StringInitToStringFactory(resolved_method);
++    return reinterpret_cast<size_t>(resolved_method) | 1;
++  } else if (invoke_type == kVirtual) {
++    UpdateCache(self, dex_pc_ptr, resolved_method->GetMethodIndex());
++    return resolved_method->GetMethodIndex();
++  } else {
++    UpdateCache(self, dex_pc_ptr, resolved_method);
++    return reinterpret_cast<size_t>(resolved_method);
+@@ -410 +278,0 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-    return kInstrLen;
+@@ -412 +280 @@ extern "C" const char* NterpGetShortyFromInvokeCustom(ArtMethod* caller, uint16_
+-static mirror::Object* DoFilledNewArray(Thread* self,
++extern "C" size_t NterpGetStaticField(Thread* self,
+@@ -414,3 +282,2 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-                                        uint16_t* dex_pc_ptr,
+-                                        uint32_t* regs,
+-                                        bool is_range)
++                                      const uint16_t* dex_pc_ptr,
++                                      size_t resolve_field_type)
+@@ -418,19 +285,29 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  UpdateHotness(caller);
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  uint16_t field_index = inst->VRegB_21c();
++  ClassLinker* const class_linker = Runtime::Current()->GetClassLinker();
++  Instruction::Code opcode = inst->Opcode();
++  ArtField* resolved_field = ResolveFieldWithAccessChecks(
++      self,
++      class_linker,
++      field_index,
++      caller,
++                     true,
++                  IsInstructionSPut(opcode),
++      resolve_field_type);
++  if (resolved_field == nullptr) {
++    DCHECK(self->IsExceptionPending());
++    return 0;
++  }
++  if (UNLIKELY(!resolved_field->GetDeclaringClass()->IsVisiblyInitialized())) {
++    StackHandleScope<1> hs(self);
++    Handle<mirror::Class> h_class(hs.NewHandle(resolved_field->GetDeclaringClass()));
++    if (UNLIKELY(!class_linker->EnsureInitialized(
++                      self, h_class, true, true))) {
++      DCHECK(self->IsExceptionPending());
++      return 0;
++    }
++    DCHECK(h_class->IsInitializing());
++  }
++  if (resolved_field->IsVolatile()) {
++    return reinterpret_cast<size_t>(resolved_field) | 1;
+@@ -438,25 +315,5 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
+-    }
+-    REQUIRES_SHARED(Locks::mutator_lock_) {
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++    if (opcode == Instruction::SPUT_OBJECT &&
++        resolve_field_type == 0 &&
++        resolved_field->ResolveType() == nullptr) {
++      DCHECK(self->IsExceptionPending());
++      self->ClearException();
+@@ -464 +321 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-      return entries[mid];
++      UpdateCache(self, dex_pc_ptr, resolved_field);
+@@ -465,0 +323 @@ static mirror::Object* DoFilledNewArray(Thread* self,
++    return reinterpret_cast<size_t>(resolved_field);
+@@ -467 +324,0 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    return kInstrLen;
+@@ -468,0 +326,4 @@ static mirror::Object* DoFilledNewArray(Thread* self,
++extern "C" uint32_t NterpGetInstanceFieldOffset(Thread* self,
++                                                ArtMethod* caller,
++                                                const uint16_t* dex_pc_ptr,
++                                                size_t resolve_field_type)
+@@ -470,19 +331,25 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  UpdateHotness(caller);
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  uint16_t field_index = inst->VRegC_22c();
++  ClassLinker* const class_linker = Runtime::Current()->GetClassLinker();
++  Instruction::Code opcode = inst->Opcode();
++  ArtField* resolved_field = ResolveFieldWithAccessChecks(
++      self,
++      class_linker,
++      field_index,
++      caller,
++                     false,
++                  IsInstructionIPut(opcode),
++      resolve_field_type);
++  if (resolved_field == nullptr) {
++    DCHECK(self->IsExceptionPending());
++    return 0;
++  }
++  if (resolved_field->IsVolatile()) {
++    return -resolved_field->GetOffset().Uint32Value();
++  }
++  if (opcode == Instruction::IPUT_OBJECT &&
++      resolve_field_type == 0 &&
++      resolved_field->ResolveType() == nullptr) {
++    DCHECK(self->IsExceptionPending());
++    self->ClearException();
+@@ -490 +357 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-      return entries[mid];
++    UpdateCache(self, dex_pc_ptr, resolved_field->GetOffset().Uint32Value());
+@@ -491,0 +359 @@ static mirror::Object* DoFilledNewArray(Thread* self,
++  return resolved_field->GetOffset().Uint32Value();
+@@ -493 +361,25 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    return kInstrLen;
++extern "C" mirror::Object* NterpGetClass(Thread* self, ArtMethod* caller, uint16_t* dex_pc_ptr)
++    REQUIRES_SHARED(Locks::mutator_lock_) {
++  UpdateHotness(caller);
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  Instruction::Code opcode = inst->Opcode();
++  DCHECK(opcode == Instruction::CHECK_CAST ||
++         opcode == Instruction::INSTANCE_OF ||
++         opcode == Instruction::CONST_CLASS ||
++         opcode == Instruction::NEW_ARRAY);
++  dex::TypeIndex index = dex::TypeIndex(
++      (opcode == Instruction::CHECK_CAST || opcode == Instruction::CONST_CLASS)
++          ? inst->VRegB_21c()
++          : inst->VRegC_22c());
++  ObjPtr<mirror::Class> c =
++      ResolveVerifyAndClinit(index,
++                             caller,
++                             self,
++                                                   false,
++                                                  !caller->SkipAccessChecks());
++  if (UNLIKELY(c == nullptr)) {
++    DCHECK(self->IsExceptionPending());
++    return nullptr;
++  }
++  UpdateCache(self, dex_pc_ptr, c.Ptr());
++  return c.Ptr();
+@@ -494,0 +387,3 @@ static mirror::Object* DoFilledNewArray(Thread* self,
++extern "C" mirror::Object* NterpAllocateObject(Thread* self,
++                                               ArtMethod* caller,
++                                               uint16_t* dex_pc_ptr)
+@@ -496,19 +391,17 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  UpdateHotness(caller);
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  DCHECK_EQ(inst->Opcode(), Instruction::NEW_INSTANCE);
++  dex::TypeIndex index = dex::TypeIndex(inst->VRegB_21c());
++  ObjPtr<mirror::Class> c =
++      ResolveVerifyAndClinit(index,
++                             caller,
++                             self,
++                                                   false,
++                                                  !caller->SkipAccessChecks());
++  if (UNLIKELY(c == nullptr)) {
++    DCHECK(self->IsExceptionPending());
++    return nullptr;
++  }
++  gc::AllocatorType allocator_type = Runtime::Current()->GetHeap()->GetCurrentAllocator();
++  if (UNLIKELY(c->IsStringClass())) {
++    return mirror::String::AllocEmptyString(self, allocator_type).Ptr();
+@@ -516 +409,2 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-      return entries[mid];
++    if (!c->IsFinalizable() && c->IsInstantiable()) {
++      UpdateCache(self, dex_pc_ptr, c.Ptr());
+@@ -517,0 +412 @@ static mirror::Object* DoFilledNewArray(Thread* self,
++    return AllocObjectFromCode(c, self, allocator_type).Ptr();
+@@ -519 +413,0 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    return kInstrLen;
+@@ -523,21 +417,24 @@ extern "C" mirror::Object* NterpLoadObject(Thread* self, ArtMethod* caller, uint
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  ClassLinker* const class_linker = Runtime::Current()->GetClassLinker();
++  switch (inst->Opcode()) {
++    case Instruction::CONST_STRING:
++    case Instruction::CONST_STRING_JUMBO: {
++      UpdateHotness(caller);
++      dex::StringIndex string_index(
++          (inst->Opcode() == Instruction::CONST_STRING)
++              ? inst->VRegB_21c()
++              : inst->VRegB_31c());
++      ObjPtr<mirror::String> str = class_linker->ResolveString(string_index, caller);
++      if (str == nullptr) {
++        DCHECK(self->IsExceptionPending());
++        return nullptr;
++      }
++      UpdateCache(self, dex_pc_ptr, str.Ptr());
++      return str.Ptr();
++    }
++    case Instruction::CONST_METHOD_HANDLE: {
++      return class_linker->ResolveMethodHandle(self, inst->VRegB_21c(), caller).Ptr();
++    }
++    case Instruction::CONST_METHOD_TYPE: {
++      return class_linker->ResolveMethodType(
++          self, dex::ProtoIndex(inst->VRegB_21c()), caller).Ptr();
+@@ -544,0 +442,2 @@ extern "C" mirror::Object* NterpLoadObject(Thread* self, ArtMethod* caller, uint
++    default:
++      LOG(FATAL) << "Unreachable";
+@@ -546 +445 @@ extern "C" mirror::Object* NterpLoadObject(Thread* self, ArtMethod* caller, uint
+-    return kInstrLen;
++  return nullptr;
+@@ -557,19 +456,4 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  const Instruction* inst = Instruction::At(dex_pc_ptr);
++  if (kIsDebugBuild) {
++    if (is_range) {
++      DCHECK_EQ(inst->Opcode(), Instruction::FILLED_NEW_ARRAY_RANGE);
+@@ -577 +461,58 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-      return entries[mid];
++      DCHECK_EQ(inst->Opcode(), Instruction::FILLED_NEW_ARRAY);
++    }
++  }
++  const int32_t length = is_range ? inst->VRegA_3rc() : inst->VRegA_35c();
++  DCHECK_GE(length, 0);
++  if (!is_range) {
++    DCHECK_LE(length, 5);
++  }
++  uint16_t type_idx = is_range ? inst->VRegB_3rc() : inst->VRegB_35c();
++  ObjPtr<mirror::Class> array_class =
++      ResolveVerifyAndClinit(dex::TypeIndex(type_idx),
++                             caller,
++                             self,
++                                                   true,
++                                                  !caller->SkipAccessChecks());
++  if (UNLIKELY(array_class == nullptr)) {
++    DCHECK(self->IsExceptionPending());
++    return nullptr;
++  }
++  DCHECK(array_class->IsArrayClass());
++  ObjPtr<mirror::Class> component_class = array_class->GetComponentType();
++  const bool is_primitive_int_component = component_class->IsPrimitiveInt();
++  if (UNLIKELY(component_class->IsPrimitive() && !is_primitive_int_component)) {
++    if (component_class->IsPrimitiveLong() || component_class->IsPrimitiveDouble()) {
++      ThrowRuntimeException("Bad filled array request for type %s",
++                            component_class->PrettyDescriptor().c_str());
++    } else {
++      self->ThrowNewExceptionF(
++          "Ljava/lang/InternalError;",
++          "Found type %s; filled-new-array not implemented for anything but 'int'",
++          component_class->PrettyDescriptor().c_str());
++    }
++    return nullptr;
++  }
++  ObjPtr<mirror::Object> new_array = mirror::Array::Alloc(
++      self,
++      array_class,
++      length,
++      array_class->GetComponentSizeShift(),
++      Runtime::Current()->GetHeap()->GetCurrentAllocator());
++  if (UNLIKELY(new_array == nullptr)) {
++    self->AssertPendingOOMException();
++    return nullptr;
++  }
++  uint32_t arg[Instruction::kMaxVarArgRegs];
++  uint32_t vregC = 0;
++  if (is_range) {
++    vregC = inst->VRegC_3rc();
++  } else {
++    inst->GetVarArgs(arg);
++  }
++  for (int32_t i = 0; i < length; ++i) {
++    size_t src_reg = is_range ? vregC + i : arg[i];
++    if (is_primitive_int_component) {
++      new_array->AsIntArray()->SetWithoutChecks< false>(i, regs[src_reg]);
++    } else {
++      new_array->AsObjectArray<mirror::Object>()->SetWithoutChecks< false>(
++          i, reinterpret_cast<mirror::Object*>(regs[src_reg]));
+@@ -580 +521 @@ static mirror::Object* DoFilledNewArray(Thread* self,
+-    return kInstrLen;
++  return new_array.Ptr();
+@@ -587,24 +528 @@ extern "C" mirror::Object* NterpFilledNewArray(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  return DoFilledNewArray(self, caller, dex_pc_ptr, registers, false);
+@@ -617,24 +535 @@ extern "C" mirror::Object* NterpFilledNewArrayRange(Thread* self,
+-    ScopedAssertNoThreadSuspension sants("In nterp");
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
+-    return kInstrLen;
++  return DoFilledNewArray(self, caller, dex_pc_ptr, registers, true);
+@@ -645,18 +540,4 @@ extern "C" jit::OsrData* NterpHotMethod(ArtMethod* method, uint16_t* dex_pc_ptr,
+-    const int kInstrLen = 3;
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+-    uint16_t signature = *switchData++;
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
++  Runtime* runtime = Runtime::Current();
++  if (method->IsMemorySharedMethod()) {
++    DCHECK_EQ(Thread::Current()->GetSharedMethodHotness(), 0u);
++    Thread::Current()->ResetSharedMethodHotness();
+@@ -664 +545 @@ extern "C" jit::OsrData* NterpHotMethod(ArtMethod* method, uint16_t* dex_pc_ptr,
+-      return entries[mid];
++    method->ResetCounter(runtime->GetJITOptions()->GetWarmupThreshold());
+@@ -665,0 +547,9 @@ extern "C" jit::OsrData* NterpHotMethod(ArtMethod* method, uint16_t* dex_pc_ptr,
++  jit::Jit* jit = runtime->GetJit();
++  if (jit != nullptr && jit->UseJitCompilation()) {
++    if (dex_pc_ptr != nullptr) {
++      CodeItemInstructionAccessor accessor(method->DexInstructions());
++      uint32_t dex_pc = dex_pc_ptr - accessor.Insns();
++      jit::OsrData* osr_data = jit->PrepareForOsr(
++          method->GetInterfaceMethodIfProxy(kRuntimePointerSize), dex_pc, vregs);
++      if (osr_data != nullptr) {
++        return osr_data;
+@@ -667 +557,4 @@ extern "C" jit::OsrData* NterpHotMethod(ArtMethod* method, uint16_t* dex_pc_ptr,
+-    return kInstrLen;
++    }
++    jit->MaybeEnqueueCompilation(method, Thread::Current());
++  }
++  return nullptr;
+@@ -673,3 +565,0 @@ extern "C" ssize_t NterpDoPackedSwitch(const uint16_t* switchData, int32_t testV
+-    uint16_t size;
+-    const int32_t* keys;
+-    const int32_t* entries;
+@@ -677,17 +567,6 @@ extern "C" ssize_t NterpDoPackedSwitch(const uint16_t* switchData, int32_t testV
+-    DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kSparseSwitchSignature));
+-    size = *switchData++;
+-    keys = reinterpret_cast<const int32_t*>(switchData);
+-    entries = keys + size;
+-    int lo = 0;
+-    int hi = size - 1;
+-    while (lo <= hi) {
+-    int mid = (lo + hi) >> 1;
+-    int32_t foundVal = keys[mid];
+-    if (testVal < foundVal) {
+-      hi = mid - 1;
+-    } else if (testVal > foundVal) {
+-      lo = mid + 1;
+-    } else {
+-      return entries[mid];
+-    }
+-    }
++  DCHECK_EQ(signature, static_cast<uint16_t>(art::Instruction::kPackedSwitchSignature));
++  uint16_t size = *switchData++;
++  int32_t firstKey = *switchData++;
++  firstKey |= (*switchData++) << 16;
++  int index = testVal - firstKey;
++  if (index < 0 || index >= size) {
+@@ -695,0 +575,3 @@ extern "C" ssize_t NterpDoPackedSwitch(const uint16_t* switchData, int32_t testV
++  const int32_t* entries = reinterpret_cast<const int32_t*>(switchData);
++  return entries[index];
++}

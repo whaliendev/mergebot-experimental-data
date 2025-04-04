@@ -1,0 +1,308 @@
+--- a/output/frameworks_av/c0849145-e9b44fe7-64f2ce2e/media@libmediaplayerservice@nuplayer@RTPSource.no_comments_mergebot.cpp
++++ b/output/frameworks_av/c0849145-e9b44fe7-64f2ce2e/media@libmediaplayerservice@nuplayer@RTPSource.no_comments_truth.cpp
+@@ -77 +76,0 @@ void NuPlayer::RTPSource::prepareAsync() {
+-<<<<<<< HEAD
+@@ -80,4 +78,0 @@ void NuPlayer::RTPSource::prepareAsync() {
+-||||||| 64f2ce2e1d
+-=======
+-        mRTPConn->setMinMaxBitrate(videoMinBitrate, 512000);
+->>>>>>> e9b44fe7
+@@ -113,0 +109,2 @@ void NuPlayer::RTPSource::prepareAsync() {
++void NuPlayer::RTPSource::start() {
++}
+@@ -116,0 +114,15 @@ void NuPlayer::RTPSource::pause() {
++void NuPlayer::RTPSource::resume() {
++    mState = CONNECTING;
++}
++void NuPlayer::RTPSource::stop() {
++    if (mLooper == NULL) {
++        return;
++    }
++    sp<AMessage> msg = new AMessage(kWhatDisconnect, this);
++    sp<AMessage> dummy;
++    msg->postAndAwaitResponse(&dummy);
++}
++status_t NuPlayer::RTPSource::feedMoreTSData() {
++    Mutex::Autolock _l(mBufferingLock);
++    return mFinalResult;
++}
+@@ -123,0 +136,28 @@ sp<MetaData> NuPlayer::RTPSource::getFormatMeta(bool audio) {
++bool NuPlayer::RTPSource::haveSufficientDataOnAllTracks() {
++    static const int64_t kMinDurationUs = 2000000ll;
++    int64_t mediaDurationUs = 0;
++    getDuration(&mediaDurationUs);
++    if ((mAudioTrack != NULL && mAudioTrack->isFinished(mediaDurationUs))
++            || (mVideoTrack != NULL && mVideoTrack->isFinished(mediaDurationUs))) {
++        return true;
++    }
++    status_t err;
++    int64_t durationUs;
++    if (mAudioTrack != NULL
++            && (durationUs = mAudioTrack->getBufferedDurationUs(&err))
++                    < kMinDurationUs
++            && err == OK) {
++        ALOGV("audio track doesn't have enough data yet. (%.2f secs buffered)",
++              durationUs / 1E6);
++        return false;
++    }
++    if (mVideoTrack != NULL
++            && (durationUs = mVideoTrack->getBufferedDurationUs(&err))
++                    < kMinDurationUs
++            && err == OK) {
++        ALOGV("video track doesn't have enough data yet. (%.2f secs buffered)",
++              durationUs / 1E6);
++        return false;
++    }
++    return true;
++}
+@@ -180,0 +221,10 @@ status_t NuPlayer::RTPSource::dequeueAccessUnit(
++sp<AnotherPacketSource> NuPlayer::RTPSource::getSource(bool audio) {
++    return audio ? mAudioTrack : mVideoTrack;
++}
++void NuPlayer::RTPSource::setEOSTimeout(bool audio, int64_t timeout) {
++    if (audio) {
++        mEOSTimeoutAudio = timeout;
++    } else {
++        mEOSTimeoutVideo = timeout;
++    }
++}
+@@ -210,146 +259,0 @@ void NuPlayer::RTPSource::onPollBuffering() {
+-void NuPlayer::RTPSource::onTimeUpdate(int32_t trackIndex, uint32_t rtpTime, uint64_t ntpTime) {
+-    ALOGV("onTimeUpdate track %d, rtpTime = 0x%08x, ntpTime = %#016llx",
+-         trackIndex, rtpTime, (long long)ntpTime);
+-    int64_t ntpTimeUs = (int64_t)(ntpTime * 1E6 / (1ll << 32));
+-    TrackInfo *track = &mTracks.editItemAt(trackIndex);
+-    track->mRTPAnchor = rtpTime;
+-    track->mNTPAnchorUs = ntpTimeUs;
+-    if (mNTPAnchorUs < 0) {
+-        mNTPAnchorUs = ntpTimeUs;
+-        mMediaAnchorUs = mLastMediaTimeUs;
+-    }
+-    if (!mAllTracksHaveTime) {
+-        bool allTracksHaveTime = (mTracks.size() > 0);
+-        for (size_t i = 0; i < mTracks.size(); ++i) {
+-            TrackInfo *track = &mTracks.editItemAt(i);
+-            if (track->mNTPAnchorUs < 0) {
+-                allTracksHaveTime = false;
+-                break;
+-            }
+-        }
+-        if (allTracksHaveTime) {
+-            mAllTracksHaveTime = true;
+-            ALOGI("Time now established for all tracks.");
+-        }
+-    }
+-    if (mAllTracksHaveTime && dataReceivedOnAllChannels()) {
+-        for (size_t i = 0; i < mTracks.size(); ++i) {
+-            TrackInfo *trackInfo = &mTracks.editItemAt(i);
+-            while (!trackInfo->mPackets.empty()) {
+-                sp<ABuffer> accessUnit = *trackInfo->mPackets.begin();
+-                trackInfo->mPackets.erase(trackInfo->mPackets.begin());
+-                if (addMediaTimestamp(i, trackInfo, accessUnit)) {
+-                    postQueueAccessUnit(i, accessUnit);
+-                }
+-            }
+-        }
+-    }
+-}
+-bool NuPlayer::RTPSource::addMediaTimestamp(
+-        int32_t trackIndex, const TrackInfo *track,
+-        const sp<ABuffer> &accessUnit) {
+-    uint32_t rtpTime;
+-    CHECK(accessUnit->meta()->findInt32(
+-                "rtp-time", (int32_t *)&rtpTime));
+-    int64_t relRtpTimeUs =
+-        (((int64_t)rtpTime - (int64_t)track->mRTPAnchor) * 1000000ll)
+-        / track->mTimeScale;
+-    int64_t ntpTimeUs = track->mNTPAnchorUs + relRtpTimeUs;
+-    int64_t mediaTimeUs = mMediaAnchorUs + ntpTimeUs - mNTPAnchorUs;
+-    if (mediaTimeUs > mLastMediaTimeUs) {
+-        mLastMediaTimeUs = mediaTimeUs;
+-    }
+-    if (mediaTimeUs < 0) {
+-        ALOGV("dropping early accessUnit.");
+-        return false;
+-    }
+-    ALOGV("track %d rtpTime=%u mediaTimeUs = %lld us (%.2f secs)",
+-            trackIndex, rtpTime, (long long)mediaTimeUs, mediaTimeUs / 1E6);
+-    accessUnit->meta()->setInt64("timeUs", mediaTimeUs);
+-    return true;
+-}
+-bool NuPlayer::RTPSource::dataReceivedOnAllChannels() {
+-    TrackInfo *track;
+-    for (size_t i = 0; i < mTracks.size(); ++i) {
+-        track = &mTracks.editItemAt(i);
+-        if (track->mPackets.empty()) {
+-            return false;
+-        }
+-    }
+-    return true;
+-}
+-void NuPlayer::RTPSource::postQueueAccessUnit(
+-        size_t trackIndex, const sp<ABuffer> &accessUnit) {
+-    sp<AMessage> msg = new AMessage(kWhatAccessUnit, this);
+-    msg->setInt32("what", kWhatAccessUnit);
+-    msg->setSize("trackIndex", trackIndex);
+-    msg->setBuffer("accessUnit", accessUnit);
+-    msg->post();
+-}
+-void NuPlayer::RTPSource::onDisconnected(const sp<AMessage> &msg) {
+-    if (mState == DISCONNECTED) {
+-        return;
+-    }
+-    status_t err;
+-    CHECK(msg->findInt32("result", &err));
+-    CHECK_NE(err, (status_t)OK);
+-    if (mState == CONNECTING) {
+-        notifyPrepared(err);
+-    }
+-    mState = DISCONNECTED;
+-}
+-void NuPlayer::RTPSource::start() {
+-}
+-void NuPlayer::RTPSource::resume() {
+-    mState = CONNECTING;
+-}
+-void NuPlayer::RTPSource::stop() {
+-    if (mLooper == NULL) {
+-        return;
+-    }
+-    sp<AMessage> msg = new AMessage(kWhatDisconnect, this);
+-    sp<AMessage> dummy;
+-    msg->postAndAwaitResponse(&dummy);
+-}
+-status_t NuPlayer::RTPSource::feedMoreTSData() {
+-    Mutex::Autolock _l(mBufferingLock);
+-    return mFinalResult;
+-}
+-bool NuPlayer::RTPSource::haveSufficientDataOnAllTracks() {
+-    static const int64_t kMinDurationUs = 2000000ll;
+-    int64_t mediaDurationUs = 0;
+-    getDuration(&mediaDurationUs);
+-    if ((mAudioTrack != NULL && mAudioTrack->isFinished(mediaDurationUs))
+-            || (mVideoTrack != NULL && mVideoTrack->isFinished(mediaDurationUs))) {
+-        return true;
+-    }
+-    status_t err;
+-    int64_t durationUs;
+-    if (mAudioTrack != NULL
+-            && (durationUs = mAudioTrack->getBufferedDurationUs(&err))
+-                    < kMinDurationUs
+-            && err == OK) {
+-        ALOGV("audio track doesn't have enough data yet. (%.2f secs buffered)",
+-              durationUs / 1E6);
+-        return false;
+-    }
+-    if (mVideoTrack != NULL
+-            && (durationUs = mVideoTrack->getBufferedDurationUs(&err))
+-                    < kMinDurationUs
+-            && err == OK) {
+-        ALOGV("video track doesn't have enough data yet. (%.2f secs buffered)",
+-              durationUs / 1E6);
+-        return false;
+-    }
+-    return true;
+-}
+-sp<AnotherPacketSource> NuPlayer::RTPSource::getSource(bool audio) {
+-    return audio ? mAudioTrack : mVideoTrack;
+-}
+-void NuPlayer::RTPSource::setEOSTimeout(bool audio, int64_t timeout) {
+-    if (audio) {
+-        mEOSTimeoutAudio = timeout;
+-    } else {
+-        mEOSTimeoutVideo = timeout;
+-    }
+-}
+@@ -460,0 +365,79 @@ void NuPlayer::RTPSource::setTargetBitrate(int32_t bitrate) {
++void NuPlayer::RTPSource::onTimeUpdate(int32_t trackIndex, uint32_t rtpTime, uint64_t ntpTime) {
++    ALOGV("onTimeUpdate track %d, rtpTime = 0x%08x, ntpTime = %#016llx",
++         trackIndex, rtpTime, (long long)ntpTime);
++    int64_t ntpTimeUs = (int64_t)(ntpTime * 1E6 / (1ll << 32));
++    TrackInfo *track = &mTracks.editItemAt(trackIndex);
++    track->mRTPAnchor = rtpTime;
++    track->mNTPAnchorUs = ntpTimeUs;
++    if (mNTPAnchorUs < 0) {
++        mNTPAnchorUs = ntpTimeUs;
++        mMediaAnchorUs = mLastMediaTimeUs;
++    }
++    if (!mAllTracksHaveTime) {
++        bool allTracksHaveTime = (mTracks.size() > 0);
++        for (size_t i = 0; i < mTracks.size(); ++i) {
++            TrackInfo *track = &mTracks.editItemAt(i);
++            if (track->mNTPAnchorUs < 0) {
++                allTracksHaveTime = false;
++                break;
++            }
++        }
++        if (allTracksHaveTime) {
++            mAllTracksHaveTime = true;
++            ALOGI("Time now established for all tracks.");
++        }
++    }
++    if (mAllTracksHaveTime && dataReceivedOnAllChannels()) {
++        for (size_t i = 0; i < mTracks.size(); ++i) {
++            TrackInfo *trackInfo = &mTracks.editItemAt(i);
++            while (!trackInfo->mPackets.empty()) {
++                sp<ABuffer> accessUnit = *trackInfo->mPackets.begin();
++                trackInfo->mPackets.erase(trackInfo->mPackets.begin());
++                if (addMediaTimestamp(i, trackInfo, accessUnit)) {
++                    postQueueAccessUnit(i, accessUnit);
++                }
++            }
++        }
++    }
++}
++bool NuPlayer::RTPSource::addMediaTimestamp(
++        int32_t trackIndex, const TrackInfo *track,
++        const sp<ABuffer> &accessUnit) {
++    uint32_t rtpTime;
++    CHECK(accessUnit->meta()->findInt32(
++                "rtp-time", (int32_t *)&rtpTime));
++    int64_t relRtpTimeUs =
++        (((int64_t)rtpTime - (int64_t)track->mRTPAnchor) * 1000000ll)
++        / track->mTimeScale;
++    int64_t ntpTimeUs = track->mNTPAnchorUs + relRtpTimeUs;
++    int64_t mediaTimeUs = mMediaAnchorUs + ntpTimeUs - mNTPAnchorUs;
++    if (mediaTimeUs > mLastMediaTimeUs) {
++        mLastMediaTimeUs = mediaTimeUs;
++    }
++    if (mediaTimeUs < 0) {
++        ALOGV("dropping early accessUnit.");
++        return false;
++    }
++    ALOGV("track %d rtpTime=%u mediaTimeUs = %lld us (%.2f secs)",
++            trackIndex, rtpTime, (long long)mediaTimeUs, mediaTimeUs / 1E6);
++    accessUnit->meta()->setInt64("timeUs", mediaTimeUs);
++    return true;
++}
++bool NuPlayer::RTPSource::dataReceivedOnAllChannels() {
++    TrackInfo *track;
++    for (size_t i = 0; i < mTracks.size(); ++i) {
++        track = &mTracks.editItemAt(i);
++        if (track->mPackets.empty()) {
++            return false;
++        }
++    }
++    return true;
++}
++void NuPlayer::RTPSource::postQueueAccessUnit(
++        size_t trackIndex, const sp<ABuffer> &accessUnit) {
++    sp<AMessage> msg = new AMessage(kWhatAccessUnit, this);
++    msg->setInt32("what", kWhatAccessUnit);
++    msg->setSize("trackIndex", trackIndex);
++    msg->setBuffer("accessUnit", accessUnit);
++    msg->post();
++}
+@@ -478,0 +462,12 @@ void NuPlayer::RTPSource::onConnected() {
++void NuPlayer::RTPSource::onDisconnected(const sp<AMessage> &msg) {
++    if (mState == DISCONNECTED) {
++        return;
++    }
++    status_t err;
++    CHECK(msg->findInt32("result", &err));
++    CHECK_NE(err, (status_t)OK);
++    if (mState == CONNECTING) {
++        notifyPrepared(err);
++    }
++    mState = DISCONNECTED;
++}

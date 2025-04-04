@@ -1,0 +1,326 @@
+diff --git a/output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_mergebot.c b/output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_truth.c
+index 1707573..e0d4db0 100644
+--- a/output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_mergebot.c
++++ b/output/redis/2767f1c0-cbce5171-3688d7f3/src@t_set.no_comments_truth.c
+@@ -1,0 +2,137 @@
++robj *setTypeCreate(robj *value) {
++    if (getLongLongFromObject(value,NULL) == REDIS_OK)
++        return createIntsetObject();
++    return createSetObject();
++}
++int setTypeAdd(robj *subject, robj *value) {
++    long long llval;
++    if (subject->encoding == REDIS_ENCODING_HT) {
++        if (dictAdd(subject->ptr,value,NULL) == DICT_OK) {
++            incrRefCount(value);
++            return 1;
++        }
++    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
++        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
++            uint8_t success = 0;
++            subject->ptr = intsetAdd(subject->ptr,llval,&success);
++            if (success) {
++                if (intsetLen(subject->ptr) > server.set_max_intset_entries)
++                    setTypeConvert(subject,REDIS_ENCODING_HT);
++                return 1;
++            }
++        } else {
++            setTypeConvert(subject,REDIS_ENCODING_HT);
++            redisAssert(dictAdd(subject->ptr,value,NULL) == DICT_OK);
++            incrRefCount(value);
++            return 1;
++        }
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++    return 0;
++}
++int setTypeRemove(robj *subject, robj *value) {
++    long long llval;
++    if (subject->encoding == REDIS_ENCODING_HT) {
++        if (dictDelete(subject->ptr,value) == DICT_OK) {
++            if (htNeedsResize(subject->ptr)) dictResize(subject->ptr);
++            return 1;
++        }
++    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
++        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
++            uint8_t success;
++            subject->ptr = intsetRemove(subject->ptr,llval,&success);
++            if (success) return 1;
++        }
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++    return 0;
++}
++int setTypeIsMember(robj *subject, robj *value) {
++    long long llval;
++    if (subject->encoding == REDIS_ENCODING_HT) {
++        return dictFind((dict*)subject->ptr,value) != NULL;
++    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
++        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
++            return intsetFind((intset*)subject->ptr,llval);
++        }
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++    return 0;
++}
++setIterator *setTypeInitIterator(robj *subject) {
++    setIterator *si = zmalloc(sizeof(setIterator));
++    si->subject = subject;
++    si->encoding = subject->encoding;
++    if (si->encoding == REDIS_ENCODING_HT) {
++        si->di = dictGetIterator(subject->ptr);
++    } else if (si->encoding == REDIS_ENCODING_INTSET) {
++        si->ii = 0;
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++    return si;
++}
++void setTypeReleaseIterator(setIterator *si) {
++    if (si->encoding == REDIS_ENCODING_HT)
++        dictReleaseIterator(si->di);
++    zfree(si);
++}
++robj *setTypeNext(setIterator *si) {
++    robj *ret = NULL;
++    if (si->encoding == REDIS_ENCODING_HT) {
++        dictEntry *de = dictNext(si->di);
++        if (de != NULL) {
++            ret = dictGetEntryKey(de);
++            incrRefCount(ret);
++        }
++    } else if (si->encoding == REDIS_ENCODING_INTSET) {
++        long long llval;
++        if (intsetGet(si->subject->ptr,si->ii++,&llval))
++            ret = createStringObjectFromLongLong(llval);
++    }
++    return ret;
++}
++robj *setTypeRandomElement(robj *subject) {
++    robj *ret = NULL;
++    if (subject->encoding == REDIS_ENCODING_HT) {
++        dictEntry *de = dictGetRandomKey(subject->ptr);
++        ret = dictGetEntryKey(de);
++        incrRefCount(ret);
++    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
++        long long llval = intsetRandom(subject->ptr);
++        ret = createStringObjectFromLongLong(llval);
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++    return ret;
++}
++unsigned long setTypeSize(robj *subject) {
++    if (subject->encoding == REDIS_ENCODING_HT) {
++        return dictSize((dict*)subject->ptr);
++    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
++        return intsetLen((intset*)subject->ptr);
++    } else {
++        redisPanic("Unknown set encoding");
++    }
++}
++void setTypeConvert(robj *subject, int enc) {
++    setIterator *si;
++    robj *element;
++    redisAssert(subject->type == REDIS_SET);
++    if (enc == REDIS_ENCODING_HT) {
++        dict *d = dictCreate(&setDictType,NULL);
++        dictExpand(d,intsetLen(subject->ptr));
++        si = setTypeInitIterator(subject);
++        while ((element = setTypeNext(si)) != NULL)
++            redisAssert(dictAdd(d,element,NULL) == DICT_OK);
++        setTypeReleaseIterator(si);
++        subject->encoding = REDIS_ENCODING_HT;
++        zfree(subject->ptr);
++        subject->ptr = d;
++    } else {
++        redisPanic("Unsupported set conversion");
++    }
++}
+@@ -14 +150,0 @@ void saddCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -16,6 +151,0 @@ void saddCommand(redisClient *c) {
+-||||||| 3688d7f30
+-    if (dictAdd(set->ptr,c->argv[2],NULL) == DICT_OK) {
+-        incrRefCount(c->argv[2]);
+-=======
+-    if (dictAdd(set->ptr,c->argv[2],NULL) == DICT_OK) {
+-        incrRefCount(c->argv[2]);
+@@ -23 +152,0 @@ void saddCommand(redisClient *c) {
+->>>>>>> cbce5171
+@@ -36,6 +164,0 @@ void sremCommand(redisClient *c) {
+-        server.dirty++;
+-<<<<<<< HEAD
+-||||||| 3688d7f30
+-        if (htNeedsResize(set->ptr)) dictResize(set->ptr);
+-        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);
+-=======
+@@ -43,3 +166 @@ void sremCommand(redisClient *c) {
+-        if (htNeedsResize(set->ptr)) dictResize(set->ptr);
+-        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> cbce5171
++        server.dirty++;
+@@ -70 +190,0 @@ void smoveCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -72,6 +191,0 @@ void smoveCommand(redisClient *c) {
+-||||||| 3688d7f30
+-    if (dictSize((dict*)srcset->ptr) == 0 && srcset != dstset)
+-        dbDelete(c->db,c->argv[1]);
+-=======
+-    if (dictSize((dict*)srcset->ptr) == 0 && srcset != dstset)
+-        dbDelete(c->db,c->argv[1]);
+@@ -80 +193,0 @@ void smoveCommand(redisClient *c) {
+->>>>>>> cbce5171
+@@ -114 +226,0 @@ void spopCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -117,8 +228,0 @@ void spopCommand(redisClient *c) {
+-||||||| 3688d7f30
+-        dictDelete(set->ptr,ele);
+-        if (htNeedsResize(set->ptr)) dictResize(set->ptr);
+-        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);
+-=======
+-        dictDelete(set->ptr,ele);
+-        if (htNeedsResize(set->ptr)) dictResize(set->ptr);
+-        if (dictSize((dict*)set->ptr) == 0) dbDelete(c->db,c->argv[1]);
+@@ -126 +229,0 @@ void spopCommand(redisClient *c) {
+->>>>>>> cbce5171
+@@ -294,136 +396,0 @@ void sdiffstoreCommand(redisClient *c) {
+-}robj *setTypeCreate(robj *value) {
+-    if (getLongLongFromObject(value,NULL) == REDIS_OK)
+-        return createIntsetObject();
+-    return createSetObject();
+-}
+-int setTypeAdd(robj *subject, robj *value) {
+-    long long llval;
+-    if (subject->encoding == REDIS_ENCODING_HT) {
+-        if (dictAdd(subject->ptr,value,NULL) == DICT_OK) {
+-            incrRefCount(value);
+-            return 1;
+-        }
+-    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
+-        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
+-            uint8_t success = 0;
+-            subject->ptr = intsetAdd(subject->ptr,llval,&success);
+-            if (success) {
+-                if (intsetLen(subject->ptr) > server.set_max_intset_entries)
+-                    setTypeConvert(subject,REDIS_ENCODING_HT);
+-                return 1;
+-            }
+-        } else {
+-            setTypeConvert(subject,REDIS_ENCODING_HT);
+-            redisAssert(dictAdd(subject->ptr,value,NULL) == DICT_OK);
+-            incrRefCount(value);
+-            return 1;
+-        }
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-    return 0;
+-}
+-int setTypeRemove(robj *subject, robj *value) {
+-    long long llval;
+-    if (subject->encoding == REDIS_ENCODING_HT) {
+-        if (dictDelete(subject->ptr,value) == DICT_OK) {
+-            if (htNeedsResize(subject->ptr)) dictResize(subject->ptr);
+-            return 1;
+-        }
+-    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
+-        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
+-            uint8_t success;
+-            subject->ptr = intsetRemove(subject->ptr,llval,&success);
+-            if (success) return 1;
+-        }
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-    return 0;
+-}
+-int setTypeIsMember(robj *subject, robj *value) {
+-    long long llval;
+-    if (subject->encoding == REDIS_ENCODING_HT) {
+-        return dictFind((dict*)subject->ptr,value) != NULL;
+-    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
+-        if (getLongLongFromObject(value,&llval) == REDIS_OK) {
+-            return intsetFind((intset*)subject->ptr,llval);
+-        }
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-    return 0;
+-}
+-setIterator *setTypeInitIterator(robj *subject) {
+-    setIterator *si = zmalloc(sizeof(setIterator));
+-    si->subject = subject;
+-    si->encoding = subject->encoding;
+-    if (si->encoding == REDIS_ENCODING_HT) {
+-        si->di = dictGetIterator(subject->ptr);
+-    } else if (si->encoding == REDIS_ENCODING_INTSET) {
+-        si->ii = 0;
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-    return si;
+-}
+-void setTypeReleaseIterator(setIterator *si) {
+-    if (si->encoding == REDIS_ENCODING_HT)
+-        dictReleaseIterator(si->di);
+-    zfree(si);
+-}
+-robj *setTypeNext(setIterator *si) {
+-    robj *ret = NULL;
+-    if (si->encoding == REDIS_ENCODING_HT) {
+-        dictEntry *de = dictNext(si->di);
+-        if (de != NULL) {
+-            ret = dictGetEntryKey(de);
+-            incrRefCount(ret);
+-        }
+-    } else if (si->encoding == REDIS_ENCODING_INTSET) {
+-        long long llval;
+-        if (intsetGet(si->subject->ptr,si->ii++,&llval))
+-            ret = createStringObjectFromLongLong(llval);
+-    }
+-    return ret;
+-}
+-robj *setTypeRandomElement(robj *subject) {
+-    robj *ret = NULL;
+-    if (subject->encoding == REDIS_ENCODING_HT) {
+-        dictEntry *de = dictGetRandomKey(subject->ptr);
+-        ret = dictGetEntryKey(de);
+-        incrRefCount(ret);
+-    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
+-        long long llval = intsetRandom(subject->ptr);
+-        ret = createStringObjectFromLongLong(llval);
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-    return ret;
+-}
+-unsigned long setTypeSize(robj *subject) {
+-    if (subject->encoding == REDIS_ENCODING_HT) {
+-        return dictSize((dict*)subject->ptr);
+-    } else if (subject->encoding == REDIS_ENCODING_INTSET) {
+-        return intsetLen((intset*)subject->ptr);
+-    } else {
+-        redisPanic("Unknown set encoding");
+-    }
+-}
+-void setTypeConvert(robj *subject, int enc) {
+-    setIterator *si;
+-    robj *element;
+-    redisAssert(subject->type == REDIS_SET);
+-    if (enc == REDIS_ENCODING_HT) {
+-        dict *d = dictCreate(&setDictType,NULL);
+-        dictExpand(d,intsetLen(subject->ptr));
+-        si = setTypeInitIterator(subject);
+-        while ((element = setTypeNext(si)) != NULL)
+-            redisAssert(dictAdd(d,element,NULL) == DICT_OK);
+-        setTypeReleaseIterator(si);
+-        subject->encoding = REDIS_ENCODING_HT;
+-        zfree(subject->ptr);
+-        subject->ptr = d;
+-    } else {
+-        redisPanic("Unsupported set conversion");
+-    }

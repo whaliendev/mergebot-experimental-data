@@ -1,0 +1,94 @@
+diff --git a/output/rocksdb/b20486f2-9dc29414-4e91f27c/db@db_impl.no_comments_mergebot.cc b/output/rocksdb/b20486f2-9dc29414-4e91f27c/db@db_impl.no_comments_truth.cc
+index b96adbb..ae4e01d 100644
+--- a/output/rocksdb/b20486f2-9dc29414-4e91f27c/db@db_impl.no_comments_mergebot.cc
++++ b/output/rocksdb/b20486f2-9dc29414-4e91f27c/db@db_impl.no_comments_truth.cc
+@@ -18 +17,0 @@
+-#include "db/memtablelist.h"
+@@ -23 +21,0 @@
+-#include "db/tailing_iter.h"
+@@ -26,0 +25 @@
++#include "db/tailing_iter.h"
+@@ -50,0 +50 @@
++#include "util/autovector.h"
+@@ -258,2 +257,0 @@ DBImpl::~DBImpl() {
+-  autovector<MemTable*> to_delete;
+-  if (flush_on_destroy_ && mem_->GetFirstSequenceNumber() !{
+@@ -387,4 +384,0 @@ DBImpl::SuperVersion::~SuperVersion() {
+-}{
+-  for (auto td : to_delete) {
+-    delete td;
+-  }
+@@ -2038,5 +2031,0 @@ struct IterState {
+-<<<<<<< HEAD
+-  autovector<MemTable*> mem;
+-||||||| 4e91f27c3
+-  std::vector<MemTable*> mem;
+-=======
+@@ -2044 +2032,0 @@ struct IterState {
+->>>>>>> 9dc29414
+@@ -2052,8 +2039,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-<<<<<<< HEAD
+-  auto mems_size = state->mem.size();
+-  for (size_t i = 0; i < mems_size; i++) {
+-    MemTable* m = state->mem[i]->Unref();
+-||||||| 4e91f27c3
+-  for (unsigned int i = 0; i < state->mem.size(); i++) {
+-    MemTable* m = state->mem[i]->Unref();
+-=======
+@@ -2062 +2041,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+->>>>>>> 9dc29414
+@@ -2067,5 +2045,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-<<<<<<< HEAD
+-  if (state->version->Unref()) {
+-||||||| 4e91f27c3
+-  state->version->Unref();
+-=======
+@@ -2078 +2051,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+->>>>>>> 9dc29414
+@@ -2080 +2052,0 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
+-  }
+@@ -2090,5 +2061,0 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+-<<<<<<< HEAD
+-  autovector<MemTable*> immutables;
+-||||||| 4e91f27c3
+-  std::vector<MemTable*> immutables;
+-=======
+@@ -2096 +2062,0 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+->>>>>>> 9dc29414
+@@ -2107,24 +2072,0 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+-<<<<<<< HEAD
+-  std::vector<Iterator*> memtables;
+-  memtables.push_back(mutable_mem->NewIterator(options));
+-  cleanup->mem.push_back(mutable_mem);
+-  for (MemTable* m : immutables) {
+-    memtables.push_back(m->NewIterator(options));
+-    cleanup->mem.push_back(m);
+-  }
+-  version->AddIterators(options, storage_options_, &memtables);
+-  Iterator* internal_iter = NewMergingIterator(
+-      env_, &internal_comparator_, memtables.data(), memtables.size()
+-  );
+-||||||| 4e91f27c3
+-  std::vector<Iterator*> list;
+-  list.push_back(mutable_mem->NewIterator(options));
+-  cleanup->mem.push_back(mutable_mem);
+-  for (MemTable* m : immutables) {
+-    list.push_back(m->NewIterator(options));
+-    cleanup->mem.push_back(m);
+-  }
+-  version->AddIterators(options, storage_options_, &list);
+-  Iterator* internal_iter =
+-      NewMergingIterator(&internal_comparator_, &list[0], list.size());
+-=======
+@@ -2138,2 +2080 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
+-      &internal_comparator_, &iterator_list[0], iterator_list.size());
+->>>>>>> 9dc29414
++      env_, &internal_comparator_, &iterator_list[0], iterator_list.size());
+@@ -2150 +2091,3 @@ Iterator* DBImpl::TEST_NewInternalIterator() {
+-std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(const ReadOptions& options, uint64_t* superversion_number) {
++std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(
++    const ReadOptions& options,
++    uint64_t* superversion_number) {
+@@ -2183 +2126 @@ std::pair<Iterator*, Iterator*> DBImpl::GetTailingIteratorPair(const ReadOptions
+-    NewMergingIterator(&internal_comparator_, &list[0], list.size());
++      NewMergingIterator(env_, &internal_comparator_, &list[0], list.size());

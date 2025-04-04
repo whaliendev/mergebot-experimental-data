@@ -1,0 +1,167 @@
+diff --git a/output/frameworks_native/e0ab6fcc-9759952a-2572cbec/libs@binder@include@binder@Parcel.no_comments_mergebot.h b/output/frameworks_native/e0ab6fcc-9759952a-2572cbec/libs@binder@include@binder@Parcel.no_comments_truth.h
+index 4520e5b..7c03ee9 100644
+--- a/output/frameworks_native/e0ab6fcc-9759952a-2572cbec/libs@binder@include@binder@Parcel.no_comments_mergebot.h
++++ b/output/frameworks_native/e0ab6fcc-9759952a-2572cbec/libs@binder@include@binder@Parcel.no_comments_truth.h
+@@ -27 +27 @@ class Value;
+-}
++};
+@@ -31,11 +31,2 @@ public:
+-    class ReadableBlob : public Blob {
+-        friend class Parcel;
+-    public:
+-        inline const void* data() const { return mData; }
+-        inline void* mutableData() { return isMutable() ? mData : nullptr; }
+-    };
+-    class WritableBlob : public Blob {
+-        friend class Parcel;
+-    public:
+-        inline void* data() { return mData; }
+-    };
++    class ReadableBlob;
++    class WritableBlob;
+@@ -80 +71 @@ public:
+-    status_t writeString16(const std::unique_ptr<String16>& str);
++    status_t writeString16(const String16& str);
+@@ -88,0 +80 @@ public:
++    status_t writeUtf8AsUtf16(const std::string& str);
+@@ -90,3 +82,2 @@ public:
+-    status_t writeUtf8AsUtf16(const std::unique_ptr<std::string>& str);
+-    status_t writeByteVector(const std::unique_ptr<std::vector<uint8_t>>& val);
+-    status_t writeByteVector(const std::vector<uint8_t>& val);
++    status_t writeByteVector(const std::unique_ptr<std::vector<int8_t>>& val);
++    status_t writeByteVector(const std::vector<int8_t>& val);
+@@ -116,0 +108,8 @@ public:
++    template<typename T>
++    status_t writeParcelableVector(const std::unique_ptr<std::vector<std::unique_ptr<T>>>& val);
++    template<typename T>
++    status_t writeParcelableVector(const std::shared_ptr<std::vector<std::unique_ptr<T>>>& val);
++    template<typename T>
++    status_t writeParcelableVector(const std::vector<T>& val);
++    template<typename T>
++    status_t writeNullableParcelable(const std::unique_ptr<T>& parcelable);
+@@ -117,0 +117,8 @@ public:
++    template<typename T>
++    status_t write(const Flattenable<T>& val);
++    template<typename T>
++    status_t write(const LightFlattenable<T>& val);
++    template<typename T>
++    status_t writeVectorSize(const std::vector<T>& val);
++    template<typename T>
++    status_t writeVectorSize(const std::unique_ptr<std::vector<T>>& val);
+@@ -155 +162 @@ public:
+-    status_t readUtf8FromUtf16(std::unique_ptr<std::string>* str) const;
++    status_t readUtf8FromUtf16(std::string* str) const;
+@@ -161 +168 @@ public:
+-    status_t readString16(std::unique_ptr<String16>* pArg) const;
++    status_t readString16(String16* pArg) const;
+@@ -166,0 +174,5 @@ public:
++    template<typename T>
++    status_t readParcelableVector(
++                            std::unique_ptr<std::vector<std::unique_ptr<T>>>* val) const;
++    template<typename T>
++    status_t readParcelableVector(std::vector<T>* val) const;
+@@ -167,0 +180,6 @@ public:
++    template<typename T>
++    status_t readParcelable(std::unique_ptr<T>* parcelable) const;
++    template<typename T>
++    status_t readStrongBinder(sp<T>* val) const;
++    template<typename T>
++    status_t readNullableStrongBinder(sp<T>* val) const;
+@@ -170,2 +188,2 @@ public:
+-    status_t readByteVector(std::unique_ptr<std::vector<uint8_t>>* val) const;
+-    status_t readByteVector(std::vector<uint8_t>* val) const;
++    status_t readByteVector(std::unique_ptr<std::vector<int8_t>>* val) const;
++    status_t readByteVector(std::vector<int8_t>* val) const;
+@@ -193,0 +212,8 @@ public:
++    template<typename T>
++    status_t read(Flattenable<T>& val) const;
++    template<typename T>
++    status_t read(LightFlattenable<T>& val) const;
++    template<typename T>
++    status_t resizeOutVector(std::vector<T>* val) const;
++    template<typename T>
++    status_t resizeOutVector(std::unique_ptr<std::vector<T>>* val) const;
+@@ -248,0 +275,5 @@ private:
++    template<class T>
++    status_t readAligned(T *pArg) const;
++    template<class T> T readAligned() const;
++    template<class T>
++    status_t writeAligned(T val);
+@@ -250,0 +282,24 @@ private:
++    template<typename T, typename U>
++    status_t unsafeReadTypedVector(std::vector<T>* val,
++                                              status_t(Parcel::*read_func)(U*) const) const;
++    template<typename T>
++    status_t readNullableTypedVector(std::unique_ptr<std::vector<T>>* val,
++                                                status_t(Parcel::*read_func)(T*) const) const;
++    template<typename T>
++    status_t readTypedVector(std::vector<T>* val,
++                                        status_t(Parcel::*read_func)(T*) const) const;
++    template<typename T, typename U>
++    status_t unsafeWriteTypedVector(const std::vector<T>& val,
++                                               status_t(Parcel::*write_func)(U));
++    template<typename T>
++    status_t writeNullableTypedVector(const std::unique_ptr<std::vector<T>>& val,
++                                                 status_t(Parcel::*write_func)(const T&));
++    template<typename T>
++    status_t writeNullableTypedVector(const std::unique_ptr<std::vector<T>>& val,
++                                                 status_t(Parcel::*write_func)(T));
++    template<typename T>
++    status_t writeTypedVector(const std::vector<T>& val,
++                                         status_t(Parcel::*write_func)(const T&));
++    template<typename T>
++    status_t writeTypedVector(const std::vector<T>& val,
++                                         status_t(Parcel::*write_func)(T));
+@@ -284,0 +340,4 @@ private:
++    #if defined(__clang__)
++    #pragma clang diagnostic push
++    #pragma clang diagnostic ignored "-Wweak-vtables"
++    #endif
+@@ -293,0 +353,3 @@ private:
++    #if defined(__clang__)
++    #pragma clang diagnostic pop
++    #endif
+@@ -300 +362 @@ private:
+-        ~FlattenableHelper()
++        ~FlattenableHelper() = default;
+@@ -400 +462 @@ template<typename T>
+-status_t Parcel::resizeOutVector(std::unique_ptr<std::vector<T>>* val) const {
++status_t Parcel::resizeOutVector(std::vector<T>* val) const {
+@@ -406,3 +468,2 @@ status_t Parcel::resizeOutVector(std::unique_ptr<std::vector<T>>* val) const {
+-    val->reset();
+-    if (size >= 0) {
+-        val->reset(new std::vector<T>(size_t(size)));
++    if (size < 0) {
++        return UNEXPECTED_NULL;
+@@ -409,0 +471 @@ status_t Parcel::resizeOutVector(std::unique_ptr<std::vector<T>>* val) const {
++    val->resize(size_t(size));
+@@ -519 +581 @@ status_t Parcel::writeTypedVector(const std::vector<T>& val,
+-                                  status_t(Parcel::*write_func)(T)) {
++                                  status_t(Parcel::*write_func)(const T&)) {
+@@ -529 +591 @@ status_t Parcel::writeNullableTypedVector(const std::unique_ptr<std::vector<T>>&
+-                                          status_t(Parcel::*write_func)(T)) {
++                                          status_t(Parcel::*write_func)(const T&)) {
+@@ -544,15 +606,2 @@ template<typename T>
+-status_t Parcel::readParcelableVector(std::unique_ptr<std::vector<std::unique_ptr<T>>>* val) const {
+-    const size_t start = dataPosition();
+-    int32_t size;
+-    status_t status = readInt32(&size);
+-    val->reset();
+-    if (status != OK || size < 0) {
+-        return status;
+-    }
+-    setDataPosition(start);
+-    val->reset(new std::vector<std::unique_ptr<T>>());
+-    status = unsafeReadTypedVector(val->get(), &Parcel::readParcelable<T>);
+-    if (status != OK) {
+-        val->reset();
+-    }
+-    return status;
++status_t Parcel::readParcelableVector(std::vector<T>* val) const {
++    return unsafeReadTypedVector<T, Parcelable>(val, &Parcel::readParcelable);
+@@ -603 +652 @@ template<typename T>
+-status_t Parcel::writeParcelableVector(const std::shared_ptr<std::vector<std::unique_ptr<T>>>& val) {
++status_t Parcel::writeParcelableVector(const std::unique_ptr<std::vector<std::unique_ptr<T>>>& val) {
+@@ -621 +670 @@ inline TextOutput& operator<<(TextOutput& to, const Parcel& parcel)
+-}
++};

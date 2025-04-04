@@ -1,0 +1,56 @@
+--- a/output/grpc/9bcf8192-0b689cb6-660e5360/test@core@client_channel@resolvers@dns_resolver_test.no_comments_mergebot.cc
++++ b/output/grpc/9bcf8192-0b689cb6-660e5360/test@core@client_channel@resolvers@dns_resolver_test.no_comments_truth.cc
+@@ -8 +7,0 @@
+-#include "src/core/lib/iomgr/combiner.h"
+@@ -25 +23,0 @@ static void test_succeeds(grpc_core::ResolverFactory* factory,
+-<<<<<<< HEAD
+@@ -27,6 +24,0 @@ static void test_succeeds(grpc_core::ResolverFactory* factory,
+-  args.result_handler = grpc_core::MakeUnique<TestResultHandler>();
+-||||||| 660e5360f7
+-  args.combiner = g_combiner;
+-  args.result_handler = grpc_core::MakeUnique<TestResultHandler>();
+-=======
+-  args.combiner = g_combiner;
+@@ -34 +25,0 @@ static void test_succeeds(grpc_core::ResolverFactory* factory,
+->>>>>>> 0b689cb6
+@@ -49 +39,0 @@ static void test_fails(grpc_core::ResolverFactory* factory,
+-<<<<<<< HEAD
+@@ -51,6 +40,0 @@ static void test_fails(grpc_core::ResolverFactory* factory,
+-  args.result_handler = grpc_core::MakeUnique<TestResultHandler>();
+-||||||| 660e5360f7
+-  args.combiner = g_combiner;
+-  args.result_handler = grpc_core::MakeUnique<TestResultHandler>();
+-=======
+-  args.combiner = g_combiner;
+@@ -58 +41,0 @@ static void test_fails(grpc_core::ResolverFactory* factory,
+->>>>>>> 0b689cb6
+@@ -69,16 +52,13 @@ int main(int argc, char** argv) {
+-  grpc_core::ResolverFactory* ipv4 =
+-      grpc_core::ResolverRegistry::LookupResolverFactory("ipv4");
+-  grpc_core::ResolverFactory* ipv6 =
+-      grpc_core::ResolverRegistry::LookupResolverFactory("ipv6");
+-  test_fails(ipv4, "ipv4:10.2.1.1");
+-  test_succeeds(ipv4, "ipv4:10.2.1.1:1234");
+-  test_succeeds(ipv4, "ipv4:10.2.1.1:1234,127.0.0.1:4321");
+-  test_fails(ipv4, "ipv4:10.2.1.1:123456");
+-  test_fails(ipv4, "ipv4:www.google.com");
+-  test_fails(ipv4, "ipv4:[");
+-  test_fails(ipv4, "ipv4://8.8.8.8/8.8.8.8:8888");
+-  test_fails(ipv6, "ipv6:[");
+-  test_fails(ipv6, "ipv6:[::]");
+-  test_succeeds(ipv6, "ipv6:[::]:1234");
+-  test_fails(ipv6, "ipv6:[::]:123456");
+-  test_fails(ipv6, "ipv6:www.google.com");
++  grpc_core::ResolverFactory* dns =
++      grpc_core::ResolverRegistry::LookupResolverFactory("dns");
++  test_succeeds(dns, "dns:10.2.1.1");
++  test_succeeds(dns, "dns:10.2.1.1:1234");
++  test_succeeds(dns, "dns:www.google.com");
++  test_succeeds(dns, "dns:///www.google.com");
++  grpc_core::UniquePtr<char> resolver =
++      GPR_GLOBAL_CONFIG_GET(grpc_dns_resolver);
++  if (gpr_stricmp(resolver.get(), "native") == 0) {
++    test_fails(dns, "dns://8.8.8.8/8.8.8.8:8888");
++  } else {
++    test_succeeds(dns, "dns://8.8.8.8/8.8.8.8:8888");
++  }

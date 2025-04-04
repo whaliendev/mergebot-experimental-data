@@ -1,0 +1,105 @@
+diff --git a/output/rocksdb/b20486f2-9dc29414-4e91f27c/util@cache.no_comments_mergebot.cc b/output/rocksdb/b20486f2-9dc29414-4e91f27c/util@cache.no_comments_truth.cc
+index d48ae6d..c0f90eb 100644
+--- a/output/rocksdb/b20486f2-9dc29414-4e91f27c/util@cache.no_comments_mergebot.cc
++++ b/output/rocksdb/b20486f2-9dc29414-4e91f27c/util@cache.no_comments_truth.cc
+@@ -4 +3,0 @@
+-#include <vector>
+@@ -36 +35 @@ public:
+-  ~HandleTable() = delete;{ delete[] list_; }
++  ~HandleTable() { delete[] list_; }
+@@ -113,0 +113,4 @@ public:
++  size_t GetUsage() const {
++    MutexLock l(&mutex_);
++    return usage_;
++  }
+@@ -121 +124 @@ private:
+-  port::Mutex mutex_;
++  mutable port::Mutex mutex_;
+@@ -126 +129,2 @@ private:
+-LRUCache::LRUCache(): usage_(0) {
++LRUCache::LRUCache()
++    : usage_(0) {
+@@ -130 +134 @@ LRUCache::LRUCache(): usage_(0) {
+-~LRUCache(){
++LRUCache::~LRUCache() {
+@@ -183 +187,3 @@ void LRUCache::Release(Cache::Handle* handle) {
+-Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value, size_t charge, void (*deleter)(const Slice& key, void* value)) {
++Cache::Handle* LRUCache::Insert(
++    const Slice& key, uint32_t hash, void* value, size_t charge,
++    void (*deleter)(const Slice& key, void* value)) {
+@@ -186,2 +192 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value, si
+-  std::vector<LRUHandle*> last_reference_list;
+-  last_reference_list.reserve(1);
++  autovector<LRUHandle*> last_reference_list;
+@@ -254 +259 @@ private:
+-  LRUCache* shard_;
++  LRUCache* shards_;
+@@ -257 +262 @@ private:
+-  int numShardBits;
++  int num_shard_bits_;
+@@ -263 +268 @@ private:
+-    return (numShardBits > 0) ? (hash >> (32 - numShardBits)) : 0;
++    return (num_shard_bits_ > 0) ? (hash >> (32 - num_shard_bits_)) : 0;
+@@ -266 +271 @@ private:
+-    numShardBits = numbits;
++    num_shard_bits_ = numbits;
+@@ -268,6 +273,6 @@ private:
+-    int numShards = 1 << numShardBits;
+-    shard_ = new LRUCache[numShards];
+-    const size_t per_shard = (capacity + (numShards - 1)) / numShards;
+-    for (int s = 0; s < numShards; s++) {
+-      shard_[s].SetCapacity(per_shard);
+-      shard_[s].SetRemoveScanCountLimit(removeScanCountLimit);
++    int num_shards = 1 << num_shard_bits_;
++    shards_ = new LRUCache[num_shards];
++    const size_t per_shard = (capacity + (num_shards - 1)) / num_shards;
++    for (int s = 0; s < num_shards; s++) {
++      shards_[s].SetCapacity(per_shard);
++      shards_[s].SetRemoveScanCountLimit(removeScanCountLimit);
+@@ -277 +282,2 @@ public:
+-  explicitShardedLRUCache(size_t capacity): last_id_(0) {
++  explicit ShardedLRUCache(size_t capacity)
++      : last_id_(0) {
+@@ -280,2 +286,4 @@ public:
+-  ShardedLRUCache(size_t capacity, int numShardBits, int removeScanCountLimit): last_id_(0) {
+-    init(capacity, numShardBits, removeScanCountLimit);
++  ShardedLRUCache(size_t capacity, int num_shard_bits,
++                  int removeScanCountLimit)
++     : last_id_(0) {
++    init(capacity, num_shard_bits, removeScanCountLimit);
+@@ -283,2 +291,2 @@ public:
+-  ~ShardedLRUCache() = delete;{
+-    delete[] shard_;
++  virtual ~ShardedLRUCache() {
++    delete[] shards_;
+@@ -286 +294,2 @@ public:
+-  virtual Handle* Insert(const Slice& key, void* value, size_t charge, void (*deleter)(const Slice& key, void* value)) {
++  virtual Handle* Insert(const Slice& key, void* value, size_t charge,
++                         void (*deleter)(const Slice& key, void* value)) {
+@@ -288 +297 @@ public:
+-    return shard_[Shard(hash)].Insert(key, hash, value, charge, deleter);
++    return shards_[Shard(hash)].Insert(key, hash, value, charge, deleter);
+@@ -292 +301 @@ public:
+-    return shard_[Shard(hash)].Lookup(key, hash);
++    return shards_[Shard(hash)].Lookup(key, hash);
+@@ -296 +305 @@ public:
+-    shard_[Shard(h->hash)].Release(handle);
++    shards_[Shard(h->hash)].Release(handle);
+@@ -300 +309 @@ public:
+-    shard_[Shard(hash)].Erase(key, hash);
++    shards_[Shard(hash)].Erase(key, hash);
+@@ -309 +318 @@ public:
+-  virtual size_t GetCapacity() {
++  virtual size_t GetCapacity() const {
+@@ -311,0 +321,8 @@ public:
++  virtual size_t GetUsage() const {
++    int num_shards = 1 << num_shard_bits_;
++    size_t usage = 0;
++    for (int s = 0; s < num_shards; s++) {
++      usage += shards_[s].GetUsage();
++    }
++    return usage;
++  }
+@@ -313 +330 @@ public:
+-    shard_ = nullptr;
++    shards_ = nullptr;

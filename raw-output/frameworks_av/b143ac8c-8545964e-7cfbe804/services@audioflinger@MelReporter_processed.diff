@@ -1,0 +1,31 @@
+--- a/output/frameworks_av/b143ac8c-8545964e-7cfbe804/services@audioflinger@MelReporter.no_comments_mergebot.h
++++ b/output/frameworks_av/b143ac8c-8545964e-7cfbe804/services@audioflinger@MelReporter.no_comments_truth.h
+@@ -2,3 +1,0 @@
+-#ifndef INCLUDING_FROM_AUDIOFLINGER_H
+-    #error This header file should only be included from AudioFlinger.h
+-#endif
+@@ -12 +9 @@ constexpr static int kMaxTimestampDeltaInSec = 120;
+-class MelReporter : public PatchCommandThread::PatchCommandListener {
++class IAfMelReporterCallback : public virtual RefBase {
+@@ -14 +11,9 @@ public:
+-    explicitMelReporter(AudioFlinger& audioFlinger): mAudioFlinger(audioFlinger), mSoundDoseManager(sp<SoundDoseManager>::make()) {}
++    virtual Mutex& mutex() const = 0;
++    virtual const sp<PatchCommandThread>& getPatchCommandThread() = 0;
++    virtual sp<IAfThreadBase> checkOutputThread_l(audio_io_handle_t ioHandle) const = 0;
++};
++class MelReporter : public PatchCommandThread::PatchCommandListener,
++                    public IMelReporterCallback {
++public:
++    explicit MelReporter(const sp<IAfMelReporterCallback>& afMelReporterCallback)
++        : mAfMelReporterCallback(afMelReporterCallback) {}
+@@ -20,0 +26,2 @@ public:
++    void stopMelComputationForDeviceId(audio_port_handle_t deviceId) override;
++    void startMelComputationForDeviceId(audio_port_handle_t deviceId) override;
+@@ -29 +36 @@ private:
+-        std::vector<audio_port_handle_t> deviceHandles;
++        std::vector<std::pair<audio_port_handle_t,bool>> deviceStates;
+@@ -32 +38,0 @@ private:
+-    bool shouldComputeMelForDeviceType(audio_devices_t device);
+@@ -39 +45 @@ bool useHalSoundDoseInterface_l() REQUIRES(mLock);
+-AudioFlinger& mAudioFlinger;
++    const sp<IAfMelReporterCallback> mAfMelReporterCallback;

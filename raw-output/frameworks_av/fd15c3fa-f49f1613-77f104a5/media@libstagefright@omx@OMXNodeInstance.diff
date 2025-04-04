@@ -1,0 +1,425 @@
+diff --git a/output/frameworks_av/fd15c3fa-f49f1613-77f104a5/media@libstagefright@omx@OMXNodeInstance.no_comments_mergebot.cpp b/output/frameworks_av/fd15c3fa-f49f1613-77f104a5/media@libstagefright@omx@OMXNodeInstance.no_comments_truth.cpp
+index 810755f..05aa828 100644
+--- a/output/frameworks_av/fd15c3fa-f49f1613-77f104a5/media@libstagefright@omx@OMXNodeInstance.no_comments_mergebot.cpp
++++ b/output/frameworks_av/fd15c3fa-f49f1613-77f104a5/media@libstagefright@omx@OMXNodeInstance.no_comments_truth.cpp
+@@ -21,0 +22,36 @@ static const OMX_U32 kPortIndexOutput = 1;
++#define CLOGW(fmt,...) ALOGW("[%x:%s] " fmt, mNodeID, mName, ##__VA_ARGS__)
++#define CLOG_ERROR_IF(cond,fn,err,fmt,...) \
++    ALOGE_IF(cond, #fn "(%x:%s, " fmt ") ERROR: %s(%#x)", \
++    mNodeID, mName, ##__VA_ARGS__, asString(err), err)
++#define CLOG_ERROR(fn,err,fmt,...) CLOG_ERROR_IF(true, fn, err, fmt, ##__VA_ARGS__)
++#define CLOG_IF_ERROR(fn,err,fmt,...) \
++    CLOG_ERROR_IF((err) != OMX_ErrorNone, fn, err, fmt, ##__VA_ARGS__)
++#define CLOGI_(level,fn,fmt,...) \
++    ALOGI_IF(DEBUG >= (level), #fn "(%x:%s, " fmt ")", mNodeID, mName, ##__VA_ARGS__)
++#define CLOGD_(level,fn,fmt,...) \
++    ALOGD_IF(DEBUG >= (level), #fn "(%x:%s, " fmt ")", mNodeID, mName, ##__VA_ARGS__)
++#define CLOG_LIFE(fn,fmt,...) CLOGI_(ADebug::kDebugLifeCycle, fn, fmt, ##__VA_ARGS__)
++#define CLOG_STATE(fn,fmt,...) CLOGI_(ADebug::kDebugState, fn, fmt, ##__VA_ARGS__)
++#define CLOG_CONFIG(fn,fmt,...) CLOGI_(ADebug::kDebugConfig, fn, fmt, ##__VA_ARGS__)
++#define CLOG_INTERNAL(fn,fmt,...) CLOGD_(ADebug::kDebugInternalState, fn, fmt, ##__VA_ARGS__)
++#define CLOG_DEBUG_IF(cond,fn,fmt,...) \
++    ALOGD_IF(cond, #fn "(%x, " fmt ")", mNodeID, ##__VA_ARGS__)
++#define CLOG_BUFFER(fn,fmt,...) \
++    CLOG_DEBUG_IF(DEBUG >= ADebug::kDebugAll, fn, fmt, ##__VA_ARGS__)
++#define CLOG_BUMPED_BUFFER(fn,fmt,...) \
++    CLOG_DEBUG_IF(DEBUG_BUMP >= ADebug::kDebugAll, fn, fmt, ##__VA_ARGS__)
++#define BUFFER_FMT(port,fmt,...) "%s:%u " fmt, portString(port), (port), ##__VA_ARGS__
++#define NEW_BUFFER_FMT(buffer_id,port,fmt,...) \
++    BUFFER_FMT(port, fmt ") (#%zu => %#x", ##__VA_ARGS__, mActiveBuffers.size(), (buffer_id))
++#define SIMPLE_BUFFER(port,size,data) BUFFER_FMT(port, "%zu@%p", (size), (data))
++#define SIMPLE_NEW_BUFFER(buffer_id,port,size,data) \
++    NEW_BUFFER_FMT(buffer_id, port, "%zu@%p", (size), (data))
++#define EMPTY_BUFFER(addr,header,fenceFd) "%#x [%u@%p fc=%d]", \
++    (addr), (header)->nAllocLen, (header)->pBuffer, (fenceFd)
++#define FULL_BUFFER(addr,header,fenceFd) "%#" PRIxPTR " [%u@%p (%u..+%u) f=%x ts=%lld fc=%d]", \
++    (intptr_t)(addr), (header)->nAllocLen, (header)->pBuffer, \
++    (header)->nOffset, (header)->nFilledLen, (header)->nFlags, (header)->nTimeStamp, (fenceFd)
++#define WITH_STATS_WRAPPER(fmt,...) fmt " { IN=%zu/%zu OUT=%zu/%zu }", ##__VA_ARGS__, \
++    mInputBuffersWithCodec.size(), mNumPortBuffers[kPortIndexInput], \
++    mOutputBuffersWithCodec.size(), mNumPortBuffers[kPortIndexOutput]
++#define WITH_STATS(fmt,...) WITH_STATS_WRAPPER(fmt, ##__VA_ARGS__)
+@@ -24 +60,4 @@ struct BufferMeta {
+-    BufferMeta(const sp<IMemory> &mem, OMX_U32 portIndex, bool is_backup = false): mMem(mem), mIsBackup(is_backup), mPortIndex(portIndex) {
++    BufferMeta(const sp<IMemory> &mem, OMX_U32 portIndex, bool is_backup = false)
++        : mMem(mem),
++          mIsBackup(is_backup),
++          mPortIndex(portIndex) {
+@@ -26 +65,4 @@ struct BufferMeta {
+-    BufferMeta(size_t size, OMX_U32 portIndex): mSize(size), mIsBackup(false), mPortIndex(portIndex) {
++    BufferMeta(size_t size, OMX_U32 portIndex)
++        : mSize(size),
++          mIsBackup(false),
++          mPortIndex(portIndex) {
+@@ -28 +70,4 @@ struct BufferMeta {
+-    BufferMeta(const sp<GraphicBuffer> &graphicBuffer, OMX_U32 portIndex): mGraphicBuffer(graphicBuffer), mIsBackup(false), mPortIndex(portIndex) {
++    BufferMeta(const sp<GraphicBuffer> &graphicBuffer, OMX_U32 portIndex)
++        : mGraphicBuffer(graphicBuffer),
++          mIsBackup(false),
++          mPortIndex(portIndex) {
+@@ -611 +656,3 @@ status_t OMXNodeInstance::useGraphicBuffer(
+-status_t OMXNodeInstance::updateGraphicBufferInMeta_l(OMX_U32 portIndex, const sp<GraphicBuffer>& graphicBuffer, OMX::buffer_id buffer, OMX_BUFFERHEADERTYPE *header, bool updateCodecBuffer) {
++status_t OMXNodeInstance::updateGraphicBufferInMeta_l(
++        OMX_U32 portIndex, const sp<GraphicBuffer>& graphicBuffer,
++        OMX::buffer_id buffer, OMX_BUFFERHEADERTYPE *header, bool updateCodecBuffer) {
+@@ -652 +698,0 @@ status_t OMXNodeInstance::updateGraphicBufferInMeta(
+-<<<<<<< HEAD
+@@ -657,7 +702,0 @@ status_t OMXNodeInstance::updateGraphicBufferInMeta(
+-||||||| 77f104a52d
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer);
+-    return updateGraphicBufferInMeta_l(portIndex, graphicBuffer, buffer, header);
+-=======
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer, portIndex);
+-    return updateGraphicBufferInMeta_l(portIndex, graphicBuffer, buffer, header);
+->>>>>>> f49f1613
+@@ -665 +704,2 @@ status_t OMXNodeInstance::updateGraphicBufferInMeta(
+-status_t OMXNodeInstance::updateNativeHandleInMeta(OMX_U32 portIndex, const sp<NativeHandle>& nativeHandle, OMX::buffer_id buffer) {
++status_t OMXNodeInstance::updateNativeHandleInMeta(
++        OMX_U32 portIndex, const sp<NativeHandle>& nativeHandle, OMX::buffer_id buffer) {
+@@ -747 +787,3 @@ status_t OMXNodeInstance::createGraphicBufferSource(
+-status_t OMXNodeInstance::createInputSurface(OMX_U32 portIndex, android_dataspace dataSpace, sp<IGraphicBufferProducer> *bufferProducer, MetadataBufferType *type) {
++status_t OMXNodeInstance::createInputSurface(
++        OMX_U32 portIndex, android_dataspace dataSpace,
++        sp<IGraphicBufferProducer> *bufferProducer, MetadataBufferType *type) {
+@@ -881 +922,0 @@ status_t OMXNodeInstance::freeBuffer(
+-<<<<<<< HEAD
+@@ -887,8 +927,0 @@ status_t OMXNodeInstance::freeBuffer(
+-||||||| 77f104a52d
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer);
+-=======
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer, portIndex);
+-    if (header == NULL) {
+-        return BAD_VALUE;
+-    }
+->>>>>>> f49f1613
+@@ -905 +937,0 @@ status_t OMXNodeInstance::fillBuffer(OMX::buffer_id buffer, int fenceFd) {
+-<<<<<<< HEAD
+@@ -911,8 +942,0 @@ status_t OMXNodeInstance::fillBuffer(OMX::buffer_id buffer, int fenceFd) {
+-||||||| 77f104a52d
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer);
+-=======
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer, kPortIndexOutput);
+-    if (header == NULL) {
+-        return BAD_VALUE;
+-    }
+->>>>>>> f49f1613
+@@ -945 +968,0 @@ status_t OMXNodeInstance::emptyBuffer(
+-<<<<<<< HEAD
+@@ -951,8 +973,0 @@ status_t OMXNodeInstance::emptyBuffer(
+-||||||| 77f104a52d
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer);
+-=======
+-    OMX_BUFFERHEADERTYPE *header = findBufferHeader(buffer, kPortIndexInput);
+-    if (header == NULL) {
+-        return BAD_VALUE;
+-    }
+->>>>>>> f49f1613
+@@ -1129 +1144,2 @@ template<typename T>
+-static bool getInternalOption(const void *data, size_t size, T *out) {
++static bool getInternalOption(
++        const void *data, size_t size, T *out) {
+@@ -1219 +1234,0 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
+-<<<<<<< HEAD
+@@ -1225,8 +1239,0 @@ bool OMXNodeInstance::handleMessage(omx_message &msg) {
+-||||||| 77f104a52d
+-            findBufferHeader(msg.u.extended_buffer_data.buffer);
+-=======
+-            findBufferHeader(msg.u.extended_buffer_data.buffer, kPortIndexOutput);
+-        if (buffer == NULL) {
+-            return false;
+-        }
+->>>>>>> f49f1613
+@@ -1284,35 +1291,3 @@ void OMXNodeInstance::onMessages(std::list<omx_message> &messages) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
+-    }
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
+-    }
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+-}
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
+-    }
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
+-    }
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+-}
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
+-    }
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++void OMXNodeInstance::onObserverDied(OMXMaster *master) {
++    ALOGE("!!! Observer died. Quickly, do something, ... anything...");
++    freeNode(master);
+@@ -1320,2 +1295,2 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
++void OMXNodeInstance::onGetHandleFailed() {
++    delete this;
+@@ -1323,3 +1298,18 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++void OMXNodeInstance::onEvent(
++        OMX_EVENTTYPE event, OMX_U32 arg1, OMX_U32 arg2) {
++    const char *arg1String = "??";
++    const char *arg2String = "??";
++    ADebug::Level level = ADebug::kDebugInternalState;
++    switch (event) {
++        case OMX_EventCmdComplete:
++            arg1String = asString((OMX_COMMANDTYPE)arg1);
++            switch (arg1) {
++                case OMX_CommandStateSet:
++                    arg2String = asString((OMX_STATETYPE)arg2);
++                    level = ADebug::kDebugState;
++                    break;
++                case OMX_CommandFlush:
++                case OMX_CommandPortEnable:
++                {
++                    Mutex::Autolock _l(mDebugLock);
++                    bumpDebugLevel_l(2 , 2 );
+@@ -1327,5 +1317,2 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++                default:
++                    arg2String = portString(arg2);
+@@ -1333,2 +1320,9 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
++            break;
++        case OMX_EventError:
++            arg1String = asString((OMX_ERRORTYPE)arg1);
++            level = ADebug::kDebugLifeCycle;
++            break;
++        case OMX_EventPortSettingsChanged:
++            arg2String = asString((OMX_INDEXEXTTYPE)arg2);
++        default:
++            arg1String = portString(arg1);
+@@ -1336,3 +1330,20 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++    CLOGI_(level, onEvent, "%s(%x), %s(%x), %s(%x)",
++            asString(event), event, arg1String, arg1, arg2String, arg2);
++    const sp<GraphicBufferSource>& bufferSource(getGraphicBufferSource());
++    if (bufferSource != NULL
++            && event == OMX_EventCmdComplete
++            && arg1 == OMX_CommandStateSet
++            && arg2 == OMX_StateExecuting) {
++        bufferSource->omxExecuting();
++    }
++}
++OMX_ERRORTYPE OMXNodeInstance::OnEvent(
++        OMX_IN OMX_HANDLETYPE ,
++        OMX_IN OMX_PTR pAppData,
++        OMX_IN OMX_EVENTTYPE eEvent,
++        OMX_IN OMX_U32 nData1,
++        OMX_IN OMX_U32 nData2,
++        OMX_IN OMX_PTR pEventData) {
++    if (pAppData == NULL) {
++        ALOGE("b/25884056");
++        return OMX_ErrorBadParameter;
+@@ -1340,5 +1351,3 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++    OMXNodeInstance *instance = static_cast<OMXNodeInstance *>(pAppData);
++    if (instance->mDying) {
++        return OMX_ErrorNone;
+@@ -1346,2 +1355,2 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
++    return instance->owner()->OnEvent(
++            instance->nodeID(), eEvent, nData1, nData2, pEventData);
+@@ -1349,3 +1358,7 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++OMX_ERRORTYPE OMXNodeInstance::OnEmptyBufferDone(
++        OMX_IN OMX_HANDLETYPE ,
++        OMX_IN OMX_PTR pAppData,
++        OMX_IN OMX_BUFFERHEADERTYPE* pBuffer) {
++    if (pAppData == NULL) {
++        ALOGE("b/25884056");
++        return OMX_ErrorBadParameter;
+@@ -1353,5 +1366,3 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++    OMXNodeInstance *instance = static_cast<OMXNodeInstance *>(pAppData);
++    if (instance->mDying) {
++        return OMX_ErrorNone;
+@@ -1359,2 +1370,3 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
++    int fenceFd = instance->retrieveFenceFromMeta_l(pBuffer, kPortIndexOutput);
++    return instance->owner()->OnEmptyBufferDone(instance->nodeID(),
++            instance->findBufferID(pBuffer), pBuffer, fenceFd);
+@@ -1362,3 +1374,33 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++OMX_ERRORTYPE OMXNodeInstance::OnFillBufferDone(
++        OMX_IN OMX_HANDLETYPE ,
++        OMX_IN OMX_PTR pAppData,
++        OMX_IN OMX_BUFFERHEADERTYPE* pBuffer) {
++    if (pAppData == NULL) {
++        ALOGE("b/25884056");
++        return OMX_ErrorBadParameter;
++    }
++    OMXNodeInstance *instance = static_cast<OMXNodeInstance *>(pAppData);
++    if (instance->mDying) {
++        return OMX_ErrorNone;
++    }
++    int fenceFd = instance->retrieveFenceFromMeta_l(pBuffer, kPortIndexOutput);
++    return instance->owner()->OnFillBufferDone(instance->nodeID(),
++            instance->findBufferID(pBuffer), pBuffer, fenceFd);
++}
++void OMXNodeInstance::addActiveBuffer(OMX_U32 portIndex, OMX::buffer_id id) {
++    ActiveBuffer active;
++    active.mPortIndex = portIndex;
++    active.mID = id;
++    mActiveBuffers.push(active);
++    if (portIndex < NELEM(mNumPortBuffers)) {
++        ++mNumPortBuffers[portIndex];
++    }
++}
++void OMXNodeInstance::removeActiveBuffer(
++        OMX_U32 portIndex, OMX::buffer_id id) {
++    for (size_t i = 0; i < mActiveBuffers.size(); ++i) {
++        if (mActiveBuffers[i].mPortIndex == portIndex
++                && mActiveBuffers[i].mID == id) {
++            mActiveBuffers.removeItemsAt(i);
++            if (portIndex < NELEM(mNumPortBuffers)) {
++                --mNumPortBuffers[portIndex];
+@@ -1366,4 +1407,0 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+@@ -1372,2 +1409,0 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+@@ -1375,3 +1411 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++     CLOGW("Attempt to remove an active buffer [%#x] we know nothing about...", id);
+@@ -1379,5 +1413,4 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++void OMXNodeInstance::freeActiveBuffers() {
++    for (size_t i = mActiveBuffers.size(); i > 0;) {
++        i--;
++        freeBuffer(mActiveBuffers[i].mPortIndex, mActiveBuffers[i].mID);
+@@ -1385,2 +1417,0 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+@@ -1388,3 +1419,3 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++OMX::buffer_id OMXNodeInstance::makeBufferID(OMX_BUFFERHEADERTYPE *bufferHeader) {
++    if (bufferHeader == NULL) {
++        return 0;
+@@ -1393,9 +1424,13 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
+-    }
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+-}
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
++    OMX::buffer_id buffer;
++    do {
++        if (++mBufferIDCount == 0) {
++            ++mBufferIDCount;
++        }
++        buffer = (OMX::buffer_id)mBufferIDCount;
++    } while (mBufferIDToBufferHeader.indexOfKey(buffer) >= 0);
++    mBufferIDToBufferHeader.add(buffer, bufferHeader);
++    mBufferHeaderToBufferID.add(bufferHeader, buffer);
++    return buffer;
++}
++OMX_BUFFERHEADERTYPE *OMXNodeInstance::findBufferHeader(
++        OMX::buffer_id buffer, OMX_U32 portIndex) {
+@@ -1403 +1438 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-        return;
++        return NULL;
+@@ -1408,2 +1443,2 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++        CLOGW("findBufferHeader: buffer %u not found", buffer);
++        return NULL;
+@@ -1411,6 +1446,7 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+-}
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++    OMX_BUFFERHEADERTYPE *header = mBufferIDToBufferHeader.valueAt(index);
++    BufferMeta *buffer_meta =
++        static_cast<BufferMeta *>(header->pAppPrivate);
++    if (buffer_meta->getPortIndex() != portIndex) {
++        CLOGW("findBufferHeader: buffer %u found but with incorrect port index.", buffer);
++        android_errorWriteLog(0x534e4554, "28816827");
++        return NULL;
+@@ -1418,5 +1454 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    Mutex::Autolock autoLock(mBufferIDLock);
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
+-    if (index < 0) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++    return header;
+@@ -1424,6 +1456,3 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
+-}
+-void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    if (buffer == 0) {
+-        return;
++OMX::buffer_id OMXNodeInstance::findBufferID(OMX_BUFFERHEADERTYPE *bufferHeader) {
++    if (bufferHeader == NULL) {
++        return 0;
+@@ -1432 +1461 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    ssize_t index = mBufferIDToBufferHeader.indexOfKey(buffer);
++    ssize_t index = mBufferHeaderToBufferID.indexOfKey(bufferHeader);
+@@ -1434,2 +1463,2 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-        CLOGW("invalidateBufferID: buffer %u not found", buffer);
+-        return;
++        CLOGW("findBufferID: bufferHeader %p not found", bufferHeader);
++        return 0;
+@@ -1437,2 +1466 @@ void OMXNodeInstance::invalidateBufferID(OMX::buffer_id buffer) {
+-    mBufferHeaderToBufferID.removeItem(mBufferIDToBufferHeader.valueAt(index));
+-    mBufferIDToBufferHeader.removeItemsAt(index);
++    return mBufferHeaderToBufferID.valueAt(index);

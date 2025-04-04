@@ -1,0 +1,204 @@
+diff --git a/./output/grpc/20c350fd-ee5b762f-63369300/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_merged.cc b/./output/grpc/20c350fd-ee5b762f-63369300/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_truth.cc
+index f203454..18637a0 100644
+--- a/./output/grpc/20c350fd-ee5b762f-63369300/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_merged.cc
++++ b/./output/grpc/20c350fd-ee5b762f-63369300/src@core@ext@filters@client_channel@lb_policy@xds@eds.no_comments_truth.cc
+@@ -19 +18,0 @@
+-#include "src/core/lib/gpr/env.h"
+@@ -32,13 +30,0 @@ constexpr char kEds[] = "eds_experimental";
+-<<<<<<< HEAD
+-||||||| merged common ancestors
+-const char* kXdsLocalityNameAttributeKey = "xds_locality_name";
+-=======
+-const char* kXdsLocalityNameAttributeKey = "xds_locality_name";
+-bool XdsCircuitBreakingEnabled() {
+-  char* value = gpr_getenv("GRPC_XDS_EXPERIMENTAL_CIRCUIT_BREAKING");
+-  bool parsed_value;
+-  bool parse_succeeded = gpr_parse_bool_value(value, &parsed_value);
+-  gpr_free(value);
+-  return parse_succeeded && parsed_value;
+-}
+->>>>>>> ee5b762f
+@@ -114,43 +99,0 @@ class EdsLb : public LoadBalancingPolicy {
+-<<<<<<< HEAD
+-||||||| merged common ancestors
+-  class ChildPickerWrapper : public RefCounted<ChildPickerWrapper> {
+-   public:
+-    explicit ChildPickerWrapper(std::unique_ptr<SubchannelPicker> picker)
+-        : picker_(std::move(picker)) {}
+-    PickResult Pick(PickArgs args) { return picker_->Pick(args); }
+-   private:
+-    std::unique_ptr<SubchannelPicker> picker_;
+-  };
+-  class EdsPicker : public SubchannelPicker {
+-   public:
+-    explicit EdsPicker(RefCountedPtr<EdsLb> eds_policy);
+-    PickResult Pick(PickArgs args) override;
+-   private:
+-    RefCountedPtr<EdsLb> eds_policy_;
+-    RefCountedPtr<XdsApi::EdsUpdate::DropConfig> drop_config_;
+-    RefCountedPtr<XdsClusterDropStats> drop_stats_;
+-    RefCountedPtr<ChildPickerWrapper> child_picker_;
+-    uint32_t max_concurrent_requests_;
+-  };
+-=======
+-  class ChildPickerWrapper : public RefCounted<ChildPickerWrapper> {
+-   public:
+-    explicit ChildPickerWrapper(std::unique_ptr<SubchannelPicker> picker)
+-        : picker_(std::move(picker)) {}
+-    PickResult Pick(PickArgs args) { return picker_->Pick(args); }
+-   private:
+-    std::unique_ptr<SubchannelPicker> picker_;
+-  };
+-  class EdsPicker : public SubchannelPicker {
+-   public:
+-    explicit EdsPicker(RefCountedPtr<EdsLb> eds_policy);
+-    PickResult Pick(PickArgs args) override;
+-   private:
+-    RefCountedPtr<EdsLb> eds_policy_;
+-    RefCountedPtr<XdsApi::EdsUpdate::DropConfig> drop_config_;
+-    RefCountedPtr<XdsClusterDropStats> drop_stats_;
+-    RefCountedPtr<ChildPickerWrapper> child_picker_;
+-    bool xds_circuit_breaking_enabled_;
+-    uint32_t max_concurrent_requests_;
+-  };
+->>>>>>> ee5b762f
+@@ -209,139 +151,0 @@ class EdsLb : public LoadBalancingPolicy {
+-<<<<<<< HEAD
+-||||||| merged common ancestors
+-EdsLb::EdsPicker::EdsPicker(RefCountedPtr<EdsLb> eds_policy)
+-    : eds_policy_(std::move(eds_policy)),
+-      drop_stats_(eds_policy_->drop_stats_),
+-      child_picker_(eds_policy_->child_picker_),
+-      max_concurrent_requests_(
+-          eds_policy_->config_->max_concurrent_requests()) {
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] constructed new drop picker %p",
+-            eds_policy_.get(), this);
+-  }
+-}
+-EdsLb::PickResult EdsLb::EdsPicker::Pick(PickArgs args) {
+-  uint32_t current = eds_policy_->concurrent_requests_.FetchAdd(1);
+-  if (current >= max_concurrent_requests_) {
+-    eds_policy_->concurrent_requests_.FetchSub(1);
+-    if (drop_stats_ != nullptr) {
+-      drop_stats_->AddUncategorizedDrops();
+-    }
+-    PickResult result;
+-    result.type = PickResult::PICK_COMPLETE;
+-    return result;
+-  }
+-  if (child_picker_ == nullptr) {
+-    PickResult result;
+-    result.type = PickResult::PICK_FAILED;
+-    result.error =
+-        grpc_error_set_int(GRPC_ERROR_CREATE_FROM_STATIC_STRING(
+-                               "eds drop picker not given any child picker"),
+-                           GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_INTERNAL);
+-    eds_policy_->concurrent_requests_.FetchSub(1);
+-    return result;
+-  }
+-  PickResult result = child_picker_->Pick(args);
+-  if (result.type == result.PICK_COMPLETE && result.subchannel != nullptr) {
+-    XdsClusterLocalityStats* locality_stats = nullptr;
+-    if (drop_stats_ != nullptr) {
+-      auto* subchannel_wrapper =
+-          static_cast<StatsSubchannelWrapper*>(result.subchannel.get());
+-      locality_stats = subchannel_wrapper->locality_stats()->Ref().release();
+-      locality_stats->AddCallStarted();
+-      result.subchannel = subchannel_wrapper->wrapped_subchannel();
+-    }
+-    EdsLb* eds_policy = static_cast<EdsLb*>(
+-        eds_policy_->Ref(DEBUG_LOCATION, "DropPickPicker+call").release());
+-    auto original_recv_trailing_metadata_ready =
+-        result.recv_trailing_metadata_ready;
+-    result.recv_trailing_metadata_ready =
+-        [locality_stats, original_recv_trailing_metadata_ready, eds_policy](
+-            grpc_error* error, MetadataInterface* metadata,
+-            CallState* call_state) {
+-          if (locality_stats != nullptr) {
+-            const bool call_failed = error != GRPC_ERROR_NONE;
+-            locality_stats->AddCallFinished(call_failed);
+-            locality_stats->Unref(DEBUG_LOCATION, "LocalityStats+call");
+-          }
+-          eds_policy->concurrent_requests_.FetchSub(1);
+-          eds_policy->Unref(DEBUG_LOCATION, "DropPickPicker+call");
+-          if (original_recv_trailing_metadata_ready != nullptr) {
+-            original_recv_trailing_metadata_ready(error, metadata, call_state);
+-          }
+-        };
+-  } else {
+-    eds_policy_->concurrent_requests_.FetchSub(1);
+-  }
+-  return result;
+-}
+-=======
+-EdsLb::EdsPicker::EdsPicker(RefCountedPtr<EdsLb> eds_policy)
+-    : eds_policy_(std::move(eds_policy)),
+-      drop_stats_(eds_policy_->drop_stats_),
+-      child_picker_(eds_policy_->child_picker_),
+-      xds_circuit_breaking_enabled_(XdsCircuitBreakingEnabled()),
+-      max_concurrent_requests_(
+-          eds_policy_->config_->max_concurrent_requests()) {
+-  if (GRPC_TRACE_FLAG_ENABLED(grpc_lb_eds_trace)) {
+-    gpr_log(GPR_INFO, "[edslb %p] constructed new drop picker %p",
+-            eds_policy_.get(), this);
+-  }
+-}
+-EdsLb::PickResult EdsLb::EdsPicker::Pick(PickArgs args) {
+-  uint32_t current = eds_policy_->concurrent_requests_.FetchAdd(1);
+-  if (xds_circuit_breaking_enabled_) {
+-    if (current >= max_concurrent_requests_) {
+-      eds_policy_->concurrent_requests_.FetchSub(1);
+-      if (drop_stats_ != nullptr) {
+-        drop_stats_->AddUncategorizedDrops();
+-      }
+-      PickResult result;
+-      result.type = PickResult::PICK_COMPLETE;
+-      return result;
+-    }
+-  }
+-  if (child_picker_ == nullptr) {
+-    PickResult result;
+-    result.type = PickResult::PICK_FAILED;
+-    result.error =
+-        grpc_error_set_int(GRPC_ERROR_CREATE_FROM_STATIC_STRING(
+-                               "eds drop picker not given any child picker"),
+-                           GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_INTERNAL);
+-    eds_policy_->concurrent_requests_.FetchSub(1);
+-    return result;
+-  }
+-  PickResult result = child_picker_->Pick(args);
+-  if (result.type == result.PICK_COMPLETE && result.subchannel != nullptr) {
+-    XdsClusterLocalityStats* locality_stats = nullptr;
+-    if (drop_stats_ != nullptr) {
+-      auto* subchannel_wrapper =
+-          static_cast<StatsSubchannelWrapper*>(result.subchannel.get());
+-      locality_stats = subchannel_wrapper->locality_stats()->Ref().release();
+-      locality_stats->AddCallStarted();
+-      result.subchannel = subchannel_wrapper->wrapped_subchannel();
+-    }
+-    EdsLb* eds_policy = static_cast<EdsLb*>(
+-        eds_policy_->Ref(DEBUG_LOCATION, "DropPickPicker+call").release());
+-    auto original_recv_trailing_metadata_ready =
+-        result.recv_trailing_metadata_ready;
+-    result.recv_trailing_metadata_ready =
+-        [locality_stats, original_recv_trailing_metadata_ready, eds_policy](
+-            grpc_error* error, MetadataInterface* metadata,
+-            CallState* call_state) {
+-          if (locality_stats != nullptr) {
+-            const bool call_failed = error != GRPC_ERROR_NONE;
+-            locality_stats->AddCallFinished(call_failed);
+-            locality_stats->Unref(DEBUG_LOCATION, "LocalityStats+call");
+-          }
+-          eds_policy->concurrent_requests_.FetchSub(1);
+-          eds_policy->Unref(DEBUG_LOCATION, "DropPickPicker+call");
+-          if (original_recv_trailing_metadata_ready != nullptr) {
+-            original_recv_trailing_metadata_ready(error, metadata, call_state);
+-          }
+-        };
+-  } else {
+-    eds_policy_->concurrent_requests_.FetchSub(1);
+-  }
+-  return result;
+-}
+->>>>>>> ee5b762f

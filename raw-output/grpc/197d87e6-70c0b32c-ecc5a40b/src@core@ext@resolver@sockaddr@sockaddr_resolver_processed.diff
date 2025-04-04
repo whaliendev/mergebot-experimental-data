@@ -1,0 +1,50 @@
+--- a/output/grpc/197d87e6-70c0b32c-ecc5a40b/src@core@ext@resolver@sockaddr@sockaddr_resolver.no_comments_mergebot.c
++++ b/output/grpc/197d87e6-70c0b32c-ecc5a40b/src@core@ext@resolver@sockaddr@sockaddr_resolver.no_comments_truth.c
+@@ -13,11 +12,0 @@
+-typedef struct {
+-  grpc_resolver base;
+-  gpr_refcount refs;
+-  char *lb_policy_name;
+-  char *target_name;
+-  grpc_lb_addresses *addresses;
+-  gpr_mu mu;
+-  bool published;
+-  grpc_closure *next_completion;
+-  grpc_resolver_result **target_result;
+-} sockaddr_resolver;
+@@ -114 +103,3 @@ static void do_nothing(void *ignored) {}
+-static grpc_resolver *sockaddr_create(grpc_resolver_args *args, const char *default_lb_policy_name, int parse(grpc_uri *uri, grpc_resolved_address *dst, struct sockaddr_storage *dst, size_t *len)) {
++static grpc_resolver *sockaddr_create(grpc_resolver_args *args,
++                                      int parse(grpc_uri *uri,
++                                                grpc_resolved_address *dst)) {
+@@ -131,13 +122 @@ static grpc_resolver *sockaddr_create(grpc_resolver_args *args, const char *defa
+-<<<<<<< HEAD
+-    if (!parse(&ith_uri, &r->addresses->addresses[i].address)) {
+-      errors_found = true;
+-||||||| ecc5a40bd3
+-    if (!parse(&ith_uri, (struct sockaddr_storage *)(&r->addresses->addresses[i]
+-                                                          .address.addr),
+-               &r->addresses->addresses[i].address.len)) {
+-      errors_found = true;
+-=======
+-    if (!parse(
+-            &ith_uri,
+-            (struct sockaddr_storage *)(&addresses->addresses[i].address.addr),
+-            &addresses->addresses[i].address.len)) {
++    if (!parse(&ith_uri, &addresses->addresses[i].address)) {
+@@ -145 +123,0 @@ static grpc_resolver *sockaddr_create(grpc_resolver_args *args, const char *defa
+->>>>>>> 70c0b32c
+@@ -165,0 +144,10 @@ static void sockaddr_factory_unref(grpc_resolver_factory *factory) {}
++#define DECL_FACTORY(name) \
++  static grpc_resolver *name##_factory_create_resolver( \
++      grpc_resolver_factory *factory, grpc_resolver_args *args) { \
++    return sockaddr_create(args, parse_##name); \
++  } \
++  static const grpc_resolver_factory_vtable name##_factory_vtable = { \
++      sockaddr_factory_ref, sockaddr_factory_unref, \
++      name##_factory_create_resolver, name##_get_default_authority, #name}; \
++  static grpc_resolver_factory name##_resolver_factory = { \
++      &name##_factory_vtable}
+@@ -168,0 +157,2 @@ DECL_FACTORY(unix);
++DECL_FACTORY(ipv4);
++DECL_FACTORY(ipv6);

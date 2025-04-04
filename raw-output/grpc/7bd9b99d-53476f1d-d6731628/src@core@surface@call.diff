@@ -1,0 +1,44 @@
+diff --git a/output/grpc/7bd9b99d-53476f1d-d6731628/src@core@surface@call.no_comments_mergebot.c b/output/grpc/7bd9b99d-53476f1d-d6731628/src@core@surface@call.no_comments_truth.c
+index dbe70f4..7927847 100644
+--- a/output/grpc/7bd9b99d-53476f1d-d6731628/src@core@surface@call.no_comments_mergebot.c
++++ b/output/grpc/7bd9b99d-53476f1d-d6731628/src@core@surface@call.no_comments_truth.c
+@@ -86,0 +87,12 @@ struct grpc_call {
++#define CALL_STACK_FROM_CALL(call) ((grpc_call_stack *)((call)+1))
++#define CALL_FROM_CALL_STACK(call_stack) (((grpc_call *)(call_stack)) - 1)
++#define CALL_ELEM_FROM_CALL(call,idx) \
++  grpc_call_stack_element(CALL_STACK_FROM_CALL(call), idx)
++#define CALL_FROM_TOP_ELEM(top_elem) \
++  CALL_FROM_CALL_STACK(grpc_call_stack_from_top_element(top_elem))
++#define SWAP(type,x,y) \
++  do { \
++    type temp = x; \
++    x = y; \
++    y = temp; \
++  } while (0)
+@@ -180 +192 @@ static int is_op_live(grpc_call *call, grpc_ioreq_op op) {
+-static void lock(grpc_call *call) { gpr_mu_lock(&call->mu){ gpr_mu_lock(&call->mu); }
++static void lock(grpc_call *call) { gpr_mu_lock(&call->mu); }
+@@ -330,6 +341,0 @@ static send_action choose_send_action(grpc_call *call) {
+-<<<<<<< HEAD
+-      if (call->request_set[GRPC_IOREQ_SEND_INITIAL_METADATA] != REQSET_EMPTY) {
+-||||||| d6731628bc
+-      if (call->request_set[GRPC_IOREQ_SEND_INITIAL_METADATA] !=
+-          REQSET_EMPTY) {
+-=======
+@@ -337 +342,0 @@ static send_action choose_send_action(grpc_call *call) {
+->>>>>>> 53476f1d
+@@ -346,2 +351 @@ static send_action choose_send_action(grpc_call *call) {
+-<<<<<<< HEAD
+-      if (call->request_set[GRPC_IOREQ_SEND_MESSAGE] != REQSET_EMPTY) {
++      if (is_op_live(call, GRPC_IOREQ_SEND_MESSAGE)) {
+@@ -350,7 +353,0 @@ static send_action choose_send_action(grpc_call *call) {
+-||||||| d6731628bc
+-      if (call->request_set[GRPC_IOREQ_SEND_MESSAGE] != REQSET_EMPTY) {
+-        return SEND_MESSAGE;
+-=======
+-      if (is_op_live(call, GRPC_IOREQ_SEND_MESSAGE)) {
+-        return SEND_MESSAGE;
+->>>>>>> 53476f1d
+@@ -726 +723 @@ struct legacy_state {
+-  size_t md_out_capacity[2];
++  size_t md_out_count[2];

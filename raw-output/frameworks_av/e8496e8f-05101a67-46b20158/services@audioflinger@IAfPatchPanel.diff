@@ -1,0 +1,131 @@
+diff --git a/output/frameworks_av/e8496e8f-05101a67-46b20158/services@audioflinger@IAfPatchPanel.no_comments_mergebot.h b/output/frameworks_av/e8496e8f-05101a67-46b20158/services@audioflinger@IAfPatchPanel.no_comments_truth.h
+index 41c17e5..95325f7 100644
+--- a/output/frameworks_av/e8496e8f-05101a67-46b20158/services@audioflinger@IAfPatchPanel.no_comments_mergebot.h
++++ b/output/frameworks_av/e8496e8f-05101a67-46b20158/services@audioflinger@IAfPatchPanel.no_comments_truth.h
+@@ -23,4 +23,6 @@ public:
+-    SoftwarePatch(const SoftwarePatch&)
+-    status_t getLatencyMs_l(double* latencyMs) const
+-                                                     REQUIRES(audio_utils::AudioFlinger_Mutex);
+-audio_patch_handle_t getPatchHandle() const { return mPatchHandle; }audio_io_handle_t getPlaybackThreadHandle() const { return mPlaybackThreadHandle; }audio_io_handle_t getRecordThreadHandle() const { return mRecordThreadHandle; }private:
++    SoftwarePatch(const SoftwarePatch&) = default;
++    status_t getLatencyMs_l(double* latencyMs) const REQUIRES(audio_utils::AudioFlinger_Mutex);
++    audio_patch_handle_t getPatchHandle() const { return mPatchHandle; };
++    audio_io_handle_t getPlaybackThreadHandle() const { return mPlaybackThreadHandle; };
++    audio_io_handle_t getRecordThreadHandle() const { return mRecordThreadHandle; };
++private:
+@@ -34,4 +36,3 @@ public:
+-    virtual void closeThreadInternal_l(const sp<IAfRecordThread>& thread) = 0;
+-            REQUIRES(mutex()) = 0;
+-    virtual void closeThreadInternal_l(const sp<IAfRecordThread>& thread) = 0;
+-    virtual IAfPlaybackThread* primaryPlaybackThread_l() const
++    virtual void closeThreadInternal_l(const sp<IAfPlaybackThread>& thread) REQUIRES(mutex()) = 0;
++    virtual void closeThreadInternal_l(const sp<IAfRecordThread>& thread) REQUIRES(mutex()) = 0;
++    virtual IAfPlaybackThread* primaryPlaybackThread_l() const REQUIRES(mutex()) = 0;
+@@ -38,0 +40 @@ public:
++            REQUIRES(mutex()) = 0;
+@@ -40 +42,2 @@ public:
+-    virtual IAfMmapThread* checkMmapThread_l(audio_io_handle_t io) const
++            REQUIRES(mutex()) = 0;
++    virtual IAfMmapThread* checkMmapThread_l(audio_io_handle_t io) const REQUIRES(mutex()) = 0;
+@@ -49 +52 @@ public:
+-            const String8& outputDeviceAddress)
++            const String8& outputDeviceAddress) REQUIRES(mutex()) = 0;
+@@ -56,2 +59,3 @@ public:
+-            audio_output_flags_t flags)
+-    virtual audio_utils::mutex& mutex() const = 0;
++            audio_output_flags_t flags) REQUIRES(mutex()) = 0;
++    virtual audio_utils::mutex& mutex() const
++            RETURN_CAPABILITY(audio_utils::AudioFlinger_Mutex) = 0;
+@@ -59 +63,2 @@ virtual const DefaultKeyedVector<audio_module_handle_t, AudioHwDevice*>&
+-            getAudioHwDevs_l() const virtual audio_unique_id_t nextUniqueId(audio_unique_id_use_t use) = 0;
++            getAudioHwDevs_l() const REQUIRES(mutex()) = 0;
++    virtual audio_unique_id_t nextUniqueId(audio_unique_id_use_t use) = 0;
+@@ -62,0 +68 @@ virtual const DefaultKeyedVector<audio_module_handle_t, AudioHwDevice*>&
++            REQUIRES(mutex()) = 0;
+@@ -63,0 +70 @@ virtual const DefaultKeyedVector<audio_module_handle_t, AudioHwDevice*>&
++            REQUIRES(mutex()) = 0;
+@@ -71,2 +78,2 @@ public:
+-        Endpoint()
+-        Endpoint(const Endpoint&)
++        Endpoint() = default;
++        Endpoint(const Endpoint&) = delete;
+@@ -80,2 +87 @@ public:
+-        () = delete;{ swap(other); }
+-        () = delete;{ swap(other); }
++        Endpoint(Endpoint&& other) noexcept { swap(other); }
+@@ -101,10 +107,34 @@ public:
+-    private:
+-        sp<ThreadType> mThread;
+-    public:
+-        friend void swap(Endpoint& a, Endpoint& b) noexcept { a.swap(b); }
+-    private:
+-        bool mCloseThread = true;
+-        bool mClearPeerProxy = true;
+-        audio_patch_handle_t mHandle = AUDIO_PATCH_HANDLE_NONE;
+-        sp<TrackType> mTrack;
+-    public:
++                REQUIRES(audio_utils::AudioFlinger_Mutex)
++                NO_THREAD_SAFETY_ANALYSIS
++        {
++            if (mHandle != AUDIO_PATCH_HANDLE_NONE) {
++                panel->releaseAudioPatch_l(mHandle);
++                mHandle = AUDIO_PATCH_HANDLE_NONE;
++            }
++            if (mThread != nullptr) {
++                if (mTrack != nullptr) {
++                    mThread->deletePatchTrack(mTrack);
++                }
++                if (mCloseThread) {
++                    panel->closeThreadInternal_l(mThread);
++                }
++            }
++        }
++        audio_patch_handle_t* handlePtr() { return &mHandle; }
++        void setThread(const sp<ThreadType>& thread, bool closeThread = true) {
++            mThread = thread;
++            mCloseThread = closeThread;
++        }
++        template <typename T>
++        void setTrackAndPeer(const sp<TrackType>& track, const sp<T>& peer, bool holdReference) {
++            mTrack = track;
++            mThread->addPatchTrack(mTrack);
++            mTrack->setPeerProxy(peer, holdReference);
++            mClearPeerProxy = holdReference;
++        }
++        void clearTrackPeer() {
++            if (mClearPeerProxy && mTrack) mTrack->clearPeerProxy();
++        }
++        void stopTrack() {
++            if (mTrack) mTrack->stop();
++        }
+@@ -118,0 +149,7 @@ public:
++        friend void swap(Endpoint& a, Endpoint& b) noexcept { a.swap(b); }
++    private:
++        sp<ThreadType> mThread;
++        bool mCloseThread = true;
++        bool mClearPeerProxy = true;
++        audio_patch_handle_t mHandle = AUDIO_PATCH_HANDLE_NONE;
++        sp<TrackType> mTrack;
+@@ -168 +205,12 @@ public:
+-    virtual void closeThreadInternal_l(const sp<IAfThreadBase>& thread) const
++    virtual status_t listAudioPorts_l(unsigned int* num_ports, struct audio_port* ports)
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;
++    virtual status_t getAudioPort_l(struct audio_port_v7* port)
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;
++    virtual status_t createAudioPatch_l(
++            const struct audio_patch* patch,
++            audio_patch_handle_t* handle,
++            bool endpointPatch = false)
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;
++    virtual status_t releaseAudioPatch_l(audio_patch_handle_t handle)
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;
++    virtual status_t listAudioPatches_l(unsigned int* num_patches, struct audio_patch* patches)
+@@ -178,4 +226,4 @@ public:
+-    virtual status_t createAudioPatch_l(
+-            const struct audio_patch* patch,
+-            audio_patch_handle_t* handle,
+-            bool endpointPatch = false)
++    virtual status_t getLatencyMs_l(audio_patch_handle_t patchHandle, double* latencyMs) const
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;
++    virtual void closeThreadInternal_l(const sp<IAfThreadBase>& thread) const
++            REQUIRES(audio_utils::AudioFlinger_Mutex) = 0;

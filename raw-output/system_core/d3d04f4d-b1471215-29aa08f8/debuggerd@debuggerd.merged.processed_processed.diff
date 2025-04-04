@@ -1,0 +1,59 @@
+--- a/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@debuggerd.no_comments_merged.cpp
++++ b/./output/system_core/d3d04f4d-b1471215-29aa08f8/debuggerd@debuggerd.no_comments_truth.cpp
+@@ -181 +180,0 @@ static int read_request(int fd, debugger_request_t* out_request) {
+-<<<<<<< HEAD
+@@ -185,12 +183,0 @@ static int read_request(int fd, debugger_request_t* out_request) {
+-||||||| 29aa08f8c
+-    char buf[64];
+-    struct stat s;
+-    snprintf(buf, sizeof buf, "/proc/%d/task/%d", out_request->pid, out_request->tid);
+-    if (stat(buf, &s)) {
+-      ALOGE("tid %d does not exist in pid %d. ignoring debug request\n",
+-          out_request->tid, out_request->pid);
+-=======
+-    if (!pid_contains_tid(out_request->pid, out_request->tid)) {
+-      ALOGE("tid %d does not exist in pid %d. ignoring debug request\n",
+-            out_request->tid, out_request->pid);
+->>>>>>> b1471215
+@@ -357 +343,0 @@ static bool ptrace_attach_thread(pid_t pid, pid_t tid) {
+-<<<<<<< HEAD
+@@ -360,39 +345,0 @@ static bool ptrace_attach_thread(pid_t pid, pid_t tid) {
+-||||||| 29aa08f8c
+-    if (ptrace(PTRACE_ATTACH, request.tid, 0, 0)) {
+-      ALOGE("ptrace attach failed: %s\n", strerror(errno));
+-    } else {
+-      bool detach_failed = false;
+-      bool tid_unresponsive = false;
+-      bool attach_gdb = should_attach_gdb(&request);
+-      if (TEMP_FAILURE_RETRY(write(fd, "\0", 1)) != 1) {
+-        ALOGE("failed responding to client: %s\n", strerror(errno));
+-      } else {
+-        char* tombstone_path = NULL;
+-=======
+-    if (!ptrace_attach_thread(request.pid, request.tid)) {
+-      ALOGE("ptrace attach failed: %s\n", strerror(errno));
+-    } else {
+-      if (request.action == DEBUGGER_ACTION_CRASH) {
+-        pid_t pid;
+-        uid_t uid;
+-        gid_t gid;
+-        if (get_process_info(request.tid, &pid, &uid, &gid) != 0) {
+-          ALOGE("debuggerd: failed to get process info for tid '%d'", request.tid);
+-          exit(1);
+-        }
+-        if (pid != request.pid || uid != request.uid || gid != request.gid) {
+-          ALOGE(
+-            "debuggerd: attached task %d does not match request: "
+-            "expected pid=%d,uid=%d,gid=%d, actual pid=%d,uid=%d,gid=%d",
+-            request.tid, request.pid, request.uid, request.gid, pid, uid, gid);
+-          exit(1);
+-        }
+-      }
+-      bool detach_failed = false;
+-      bool tid_unresponsive = false;
+-      bool attach_gdb = should_attach_gdb(&request);
+-      if (TEMP_FAILURE_RETRY(write(fd, "\0", 1)) != 1) {
+-        ALOGE("failed responding to client: %s\n", strerror(errno));
+-      } else {
+-        char* tombstone_path = NULL;
+->>>>>>> b1471215

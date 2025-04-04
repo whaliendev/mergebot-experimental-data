@@ -1,0 +1,196 @@
+diff --git a/./output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_merged.c b/./output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_truth.c
+index 5ed7c20..0767617 100644
+--- a/./output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_merged.c
++++ b/./output/system_core/bd352fdc-2cdfb3f2-1c4150ee/lmkd@lmkd.no_comments_truth.c
+@@ -20 +19,0 @@
+-<<<<<<< HEAD
+@@ -33,13 +31,0 @@
+-||||||| 1c4150ee4
+-#include <processgroup/processgroup.h>
+-=======
+-#ifdef LMKD_TRACE_KILLS
+-#define ATRACE_TAG ATRACE_TAG_ALWAYS
+-#include <cutils/trace.h>
+-#define TRACE_KILL_START(pid) ATRACE_INT(__FUNCTION__, pid);
+-#define TRACE_KILL_END() ATRACE_INT(__FUNCTION__, 0);
+-#else
+-#define TRACE_KILL_START(pid) 
+-#define TRACE_KILL_END() 
+-#endif
+->>>>>>> 2cdfb3f2
+@@ -52,8 +37,0 @@
+-<<<<<<< HEAD
+-||||||| 1c4150ee4
+-#define MEMPRESSURE_WATCH_MEDIUM_LEVEL "medium"
+-#define MEMPRESSURE_WATCH_CRITICAL_LEVEL "critical"
+-#define ZONEINFO_PATH "/proc/zoneinfo"
+-=======
+-#define ZONEINFO_PATH "/proc/zoneinfo"
+->>>>>>> 2cdfb3f2
+@@ -99 +76,0 @@ struct event_handler_info {
+-<<<<<<< HEAD
+@@ -109,5 +85,0 @@ static struct event_handler_info vmpressure_hinfo[VMPRESS_LEVEL_COUNT];
+-||||||| 1c4150ee4
+-#define MAX_EPOLL_EVENTS 4
+-=======
+-#define MAX_EPOLL_EVENTS 5
+->>>>>>> 2cdfb3f2
+@@ -482,8 +453,0 @@ static int get_free_memory(struct mem_size *ms) {
+-static int get_free_memory(struct mem_size *ms) {
+-    struct sysinfo si;
+-    if (sysinfo(&si) < 0)
+-        return -1;
+-    ms->free_mem = (int)(si.freeram * si.mem_unit / PAGE_SIZE);
+-    ms->free_swap = (int)(si.freeswap * si.mem_unit / PAGE_SIZE);
+-    return 0;
+-}
+@@ -576 +539,0 @@ static int kill_one_process(struct proc* procp, int min_score_adj,
+-<<<<<<< HEAD
+@@ -584,5 +546,0 @@ static int kill_one_process(struct proc* procp, int min_score_adj,
+-||||||| 1c4150ee4
+-=======
+-    TRACE_KILL_START(pid);
+-    r = kill(pid, SIGKILL);
+->>>>>>> 2cdfb3f2
+@@ -614 +571,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-<<<<<<< HEAD
+@@ -623,8 +579,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-||||||| 1c4150ee4
+-    int killed_size = 0;
+-    int min_score_adj = is_critical ? critical_oomadj : medium_oomadj;
+-=======
+-    int killed_size;
+-    int pages_freed = 0;
+-    int min_score_adj = level_oomadj[level];
+->>>>>>> 2cdfb3f2
+@@ -638 +586,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-<<<<<<< HEAD
+@@ -653,17 +600,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-||||||| 1c4150ee4
+-        if (procp) {
+-            killed_size = kill_one_process(procp, min_score_adj, is_critical);
+-            if (killed_size < 0) {
+-                goto retry;
+-            } else {
+-                return killed_size;
+-=======
+-            if (!procp)
+-                break;
+-            killed_size = kill_one_process(procp, min_score_adj, level);
+-            if (killed_size >= 0) {
+-                pages_freed += killed_size;
+-                if (pages_freed >= pages_to_free) {
+-                    return pages_freed;
+-                }
+->>>>>>> 2cdfb3f2
+@@ -673 +603,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-<<<<<<< HEAD
+@@ -680,5 +609,0 @@ static int find_and_kill_processes(enum vmpressure_level level,
+-||||||| 1c4150ee4
+-    return 0;
+-=======
+-    return pages_freed;
+->>>>>>> 2cdfb3f2
+@@ -708 +632,0 @@ static int64_t get_memory_usage(const char* path) {
+-<<<<<<< HEAD
+@@ -742,37 +665,0 @@ static void mp_event_common(int data, uint32_t events __unused) {
+-||||||| 1c4150ee4
+-static void mp_event_common(bool is_critical) {
+-=======
+-void record_low_pressure_levels(struct mem_size *free_mem) {
+-    if (low_pressure_mem.min_free == -1 ||
+-        low_pressure_mem.min_free > free_mem->free_mem) {
+-        if (debug_process_killing) {
+-            ALOGI("Low pressure min memory update from %d to %d",
+-                low_pressure_mem.min_free, free_mem->free_mem);
+-        }
+-        low_pressure_mem.min_free = free_mem->free_mem;
+-    }
+-    if (low_pressure_mem.max_free == -1 ||
+-        (low_pressure_mem.max_free < free_mem->free_mem &&
+-         free_mem->free_mem - low_pressure_mem.max_free < low_pressure_mem.max_free * 0.1)) {
+-        if (debug_process_killing) {
+-            ALOGI("Low pressure max memory update from %d to %d",
+-                low_pressure_mem.max_free, free_mem->free_mem);
+-        }
+-        low_pressure_mem.max_free = free_mem->free_mem;
+-    }
+-}
+-enum vmpressure_level upgrade_level(enum vmpressure_level level) {
+-    return (enum vmpressure_level)((level < VMPRESS_LEVEL_CRITICAL) ?
+-        level + 1 : level);
+-}
+-enum vmpressure_level downgrade_level(enum vmpressure_level level) {
+-    return (enum vmpressure_level)((level > VMPRESS_LEVEL_LOW) ?
+-        level - 1 : level);
+-}
+-static inline unsigned long get_time_diff_ms(struct timeval *from,
+-                                             struct timeval *to) {
+-    return (to->tv_sec - from->tv_sec) * 1000 +
+-           (to->tv_usec - from->tv_usec) / 1000;
+-}
+-static void mp_event_common(enum vmpressure_level level) {
+->>>>>>> 2cdfb3f2
+@@ -783 +669,0 @@ static void mp_event_common(enum vmpressure_level level) {
+-<<<<<<< HEAD
+@@ -789,7 +674,0 @@ static void mp_event_common(enum vmpressure_level level) {
+-||||||| 1c4150ee4
+-=======
+-    enum vmpressure_level lvl;
+-    struct mem_size free_mem;
+-    static struct timeval last_report_tm;
+-    static unsigned long skip_count = 0;
+->>>>>>> 2cdfb3f2
+@@ -886 +764,0 @@ do_kill:
+-<<<<<<< HEAD
+@@ -888,21 +765,0 @@ static bool init_mp_common(enum vmpressure_level level) {
+-||||||| 1c4150ee4
+-static void mp_event(uint32_t events __unused) {
+-    mp_event_common(false);
+-}
+-static void mp_event_critical(uint32_t events __unused) {
+-    mp_event_common(true);
+-}
+-static int init_mp_common(char *levelstr, void *event_handler, bool is_critical)
+-{
+-=======
+-static void mp_event_low(uint32_t events __unused) {
+-    mp_event_common(VMPRESS_LEVEL_LOW);
+-}
+-static void mp_event_medium(uint32_t events __unused) {
+-    mp_event_common(VMPRESS_LEVEL_MEDIUM);
+-}
+-static void mp_event_critical(uint32_t events __unused) {
+-    mp_event_common(VMPRESS_LEVEL_CRITICAL);
+-}
+-static bool init_mp_common(void *event_handler, enum vmpressure_level level) {
+->>>>>>> 2cdfb3f2
+@@ -915 +771,0 @@ static bool init_mp_common(void *event_handler, enum vmpressure_level level) {
+-<<<<<<< HEAD
+@@ -918,5 +773,0 @@ static bool init_mp_common(void *event_handler, enum vmpressure_level level) {
+-||||||| 1c4150ee4
+-    int mpevfd_index = is_critical ? CRITICAL_INDEX : MEDIUM_INDEX;
+-=======
+-    const char *levelstr = level_name[level];
+->>>>>>> 2cdfb3f2
+@@ -1010 +860,0 @@ static int init(void) {
+-<<<<<<< HEAD
+@@ -1014,10 +863,0 @@ static int init(void) {
+-||||||| 1c4150ee4
+-        ret = init_mp_medium();
+-        ret |= init_mp_critical();
+-        if (ret)
+-=======
+-        if (!init_mp_common((void *)&mp_event_low, VMPRESS_LEVEL_LOW) ||
+-            !init_mp_common((void *)&mp_event_medium, VMPRESS_LEVEL_MEDIUM) ||
+-            !init_mp_common((void *)&mp_event_critical,
+-                            VMPRESS_LEVEL_CRITICAL)) {
+->>>>>>> 2cdfb3f2
+@@ -1088 +927,0 @@ int main(int argc __unused, char **argv __unused) {
+-<<<<<<< HEAD
+@@ -1094,5 +932,0 @@ int main(int argc __unused, char **argv __unused) {
+-||||||| 1c4150ee4
+-=======
+-    kill_timeout_ms =
+-        (unsigned long)property_get_int32("ro.lmk.kill_timeout_ms", 0);
+->>>>>>> 2cdfb3f2

@@ -1,0 +1,810 @@
+diff --git a/output/frameworks_av/c00a93e4-847d798c-fa47739e/media@libaudioclient@AudioEffect.no_comments_mergebot.cpp b/output/frameworks_av/c00a93e4-847d798c-fa47739e/media@libaudioclient@AudioEffect.no_comments_truth.cpp
+index 83e33da..748219e 100644
+--- a/output/frameworks_av/c00a93e4-847d798c-fa47739e/media@libaudioclient@AudioEffect.no_comments_mergebot.cpp
++++ b/output/frameworks_av/c00a93e4-847d798c-fa47739e/media@libaudioclient@AudioEffect.no_comments_truth.cpp
+@@ -10 +10,2 @@ namespace android {
+-AudioEffect::~AudioEffect()
++AudioEffect::AudioEffect(const String16& opPackageName)
++    : mOpPackageName(opPackageName)
+@@ -12,13 +12,0 @@ AudioEffect::~AudioEffect()
+-    ALOGV("Destructor %p", this);
+-    if (mStatus == NO_ERROR || mStatus == ALREADY_EXISTS) {
+-        if (!audio_is_global_session(mSessionId)) {
+-            AudioSystem::releaseAudioSessionId(mSessionId, mClientPid);
+-        }
+-        if (mIEffect != NULL) {
+-            mIEffect->disconnect();
+-            IInterface::asBinder(mIEffect)->unlinkToDeath(mIEffectClient);
+-        }
+-        mIEffect.clear();
+-        mCblkMemory.clear();
+-        mIEffectClient.clear();
+-        IPCThreadState::self()->flushCommands();
+@@ -26,2 +14,9 @@ AudioEffect::~AudioEffect()
+-}
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::set(const effect_uuid_t *type,
++                const effect_uuid_t *uuid,
++                int32_t priority,
++                effect_callback_t cbf,
++                void* user,
++                audio_session_t sessionId,
++                audio_io_handle_t io,
++                const AudioDeviceTypeAddr& device,
++                bool probe)
+@@ -29 +24,10 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
++    sp<IEffect> iEffect;
++    sp<IMemory> cblk;
++    int enabled;
++    ALOGV("set %p mUserData: %p uuid: %p timeLow %08x", this, user, type, type ? type->timeLow : 0);
++    if (mIEffect != 0) {
++        ALOGW("Effect already in use");
++        return INVALID_OPERATION;
++    }
++    if (sessionId == AUDIO_SESSION_DEVICE && io != AUDIO_IO_HANDLE_NONE) {
++        ALOGW("IO handle should not be specified for device effect");
+@@ -32,12 +36,4 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
++    if (audioFlinger == 0) {
++        ALOGE("set(): Could not get audioflinger");
++        return NO_INIT;
+@@ -45,3 +41,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
++    if (type == NULL && uuid == NULL) {
++        ALOGW("Must specify at least type or uuid");
+@@ -50,12 +45,70 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    mProbe = probe;
++    mPriority = priority;
++    mCbf = cbf;
++    mUserData = user;
++    mSessionId = sessionId;
++    memset(&mDescriptor, 0, sizeof(effect_descriptor_t));
++    mDescriptor.type = *(type != NULL ? type : EFFECT_UUID_NULL);
++    mDescriptor.uuid = *(uuid != NULL ? uuid : EFFECT_UUID_NULL);
++    mIEffectClient = new EffectClient(this);
++    mClientPid = IPCThreadState::self()->getCallingPid();
++    mClientUid = IPCThreadState::self()->getCallingUid();
++    iEffect = audioFlinger->createEffect((effect_descriptor_t *)&mDescriptor,
++            mIEffectClient, priority, io, mSessionId, device, mOpPackageName, mClientPid,
++            probe, &mStatus, &mId, &enabled);
++    if (probe || iEffect == 0 || (mStatus != NO_ERROR && mStatus != ALREADY_EXISTS)) {
++        char typeBuffer[64] = {}, uuidBuffer[64] = {};
++        guidToString(type, typeBuffer, sizeof(typeBuffer));
++        guidToString(uuid, uuidBuffer, sizeof(uuidBuffer));
++        ALOGE_IF(!probe, "set(): AudioFlinger could not create effect %s / %s, status: %d",
++                type != nullptr ? typeBuffer : "NULL",
++                uuid != nullptr ? uuidBuffer : "NULL",
++                mStatus);
++        if (!probe && iEffect == 0) {
++            mStatus = NO_INIT;
++        }
++        return mStatus;
++    }
++    mEnabled = (volatile int32_t)enabled;
++    cblk = iEffect->getCblk();
++    if (cblk == 0) {
++        mStatus = NO_INIT;
++        ALOGE("Could not get control block");
++        return mStatus;
++    }
++    mIEffect = iEffect;
++    mCblkMemory = cblk;
++    mCblk = static_cast<effect_param_cblk_t*>(cblk->unsecurePointer());
++    int bufOffset = ((sizeof(effect_param_cblk_t) - 1) / sizeof(int) + 1) * sizeof(int);
++    mCblk->buffer = (uint8_t *)mCblk + bufOffset;
++    IInterface::asBinder(iEffect)->linkToDeath(mIEffectClient);
++    ALOGV("set() %p OK effect: %s id: %d status %d enabled %d pid %d", this, mDescriptor.name, mId,
++            mStatus, mEnabled, mClientPid);
++    if (!audio_is_global_session(mSessionId)) {
++        AudioSystem::acquireAudioSessionId(mSessionId, mClientPid, mClientUid);
++    }
++    return mStatus;
++}
++status_t AudioEffect::set(const char *typeStr,
++                const char *uuidStr,
++                int32_t priority,
++                effect_callback_t cbf,
++                void* user,
++                audio_session_t sessionId,
++                audio_io_handle_t io,
++                const AudioDeviceTypeAddr& device,
++                bool probe)
++{
++    effect_uuid_t type;
++    effect_uuid_t *pType = nullptr;
++    effect_uuid_t uuid;
++    effect_uuid_t *pUuid = nullptr;
++    ALOGV("AudioEffect::set string\n - type: %s\n - uuid: %s",
++            typeStr ? typeStr : "nullptr", uuidStr ? uuidStr : "nullptr");
++    if (stringToGuid(typeStr, &type) == NO_ERROR) {
++        pType = &type;
++    }
++    if (stringToGuid(uuidStr, &uuid) == NO_ERROR) {
++        pUuid = &uuid;
++    }
++    return set(pType, pUuid, priority, cbf, user, sessionId, io, device, probe);
+@@ -66 +119 @@ AudioEffect::~AudioEffect()
+-    if (mStatus == NO_ERROR || mStatus == ALREADY_EXISTS) {
++    if (!mProbe && (mStatus == NO_ERROR || mStatus == ALREADY_EXISTS)) {
+@@ -75,0 +129 @@ AudioEffect::~AudioEffect()
++    }
+@@ -78,0 +133,3 @@ AudioEffect::~AudioEffect()
++status_t AudioEffect::initCheck() const
++{
++    return mStatus;
+@@ -80 +137 @@ AudioEffect::~AudioEffect()
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++effect_descriptor_t AudioEffect::descriptor() const
+@@ -82,2 +139 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    return mDescriptor;
+@@ -85,12 +141,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++bool AudioEffect::getEnabled() const
++{
++    return (mEnabled != 0);
+@@ -98 +145 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::setEnabled(bool enabled)
+@@ -100,2 +147,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (mProbe) {
++        return INVALID_OPERATION;
+@@ -103,12 +150,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    if (mStatus != NO_ERROR) {
++        return (mStatus == ALREADY_EXISTS) ? (status_t) INVALID_OPERATION : mStatus;
+@@ -116,4 +153,9 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    status_t status = NO_ERROR;
++    AutoMutex lock(mLock);
++    if (enabled != mEnabled) {
++        if (enabled) {
++            ALOGV("enable %p", this);
++            status = mIEffect->enable();
++        } else {
++            ALOGV("disable %p", this);
++            status = mIEffect->disable();
+@@ -121,12 +163,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++        if (status == NO_ERROR) {
++            mEnabled = enabled;
+@@ -134,4 +165,0 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
+@@ -139,12 +167 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    return status;
+@@ -152 +169,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::command(uint32_t cmdCode,
++                              uint32_t cmdSize,
++                              void *cmdData,
++                              uint32_t *replySize,
++                              void *replyData)
+@@ -154,2 +175,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (mProbe) {
++        return INVALID_OPERATION;
+@@ -157,11 +178,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
++    if (mStatus != NO_ERROR && mStatus != ALREADY_EXISTS) {
++        ALOGV("command() bad status %d", mStatus);
++        return mStatus;
++    }
++    if (cmdCode == EFFECT_CMD_ENABLE || cmdCode == EFFECT_CMD_DISABLE) {
++        if (mEnabled == (cmdCode == EFFECT_CMD_ENABLE)) {
+@@ -170,3 +186 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
++        if (replySize == NULL || *replySize != sizeof(status_t) || replyData == NULL) {
+@@ -175,12 +189 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++        mLock.lock();
+@@ -188,4 +191,4 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    status_t status = mIEffect->command(cmdCode, cmdSize, cmdData, replySize, replyData);
++    if (cmdCode == EFFECT_CMD_ENABLE || cmdCode == EFFECT_CMD_DISABLE) {
++        if (status == NO_ERROR) {
++            status = *(status_t *)replyData;
+@@ -193,12 +196,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++        if (status == NO_ERROR) {
++            mEnabled = (cmdCode == EFFECT_CMD_ENABLE);
+@@ -206,4 +199 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++        mLock.unlock();
+@@ -211,12 +201 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    return status;
+@@ -224 +203 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::setParameter(effect_param_t *param)
+@@ -226,2 +205,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (mProbe) {
++        return INVALID_OPERATION;
+@@ -229,12 +208,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    if (mStatus != NO_ERROR) {
++        return (mStatus == ALREADY_EXISTS) ? (status_t) INVALID_OPERATION : mStatus;
+@@ -242,3 +211 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
++    if (param == NULL || param->psize == 0 || param->vsize == 0) {
+@@ -247,12 +214,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    uint32_t size = sizeof(int);
++    uint32_t psize = ((param->psize - 1) / sizeof(int) + 1) * sizeof(int) + param->vsize;
++    ALOGV("setParameter: param: %d, param2: %d", *(int *)param->data,
++            (param->psize == 8) ? *((int *)param->data + 1): -1);
++    return mIEffect->command(EFFECT_CMD_SET_PARAM, sizeof (effect_param_t) + psize, param, &size,
++            &param->status);
+@@ -260 +221 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::setParameterDeferred(effect_param_t *param)
+@@ -262,2 +223,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (mProbe) {
++        return INVALID_OPERATION;
+@@ -265,12 +226,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    if (mStatus != NO_ERROR) {
++        return (mStatus == ALREADY_EXISTS) ? (status_t) INVALID_OPERATION : mStatus;
+@@ -278,3 +229 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
++    if (param == NULL || param->psize == 0 || param->vsize == 0) {
+@@ -283,11 +232,10 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
++    Mutex::Autolock _l(mCblk->lock);
++    int psize = ((param->psize - 1) / sizeof(int) + 1) * sizeof(int) + param->vsize;
++    int size = ((sizeof(effect_param_t) + psize - 1) / sizeof(int) + 1) * sizeof(int);
++    if (mCblk->clientIndex + size > EFFECT_PARAM_BUFFER_SIZE) {
++        return NO_MEMORY;
++    }
++    int *p = (int *)(mCblk->buffer + mCblk->clientIndex);
++    *p++ = size;
++    memcpy(p, param, sizeof(effect_param_t) + psize);
++    mCblk->clientIndex += size;
+@@ -296 +244 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::setParameterCommit()
+@@ -298,2 +246,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (mProbe) {
++        return INVALID_OPERATION;
+@@ -301,12 +249,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    if (mStatus != NO_ERROR) {
++        return (mStatus == ALREADY_EXISTS) ? (status_t) INVALID_OPERATION : mStatus;
+@@ -314,4 +252,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
+-{
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    Mutex::Autolock _l(mCblk->lock);
++    if (mCblk->clientIndex == 0) {
++        return INVALID_OPERATION;
+@@ -319,12 +256,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    uint32_t size = 0;
++    return mIEffect->command(EFFECT_CMD_SET_PARAM_COMMIT, 0, NULL, &size, NULL);
+@@ -332 +259 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::getParameter(effect_param_t *param)
+@@ -334 +261,7 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
++    if (mProbe) {
++        return INVALID_OPERATION;
++    }
++    if (mStatus != NO_ERROR && mStatus != ALREADY_EXISTS) {
++        return mStatus;
++    }
++    if (param == NULL || param->psize == 0 || param->vsize == 0) {
+@@ -337,12 +270,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    ALOGV("getParameter: param: %d, param2: %d", *(int *)param->data,
++            (param->psize == 8) ? *((int *)param->data + 1): -1);
++    uint32_t psize = sizeof(effect_param_t) + ((param->psize - 1) / sizeof(int) + 1) * sizeof(int) +
++            param->vsize;
++    return mIEffect->command(EFFECT_CMD_GET_PARAM, sizeof(effect_param_t) + param->psize, param,
++            &psize, param);
+@@ -350 +277 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++void AudioEffect::binderDied()
+@@ -352,2 +279,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    ALOGW("IEffect died");
++    mStatus = DEAD_OBJECT;
++    if (mCbf != NULL) {
++        status_t status = DEAD_OBJECT;
++        mCbf(EVENT_ERROR, mUserData, &status);
+@@ -355,12 +285 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    mIEffect.clear();
+@@ -368 +287 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++void AudioEffect::controlStatusChanged(bool controlGranted)
+@@ -370,2 +289,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    ALOGV("controlStatusChanged %p control %d callback %p mUserData %p", this, controlGranted, mCbf,
++            mUserData);
++    if (controlGranted) {
++        if (mStatus == ALREADY_EXISTS) {
++            mStatus = NO_ERROR;
+@@ -373,12 +295,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    } else {
++        if (mStatus == NO_ERROR) {
++            mStatus = ALREADY_EXISTS;
+@@ -386 +299,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++    }
++    if (mCbf != NULL) {
++        mCbf(EVENT_CONTROL_STATUS_CHANGED, mUserData, &controlGranted);
++    }
++}
++void AudioEffect::enableStatusChanged(bool enabled)
+@@ -388,2 +306,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    ALOGV("enableStatusChanged %p enabled %d mCbf %p", this, enabled, mCbf);
++    if (mStatus == ALREADY_EXISTS) {
++        mEnabled = enabled;
++        if (mCbf != NULL) {
++            mCbf(EVENT_ENABLE_STATUS_CHANGED, mUserData, &enabled);
+@@ -391,12 +311,0 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
+@@ -404 +313,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++}
++void AudioEffect::commandExecuted(uint32_t cmdCode,
++                                  uint32_t cmdSize __unused,
++                                  void *cmdData,
++                                  uint32_t replySize __unused,
++                                  void *replyData)
+@@ -406,2 +320,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    if (cmdData == NULL || replyData == NULL) {
++        return;
+@@ -409,12 +323,4 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++    if (mCbf != NULL && cmdCode == EFFECT_CMD_SET_PARAM) {
++        effect_param_t *cmd = (effect_param_t *)cmdData;
++        cmd->status = *(int32_t *)replyData;
++        mCbf(EVENT_PARAMETER_CHANGED, mUserData, cmd);
+@@ -422 +328,2 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++}
++status_t AudioEffect::queryNumberEffects(uint32_t *numEffects)
+@@ -424,2 +331,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
++    if (af == 0) return PERMISSION_DENIED;
++    return af->queryNumberEffects(numEffects);
+@@ -427,12 +335,14 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++status_t AudioEffect::queryEffect(uint32_t index, effect_descriptor_t *descriptor)
++{
++    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
++    if (af == 0) return PERMISSION_DENIED;
++    return af->queryEffect(index, descriptor);
++}
++status_t AudioEffect::getEffectDescriptor(const effect_uuid_t *uuid,
++                                          const effect_uuid_t *type,
++                                          uint32_t preferredTypeFlag,
++                                          effect_descriptor_t *descriptor)
++{
++    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
++    if (af == 0) return PERMISSION_DENIED;
++    return af->getEffectDescriptor(uuid, type, preferredTypeFlag, descriptor);
+@@ -440 +350,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::queryDefaultPreProcessing(audio_session_t audioSession,
++                                          effect_descriptor_t *descriptors,
++                                          uint32_t *count)
+@@ -442,2 +354,3 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    if (aps == 0) return PERMISSION_DENIED;
++    return aps->queryDefaultPreProcessing(audioSession, descriptors, count);
+@@ -445,11 +358,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
++status_t AudioEffect::newEffectUniqueId(audio_unique_id_t* id)
++{
++    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
++    if (af == 0) return PERMISSION_DENIED;
++    *id = af->newAudioUniqueId(AUDIO_UNIQUE_ID_USE_EFFECT);
+@@ -458 +365,6 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::addSourceDefaultEffect(const char *typeStr,
++                                             const String16& opPackageName,
++                                             const char *uuidStr,
++                                             int32_t priority,
++                                             audio_source_t source,
++                                             audio_unique_id_t *id)
+@@ -460,2 +372,50 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
+-        return BAD_VALUE;
++    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    if (aps == 0) return PERMISSION_DENIED;
++    if (typeStr == NULL && uuidStr == NULL) return BAD_VALUE;
++    effect_uuid_t type;
++    if (typeStr != NULL) {
++        status_t res = stringToGuid(typeStr, &type);
++        if (res != OK) return res;
++    } else {
++        type = *EFFECT_UUID_NULL;
++    }
++    effect_uuid_t uuid;
++    if (uuidStr != NULL) {
++        status_t res = stringToGuid(uuidStr, &uuid);
++        if (res != OK) return res;
++    } else {
++        uuid = *EFFECT_UUID_NULL;
++    }
++    return aps->addSourceDefaultEffect(&type, opPackageName, &uuid, priority, source, id);
++}
++status_t AudioEffect::addStreamDefaultEffect(const char *typeStr,
++                                             const String16& opPackageName,
++                                             const char *uuidStr,
++                                             int32_t priority,
++                                             audio_usage_t usage,
++                                             audio_unique_id_t *id)
++{
++    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    if (aps == 0) return PERMISSION_DENIED;
++    if (typeStr == NULL && uuidStr == NULL) return BAD_VALUE;
++    effect_uuid_t type;
++    if (typeStr != NULL) {
++        status_t res = stringToGuid(typeStr, &type);
++        if (res != OK) return res;
++    } else {
++        type = *EFFECT_UUID_NULL;
++    }
++    effect_uuid_t uuid;
++    if (uuidStr != NULL) {
++        status_t res = stringToGuid(uuidStr, &uuid);
++        if (res != OK) return res;
++    } else {
++        uuid = *EFFECT_UUID_NULL;
++    }
++    return aps->addStreamDefaultEffect(&type, opPackageName, &uuid, priority, usage, id);
++}
++status_t AudioEffect::removeSourceDefaultEffect(audio_unique_id_t id)
++{
++    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    if (aps == 0) return PERMISSION_DENIED;
++    return aps->removeSourceDefaultEffect(id);
+@@ -463,12 +423,5 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
+-    return NO_ERROR;
++status_t AudioEffect::removeStreamDefaultEffect(audio_unique_id_t id)
++{
++    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
++    if (aps == 0) return PERMISSION_DENIED;
++    return aps->removeStreamDefaultEffect(id);
+@@ -476 +429 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t maxLen)
++status_t AudioEffect::stringToGuid(const char *str, effect_uuid_t *guid)
+@@ -478 +431 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    if (guid == NULL || str == NULL) {
++    if (str == NULL || guid == NULL) {
+@@ -481,11 +434,15 @@ status_t AudioEffect::guidToString(const effect_uuid_t *guid, char *str, size_t
+-    snprintf(str, maxLen, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
+-            guid->timeLow,
+-            guid->timeMid,
+-            guid->timeHiAndVersion,
+-            guid->clockSeq,
+-            guid->node[0],
+-            guid->node[1],
+-            guid->node[2],
+-            guid->node[3],
+-            guid->node[4],
+-            guid->node[5]);
++    int tmp[10];
++    if (sscanf(str, "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
++            tmp, tmp+1, tmp+2, tmp+3, tmp+4, tmp+5, tmp+6, tmp+7, tmp+8, tmp+9) < 10) {
++        return BAD_VALUE;
++    }
++    guid->timeLow = (uint32_t)tmp[0];
++    guid->timeMid = (uint16_t)tmp[1];
++    guid->timeHiAndVersion = (uint16_t)tmp[2];
++    guid->clockSeq = (uint16_t)tmp[3];
++    guid->node[0] = (uint8_t)tmp[4];
++    guid->node[1] = (uint8_t)tmp[5];
++    guid->node[2] = (uint8_t)tmp[6];
++    guid->node[3] = (uint8_t)tmp[7];
++    guid->node[4] = (uint8_t)tmp[8];
++    guid->node[5] = (uint8_t)tmp[9];

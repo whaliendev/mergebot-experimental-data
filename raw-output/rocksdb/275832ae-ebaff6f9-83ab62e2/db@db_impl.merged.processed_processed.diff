@@ -1,0 +1,245 @@
+--- a/./output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_merged.cc
++++ b/./output/rocksdb/275832ae-ebaff6f9-83ab62e2/db@db_impl.no_comments_truth.cc
+@@ -59 +58,0 @@ namespace rocksdb {
+-<<<<<<< HEAD
+@@ -61,8 +59,0 @@ const std::string default_column_family_name("default");
+-||||||| 83ab62e2b
+-int DBImpl::SuperVersion::dummy = 0;
+-void* const DBImpl::SuperVersion::kSVInUse = &DBImpl::SuperVersion::dummy;
+-void* const DBImpl::SuperVersion::kSVObsolete = nullptr;
+-=======
+-int DBImpl::SuperVersion::dummy = 0;
+-void* const DBImpl::SuperVersion::kSVInUse = &DBImpl::SuperVersion::dummy;
+-void* const DBImpl::SuperVersion::kSVObsolete = nullptr;
+@@ -70 +60,0 @@ const std::string kNullString = "NULL";
+->>>>>>> ebaff6f9
+@@ -1863,79 +1852,0 @@ inline SequenceNumber DBImpl::findEarliestVisibleSnapshot(
+-<<<<<<< HEAD
+-Status DBImpl::DoCompactionWork(CompactionState* compact,
+-                                DeletionState& deletion_state,
+-                                LogBuffer* log_buffer) {
+-  assert(compact);
+-  int64_t imm_micros = 0;
+-  ColumnFamilyData* cfd = compact->compaction->column_family_data();
+-  Log(options_.info_log,
+-      "[CF %u] Compacting %d@%d + %d@%d files, score %.2f slots available %d",
+-      cfd->GetID(), compact->compaction->num_input_files(0),
+-      compact->compaction->level(), compact->compaction->num_input_files(1),
+-      compact->compaction->output_level(), compact->compaction->score(),
+-      options_.max_background_compactions - bg_compaction_scheduled_);
+-  char scratch[2345];
+-  compact->compaction->Summary(scratch, sizeof(scratch));
+-  Log(options_.info_log, "Compaction start summary: %s\n", scratch);
+-  assert(compact->compaction->input_version()->NumLevelFiles(
+-             compact->compaction->level()) > 0);
+-  assert(compact->builder == nullptr);
+-  assert(!compact->outfile);
+-  SequenceNumber visible_at_tip = 0;
+-  SequenceNumber earliest_snapshot;
+-  SequenceNumber latest_snapshot = 0;
+-  snapshots_.getAll(compact->existing_snapshots);
+-  if (compact->existing_snapshots.size() == 0) {
+-    visible_at_tip = versions_->LastSequence();
+-    earliest_snapshot = visible_at_tip;
+-  } else {
+-    latest_snapshot = compact->existing_snapshots.back();
+-    compact->existing_snapshots.push_back(versions_->LastSequence());
+-    earliest_snapshot = compact->existing_snapshots[0];
+-  }
+-  bool bottommost_level = compact->compaction->BottomMostLevel();
+-  AllocateCompactionOutputFileNumbers(compact);
+-  mutex_.Unlock();
+-  log_buffer->FlushBufferToLog();
+-  const uint64_t start_micros = env_->NowMicros();
+-  unique_ptr<Iterator> input(versions_->MakeInputIterator(compact->compaction));
+-  input->SeekToFirst();
+-||||||| 83ab62e2b
+-Status DBImpl::DoCompactionWork(CompactionState* compact,
+-                                DeletionState& deletion_state,
+-                                LogBuffer* log_buffer) {
+-  assert(compact);
+-  int64_t imm_micros = 0;
+-  Log(options_.info_log,
+-      "Compacting %d@%d + %d@%d files, score %.2f slots available %d",
+-      compact->compaction->num_input_files(0),
+-      compact->compaction->level(),
+-      compact->compaction->num_input_files(1),
+-      compact->compaction->output_level(),
+-      compact->compaction->score(),
+-      options_.max_background_compactions - bg_compaction_scheduled_);
+-  char scratch[2345];
+-  compact->compaction->Summary(scratch, sizeof(scratch));
+-  Log(options_.info_log, "Compaction start summary: %s\n", scratch);
+-  assert(versions_->current()->NumLevelFiles(compact->compaction->level()) > 0);
+-  assert(compact->builder == nullptr);
+-  assert(!compact->outfile);
+-  SequenceNumber visible_at_tip = 0;
+-  SequenceNumber earliest_snapshot;
+-  SequenceNumber latest_snapshot = 0;
+-  snapshots_.getAll(compact->existing_snapshots);
+-  if (compact->existing_snapshots.size() == 0) {
+-    visible_at_tip = versions_->LastSequence();
+-    earliest_snapshot = visible_at_tip;
+-  } else {
+-    latest_snapshot = compact->existing_snapshots.back();
+-    compact->existing_snapshots.push_back(versions_->LastSequence());
+-    earliest_snapshot = compact->existing_snapshots[0];
+-  }
+-  bool bottommost_level = compact->compaction->BottomMostLevel();
+-  AllocateCompactionOutputFileNumbers(compact);
+-  mutex_.Unlock();
+-  log_buffer->FlushBufferToLog();
+-  const uint64_t start_micros = env_->NowMicros();
+-  unique_ptr<Iterator> input(versions_->MakeInputIterator(compact->compaction));
+-  input->SeekToFirst();
+-=======
+@@ -1954 +1864,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+->>>>>>> ebaff6f9
+@@ -1964,3 +1874 @@ Status DBImpl::ProcessKeyValueCompaction(
+-<<<<<<< HEAD
+-  std::string compaction_filter_value;
+-  std::vector<char> delete_key;
++  ColumnFamilyData* cfd = compact->compaction->column_family_data();
+@@ -1969,7 +1877 @@ Status DBImpl::ProcessKeyValueCompaction(
+-      options_.info_log.get(), false );
+-  auto compaction_filter = cfd->options()->compaction_filter;
+-||||||| 83ab62e2b
+-  std::string compaction_filter_value;
+-  std::vector<char> delete_key;
+-  MergeHelper merge(user_comparator(), options_.merge_operator.get(),
+-                    options_.info_log.get(),
++      options_.info_log.get(), cfd->options()->min_partial_merge_operands,
+@@ -1977,8 +1879 @@ Status DBImpl::ProcessKeyValueCompaction(
+-  auto compaction_filter = options_.compaction_filter;
+-=======
+-  MergeHelper merge(user_comparator(), options_.merge_operator.get(),
+-                    options_.info_log.get(),
+-                    options_.min_partial_merge_operands,
+-                    false );
+-  auto compaction_filter = options_.compaction_filter;
+->>>>>>> ebaff6f9
++  auto compaction_filter = cfd->options()->compaction_filter;
+@@ -1993,22 +1887,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-<<<<<<< HEAD
+-  while (input->Valid() && !shutting_down_.Acquire_Load() &&
+-         !cfd->IsDropped()) {
+-    Slice key = input->key();
+-    Slice value = input->value();
+-||||||| 83ab62e2b
+-  for (; input->Valid() && !shutting_down_.Acquire_Load(); ) {
+-    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-      const uint64_t imm_start = env_->NowMicros();
+-      LogFlush(options_.info_log);
+-      mutex_.Lock();
+-      if (imm_.IsFlushPending()) {
+-        FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-        bg_cv_.SignalAll();
+-      }
+-      mutex_.Unlock();
+-      log_buffer->FlushBufferToLog();
+-      imm_micros += (env_->NowMicros() - imm_start);
+-    }
+-    Slice key = input->key();
+-    Slice value = input->value();
+-=======
+@@ -2016,12 +1888,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-    if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-      const uint64_t imm_start = env_->NowMicros();
+-      LogFlush(options_.info_log);
+-      mutex_.Lock();
+-      if (imm_.IsFlushPending()) {
+-        FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-        bg_cv_.SignalAll();
+-      }
+-      mutex_.Unlock();
+-      log_buffer->FlushBufferToLog();
+-      imm_micros += (env_->NowMicros() - imm_start);
+-    }
+@@ -2042 +1902,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+->>>>>>> ebaff6f9
+@@ -2059 +1918,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-<<<<<<< HEAD
+@@ -2062,7 +1920,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-||||||| 83ab62e2b
+-          user_comparator()->Compare(ikey.user_key,
+-                                     Slice(current_user_key)) != 0) {
+-=======
+-          user_comparator()->Compare(ikey.user_key,
+-            Slice(current_user_key)) != 0) {
+->>>>>>> ebaff6f9
+@@ -2078 +1929,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-<<<<<<< HEAD
+@@ -2082,13 +1932,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-||||||| 83ab62e2b
+-          bool to_delete =
+-            compaction_filter->Filter(compact->compaction->level(),
+-                                               ikey.user_key, value,
+-                                               &compaction_filter_value,
+-                                               &value_changed);
+-=======
+-          bool to_delete =
+-            compaction_filter->Filter(compact->compaction->level(),
+-                ikey.user_key, value,
+-                &compaction_filter_value,
+-                &value_changed);
+->>>>>>> ebaff6f9
+@@ -2222,5 +2059,0 @@ Status DBImpl::ProcessKeyValueCompaction(
+-<<<<<<< HEAD
+-  if (status.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) {
+-||||||| 83ab62e2b
+-  if (status.ok() && shutting_down_.Acquire_Load()) {
+-=======
+@@ -2271,0 +2105 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
++  ColumnFamilyData* cfd = compact->compaction->column_family_data();
+@@ -2273,6 +2107,4 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-      "Compacting %d@%d + %d@%d files, score %.2f slots available %d",
+-      compact->compaction->num_input_files(0),
+-      compact->compaction->level(),
+-      compact->compaction->num_input_files(1),
+-      compact->compaction->output_level(),
+-      compact->compaction->score(),
++      "[CF %u] Compacting %d@%d + %d@%d files, score %.2f slots available %d",
++      cfd->GetID(), compact->compaction->num_input_files(0),
++      compact->compaction->level(), compact->compaction->num_input_files(1),
++      compact->compaction->output_level(), compact->compaction->score(),
+@@ -2283 +2115 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-  assert(versions_->current()->NumLevelFiles(compact->compaction->level()) > 0);
++  assert(cfd->current()->NumLevelFiles(compact->compaction->level()) > 0);
+@@ -2313 +2145,2 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    options_.compaction_filter_factory_v2->CreateCompactionFilterV2(context);
++      cfd->options()->compaction_filter_factory_v2->CreateCompactionFilterV2(
++          context);
+@@ -2317,12 +2150,2 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    for (; backup_input->Valid() && !shutting_down_.Acquire_Load(); ) {
+-      if (imm_.imm_flush_needed.NoBarrier_Load() != nullptr) {
+-        const uint64_t imm_start = env_->NowMicros();
+-        LogFlush(options_.info_log);
+-        mutex_.Lock();
+-        if (imm_.IsFlushPending()) {
+-          FlushMemTableToOutputFile(nullptr, deletion_state, log_buffer);
+-          bg_cv_.SignalAll();
+-        }
+-        mutex_.Unlock();
+-        imm_micros += (env_->NowMicros() - imm_start);
+-      }
++    while (backup_input->Valid() && !shutting_down_.Acquire_Load() &&
++           !cfd->IsDropped()) {
+@@ -2332 +2155 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        options_.compaction_filter_factory_v2->GetPrefixExtractor();
++          cfd->options()->compaction_filter_factory_v2->GetPrefixExtractor();
+@@ -2358 +2181 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-      compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++      compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2386 +2209 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++        compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2405 +2228 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-    compact->MergeKeyValueSliceBuffer(&internal_comparator_);
++    compact->MergeKeyValueSliceBuffer(&cfd->internal_comparator());
+@@ -2431,2 +2254 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-  if (status.ok() && shutting_down_.Acquire_Load()) {
+->>>>>>> ebaff6f9
++  if (status.ok() && (shutting_down_.Acquire_Load() || cfd->IsDropped())) {
+@@ -2434 +2256 @@ Status DBImpl::DoCompactionWork(CompactionState* compact,
+-        "Database shutdown started during compaction");
++        "Database shutdown or Column family drop during compaction");

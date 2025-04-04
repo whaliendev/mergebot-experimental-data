@@ -1,0 +1,72 @@
+diff --git a/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_mergebot.cc b/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_truth.cc
+index 432dc73..69b5b22 100644
+--- a/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_mergebot.cc
++++ b/output/rocksdb/8555ce2d-7efdd9ef-8c4a3bfa/db@version_set.no_comments_truth.cc
+@@ -201,12 +200,0 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-<<<<<<< HEAD
+-    const FileMetaData* meta_file =
+-        reinterpret_cast<const FileMetaData*>(level_iter->value().data());
+-    may_match = cfd_->table_cache()->PrefixMayMatch(
+-        options, cfd_->internal_comparator(), *meta_file, internal_prefix,
+-        nullptr);
+-||||||| 8c4a3bfa5
+-    const FileMetaData* meta_file =
+-        reinterpret_cast<const FileMetaData*>(level_iter->value().data());
+-    may_match = vset_->table_cache_->PrefixMayMatch(
+-        options, vset_->icmp_, *meta_file, internal_prefix, nullptr);
+-=======
+@@ -218,3 +206,2 @@ bool Version::PrefixMayMatch(const ReadOptions& options,
+-    may_match = vset_->table_cache_->PrefixMayMatch(options, vset_->icmp_, meta,
+-                                                    internal_prefix, nullptr);
+->>>>>>> 7efdd9ef
++    may_match = cfd_->table_cache()->PrefixMayMatch(
++        options, cfd_->internal_comparator(), meta, internal_prefix, nullptr);
+@@ -294 +281,5 @@ enum SaverState {
+-kNotFound,kFound,kDeleted,kCorrupt,kMerge
++  kNotFound,
++  kFound,
++  kDeleted,
++  kCorrupt,
++  kMerge
+@@ -391,2 +382,16 @@ bool BySmallestKey(FileMetaData* a, FileMetaData* b,
+-Version::Version(ColumnFamilyData* cfd, VersionSet* vset, uint64_t version_number): cfd_(cfd), vset_(vset), next_(this), prev_(this), refs_(0),
+-      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()), files_(new std::vector<FileMetaData*>[num_levels_]), files_by_size_(num_levels_), next_file_to_compact_by_size_(num_levels_), file_to_compact_(nullptr), file_to_compact_level_(-1), compaction_score_(num_levels_), compaction_level_(num_levels_), version_number_(version_number) {}
++Version::Version(ColumnFamilyData* cfd, VersionSet* vset,
++                 uint64_t version_number)
++    : cfd_(cfd),
++      vset_(vset),
++      next_(this),
++      prev_(this),
++      refs_(0),
++      num_levels_(cfd == nullptr ? 0 : cfd->NumberLevels()),
++      files_(new std::vector<FileMetaData*>[num_levels_]),
++      files_by_size_(num_levels_),
++      next_file_to_compact_by_size_(num_levels_),
++      file_to_compact_(nullptr),
++      file_to_compact_level_(-1),
++      compaction_score_(num_levels_),
++      compaction_level_(num_levels_),
++      version_number_(version_number) {}
+@@ -575 +580,2 @@ namespace {
+-bool CompareSizeDescending(const Version::Fsize& first, const Version::Fsize& second) {
++bool CompareSizeDescending(const Version::Fsize& first,
++                           const Version::Fsize& second) {
+@@ -578 +584,2 @@ bool CompareSizeDescending(const Version::Fsize& first, const Version::Fsize& se
+-bool CompareSeqnoDescending(const Version::Fsize& first, const Version::Fsize& second) {
++bool CompareSeqnoDescending(const Version::Fsize& first,
++                            const Version::Fsize& second) {
+@@ -1164,6 +1170,0 @@ VersionSet::~VersionSet() {
+-}{
+-  column_family_set_.reset();
+-  for (auto file : obsolete_files_) {
+-    delete file;
+-  }
+-  obsolete_files_.clear();
+@@ -1642 +1643,2 @@ Status VersionSet::Recover(
+-Status VersionSet::ListColumnFamilies(std::vector<std::string>* column_families, const std::string& dbname, Env* env) {
++Status VersionSet::ListColumnFamilies(std::vector<std::string>* column_families,
++                                      const std::string& dbname, Env* env) {
+@@ -2151 +2153,2 @@ void VersionSet::GetObsoleteFiles(std::vector<FileMetaData*>* files) {
+-ColumnFamilyData* VersionSet::CreateColumnFamily(const ColumnFamilyOptions& options, VersionEdit* edit) {
++ColumnFamilyData* VersionSet::CreateColumnFamily(
++    const ColumnFamilyOptions& options, VersionEdit* edit) {

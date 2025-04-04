@@ -1,0 +1,359 @@
+--- a/./output/frameworks_native/ad266680-8acaef00-d1030f6a/services@surfaceflinger@BufferLayer.no_comments_merged.cpp
++++ b/./output/frameworks_native/ad266680-8acaef00-d1030f6a/services@surfaceflinger@BufferLayer.no_comments_truth.cpp
+@@ -313 +312,0 @@ Region BufferLayer::latchBuffer(bool& recomputeVisibleRegions, nsecs_t latchTime
+-<<<<<<< HEAD
+@@ -321,354 +319,0 @@ void BufferLayer::notifyAvailableFrames() {
+-||||||| d1030f6a7d
+-void BufferLayer::setDefaultBufferSize(uint32_t w, uint32_t h) {
+-    mConsumer->setDefaultBufferSize(w, h);
+-}
+-void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& displayDevice) {
+-    const Transform& tr = displayDevice->getTransform();
+-    const auto& viewport = displayDevice->getViewport();
+-    Region visible = tr.transform(visibleRegion.intersect(viewport));
+-    auto hwcId = displayDevice->getHwcDisplayId();
+-    auto& hwcInfo = getBE().mHwcLayers[hwcId];
+-    auto& hwcLayer = hwcInfo.layer;
+-    auto error = hwcLayer->setVisibleRegion(visible);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set visible region: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        visible.dump(LOG_TAG);
+-    }
+-    error = hwcLayer->setSurfaceDamage(surfaceDamageRegion);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set surface damage: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        surfaceDamageRegion.dump(LOG_TAG);
+-    }
+-    if (getBE().compositionInfo.hwc.sidebandStream.get()) {
+-        setCompositionType(hwcId, HWC2::Composition::Sideband);
+-        ALOGV("[%s] Requesting Sideband composition", mName.string());
+-        error = hwcLayer->setSidebandStream(getBE().compositionInfo.hwc.sidebandStream->handle());
+-        if (error != HWC2::Error::None) {
+-            ALOGE("[%s] Failed to set sideband stream %p: %s (%d)", mName.string(),
+-                  getBE().compositionInfo.hwc.sidebandStream->handle(), to_string(error).c_str(),
+-                  static_cast<int32_t>(error));
+-        }
+-        return;
+-    }
+-    if (mPotentialCursor) {
+-        ALOGV("[%s] Requesting Cursor composition", mName.string());
+-        setCompositionType(hwcId, HWC2::Composition::Cursor);
+-    } else {
+-        ALOGV("[%s] Requesting Device composition", mName.string());
+-        setCompositionType(hwcId, HWC2::Composition::Device);
+-    }
+-    ALOGV("setPerFrameData: dataspace = %d", mCurrentDataSpace);
+-    error = hwcLayer->setDataspace(mCurrentDataSpace);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set dataspace %d: %s (%d)", mName.string(), mCurrentDataSpace,
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-    }
+-    const HdrMetadata& metadata = mConsumer->getCurrentHdrMetadata();
+-    error = hwcLayer->setPerFrameMetadata(displayDevice->getSupportedPerFrameMetadata(), metadata);
+-    if (error != HWC2::Error::None && error != HWC2::Error::Unsupported) {
+-        ALOGE("[%s] Failed to set hdrMetadata: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-    }
+-    uint32_t hwcSlot = 0;
+-    sp<GraphicBuffer> hwcBuffer;
+-    hwcInfo.bufferCache.getHwcBuffer(getBE().compositionInfo.mBufferSlot,
+-                                     getBE().compositionInfo.mBuffer, &hwcSlot, &hwcBuffer);
+-    auto acquireFence = mConsumer->getCurrentFence();
+-    error = hwcLayer->setBuffer(hwcSlot, hwcBuffer, acquireFence);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set buffer %p: %s (%d)", mName.string(),
+-              getBE().compositionInfo.mBuffer->handle, to_string(error).c_str(),
+-              static_cast<int32_t>(error));
+-    }
+-}
+-bool BufferLayer::isOpaque(const Layer::State& s) const {
+-    if ((getBE().compositionInfo.hwc.sidebandStream == nullptr) && (getBE().compositionInfo.mBuffer == nullptr)) {
+-        return false;
+-    }
+-    return ((s.flags & layer_state_t::eLayerOpaque) != 0) || mCurrentOpacity;
+-}
+-void BufferLayer::onFirstRef() {
+-    Layer::onFirstRef();
+-    sp<IGraphicBufferProducer> producer;
+-    sp<IGraphicBufferConsumer> consumer;
+-    BufferQueue::createBufferQueue(&producer, &consumer, true);
+-    mProducer = new MonitoredProducer(producer, mFlinger, this);
+-    {
+-        Mutex::Autolock lock(mFlinger->mStateLock);
+-        mConsumer = new BufferLayerConsumer(consumer, mFlinger->getRenderEngine(), mTextureName,
+-                                            this);
+-    }
+-    mConsumer->setConsumerUsageBits(getEffectiveUsage(0));
+-    mConsumer->setContentsChangedListener(this);
+-    mConsumer->setName(mName);
+-    if (mFlinger->isLayerTripleBufferingDisabled()) {
+-        mProducer->setMaxDequeuedBufferCount(2);
+-    }
+-    const sp<const DisplayDevice> hw(mFlinger->getDefaultDisplayDevice());
+-    updateTransformHint(hw);
+-}
+-void BufferLayer::onFrameAvailable(const BufferItem& item) {
+-    {
+-        Mutex::Autolock lock(mQueueItemLock);
+-        mFlinger->mInterceptor->saveBufferUpdate(this, item.mGraphicBuffer->getWidth(),
+-                                                 item.mGraphicBuffer->getHeight(),
+-                                                 item.mFrameNumber);
+-        if (item.mFrameNumber == 1) {
+-            mLastFrameNumberReceived = 0;
+-        }
+-        while (item.mFrameNumber != mLastFrameNumberReceived + 1) {
+-            status_t result = mQueueItemCondition.waitRelative(mQueueItemLock,
+-                                                               ms2ns(500));
+-            if (result != NO_ERROR) {
+-                ALOGE("[%s] Timed out waiting on callback", mName.string());
+-            }
+-        }
+-        mQueueItems.push_back(item);
+-        android_atomic_inc(&mQueuedFrames);
+-        mLastFrameNumberReceived = item.mFrameNumber;
+-        mQueueItemCondition.broadcast();
+-    }
+-    mFlinger->signalLayerUpdate();
+-}
+-void BufferLayer::onFrameReplaced(const BufferItem& item) {
+-    {
+-        Mutex::Autolock lock(mQueueItemLock);
+-        while (item.mFrameNumber != mLastFrameNumberReceived + 1) {
+-            status_t result = mQueueItemCondition.waitRelative(mQueueItemLock,
+-                                                               ms2ns(500));
+-            if (result != NO_ERROR) {
+-                ALOGE("[%s] Timed out waiting on callback", mName.string());
+-            }
+-        }
+-        if (mQueueItems.empty()) {
+-            ALOGE("Can't replace a frame on an empty queue");
+-            return;
+-        }
+-        mQueueItems.editItemAt(mQueueItems.size() - 1) = item;
+-        mLastFrameNumberReceived = item.mFrameNumber;
+-        mQueueItemCondition.broadcast();
+-    }
+-}
+-void BufferLayer::onSidebandStreamChanged() {
+-    if (android_atomic_release_cas(false, true, &mSidebandStreamChanged) == 0) {
+-        mFlinger->signalLayerUpdate();
+-    }
+-}
+-bool BufferLayer::needsFiltering(const RenderArea& renderArea) const {
+-    return mNeedsFiltering || renderArea.needsFiltering();
+-}
+-#define HARDWARE_IS_DEVICE_FORMAT(f) ((f) >= 0x100 && (f) <= 0x1FF)
+-bool BufferLayer::getOpacityForFormat(uint32_t format) {
+-    if (HARDWARE_IS_DEVICE_FORMAT(format)) {
+-        return true;
+-    }
+-    switch (format) {
+-        case HAL_PIXEL_FORMAT_RGBA_8888:
+-        case HAL_PIXEL_FORMAT_BGRA_8888:
+-        case HAL_PIXEL_FORMAT_RGBA_FP16:
+-        case HAL_PIXEL_FORMAT_RGBA_1010102:
+-            return false;
+-    }
+-    return true;
+-}
+-bool BufferLayer::isHdrY410() const {
+-    return (mCurrentDataSpace == ui::Dataspace::BT2020_ITU_PQ &&
+-            mConsumer->getCurrentApi() == NATIVE_WINDOW_API_MEDIA &&
+-            getBE().compositionInfo.mBuffer->getPixelFormat() == HAL_PIXEL_FORMAT_RGBA_1010102);
+-}
+-void BufferLayer::drawWithOpenGL(const RenderArea& renderArea, bool useIdentityTransform) const {
+-    ATRACE_CALL();
+-    const State& s(getDrawingState());
+-    computeGeometry(renderArea, getBE().mMesh, useIdentityTransform);
+-    const Rect bounds{computeBounds()};
+-    Transform t = getTransform();
+-    Rect win = bounds;
+-    if (!s.finalCrop.isEmpty()) {
+-        win = t.transform(win);
+-        if (!win.intersect(s.finalCrop, &win)) {
+-            win.clear();
+-        }
+-        win = t.inverse().transform(win);
+-        if (!win.intersect(bounds, &win)) {
+-            win.clear();
+-=======
+-void BufferLayer::setDefaultBufferSize(uint32_t w, uint32_t h) {
+-    mConsumer->setDefaultBufferSize(w, h);
+-}
+-void BufferLayer::setPerFrameData(const sp<const DisplayDevice>& displayDevice) {
+-    const Transform& tr = displayDevice->getTransform();
+-    const auto& viewport = displayDevice->getViewport();
+-    Region visible = tr.transform(visibleRegion.intersect(viewport));
+-    auto hwcId = displayDevice->getHwcDisplayId();
+-    if (!hasHwcLayer(hwcId)) {
+-        return;
+-    }
+-    auto& hwcInfo = getBE().mHwcLayers[hwcId];
+-    auto& hwcLayer = hwcInfo.layer;
+-    auto error = hwcLayer->setVisibleRegion(visible);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set visible region: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        visible.dump(LOG_TAG);
+-    }
+-    error = hwcLayer->setSurfaceDamage(surfaceDamageRegion);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set surface damage: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-        surfaceDamageRegion.dump(LOG_TAG);
+-    }
+-    if (getBE().compositionInfo.hwc.sidebandStream.get()) {
+-        setCompositionType(hwcId, HWC2::Composition::Sideband);
+-        ALOGV("[%s] Requesting Sideband composition", mName.string());
+-        error = hwcLayer->setSidebandStream(getBE().compositionInfo.hwc.sidebandStream->handle());
+-        if (error != HWC2::Error::None) {
+-            ALOGE("[%s] Failed to set sideband stream %p: %s (%d)", mName.string(),
+-                  getBE().compositionInfo.hwc.sidebandStream->handle(), to_string(error).c_str(),
+-                  static_cast<int32_t>(error));
+-        }
+-        return;
+-    }
+-    if (mPotentialCursor) {
+-        ALOGV("[%s] Requesting Cursor composition", mName.string());
+-        setCompositionType(hwcId, HWC2::Composition::Cursor);
+-    } else {
+-        ALOGV("[%s] Requesting Device composition", mName.string());
+-        setCompositionType(hwcId, HWC2::Composition::Device);
+-    }
+-    ALOGV("setPerFrameData: dataspace = %d", mCurrentDataSpace);
+-    error = hwcLayer->setDataspace(mCurrentDataSpace);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set dataspace %d: %s (%d)", mName.string(), mCurrentDataSpace,
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-    }
+-    const HdrMetadata& metadata = mConsumer->getCurrentHdrMetadata();
+-    error = hwcLayer->setPerFrameMetadata(displayDevice->getSupportedPerFrameMetadata(), metadata);
+-    if (error != HWC2::Error::None && error != HWC2::Error::Unsupported) {
+-        ALOGE("[%s] Failed to set hdrMetadata: %s (%d)", mName.string(),
+-              to_string(error).c_str(), static_cast<int32_t>(error));
+-    }
+-    uint32_t hwcSlot = 0;
+-    sp<GraphicBuffer> hwcBuffer;
+-    hwcInfo.bufferCache.getHwcBuffer(getBE().compositionInfo.mBufferSlot,
+-                                     getBE().compositionInfo.mBuffer, &hwcSlot, &hwcBuffer);
+-    auto acquireFence = mConsumer->getCurrentFence();
+-    error = hwcLayer->setBuffer(hwcSlot, hwcBuffer, acquireFence);
+-    if (error != HWC2::Error::None) {
+-        ALOGE("[%s] Failed to set buffer %p: %s (%d)", mName.string(),
+-              getBE().compositionInfo.mBuffer->handle, to_string(error).c_str(),
+-              static_cast<int32_t>(error));
+-    }
+-}
+-bool BufferLayer::isOpaque(const Layer::State& s) const {
+-    if ((getBE().compositionInfo.hwc.sidebandStream == nullptr) && (getBE().compositionInfo.mBuffer == nullptr)) {
+-        return false;
+-    }
+-    return ((s.flags & layer_state_t::eLayerOpaque) != 0) || mCurrentOpacity;
+-}
+-void BufferLayer::onFirstRef() {
+-    Layer::onFirstRef();
+-    sp<IGraphicBufferProducer> producer;
+-    sp<IGraphicBufferConsumer> consumer;
+-    BufferQueue::createBufferQueue(&producer, &consumer, true);
+-    mProducer = new MonitoredProducer(producer, mFlinger, this);
+-    {
+-        Mutex::Autolock lock(mFlinger->mStateLock);
+-        mConsumer = new BufferLayerConsumer(consumer, mFlinger->getRenderEngine(), mTextureName,
+-                                            this);
+-    }
+-    mConsumer->setConsumerUsageBits(getEffectiveUsage(0));
+-    mConsumer->setContentsChangedListener(this);
+-    mConsumer->setName(mName);
+-    if (mFlinger->isLayerTripleBufferingDisabled()) {
+-        mProducer->setMaxDequeuedBufferCount(2);
+-    }
+-    const sp<const DisplayDevice> hw(mFlinger->getDefaultDisplayDevice());
+-    updateTransformHint(hw);
+-}
+-void BufferLayer::onFrameAvailable(const BufferItem& item) {
+-    {
+-        Mutex::Autolock lock(mQueueItemLock);
+-        mFlinger->mInterceptor->saveBufferUpdate(this, item.mGraphicBuffer->getWidth(),
+-                                                 item.mGraphicBuffer->getHeight(),
+-                                                 item.mFrameNumber);
+-        if (item.mFrameNumber == 1) {
+-            mLastFrameNumberReceived = 0;
+-        }
+-        while (item.mFrameNumber != mLastFrameNumberReceived + 1) {
+-            status_t result = mQueueItemCondition.waitRelative(mQueueItemLock,
+-                                                               ms2ns(500));
+-            if (result != NO_ERROR) {
+-                ALOGE("[%s] Timed out waiting on callback", mName.string());
+-            }
+-        }
+-        mQueueItems.push_back(item);
+-        android_atomic_inc(&mQueuedFrames);
+-        mLastFrameNumberReceived = item.mFrameNumber;
+-        mQueueItemCondition.broadcast();
+-    }
+-    mFlinger->signalLayerUpdate();
+-}
+-void BufferLayer::onFrameReplaced(const BufferItem& item) {
+-    {
+-        Mutex::Autolock lock(mQueueItemLock);
+-        while (item.mFrameNumber != mLastFrameNumberReceived + 1) {
+-            status_t result = mQueueItemCondition.waitRelative(mQueueItemLock,
+-                                                               ms2ns(500));
+-            if (result != NO_ERROR) {
+-                ALOGE("[%s] Timed out waiting on callback", mName.string());
+-            }
+-        }
+-        if (mQueueItems.empty()) {
+-            ALOGE("Can't replace a frame on an empty queue");
+-            return;
+-        }
+-        mQueueItems.editItemAt(mQueueItems.size() - 1) = item;
+-        mLastFrameNumberReceived = item.mFrameNumber;
+-        mQueueItemCondition.broadcast();
+-    }
+-}
+-void BufferLayer::onSidebandStreamChanged() {
+-    if (android_atomic_release_cas(false, true, &mSidebandStreamChanged) == 0) {
+-        mFlinger->signalLayerUpdate();
+-    }
+-}
+-bool BufferLayer::needsFiltering(const RenderArea& renderArea) const {
+-    return mNeedsFiltering || renderArea.needsFiltering();
+-}
+-#define HARDWARE_IS_DEVICE_FORMAT(f) ((f) >= 0x100 && (f) <= 0x1FF)
+-bool BufferLayer::getOpacityForFormat(uint32_t format) {
+-    if (HARDWARE_IS_DEVICE_FORMAT(format)) {
+-        return true;
+-    }
+-    switch (format) {
+-        case HAL_PIXEL_FORMAT_RGBA_8888:
+-        case HAL_PIXEL_FORMAT_BGRA_8888:
+-        case HAL_PIXEL_FORMAT_RGBA_FP16:
+-        case HAL_PIXEL_FORMAT_RGBA_1010102:
+-            return false;
+-    }
+-    return true;
+-}
+-bool BufferLayer::isHdrY410() const {
+-    return (mCurrentDataSpace == ui::Dataspace::BT2020_ITU_PQ &&
+-            mConsumer->getCurrentApi() == NATIVE_WINDOW_API_MEDIA &&
+-            getBE().compositionInfo.mBuffer->getPixelFormat() == HAL_PIXEL_FORMAT_RGBA_1010102);
+-}
+-void BufferLayer::drawWithOpenGL(const RenderArea& renderArea, bool useIdentityTransform) const {
+-    ATRACE_CALL();
+-    const State& s(getDrawingState());
+-    computeGeometry(renderArea, getBE().mMesh, useIdentityTransform);
+-    const Rect bounds{computeBounds()};
+-    Transform t = getTransform();
+-    Rect win = bounds;
+-    if (!s.finalCrop.isEmpty()) {
+-        win = t.transform(win);
+-        if (!win.intersect(s.finalCrop, &win)) {
+-            win.clear();
+-        }
+-        win = t.inverse().transform(win);
+-        if (!win.intersect(bounds, &win)) {
+-            win.clear();
+->>>>>>> 8acaef00

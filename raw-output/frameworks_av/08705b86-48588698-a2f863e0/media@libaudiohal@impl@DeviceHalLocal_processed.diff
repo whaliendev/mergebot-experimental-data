@@ -1,0 +1,54 @@
+--- a/output/frameworks_av/08705b86-48588698-a2f863e0/media@libaudiohal@impl@DeviceHalLocal.no_comments_mergebot.cpp
++++ b/output/frameworks_av/08705b86-48588698-a2f863e0/media@libaudiohal@impl@DeviceHalLocal.no_comments_truth.cpp
+@@ -6,0 +7,8 @@ namespace android {
++DeviceHalLocal::DeviceHalLocal(audio_hw_device_t *dev)
++        : mDev(dev) {
++}
++DeviceHalLocal::~DeviceHalLocal() {
++    int status = audio_hw_device_close(mDev);
++    ALOGW_IF(status, "Error closing audio hw device %p: %s", mDev, strerror(-status));
++    mDev = 0;
++}
+@@ -131,0 +161,42 @@ status_t DeviceHalLocal::setAudioPortConfig(const struct audio_port_config *conf
++#if MAJOR_VERSION == 2
++status_t DeviceHalLocal::getMicrophones(
++        std::vector<media::MicrophoneInfo> *microphones __unused) {
++    return INVALID_OPERATION;
++}
++#elif MAJOR_VERSION >= 4
++status_t DeviceHalLocal::getMicrophones(std::vector<media::MicrophoneInfo> *microphones) {
++    if (mDev->get_microphones == NULL) return INVALID_OPERATION;
++    size_t actual_mics = AUDIO_MICROPHONE_MAX_COUNT;
++    audio_microphone_characteristic_t mic_array[AUDIO_MICROPHONE_MAX_COUNT];
++    status_t status = mDev->get_microphones(mDev, &mic_array[0], &actual_mics);
++    for (size_t i = 0; i < actual_mics; i++) {
++        media::MicrophoneInfo microphoneInfo = media::MicrophoneInfo(mic_array[i]);
++        microphones->push_back(microphoneInfo);
++    }
++    return status;
++}
++#endif
++status_t DeviceHalLocal::addDeviceEffect(
++        audio_port_handle_t device __unused, sp<EffectHalInterface> effect __unused) {
++    return INVALID_OPERATION;
++}
++status_t DeviceHalLocal::removeDeviceEffect(
++        audio_port_handle_t device __unused, sp<EffectHalInterface> effect __unused) {
++    return INVALID_OPERATION;
++}
++status_t DeviceHalLocal::setConnectedState(const struct audio_port_v7 *port, bool connected) {
++    AudioParameter param(String8(port->ext.device.address));
++    const String8 key(connected ?
++            AudioParameter::keyDeviceConnect : AudioParameter::keyDeviceDisconnect);
++    param.addInt(key, port->ext.device.type);
++    return setParameters(param.toString());
++}
++status_t DeviceHalLocal::dump(int fd, const Vector<String16>& ) {
++    return mDev->dump(mDev, fd);
++}
++void DeviceHalLocal::closeOutputStream(struct audio_stream_out *stream_out) {
++    mDev->close_output_stream(mDev, stream_out);
++}
++void DeviceHalLocal::closeInputStream(struct audio_stream_in *stream_in) {
++    mDev->close_input_stream(mDev, stream_in);
++}

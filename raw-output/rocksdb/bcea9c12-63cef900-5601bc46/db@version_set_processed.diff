@@ -1,0 +1,131 @@
+--- a/output/rocksdb/bcea9c12-63cef900-5601bc46/db@version_set.no_comments_mergebot.cc
++++ b/output/rocksdb/bcea9c12-63cef900-5601bc46/db@version_set.no_comments_truth.cc
+@@ -1 +0,0 @@
+-#include "db/version_set.h"
+@@ -2,0 +2 @@
++#include "db/version_set.h"
+@@ -1097,3 +1115,16 @@ public:
+-VersionSet::VersionSet(const std::string& dbname, const Options* options, const DBOptions* options, const EnvOptions& storage_options, Cache* table_cache, TableCache* table_cache, const InternalKeyComparator* cmp): column_family_set_(new ColumnFamilySet(dbname, options, storage_options, table_cache)), env_(options->env), dbname_(dbname), options_(options), table_cache_(table_cache), icmp_(*cmp),
+-      pending_manifest_file_number_(0), last_sequence_(0), num_levels_(options_->num_levels), dummy_versions_(this), current_(nullptr), need_slowdown_for_num_level0_files_(false), log_number_(0), next_file_number_(2), manifest_file_number_(0),
+-      last_sequence_(0), prev_log_number_(0), current_version_number_(0), manifest_file_size_(0), storage_options_(storage_options), storage_options_compactions_(storage_options_) {}
++VersionSet::VersionSet(const std::string& dbname, const DBOptions* options,
++                       const EnvOptions& storage_options, Cache* table_cache)
++    : column_family_set_(new ColumnFamilySet(dbname, options, storage_options,
++                                             table_cache)),
++      env_(options->env),
++      dbname_(dbname),
++      options_(options),
++      next_file_number_(2),
++      manifest_file_number_(0),
++      pending_manifest_file_number_(0),
++      last_sequence_(0),
++      prev_log_number_(0),
++      current_version_number_(0),
++      manifest_file_size_(0),
++      storage_options_(storage_options),
++      storage_options_compactions_(storage_options_) {}
+@@ -1106,6 +1136,0 @@ VersionSet::~VersionSet() {
+-}{
+-  column_family_set_.reset();
+-  for (auto file : obsolete_files_) {
+-    delete file;
+-  }
+-  obsolete_files_.clear();
+@@ -1185,2 +1210,2 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+-    manifest_file_number_ = NewFileNumber();
++  } else {
++    pending_manifest_file_number_ = manifest_file_number_;
+@@ -1189,2 +1213,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-    new_manifest_filename = DescriptorFileName(dbname_, manifest_file_number_);
+-    edit->SetNextFile(next_file_number_);
+@@ -1194,10 +1216,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 5601bc461
+-    manifest_file_number_ = NewFileNumber();
+-  }
+-  if (new_descriptor_log) {
+-    new_manifest_filename = DescriptorFileName(dbname_, manifest_file_number_);
+-    edit->SetNextFile(next_file_number_);
+-=======
+-  } else {
+-    pending_manifest_file_number_ = manifest_file_number_;
+->>>>>>> 63cef900
+@@ -1289 +1301,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-<<<<<<< HEAD
+@@ -1308,8 +1319,0 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
+-||||||| 5601bc461
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+-=======
+-    manifest_file_number_ = pending_manifest_file_number_;
+-    manifest_file_size_ = new_manifest_file_size;
+-    AppendVersion(v);
+->>>>>>> 63cef900
+@@ -1321,0 +1326 @@ Status VersionSet::LogAndApply(ColumnFamilyData* column_family_data,
++    manifest_file_number_ = pending_manifest_file_number_;
+@@ -1505 +1509,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1507,8 +1510,0 @@ Status VersionSet::Recover(
+-||||||| 5601bc461
+-      builder.Apply(&edit);
+-=======
+-      builder.Apply(&edit);
+-      if (edit.has_version_number_) {
+-        have_version_number = true;
+-      }
+->>>>>>> 63cef900
+@@ -1516 +1511,0 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
+@@ -1518,12 +1512,0 @@ Status VersionSet::Recover(
+-            s = Status::Corruption(
+-                "Log Numbers in MANIFEST are not always increasing");
+-          }
+-          cfd->SetLogNumber(edit.log_number_);
+-||||||| 5601bc461
+-        if (have_log_number && log_number > edit.log_number_) {
+-          s = Status::Corruption("log number decreases");
+-          break;
+-        }
+-        log_number = edit.log_number_;
+-=======
+-        if (have_log_number && log_number >= edit.log_number_) {
+@@ -1532,2 +1515 @@ Status VersionSet::Recover(
+-          log_number = edit.log_number_;
+->>>>>>> 63cef900
++            cfd->SetLogNumber(edit.log_number_);
+@@ -1536 +1518 @@ Status VersionSet::Recover(
+-<<<<<<< HEAD
++        }
+@@ -1545,2 +1527,2 @@ Status VersionSet::Recover(
+-||||||| 5601bc461
+-=======
++      if (edit.has_version_number_) {
++        have_version_number = true;
+@@ -1548 +1529,0 @@ Status VersionSet::Recover(
+->>>>>>> 63cef900
+@@ -1567 +1548,3 @@ Status VersionSet::Recover(
+-        s = Status::Corruption("log number decreases");
++        s = Status::Corruption(
++            "MANIFEST corruption - Log numbers in records NOT "
++            "monotonically increasing");
+@@ -1569,2 +1552,3 @@ Status VersionSet::Recover(
+-        Log(options_->info_log, "decreasing of log_number is detected "
+-            "in MANIFEST\n");
++        Log(options_->info_log,
++            "MANIFEST corruption detected, but ignored - Log numbers in "
++            "records NOT monotonically increasing");
+@@ -1914,0 +1900 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
++  bool first_record = false;
+@@ -1918 +1904,4 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-<<<<<<< HEAD
++      if (first_record) {
++        edit.SetVersionNumber();
++        first_record = false;
++      }
+@@ -1932,6 +1920,0 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
+-||||||| 5601bc461
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+-=======
+-  edit.SetVersionNumber();
+-  edit.SetComparatorName(icmp_.user_comparator()->Name());
+->>>>>>> 63cef900

@@ -1,0 +1,66 @@
+diff --git a/output/duckdb/8b5a0059-aef7bf23-17d598fc/src@main@extension@extension_load.no_comments_mergebot.cpp b/output/duckdb/8b5a0059-aef7bf23-17d598fc/src@main@extension@extension_load.no_comments_truth.cpp
+index 4b85604..6feeadf 100644
+--- a/output/duckdb/8b5a0059-aef7bf23-17d598fc/src@main@extension@extension_load.no_comments_mergebot.cpp
++++ b/output/duckdb/8b5a0059-aef7bf23-17d598fc/src@main@extension@extension_load.no_comments_truth.cpp
+@@ -0,0 +1 @@
++#include "duckdb.h"
+@@ -3,2 +3,0 @@
+-#include "duckdb/main/capi/capi_internal.hpp"
+-#include "duckdb/main/capi/extension_api.hpp"
+@@ -6,0 +6,2 @@
++#include "duckdb/main/capi/capi_internal.hpp"
++#include "duckdb/main/capi/extension_api.hpp"
+@@ -9,2 +9,0 @@
+-#include "duckdb/common/serializer/buffered_file_reader.hpp"
+-#include "duckdb/common/serializer/binary_deserializer.hpp"
+@@ -18 +16,0 @@
+-#include "duckdb.h"
+@@ -199 +197,2 @@ bool ExtensionHelper::CheckExtensionSignature(FileHandle &handle, ParsedExtensio
+-bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const string &extension, ExtensionInitResult &result, string &error) {
++bool ExtensionHelper::TryInitialLoad(DatabaseInstance &db, FileSystem &fs, const string &extension,
++                                     ExtensionInitResult &result, string &error) {
+@@ -203 +202 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+- if (!config.options.enable_external_access) {
++ if (!db.config.options.enable_external_access) {
+@@ -230 +229,2 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+-  string local_path = !config.options.extension_directory.empty() ? config.options.extension_directory
++  string local_path = !db.config.options.extension_directory.empty()
++                          ? db.config.options.extension_directory
+@@ -259 +259 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+- if (!config.options.allow_unsigned_extensions) {
++ if (!db.config.options.allow_unsigned_extensions) {
+@@ -263 +263 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+-       CheckExtensionSignature(*handle, parsed_metadata, config.options.allow_community_extensions);
++       CheckExtensionSignature(*handle, parsed_metadata, db.config.options.allow_community_extensions);
+@@ -268 +268 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+-   throw IOException(config.error_manager->FormatException(ErrorType::UNSIGNED_EXTENSION, filename) +
++   throw IOException(db.config.error_manager->FormatException(ErrorType::UNSIGNED_EXTENSION, filename) +
+@@ -274 +274 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+- } else if (!config.options.allow_extensions_metadata_mismatch) {
++ } else if (!db.config.options.allow_extensions_metadata_mismatch) {
+@@ -325 +325 @@ bool ExtensionHelper::TryInitialLoad(DBConfig &config, FileSystem &fs, const str
+-ExtensionInitResult ExtensionHelper::InitialLoad(DBConfig &config, FileSystem &fs, const string &extension) {
++ExtensionInitResult ExtensionHelper::InitialLoad(DatabaseInstance &db, FileSystem &fs, const string &extension) {
+@@ -328 +328 @@ ExtensionInitResult ExtensionHelper::InitialLoad(DBConfig &config, FileSystem &f
+- if (!TryInitialLoad(config, fs, extension, result, error)) {
++ if (!TryInitialLoad(db, fs, extension, result, error)) {
+@@ -332,2 +332,2 @@ ExtensionInitResult ExtensionHelper::InitialLoad(DBConfig &config, FileSystem &f
+-  ExtensionHelper::InstallExtension(config, fs, extension, false);
+-  if (!TryInitialLoad(config, fs, extension, result, error)) {
++  ExtensionHelper::InstallExtension(db, fs, extension, false);
++  if (!TryInitialLoad(db, fs, extension, result, error)) {
+@@ -416,14 +415,0 @@ string ExtensionHelper::ExtractExtensionPrefixFromPath(const string &path) {
+-ExtensionInitResult ExtensionHelper::InitialLoad(DatabaseInstance &db, FileSystem &fs, const string &extension) {
+- string error;
+- ExtensionInitResult result;
+- if (!TryInitialLoad(db, fs, extension, result, error)) {
+-  if (!ExtensionHelper::AllowAutoInstall(extension)) {
+-   throw IOException(error);
+-  }
+-  ExtensionHelper::InstallExtension(db, fs, extension, false);
+-  if (!TryInitialLoad(db, fs, extension, result, error)) {
+-   throw IOException(error);
+-  }
+- }
+- return result;
+-}

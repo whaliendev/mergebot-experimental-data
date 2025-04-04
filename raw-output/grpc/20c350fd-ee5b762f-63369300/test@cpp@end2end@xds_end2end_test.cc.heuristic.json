@@ -1,0 +1,36 @@
+[
+  {
+    "code": [
+      "  class TestRpc {",
+      "   public:",
+      "    TestRpc() {}",
+      "",
+      "    void StartRpc(grpc::testing::EchoTestService::Stub* stub) {",
+      "      sender_thread_ = std::thread([this, stub]() {",
+      "        EchoResponse response;",
+      "        EchoRequest request;",
+      "        request.mutable_param()->set_client_cancel_after_us(1 * 1000 * 1000);",
+      "        request.set_message(kRequestMessage);",
+      "        status_ = stub->Echo(&context_, request, &response);",
+      "      });",
+      "    }",
+      "",
+      "    void CancelRpc() {",
+      "      context_.TryCancel();",
+      "      sender_thread_.join();",
+      "    }",
+      "",
+      "   private:",
+      "    std::thread sender_thread_;",
+      "    ClientContext context_;",
+      "    Status status_;",
+      "  };",
+      "",
+      "  gpr_setenv(\"GRPC_XDS_EXPERIMENTAL_CIRCUIT_BREAKING\", \"true\");"
+    ],
+    "label": "",
+    "index": 0,
+    "confidence": 0.7,
+    "desc": "Added code or method extraction, accept their side."
+  }
+]

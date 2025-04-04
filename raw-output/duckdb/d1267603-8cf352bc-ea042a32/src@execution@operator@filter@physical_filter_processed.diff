@@ -1,0 +1,69 @@
+--- a/output/duckdb/d1267603-8cf352bc-ea042a32/src@execution@operator@filter@physical_filter.no_comments_mergebot.cpp
++++ b/output/duckdb/d1267603-8cf352bc-ea042a32/src@execution@operator@filter@physical_filter.no_comments_truth.cpp
+@@ -5,0 +6,23 @@ using namespace std;
++class PhysicalFilterState : public PhysicalOperatorState {
++public:
++ PhysicalFilterState(PhysicalOperator *child, Expression &expr)
++     : PhysicalOperatorState(child), executor(expr) {
++  vector<TypeId> result_type = { TypeId::BOOLEAN };
++  intermediate.Initialize(result_type);
++ }
++ DataChunk intermediate;
++ ExpressionExecutor executor;
++};
++PhysicalFilter::PhysicalFilter(vector<TypeId> types, vector<unique_ptr<Expression>> select_list) :
++ PhysicalOperator(PhysicalOperatorType::FILTER, types) {
++ assert(select_list.size() > 0);
++ if (select_list.size() > 1) {
++  auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
++  for(auto &expr : select_list) {
++   conjunction->children.push_back(move(expr));
++  }
++  expression = move(conjunction);
++ } else {
++  expression = move(select_list[0]);
++ }
++}
+@@ -14 +36,0 @@ void PhysicalFilter::GetChunkInternal(ClientContext &context, DataChunk &chunk,
+-<<<<<<< HEAD
+@@ -16,10 +37,0 @@ void PhysicalFilter::GetChunkInternal(ClientContext &context, DataChunk &chunk,
+-||||||| ea042a3262
+-  assert(expressions.size() > 0);
+-  Vector result(TypeId::BOOLEAN, true, false);
+-  ExpressionExecutor executor(state->child_chunk);
+-  executor.Merge(expressions, result);
+-=======
+-  assert(expressions.size() > 0);
+-  ExpressionExecutor executor(state->child_chunk);
+-  executor.Merge(expressions);
+->>>>>>> 8cf352bc
+@@ -31,5 +42,0 @@ void PhysicalFilter::GetChunkInternal(ClientContext &context, DataChunk &chunk,
+-<<<<<<< HEAD
+-  chunk.SetSelectionVector(state->intermediate.data[0]);
+-||||||| ea042a3262
+-  chunk.SetSelectionVector(result);
+-=======
+@@ -41 +48 @@ void PhysicalFilter::GetChunkInternal(ClientContext &context, DataChunk &chunk,
+->>>>>>> 8cf352bc
++  chunk.SetSelectionVector(state->intermediate.data[0]);
+@@ -49,20 +55,0 @@ string PhysicalFilter::ExtraRenderInformation() const {
+-}class PhysicalFilterState : public PhysicalOperatorState {
+-public:
+- PhysicalFilterState(PhysicalOperator *child, Expression &expr): PhysicalOperatorState(child), executor(expr) {
+-  vector<TypeId> result_type = { TypeId::BOOLEAN };
+-  intermediate.Initialize(result_type);
+- }
+- DataChunk intermediate;
+- ExpressionExecutor executor;
+-};
+-PhysicalFilter::PhysicalFilter(vector<TypeId> types, vector<unique_ptr<Expression>> select_list): PhysicalOperator(PhysicalOperatorType::FILTER, types) {
+- assert(select_list.size() > 0);
+- if (select_list.size() > 1) {
+-  auto conjunction = make_unique<BoundConjunctionExpression>(ExpressionType::CONJUNCTION_AND);
+-  for(auto &expr : select_list) {
+-   conjunction->children.push_back(move(expr));
+-  }
+-  expression = move(conjunction);
+- } else {
+-  expression = move(select_list[0]);
+- }

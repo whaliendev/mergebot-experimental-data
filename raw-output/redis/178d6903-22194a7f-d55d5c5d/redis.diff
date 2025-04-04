@@ -1,0 +1,163 @@
+diff --git a/output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_mergebot.c b/output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_truth.c
+index bc4863d..44f1a6a 100644
+--- a/output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_mergebot.c
++++ b/output/redis/178d6903-22194a7f-d55d5c5d/redis.no_comments_truth.c
+@@ -79,4 +78,0 @@
+-#define REDIS_ENCODING_RAW 0
+-#define REDIS_ENCODING_INT 1
+-#define REDIS_ENCODING_ZIPMAP 2
+-#define REDIS_ENCODING_HT 3
+@@ -84 +80 @@ static char* strencoding[] = {
+-    "raw", "int", "zipmap", "hashtable"
++    "raw", "int", "hashtable", "zipmap", "list", "ziplist"
+@@ -130,0 +127 @@ static char* strencoding[] = {
++#define REDIS_NOTUSED(V) ((void) V)
+@@ -137,0 +135,2 @@ static char* strencoding[] = {
++#define redisAssert(_e) ((_e)?(void)0 : (_redisAssert(#_e,__FILE__,__LINE__),_exit(1)))
++#define redisPanic(_e) _redisPanic(#_e,__FILE__,__LINE__),_exit(1)
+@@ -155,0 +155,7 @@ typedef struct vmPointer {
++#define initStaticStringObject(_var,_ptr) do { \
++    _var.refcount = 1; \
++    _var.type = REDIS_STRING; \
++    _var.encoding = REDIS_ENCODING_RAW; \
++    _var.ptr = _ptr; \
++    _var.storage = REDIS_VM_MEMORY; \
++} while(0);
+@@ -3972 +3977,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+-<<<<<<< HEAD
+@@ -3974,22 +3978,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+-        dictAdd(c->db->dict,c->argv[1],lobj);
+-        incrRefCount(c->argv[1]);
+-||||||| d55d5c5dd
+-        lobj = createListObject();
+-        list = lobj->ptr;
+-        if (where == REDIS_HEAD) {
+-            listAddNodeHead(list,c->argv[2]);
+-        } else {
+-            listAddNodeTail(list,c->argv[2]);
+-        }
+-        dictAdd(c->db->dict,c->argv[1],lobj);
+-        incrRefCount(c->argv[1]);
+-        incrRefCount(c->argv[2]);
+-=======
+-        lobj = createListObject();
+-        list = lobj->ptr;
+-        if (where == REDIS_HEAD) {
+-            listAddNodeHead(list,c->argv[2]);
+-        } else {
+-            listAddNodeTail(list,c->argv[2]);
+-        }
+-        incrRefCount(c->argv[2]);
+@@ -3997 +3979,0 @@ static void pushGenericCommand(redisClient *c, int where) {
+->>>>>>> 22194a7f
+@@ -4097 +4078,0 @@ static void popGenericCommand(redisClient *c, int where) {
+-<<<<<<< HEAD
+@@ -4100,12 +4081 @@ static void popGenericCommand(redisClient *c, int where) {
+-        if (lLength(o) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-        robj *ele = listNodeValue(ln);
+-        addReplyBulk(c,ele);
+-        listDelNode(list,ln);
+-        if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-        robj *ele = listNodeValue(ln);
+-        addReplyBulk(c,ele);
+-        listDelNode(list,ln);
+-        if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++        if (lLength(o) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4187 +4156,0 @@ static void ltrimCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4191,6 +4160 @@ static void ltrimCommand(redisClient *c) {
+-    if (lLength(o) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-    if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-    if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++    if (lLength(o) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4224 +4187,0 @@ static void lremCommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4228,6 +4191 @@ static void lremCommand(redisClient *c) {
+-    if (lLength(subject) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-    if (listLength(list) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-    if (listLength(list) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++    if (lLength(subject) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4247 +4204,0 @@ static void rpoplpushcommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4250,8 +4206,0 @@ static void rpoplpushcommand(redisClient *c) {
+-                dictAdd(c->db->dict,c->argv[2],dobj);
+-                incrRefCount(c->argv[2]);
+-||||||| d55d5c5dd
+-                dobj = createListObject();
+-                dictAdd(c->db->dict,c->argv[2],dobj);
+-                incrRefCount(c->argv[2]);
+-=======
+-                dobj = createListObject();
+@@ -4259 +4207,0 @@ static void rpoplpushcommand(redisClient *c) {
+->>>>>>> 22194a7f
+@@ -4264 +4211,0 @@ static void rpoplpushcommand(redisClient *c) {
+-<<<<<<< HEAD
+@@ -4266,8 +4213 @@ static void rpoplpushcommand(redisClient *c) {
+-        if (lLength(sobj) == 0) deleteKey(c->db,c->argv[1]);
+-||||||| d55d5c5dd
+-        listDelNode(srclist,ln);
+-        if (listLength(srclist) == 0) deleteKey(c->db,c->argv[1]);
+-=======
+-        listDelNode(srclist,ln);
+-        if (listLength(srclist) == 0) dbDelete(c->db,c->argv[1]);
+->>>>>>> 22194a7f
++        if (lLength(sobj) == 0) dbDelete(c->db,c->argv[1]);
+@@ -4936,0 +4877 @@ static int qsortCompareZsetopsrcByCardinality(const void *s1, const void *s2) {
++#define zunionInterDictValue(_e) (dictGetEntryVal(_e) == NULL ? 1.0 : *(double*)dictGetEntryVal(_e))
+@@ -5907,11 +5848 @@ static void sortCommand(redisClient *c) {
+-<<<<<<< HEAD
+-        if (dictReplace(c->db->dict,storekey,sobj)) {
+-            incrRefCount(storekey);
+-        }
+-||||||| d55d5c5dd
+-        if (dictReplace(c->db->dict,storekey,listObject)) {
+-            incrRefCount(storekey);
+-        }
+-=======
+-        dbReplace(c->db,storekey,listObject);
+->>>>>>> 22194a7f
++        dbReplace(c->db,storekey,sobj);
+@@ -6912,9 +6842,0 @@ fmterr:
+-static int fwriteBulkObject(FILE *fp, robj *obj) {
+-    if (obj->encoding == REDIS_ENCODING_INT) {
+-        return fwriteBulkLongLong(fp,(long)obj->ptr);
+-    } else if (obj->encoding == REDIS_ENCODING_RAW) {
+-        return fwriteBulkString(fp,obj->ptr,sdslen(obj->ptr));
+-    } else {
+-        redisPanic("Unknown string encoding");
+-    }
+-}
+@@ -6948,0 +6871,9 @@ static int fwriteBulkLongLong(FILE *fp, long long l) {
++static int fwriteBulkObject(FILE *fp, robj *obj) {
++    if (obj->encoding == REDIS_ENCODING_INT) {
++        return fwriteBulkLongLong(fp,(long)obj->ptr);
++    } else if (obj->encoding == REDIS_ENCODING_RAW) {
++        return fwriteBulkString(fp,obj->ptr,sdslen(obj->ptr));
++    } else {
++        redisPanic("Unknown string encoding");
++    }
++}
+@@ -7005 +6936 @@ static int rewriteAppendOnlyFile(char *filename) {
+-                        if (fwriteBulkObject(fp,key) == 0) goto werr;
++                        if (fwriteBulkObject(fp,&key) == 0) goto werr;
+@@ -7089,7 +7019,0 @@ static int rewriteAppendOnlyFile(char *filename) {
+-<<<<<<< HEAD
+-                if (fwriteBulkObject(fp,key) == 0) goto werr;
+-                if (fwriteBulkLongLong(fp,expiretime) == 0) goto werr;
+-||||||| d55d5c5dd
+-                if (fwriteBulkObject(fp,key) == 0) goto werr;
+-                if (fwriteBulkLong(fp,expiretime) == 0) goto werr;
+-=======
+@@ -7097,2 +7021 @@ static int rewriteAppendOnlyFile(char *filename) {
+-                if (fwriteBulkLong(fp,expiretime) == 0) goto werr;
+->>>>>>> 22194a7f
++                if (fwriteBulkLongLong(fp,expiretime) == 0) goto werr;

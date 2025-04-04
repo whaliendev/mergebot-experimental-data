@@ -1,0 +1,73 @@
+--- a/output/art/5550099d-32e49587-a298ea28/runtime@oat_file.no_comments_mergebot.h
++++ b/output/art/5550099d-32e49587-a298ea28/runtime@oat_file.no_comments_truth.h
+@@ -47,34 +47 @@ public:
+-  class OatDexFile {
+-   public:
+-    const DexFile* OpenDexFile(std::string* error_msg) const;
+-    const OatFile* GetOatFile() const {
+-      return oat_file_;
+-    }
+-    size_t FileSize() const;
+-    const std::string& GetDexFileLocation() const {
+-      return dex_file_location_;
+-    }
+-    const std::string& GetCanonicalDexFileLocation() const {
+-      return canonical_dex_file_location_;
+-    }
+-    uint32_t GetDexFileLocationChecksum() const {
+-      return dex_file_location_checksum_;
+-    }
+-    OatClass GetOatClass(uint16_t class_def_index) const;
+-    ~OatDexFile();
+-   private:
+-    OatDexFile(const OatFile* oat_file,
+-               const std::string& dex_file_location,
+-               const std::string& canonical_dex_file_location,
+-               uint32_t dex_file_checksum,
+-               const byte* dex_file_pointer,
+-               const uint32_t* oat_class_offsets_pointer);
+-    const OatFile* const oat_file_;
+-    const std::string dex_file_location_;
+-    const std::string canonical_dex_file_location_;
+-    const uint32_t dex_file_location_checksum_;
+-    const byte* const dex_file_pointer_;
+-    const uint32_t* const oat_class_offsets_pointer_;
+-    friend class OatFile;
+-    DISALLOW_COPY_AND_ASSIGN(OatDexFile);
+-  };
++  class OatDexFile;
+@@ -108,3 +74,0 @@ public:
+-    uint32_t GetQuickCodeSizeOffset() const;
+-    const OatQuickMethodHeader* GetOatQuickMethodHeader() const;
+-    uint32_t GetOatQuickMethodHeaderOffset() const;
+@@ -117 +80,0 @@ public:
+-    const uint8_t* GetMappingTable() const;
+@@ -119,2 +81,0 @@ public:
+-    uint32_t GetMappingTableOffsetOffset() const;
+-    const uint8_t* GetVmapTable() const;
+@@ -122 +83,2 @@ public:
+-    uint32_t GetVmapTableOffsetOffset() const;
++    const uint8_t* GetMappingTable() const;
++    const uint8_t* GetVmapTable() const;
+@@ -154 +115,0 @@ public:
+-<<<<<<< HEAD
+@@ -159,7 +119,0 @@ public:
+-||||||| a298ea28e1
+-    OatClass() {}
+-=======
+-    const OatMethodOffsets* GetOatMethodOffsets(uint32_t method_index) const;
+-    uint32_t GetOatMethodOffsetsOffset(uint32_t method_index) const;
+-    OatClass() {}
+->>>>>>> 32e49587
+@@ -214 +168,3 @@ public:
+-      LOCKS_EXCLUDED(secondary_lookup_lock_);
++  const OatDexFile* GetOatDexFile(const char* dex_location,
++                                  const uint32_t* const dex_location_checksum,
++                                  bool exception_if_not_found = true) const
+@@ -251,3 +207,3 @@ private:
+-mutable Mutex secondary_lookup_lock_ DISALLOW_COPY_AND_ASSIGN(OatFile);
+-mutable Table secondary_oat_dex_files_ DISALLOW_COPY_AND_ASSIGN(OatFile);
+-mutable std::list<std::string> string_cache_ DISALLOW_COPY_AND_ASSIGN(OatFile);
++  mutable Mutex secondary_lookup_lock_ DEFAULT_MUTEX_ACQUIRED_AFTER;
++  mutable Table secondary_oat_dex_files_ GUARDED_BY(secondary_lookup_lock_);
++  mutable std::list<std::string> string_cache_ GUARDED_BY(secondary_lookup_lock_);
